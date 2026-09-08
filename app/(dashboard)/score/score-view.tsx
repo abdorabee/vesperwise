@@ -7,9 +7,28 @@ import { CHAT_CREDIT_COST } from "@/lib/types";
 import { extractDomain, seedChatSession, streamChat } from "@/lib/chat-client";
 import { avColor, scoreFromToolResult } from "@/components/score/score-result-card";
 import type { ScoreCardData } from "@/components/score/score-result-card";
-import { GenUiWorkspace, SuggestionChips } from "@/components/score/gen-ui/workspace";
+import { GenUiWorkspace } from "@/components/score/gen-ui/workspace";
 import { sanitizeUiBlocks, suggestionsFromBlocks, workspaceFromScore } from "@/lib/gen-ui";
 import type { UiBlock } from "@/lib/gen-ui";
+import {
+  Conversation,
+  ConversationContent,
+  ConversationScrollButton,
+} from "@/components/ai-elements/conversation";
+import {
+  Message,
+  MessageContent,
+  MessageResponse,
+} from "@/components/ai-elements/message";
+import {
+  PromptInput,
+  PromptInputBody,
+  PromptInputFooter,
+  PromptInputSubmit,
+  PromptInputTextarea,
+} from "@/components/ai-elements/prompt-input";
+import { Suggestion, Suggestions } from "@/components/ai-elements/suggestion";
+import { Tool, ToolHeader } from "@/components/ai-elements/tool";
 
 type ScorableIntentScore = IntentScore & {
   intent_score: number;
@@ -131,30 +150,32 @@ function ToolChips({ tools }: { tools: ToolChip[] }) {
   if (tools.length === 0) return null;
   return (
     <div className="chat-tools">
-      {tools.map((tool) => (
-        <div key={tool.name} className={`chat-tool ${tool.status}`}>
-          <span className="chat-tool-dot" />
-          {tool.status === "running" ? `Running ${tool.name.replace(/_/g, " ")}…` : tool.name.replace(/_/g, " ")}
-        </div>
+      {tools.map((entry) => (
+        <Tool key={entry.name} className="score-tool-chip" defaultOpen={false}>
+          <ToolHeader
+            className="score-tool-chip-header"
+            title={entry.name.replace(/_/g, " ")}
+            type={`tool-${entry.name}`}
+            state={entry.status === "running" ? "input-streaming" : "output-available"}
+          />
+        </Tool>
       ))}
     </div>
   );
 }
 
 function AssistantText({ content }: { content: string }) {
-  return <div className="chat-md">{content}</div>;
+  return <MessageResponse className="chat-md">{content}</MessageResponse>;
 }
 
 interface ScorePromptStageProps {
-  domain: string;
-  setDomain: (v: string) => void;
-  onScore: () => void;
+  onScore: (value?: string) => void;
   creditsRemaining: number;
   recentScores: RecentScore[];
   busy: boolean;
 }
 
-function ScorePromptStage({ domain, setDomain, onScore, creditsRemaining, recentScores, busy }: ScorePromptStageProps) {
+function ScorePromptStage({ onScore, creditsRemaining, recentScores, busy }: ScorePromptStageProps) {
   return (
     <div className="prompt-stage">
       <div className="prompt-bg">
@@ -175,27 +196,26 @@ function ScorePromptStage({ domain, setDomain, onScore, creditsRemaining, recent
           then keep chatting about the account.
         </p>
 
-        <div className="prompt-holder prompt-holder--compact">
-          <div className="prompt-prefix">
-            <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" width="14" height="14">
-              <circle cx="7" cy="7" r="5" /><path d="M2 7h10M7 2c2 2 2 8 0 10M7 2c-2 2-2 8 0 10" />
-            </svg>
-          </div>
-          <input
-            className="prompt-input"
-            type="text"
-            placeholder="stripe.com"
-            value={domain}
-            onChange={(e) => setDomain(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && !busy && onScore()}
-            autoFocus
-            disabled={busy}
-          />
-          <button type="button" className="prompt-go" onClick={onScore} disabled={busy}>
-            Score
-            <span className="kbd-inline">↵</span>
-          </button>
-        </div>
+        <PromptInput
+          className="prompt-holder prompt-holder--compact score-elements-input"
+          onSubmit={(message) => {
+            void onScore(message.text);
+          }}
+        >
+          <PromptInputBody>
+            <PromptInputTextarea
+              placeholder="stripe.com"
+              disabled={busy}
+              autoFocus
+              aria-label="Company domain"
+            />
+          </PromptInputBody>
+          <PromptInputFooter>
+            <PromptInputSubmit disabled={busy} className="score-elements-submit">
+              Score
+            </PromptInputSubmit>
+          </PromptInputFooter>
+        </PromptInput>
 
         <div className="prompt-meta">
           <div className="left">
@@ -214,7 +234,7 @@ function ScorePromptStage({ domain, setDomain, onScore, creditsRemaining, recent
         </div>
         <div className="suggestion-row">
           {HOT_PICKS.map((pick) => (
-            <button key={pick.domain} type="button" className="sugg" onClick={() => setDomain(pick.domain)}>
+            <button key={pick.domain} type="button" className="sugg" onClick={() => onScore(pick.domain)}>
               <div className="av" style={{ background: avColor(pick.name) }}>{pick.name[0]}</div>
               {pick.domain}
               <span className="mono-sm">▲ {pick.signal}</span>
@@ -230,7 +250,7 @@ function ScorePromptStage({ domain, setDomain, onScore, creditsRemaining, recent
             </div>
             <div className="recent-row">
               {recentScores.map((r) => (
-                <button key={r.domain} type="button" className="sugg recent" onClick={() => setDomain(r.domain)}>
+                <button key={r.domain} type="button" className="sugg recent" onClick={() => onScore(r.domain)}>
                   <div className="av" style={{ background: avColor(r.company_name) }}>{r.company_name[0]}</div>
                   {r.domain}
                   <span
@@ -300,7 +320,6 @@ function ScorePromptStage({ domain, setDomain, onScore, creditsRemaining, recent
 export function ScoreView({ creditsRemaining, recentScores }: ScoreViewProps) {
   const searchParams = useSearchParams();
   const autoScoredRef = useRef<string | null>(null);
-  const threadRef = useRef<HTMLDivElement>(null);
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<ThreadMessage[]>([]);
   const [busy, setBusy] = useState(false);
@@ -327,10 +346,6 @@ export function ScoreView({ creditsRemaining, recentScores }: ScoreViewProps) {
     }, 430);
     return () => clearInterval(t);
   }, [scoring]);
-
-  useEffect(() => {
-    threadRef.current?.scrollTo({ top: threadRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages]);
 
   async function runScore(raw: string, domain: string) {
     const thinkingId = nextId();
@@ -524,35 +539,33 @@ export function ScoreView({ creditsRemaining, recentScores }: ScoreViewProps) {
     <div className="score-chat">
       {!active ? (
         <ScorePromptStage
-          domain={input}
-          setDomain={setInput}
-          onScore={() => void submitMessage()}
+          onScore={(value) => void submitMessage(value)}
           creditsRemaining={creditsRemaining}
           recentScores={recentScores}
           busy={busy}
         />
       ) : (
         <>
-          <div className="score-chat-thread" ref={threadRef}>
-            <div className="score-chat-col">
+          <Conversation className="score-chat-thread">
+            <ConversationContent className="score-chat-col">
               {messages.map((message) => {
                 if (message.role === "user") {
                   return (
-                    <div key={message.id} className="chat-row user">
-                      <div className="chat-bubble user">{message.content}</div>
-                    </div>
+                    <Message key={message.id} from="user">
+                      <MessageContent className="chat-bubble user">{message.content}</MessageContent>
+                    </Message>
                   );
                 }
                 if (message.role === "error") {
                   return (
-                    <div key={message.id} className="chat-row assistant">
+                    <Message key={message.id} from="assistant">
                       <p className="chat-error" role="alert">{message.content}</p>
-                    </div>
+                    </Message>
                   );
                 }
                 if (message.kind === "thinking") {
                   return (
-                    <div key={message.id} className="chat-row assistant">
+                    <Message key={message.id} from="assistant">
                       {message.mode === "score" ? (
                         <LiveProgressBar loading stepIndex={stepIndex} />
                       ) : (
@@ -561,63 +574,80 @@ export function ScoreView({ creditsRemaining, recentScores }: ScoreViewProps) {
                           Designing view…
                         </div>
                       )}
-                    </div>
+                    </Message>
                   );
                 }
                 if (message.kind === "ui") {
                   return (
-                    <div key={message.id} className="chat-row assistant">
-                      {message.billing && (
-                        <LiveProgressBar
-                          loading={false}
-                          stepIndex={STEPS.length - 1}
-                          billingLabel={message.billing}
+                    <Message key={message.id} from="assistant">
+                      <MessageContent>
+                        {message.billing && (
+                          <LiveProgressBar
+                            loading={false}
+                            stepIndex={STEPS.length - 1}
+                            billingLabel={message.billing}
+                          />
+                        )}
+                        <ToolChips tools={message.tools} />
+                        {message.content && <AssistantText content={message.content} />}
+                        <GenUiWorkspace
+                          blocks={message.blocks}
+                          handlers={{
+                            onWatchlist: (company, d) => void handleAddToWatchlist(company, d),
+                            watchlistByDomain,
+                            onPrompt: (prompt) => void submitMessage(prompt),
+                          }}
                         />
-                      )}
-                      <ToolChips tools={message.tools} />
-                      {message.content && <AssistantText content={message.content} />}
-                      <GenUiWorkspace
-                        blocks={message.blocks}
-                        handlers={{
-                          onWatchlist: (company, d) => void handleAddToWatchlist(company, d),
-                          watchlistByDomain,
-                          onPrompt: (prompt) => void submitMessage(prompt),
-                        }}
-                      />
-                    </div>
+                      </MessageContent>
+                    </Message>
                   );
                 }
                 return (
-                  <div key={message.id} className="chat-row assistant">
-                    <ToolChips tools={message.tools} />
-                    {message.content && <AssistantText content={message.content} />}
-                  </div>
+                  <Message key={message.id} from="assistant">
+                    <MessageContent>
+                      <ToolChips tools={message.tools} />
+                      {message.content && <AssistantText content={message.content} />}
+                    </MessageContent>
+                  </Message>
                 );
               })}
-            </div>
-          </div>
+            </ConversationContent>
+            <ConversationScrollButton className="score-elements-scroll" />
+          </Conversation>
           <div className="score-chat-composer">
-            <SuggestionChips suggestions={chips} onPrompt={(prompt) => void submitMessage(prompt)} disabled={busy} />
-            <div className="prompt-holder prompt-holder--compact">
-              <div className="prompt-prefix">
-                <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" width="14" height="14">
-                  <circle cx="7" cy="7" r="5" /><path d="M2 7h10M7 2c2 2 2 8 0 10M7 2c-2 2-2 8 0 10" />
-                </svg>
-              </div>
-              <input
-                className="prompt-input"
-                type="text"
-                placeholder="Ask a follow-up or score another domain"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && !busy && void submitMessage()}
-                disabled={busy}
-                aria-label="Chat message"
-              />
-              <button type="button" className="prompt-go" onClick={() => void submitMessage()} disabled={busy || !input.trim()}>
-                Send
-              </button>
-            </div>
+            {chips.length > 0 && (
+              <Suggestions className="score-elements-suggestions">
+                {chips.map((chip) => (
+                  <Suggestion
+                    key={chip.prompt}
+                    suggestion={chip.prompt}
+                    disabled={busy}
+                    onClick={(prompt) => void submitMessage(prompt)}
+                  >
+                    {chip.label}
+                  </Suggestion>
+                ))}
+              </Suggestions>
+            )}
+            <PromptInput
+              className="prompt-holder prompt-holder--compact score-elements-input"
+              onSubmit={(message) => {
+                void submitMessage(message.text);
+              }}
+            >
+              <PromptInputBody>
+                <PromptInputTextarea
+                  placeholder="Ask a follow-up or score another domain"
+                  disabled={busy}
+                  aria-label="Chat message"
+                />
+              </PromptInputBody>
+              <PromptInputFooter>
+                <PromptInputSubmit disabled={busy} className="score-elements-submit">
+                  Send
+                </PromptInputSubmit>
+              </PromptInputFooter>
+            </PromptInput>
             <div className="prompt-meta">
               <div className="left">
                 <span>Follow-ups <strong>{CHAT_CREDIT_COST}</strong> credits · new domain <strong>1</strong> credit</span>

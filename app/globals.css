@@ -3371,6 +3371,52 @@ button.signal-card.gen-axis.is-selected {
   margin: 10px auto 0;
 }
 
+.score-elements-input {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+}
+.score-elements-input [data-slot="input-group"],
+.score-elements-input [data-slot="input-group-control"] {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+.score-elements-input textarea {
+  font-family: var(--font-mono);
+  font-size: 16px;
+  min-height: 40px;
+  resize: none;
+  color: var(--text-primary);
+}
+.score-elements-submit {
+  background: var(--accent) !important;
+  color: #08090a !important;
+  border-color: var(--accent) !important;
+}
+.score-elements-submit:hover {
+  background: var(--accent-2) !important;
+}
+.score-elements-suggestions {
+  max-width: 1040px;
+  margin: 0 auto 10px;
+}
+.score-elements-scroll {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--text-secondary);
+}
+.score-tool-chip {
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 999px;
+}
+.score-tool-chip-header {
+  padding: 4px 10px;
+  gap: 8px;
+}
+
 /* Live progress bar */
 .live-progress {
   display: flex; align-items: center; gap: 14px;

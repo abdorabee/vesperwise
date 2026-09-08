@@ -1,7 +1,11 @@
 import { NextRequest } from "next/server";
 import { auth } from "@clerk/nextjs/server";
+import { createOpenAI } from "@ai-sdk/openai";
+import { isStepCount, streamText, type ModelMessage } from "ai";
+
 import { createSupabaseAdmin } from "@/lib/supabase";
-import { COPILOT_TOOLS, executeTool, buildCopilotContext, buildCopilotSystemPrompt } from "@/lib/copilot";
+import { buildCopilotContext, buildCopilotSystemPrompt } from "@/lib/copilot";
+import { copilotSdkTools } from "@/lib/copilot-ai-tools";
 import { CHAT_CREDIT_COST } from "@/lib/types";
 import type { DbUser } from "@/lib/types";
 import { sanitizeUiBlocks } from "@/lib/gen-ui";
@@ -9,75 +13,20 @@ import { sanitizeUiBlocks } from "@/lib/gen-ui";
 const COPILOT_MODEL = process.env.COPILOT_MODEL ?? "anthropic/claude-sonnet-4";
 const COPILOT_MAX_TOKENS = Number(process.env.COPILOT_MAX_TOKENS) || 1024;
 
-type ContentBlock =
-  | { type: "text"; text: string }
-  | { type: "image_url"; image_url: { url: string } };
-
-interface OpenRouterMessage {
-  role: "system" | "user" | "assistant" | "tool";
-  content: string | null | ContentBlock[];
-  tool_calls?: Array<{
-    id: string;
-    type: "function";
-    function: { name: string; arguments: string };
-  }>;
-  tool_call_id?: string;
-}
-
-interface OpenRouterChoice {
-  message: {
-    role: string;
-    content: string | null;
-    tool_calls?: Array<{
-      id: string;
-      type: "function";
-      function: { name: string; arguments: string };
-    }>;
-  };
-  finish_reason: string;
-}
-
-async function callOpenRouter(messages: OpenRouterMessage[], systemPrompt: string) {
+function openRouterProvider() {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) throw new Error("OPENROUTER_API_KEY is not set");
-
-  const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: COPILOT_MODEL,
-      max_tokens: COPILOT_MAX_TOKENS,
-      temperature: 0.4,
-      messages: [
-        { role: "system", content: systemPrompt },
-        ...messages,
-      ],
-      tools: COPILOT_TOOLS,
-    }),
+  return createOpenAI({
+    apiKey,
+    baseURL: "https://openrouter.ai/api/v1",
+    name: "openrouter",
   });
-
-  if (!res.ok) {
-    const text = await res.text();
-    if (res.status === 402) {
-      throw new Error(
-        "The AI service has run out of credits. Please top up your OpenRouter balance or reduce COPILOT_MAX_TOKENS."
-      );
-    }
-    throw new Error(`OpenRouter ${res.status}: ${text}`);
-  }
-
-  const data = (await res.json()) as { choices: OpenRouterChoice[] };
-  return data.choices[0];
 }
 
 export async function POST(req: NextRequest) {
   const { userId } = await auth();
   if (!userId) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
 
-  // ── Parse body — support both JSON and multipart (image upload) ─────────────
   const contentType = req.headers.get("content-type") ?? "";
   let message: string;
   let session_id: string | undefined;
@@ -106,7 +55,6 @@ export async function POST(req: NextRequest) {
 
   const supabase = createSupabaseAdmin();
 
-  // ── Load user ────────────────────────────────────────────────────────────
   const { data: user } = await supabase
     .from("users")
     .select("*")
@@ -119,12 +67,11 @@ export async function POST(req: NextRequest) {
     return new Response(JSON.stringify({ error: "Insufficient credits" }), { status: 402 });
   }
 
-  // ── Session management ───────────────────────────────────────────────────
   let sessionId = session_id;
   if (!sessionId) {
     const { data: session, error } = await supabase
       .from("chat_sessions")
-      .insert({ user_id: userId, title: message.slice(0, 80) })
+      .insert({ user_id: userId, title: (message || "Screenshot").slice(0, 80) })
       .select("id")
       .single();
     if (error || !session) {
@@ -132,7 +79,6 @@ export async function POST(req: NextRequest) {
     }
     sessionId = session.id;
   } else {
-    // Verify session belongs to user
     const { data: session } = await supabase
       .from("chat_sessions")
       .select("user_id")
@@ -144,7 +90,6 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // ── Load conversation history ────────────────────────────────────────────
   const { data: history } = await supabase
     .from("chat_messages")
     .select("role, content")
@@ -152,12 +97,11 @@ export async function POST(req: NextRequest) {
     .order("created_at", { ascending: true })
     .limit(50);
 
-  const conversationHistory: OpenRouterMessage[] = (history ?? []).map((m) => ({
-    role: (m.role === "assistant" ? "assistant" : "user") as "user" | "assistant",
-    content: m.content,
+  const conversationHistory: ModelMessage[] = (history ?? []).map((row) => ({
+    role: row.role === "assistant" ? "assistant" : "user",
+    content: row.content,
   }));
 
-  // ── Persist user message (store text only; images are not stored in DB) ────
   const persistContent = imageBase64
     ? `[Screenshot] ${message}`.trim()
     : message;
@@ -167,22 +111,21 @@ export async function POST(req: NextRequest) {
     content: persistContent,
   });
 
-  // ── Deduct chat credit ───────────────────────────────────────────────────
   await supabase.rpc("deduct_chat_credit", { p_user_id: userId, p_amount: CHAT_CREDIT_COST });
 
-  // ── Build context ────────────────────────────────────────────────────────
   const context = await buildCopilotContext(userId);
-  const systemPrompt = buildCopilotSystemPrompt(user as DbUser, context);
+  const instructions = buildCopilotSystemPrompt(user as DbUser, context);
 
-  // ── Build user message content (vision or text) ──────────────────────────
-  const userMessageContent: OpenRouterMessage["content"] = imageBase64
-    ? [
-        { type: "image_url", image_url: { url: `data:${imageMediaType};base64,${imageBase64}` } },
-        { type: "text", text: message || "Analyze this conversation screenshot for buying intent signals." },
-      ]
-    : message;
+  const userMessage: ModelMessage = imageBase64
+    ? {
+        role: "user",
+        content: [
+          { type: "image", image: Buffer.from(imageBase64, "base64"), mediaType: imageMediaType },
+          { type: "text", text: message || "Analyze this conversation screenshot for buying intent signals." },
+        ],
+      }
+    : { role: "user", content: message };
 
-  // ── Stream response ──────────────────────────────────────────────────────
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream({
@@ -192,71 +135,59 @@ export async function POST(req: NextRequest) {
       };
 
       try {
-        const messages: OpenRouterMessage[] = [
-          ...conversationHistory,
-          { role: "user", content: userMessageContent },
-        ];
+        const result = streamText({
+          model: openRouterProvider().chat(COPILOT_MODEL),
+          instructions,
+          messages: [...conversationHistory, userMessage],
+          tools: copilotSdkTools(
+            userId,
+            user.product_category ?? "B2B SaaS",
+            user.business_profile ?? null
+          ),
+          stopWhen: isStepCount(8),
+          maxOutputTokens: COPILOT_MAX_TOKENS,
+          temperature: 0.4,
+        });
 
-        let continueLoop = true;
         let fullAssistantText = "";
 
-        while (continueLoop) {
-          const choice = await callOpenRouter(messages, systemPrompt);
-          const assistantMsg = choice.message;
-
-          // Collect text content
-          if (assistantMsg.content) {
-            fullAssistantText += assistantMsg.content;
-            send({ type: "text", content: assistantMsg.content });
+        for await (const part of result.fullStream) {
+          if (part.type === "text-delta") {
+            fullAssistantText += part.text;
+            send({ type: "text", content: part.text });
+            continue;
           }
-
-          if (choice.finish_reason === "tool_calls" && assistantMsg.tool_calls && assistantMsg.tool_calls.length > 0) {
-            // Send tool calls to client
-            for (const tc of assistantMsg.tool_calls) {
-              const args = JSON.parse(tc.function.arguments);
-              send({ type: "tool_call", name: tc.function.name, args });
-            }
-
-            // Add assistant message with tool_calls to conversation
-            messages.push({
-              role: "assistant",
-              content: assistantMsg.content,
-              tool_calls: assistantMsg.tool_calls,
-            });
-
-            // Execute tools and add results
-            for (const tc of assistantMsg.tool_calls) {
-              const args = JSON.parse(tc.function.arguments);
-              const result = await executeTool(
-                tc.function.name,
-                args,
-                userId,
-                user.product_category ?? "B2B SaaS",
-                user.business_profile ?? null
+          if (part.type === "tool-call") {
+            send({ type: "tool_call", name: part.toolName, args: part.input ?? {} });
+            continue;
+          }
+          if (part.type === "tool-result") {
+            const output = part.output;
+            if (part.toolName === "present_ui") {
+              const blocks = sanitizeUiBlocks(
+                output && typeof output === "object" && "blocks" in output
+                  ? (output as { blocks: unknown }).blocks
+                  : output
               );
-              if (tc.function.name === "present_ui") {
-                const blocks = sanitizeUiBlocks(
-                  result && typeof result === "object" && "blocks" in result
-                    ? (result as { blocks: unknown }).blocks
-                    : result
-                );
-                send({ type: "ui", blocks });
-              }
-              send({ type: "tool_result", name: tc.function.name, result });
-
-              messages.push({
-                role: "tool",
-                content: JSON.stringify(result),
-                tool_call_id: tc.id,
-              });
+              send({ type: "ui", blocks });
             }
-            // Continue loop to get the model's response after tool results
-          } else {
-            continueLoop = false;
+            send({ type: "tool_result", name: part.toolName, result: output });
+            continue;
+          }
+          if (part.type === "error") {
+            const errorText =
+              "error" in part && part.error instanceof Error
+                ? part.error.message
+                : "An error occurred while processing your request.";
+            if (errorText.includes("402")) {
+              throw new Error(
+                "The AI service has run out of credits. Please top up your OpenRouter balance or reduce COPILOT_MAX_TOKENS."
+              );
+            }
+            throw new Error(errorText);
           }
         }
 
-        // ── Persist assistant message ──────────────────────────────────────
         if (fullAssistantText) {
           await supabase.from("chat_messages").insert({
             session_id: sessionId,
@@ -265,7 +196,6 @@ export async function POST(req: NextRequest) {
           });
         }
 
-        // Update session timestamp
         await supabase
           .from("chat_sessions")
           .update({ updated_at: new Date().toISOString() })
