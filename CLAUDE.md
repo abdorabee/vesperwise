@@ -2,59 +2,59 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+**Do not invent a different stack.** Auth is Clerk, AI is OpenRouter, brand lime is `#DFFF00`. README is the source of truth if this file drifts.
+
 ## Commands
 
 ```bash
 npm run dev      # Start development server (localhost:3000)
 npm run build    # Production build
 npm run lint     # Run ESLint
+npm test         # Vitest, one run
 ```
-
-No test suite is configured yet.
 
 ## Environment Variables
 
 Create a `.env.local` file with:
 
 ```
-# Supabase
+# Supabase (Postgres + RLS only — not auth)
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 
-# Anthropic (optional in dev — falls back to mock AI summary)
-ANTHROPIC_API_KEY=
+# Clerk
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
+CLERK_SECRET_KEY=
+
+# OpenRouter (score reasoning + chat copilot; deterministic fallback if unset)
+OPENROUTER_API_KEY=
 
 # Upstash Redis (optional — cache is skipped if not set)
 UPSTASH_REDIS_REST_URL=
 UPSTASH_REDIS_REST_TOKEN=
 
 # Polar.sh (payment gateway)
-POLAR_ACCESS_TOKEN=                # API key from Polar dashboard Settings > Developers
-POLAR_WEBHOOK_SECRET=              # Webhook signing secret from Polar dashboard
-
-# Polar.sh product IDs (subscriptions) — copy from Polar dashboard Products
+POLAR_ACCESS_TOKEN=
+POLAR_WEBHOOK_SECRET=
 POLAR_PRODUCT_STARTER=
 POLAR_PRODUCT_GROWTH=
 POLAR_PRODUCT_PRO=
 POLAR_PRODUCT_AGENCY=
-
-# Polar.sh product IDs (one-time top-ups)
 POLAR_PRODUCT_TOPUP_100=
 POLAR_PRODUCT_TOPUP_500=
 POLAR_PRODUCT_TOPUP_1000=
 
 # Signal sources (only needed when MOCK_SIGNALS=false)
-EXPLORIUM_API_KEY=         # explorium.ai — company funding enrichment (2-step: match + enrich)
-GNEWS_API_KEY=             # gnews.io — free tier, 100 req/day
-BUILTWITH_API_KEY=         # api.builtwith.com — free tier, tech stack
-OPEN_PAGE_RANK_API_KEY=    # domcop.com/openpagerank — free, 100 req/day
-APIFY_API_KEY=             # apify.com — $5 free credit, LinkedIn jobs
-GITHUB_TOKEN=              # github.com — free, 5000 req/hr; Settings → Developer settings → Personal access tokens (public repo read)
-# Person enrichment uses smart input mode (no external API needed)
+EXPLORIUM_API_KEY=
+GNEWS_API_KEY=
+BUILTWITH_API_KEY=
+OPEN_PAGE_RANK_API_KEY=
+APIFY_API_KEY=
+GITHUB_TOKEN=
 
-# Resend (contact form email delivery — free tier 3,000 emails/mo at resend.com)
-RESEND_API_KEY=            # optional in dev; logs to console if not set
+# Resend (contact form — logs to console if unset)
+RESEND_API_KEY=
 
 # Dev mode — use mock signals instead of real API calls
 MOCK_SIGNALS=true
@@ -68,13 +68,13 @@ Set `MOCK_SIGNALS=true` to skip all external signal API calls during development
 
 ### Core Scoring Pipeline (`app/api/v1/score/route.ts`)
 
-1. Validate API key against `api_keys` table (SHA-256 hashed)
+1. Authenticate the Clerk session or SHA-256-hashed API key and canonicalize the company domain
 2. Check user credits in `users` table
-3. Check Redis cache (24h TTL via Upstash)
-4. Fetch 5 signals in parallel: funding, hiring, news, technology, web
+3. Check Redis cache (personalized; skipped if Upstash is unset)
+4. Fetch signals in parallel (funding, hiring, news, technology, plus web/GitHub context)
 5. Compute weighted intent score 0–100 via `lib/scorer.ts`
-6. Generate AI summary + recommended action via `lib/reasoning.ts` (Claude API)
-7. Cache result + persist to `scores` table + deduct 1 credit via `deduct_credit` RPC
+6. Generate AI summary + recommended action via `lib/reasoning.ts` (OpenRouter)
+7. Persist to `scores` / score runs and deduct 1 credit
 
 ### Signal Weights (`lib/scorer.ts`)
 
@@ -91,9 +91,10 @@ Score decays 15% per month from `latestSignalDate`. Bands: HOT ≥75, WARM ≥50
 ### Key Libraries
 
 - `lib/types.ts` — all shared types and plan constants (`PLAN_CREDITS`, `PLAN_WATCHLIST_LIMIT`, `PLAN_RATE_LIMIT`)
-- `lib/supabase.ts` — two clients: `createSupabaseServerClient()` (cookie-based, for Server Components) and `createSupabaseAdmin()` (service role, bypasses RLS, for API routes)
+- `lib/supabase.ts` — `createSupabaseAdmin()` (service role, bypasses RLS). There is no cookie Supabase auth client; identity is Clerk.
+- `lib/user-provisioning.ts` — creates the `users` row for a Clerk id; callers must handle `{ ok: false }`
 - `lib/redis.ts` — Upstash Redis wrapper; all cache operations are no-ops if `UPSTASH_REDIS_REST_URL` is not set
-- `lib/reasoning.ts` — Anthropic SDK wrapper; falls back to a mock summary if `ANTHROPIC_API_KEY` is not set
+- `lib/reasoning.ts` — OpenRouter wrapper; falls back to a mock summary if `OPENROUTER_API_KEY` is not set
 - `lib/signals/mock.ts` — deterministic mock signals seeded by domain string (used when `MOCK_SIGNALS=true`)
 
 ### Route Groups
@@ -102,15 +103,21 @@ Score decays 15% per month from `latestSignalDate`. Bands: HOT ≥75, WARM ≥50
 - `app/(dashboard)/` — dashboard, score, watchlist, bulk, api-keys, billing pages (authenticated layout)
 - `app/api/v1/` — public REST API (score single, bulk score, watchlist, prioritize)
 - `app/api/billing/` — Polar.sh checkout, top-up, and webhook handler
-- `app/api/user/` — API key management
+- `app/api/user/` — API key and profile management
 
 ### Auth & Middleware
 
-`proxy.ts` exports the middleware function (named `proxy`, not `middleware`) that refreshes Supabase session cookies and redirects unauthenticated users away from dashboard paths. The middleware matcher excludes `_next/static`, `_next/image`, `favicon.ico`, and all `/api/` paths.
+`proxy.ts` exports the middleware function (named `proxy`, not `middleware`) that runs `clerkMiddleware` and redirects unauthenticated users away from dashboard paths. `/onboarding` is public only when `VERCEL_ENV !== "production"`.
+
+User identity is a Clerk `user_*` text id stored on `public.users.id`. `ensureUserRecord` upserts that row. Profile `PUT` must update an existing row; a 0-row update is a 404, not success.
+
+### Brand
+
+Lime accent is `#DFFF00` (`--accent` / `--iq-accent`). Hover is `#E8FF40`. Do not use `#D4FF3D`.
 
 ### Billing Model
 
-Plans: `free | starter | growth | pro | agency`. Credits are reset on subscription change (via Polar webhook `subscription.created`/`subscription.updated`). One-time top-ups increment credits without changing plan (via `order.paid` webhook). Credits are deducted per score request via a Supabase RPC `deduct_credit`. Bulk jobs deduct credits equal to the company count upfront.
+Plans: `free | starter | growth | pro | agency`. Credits are reset on subscription change (via Polar webhook `subscription.created`/`subscription.updated`). One-time top-ups increment credits without changing plan (via `order.paid` webhook). Credits are deducted per score request. Bulk jobs deduct credits equal to the company count upfront.
 
 ### Bulk Jobs
 
@@ -118,4 +125,4 @@ Plans: `free | starter | growth | pro | agency`. Credits are reset on subscripti
 
 ### UI Components
 
-`components/ui/` — shadcn/ui components. `components/dashboard/` — dashboard nav and quick-score widget. `components/landing.tsx` — marketing landing page.
+`components/ui/` — shadcn/ui components. `components/dashboard/` — dashboard nav and quick-score widget. `components/landing/` — marketing landing page.

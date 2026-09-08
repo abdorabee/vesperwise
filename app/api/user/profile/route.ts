@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { profileUpdateSchema } from "@/lib/business-profile";
 import { createSupabaseAdmin } from "@/lib/supabase";
+import { profileWriteOutcome } from "@/lib/user-provisioning-result";
 
 export async function GET() {
   const { userId } = await auth();
@@ -51,7 +52,7 @@ export async function PUT(req: NextRequest) {
   const profile = parsed.data.business_profile;
 
   const supabase = createSupabaseAdmin();
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("users")
     .update({
       business_profile: profile,
@@ -59,9 +60,14 @@ export async function PUT(req: NextRequest) {
       workspace_name: profile.workspace_name ?? null,
       onboarding_completed: true,
     })
-    .eq("id", userId);
+    .eq("id", userId)
+    .select("id")
+    .maybeSingle();
 
-  if (error) return NextResponse.json({ error: "Failed to save profile" }, { status: 500 });
+  const outcome = profileWriteOutcome({ data, error });
+  if (outcome.status !== 200) {
+    return NextResponse.json({ error: outcome.error }, { status: outcome.status });
+  }
 
   return NextResponse.json({ success: true });
 }

@@ -3,6 +3,7 @@ import { auth, currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 
 import OnboardingWizard from "@/components/onboarding/onboarding-wizard";
+import { WorkspaceSetupError } from "@/components/workspace-setup-error";
 import { getOnboardingRedirect } from "@/lib/onboarding-profile";
 import { getWorkspaceLabel } from "@/lib/workspace-label";
 import { createSupabaseAdmin } from "@/lib/supabase";
@@ -41,16 +42,19 @@ export default async function OnboardingPage() {
     );
   }
 
-  await ensureUserRecord(userId);
+  const provisioned = await ensureUserRecord(userId);
+  if (!provisioned.ok) return <WorkspaceSetupError />;
 
   const [admin, user] = await Promise.all([Promise.resolve(createSupabaseAdmin()), currentUser().catch(() => null)]);
   const { data: profile } = await admin
     .from("users")
     .select("business_profile, onboarding_completed, workspace_name, credits_remaining")
     .eq("id", userId)
-    .single();
+    .maybeSingle();
 
-  const onboardingRedirect = getOnboardingRedirect(profile?.onboarding_completed ?? false, "onboarding");
+  if (!profile) return <WorkspaceSetupError />;
+
+  const onboardingRedirect = getOnboardingRedirect(profile.onboarding_completed ?? false, "onboarding");
   if (onboardingRedirect) redirect(onboardingRedirect);
 
   const email = user?.emailAddresses[0]?.emailAddress ?? "";

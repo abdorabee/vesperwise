@@ -4,22 +4,27 @@ import { getOnboardingRedirect } from "@/lib/onboarding-profile";
 import { createSupabaseAdmin } from "@/lib/supabase";
 import { ensureUserRecord } from "@/lib/user-provisioning";
 import DashboardShell from "@/components/dashboard/dashboard-shell";
+import { WorkspaceSetupError } from "@/components/workspace-setup-error";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { userId } = await auth();
   if (!userId) redirect("/login");
 
-  await ensureUserRecord(userId);
+  const provisioned = await ensureUserRecord(userId);
+  if (!provisioned.ok) return <WorkspaceSetupError />;
+
   const admin = createSupabaseAdmin();
   const { data: profile } = await admin
     .from("users")
     .select("credits_remaining, onboarding_completed, plan")
     .eq("id", userId)
-    .single();
+    .maybeSingle();
 
-  const creditsRemaining = profile?.credits_remaining ?? 0;
-  const onboardingCompleted = profile?.onboarding_completed ?? false;
-  const plan = (profile?.plan as "free" | "starter" | "growth" | "pro" | "agency" | undefined) ?? "free";
+  if (!profile) return <WorkspaceSetupError />;
+
+  const creditsRemaining = profile.credits_remaining ?? 0;
+  const onboardingCompleted = profile.onboarding_completed ?? false;
+  const plan = (profile.plan as "free" | "starter" | "growth" | "pro" | "agency" | undefined) ?? "free";
 
   const onboardingRedirect = getOnboardingRedirect(onboardingCompleted, "dashboard");
   if (onboardingRedirect) redirect(onboardingRedirect);
