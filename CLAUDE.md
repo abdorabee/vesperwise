@@ -111,6 +111,8 @@ Score decays 15% per month from `latestSignalDate`. Bands: HOT ≥75, WARM ≥50
 
 User identity is a Clerk `user_*` text id stored on `public.users.id`. `ensureUserRecord` upserts that row. Profile `PUT` must update an existing row; a 0-row update is a 404, not success.
 
+Signed-in browser tests: `TEST_LOGIN_*` may hit Clerk MFA. Prefer a new signup on `/signup` (custom form, not `accounts.dev`). Open a temp inbox (`https://temp-mail.org` or `https://www.guerrillamail.com`), copy the address that appears, submit signup, then read the 6-digit Clerk code from the inbox below. Submit verify once and wait for `/dashboard`. Do not open `/onboarding` while signed out — outside production it is a read-only preview (`preview@example.com`).
+
 ### Brand
 
 Lime accent is `#DFFF00` (`--accent` / `--iq-accent`). Hover is `#E8FF40`. Do not use `#D4FF3D`.

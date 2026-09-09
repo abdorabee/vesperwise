@@ -63,6 +63,7 @@ export function SignupForm() {
     const { error } = await signUp.password({
       emailAddress: email,
       password,
+      legalAccepted: true,
       ...(needsFirstName ? { firstName } : {}),
       ...(needsLastName ? { lastName } : {}),
     });
@@ -99,16 +100,32 @@ export function SignupForm() {
     event.preventDefault();
     setLocalError(null);
     const { error } = await signUp.verifications.verifyEmailCode({ code });
-    if (error) {
+    const alreadyVerified = Boolean(error?.message && /already been verified/i.test(error.message));
+    if (error && !alreadyVerified) {
       fail(error.message);
       return;
     }
 
-    if (signUp.status === "complete") {
-      avatar.setSuccess(true);
-      const finalizeError = await finalizeToDashboard((params) => signUp.finalize(params), router);
-      if (finalizeError) fail(finalizeError.message);
+    if (signUp.missingFields.includes("legal_accepted")) {
+      const accepted = await signUp.update({ legalAccepted: true });
+      if (accepted.error) {
+        fail(accepted.error.message);
+        return;
+      }
     }
+
+    if (signUp.status !== "complete" || !signUp.createdSessionId) {
+      fail(
+        signUp.missingFields.length > 0
+          ? `Email verified. Still need: ${signUp.missingFields.join(", ")}.`
+          : "Email verified, but Clerk did not create a session. Try signing in."
+      );
+      return;
+    }
+
+    avatar.setSuccess(true);
+    const finalizeError = await finalizeToDashboard((params) => signUp.finalize(params), router);
+    if (finalizeError) fail(finalizeError.message);
   }
 
   return (

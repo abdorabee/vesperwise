@@ -13,6 +13,7 @@ const basePublicRoutes = [
   "/about(.*)",
   "/legal/(.*)",
   "/api/v1/(.*)",
+  "/api/chat(.*)",
   "/api/billing/webhook",
   "/api/contact",
 ];
