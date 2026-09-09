@@ -99,16 +99,15 @@ export function SignupForm() {
     event.preventDefault();
     setLocalError(null);
     const { error } = await signUp.verifications.verifyEmailCode({ code });
-    if (error) {
+    const alreadyVerified = Boolean(error?.message && /already been verified/i.test(error.message));
+    if (error && !alreadyVerified) {
       fail(error.message);
       return;
     }
 
-    if (signUp.status === "complete") {
-      avatar.setSuccess(true);
-      const finalizeError = await finalizeToDashboard((params) => signUp.finalize(params), router);
-      if (finalizeError) fail(finalizeError.message);
-    }
+    avatar.setSuccess(true);
+    const finalizeError = await finalizeToDashboard((params) => signUp.finalize(params), router);
+    if (finalizeError) fail(finalizeError.message);
   }
 
   return (
