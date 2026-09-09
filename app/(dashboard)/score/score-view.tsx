@@ -169,10 +169,15 @@ function AssistantText({ content }: { content: string }) {
 }
 
 interface ScorePromptStageProps {
-  onScore: (value?: string) => void;
+  onScore: (value: string) => void;
   creditsRemaining: number;
   recentScores: RecentScore[];
   busy: boolean;
+}
+
+function submitPromptText(text: string, onSubmit: (value: string) => void) {
+  const raw = text.trim();
+  if (raw) onSubmit(raw);
 }
 
 function ScorePromptStage({ onScore, creditsRemaining, recentScores, busy }: ScorePromptStageProps) {
@@ -197,10 +202,8 @@ function ScorePromptStage({ onScore, creditsRemaining, recentScores, busy }: Sco
         </p>
 
         <PromptInput
-          className="prompt-holder prompt-holder--compact score-elements-input"
-          onSubmit={(message) => {
-            void onScore(message.text);
-          }}
+          className="score-elements-input"
+          onSubmit={({ text }) => submitPromptText(text, onScore)}
         >
           <PromptInputBody>
             <PromptInputTextarea
@@ -320,7 +323,6 @@ function ScorePromptStage({ onScore, creditsRemaining, recentScores, busy }: Sco
 export function ScoreView({ creditsRemaining, recentScores }: ScoreViewProps) {
   const searchParams = useSearchParams();
   const autoScoredRef = useRef<string | null>(null);
-  const [input, setInput] = useState("");
   const [messages, setMessages] = useState<ThreadMessage[]>([]);
   const [busy, setBusy] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
@@ -331,7 +333,6 @@ export function ScoreView({ creditsRemaining, recentScores }: ScoreViewProps) {
   useEffect(() => {
     const d = searchParams.get("domain")?.trim();
     if (!d) return;
-    setInput(d);
     if (autoScoredRef.current === d) return;
     autoScoredRef.current = d;
     void submitMessage(d);
@@ -491,10 +492,9 @@ export function ScoreView({ creditsRemaining, recentScores }: ScoreViewProps) {
     }
   }
 
-  async function submitMessage(rawInput?: string) {
-    const raw = (rawInput ?? input).trim();
+  async function submitMessage(rawInput: string) {
+    const raw = rawInput.trim();
     if (!raw || busy) return;
-    setInput("");
     const domain = extractDomain(raw);
     if (domain) {
       await runScore(raw, domain);
@@ -527,7 +527,6 @@ export function ScoreView({ creditsRemaining, recentScores }: ScoreViewProps) {
     if (busy) return;
     setMessages([]);
     setSessionId(null);
-    setInput("");
     autoScoredRef.current = null;
   }
 
@@ -630,10 +629,8 @@ export function ScoreView({ creditsRemaining, recentScores }: ScoreViewProps) {
               </Suggestions>
             )}
             <PromptInput
-              className="prompt-holder prompt-holder--compact score-elements-input"
-              onSubmit={(message) => {
-                void submitMessage(message.text);
-              }}
+              className="score-elements-input"
+              onSubmit={({ text }) => submitPromptText(text, (value) => void submitMessage(value))}
             >
               <PromptInputBody>
                 <PromptInputTextarea

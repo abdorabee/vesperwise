@@ -305,12 +305,14 @@ html:not(.dark) .prompt-bg .grid {
     linear-gradient(rgba(10, 14, 26, 0.04) 1px, transparent 1px),
     linear-gradient(90deg, rgba(10, 14, 26, 0.04) 1px, transparent 1px);
 }
-html:not(.dark) .prompt-holder {
+html:not(.dark) .prompt-holder,
+html:not(.dark) .score-elements-input {
   background: var(--card);
   border-color: var(--border-strong);
   box-shadow: var(--shadow-elevated);
 }
-html:not(.dark) .prompt-holder:focus-within {
+html:not(.dark) .prompt-holder:focus-within,
+html:not(.dark) .score-elements-input:focus-within {
   border-color: rgba(200, 230, 0, 0.45);
   box-shadow:
     0 0 0 1px rgba(200, 230, 0, 0.30),

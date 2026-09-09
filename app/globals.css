@@ -3365,17 +3365,33 @@ button.signal-card.gen-axis.is-selected {
   font-size: 12px;
 }
 
-.score-chat-composer .prompt-holder { max-width: 1040px; margin: 0 auto; width: 100%; }
+.score-chat-composer .score-elements-input { max-width: 1040px; margin: 0 auto; width: 100%; }
 .score-chat-composer .prompt-meta {
   max-width: 1040px;
   margin: 10px auto 0;
 }
 
 .score-elements-input {
+  background: rgba(14,16,17,0.85);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-lg);
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: 6px 8px;
+  padding: 8px;
+  backdrop-filter: blur(20px);
+  box-shadow:
+    0 0 0 1px rgba(223,255,0,0.18),
+    0 24px 48px -16px rgba(0,0,0,0.6),
+    inset 0 1px 0 rgba(255,255,255,0.04);
+  transition: box-shadow 0.2s;
+}
+.score-elements-input:focus-within {
+  border-color: rgba(223,255,0,0.5);
+  box-shadow:
+    0 0 0 1px rgba(223,255,0,0.4),
+    0 0 0 4px rgba(223,255,0,0.08),
+    0 24px 48px -16px rgba(0,0,0,0.6);
 }
 .score-elements-input [data-slot="input-group"],
 .score-elements-input [data-slot="input-group-control"] {
