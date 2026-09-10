@@ -272,7 +272,14 @@ export interface DbCreditLog {
 
 export type PipelineStage = "cold" | "warming" | "hot" | "engaged" | "converted";
 export type ScoreOutcome = "closed_won" | "closed_lost" | "no_decision" | "disqualified";
-export type UserRole = "sdr" | "ae" | "manager" | "admin";
+/**
+ * Kept as a const tuple so `z.enum(USER_ROLE_OPTIONS)` is provably the same set
+ * as this union and as the DB CHECK constraint on `users.role`
+ * (supabase/migrations/20260317000000_chat_and_pipeline.sql).
+ */
+export const USER_ROLE_OPTIONS = ["sdr", "ae", "manager", "admin"] as const;
+
+export type UserRole = (typeof USER_ROLE_OPTIONS)[number];
 
 export interface DbChatSession {
   id: string;

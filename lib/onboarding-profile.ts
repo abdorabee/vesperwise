@@ -1,5 +1,16 @@
-import { businessProfileSchema, DOMAIN_PATTERN } from "./business-profile";
+import {
+  businessProfileSchema,
+  cleanDomainList,
+  cleanStringList,
+  cleanText,
+  DOMAIN_PATTERN,
+  MAX_SEED_DOMAINS,
+  normalizeDomainInput,
+} from "./business-profile";
 import type { BusinessProfile } from "./types";
+
+// Re-exported so the onboarding screens keep importing them from here.
+export { MAX_SEED_DOMAINS, normalizeDomainInput };
 
 export const PRODUCT_CATEGORY_OPTIONS = [
   "SaaS / Software",
@@ -73,9 +84,6 @@ export const SALES_CYCLE_OPTIONS = [
   "3+ months",
 ] as const;
 
-/** Screen 2 requires at least one, allows up to this many. */
-export const MAX_SEED_DOMAINS = 5;
-
 /** 0=Workspace, 1=ICP, 2=Signals, 3=Run, 4=Outcome (results or empty-state, chosen by data). */
 export const MAX_STEP = 4;
 
@@ -123,25 +131,6 @@ export type OnboardingAction =
   | { type: "save_started" }
   | { type: "save_failed"; message: string };
 
-function cleanText(value: unknown): string {
-  return typeof value === "string" ? value.trim() : "";
-}
-
-/** Trims, drops blanks, and case-insensitively dedupes a free-form chip list. */
-function cleanStringList(list: unknown): string[] {
-  if (!Array.isArray(list)) return [];
-
-  const seen = new Set<string>();
-  return list.flatMap((item) => {
-    if (typeof item !== "string") return [];
-    const value = item.trim();
-    const key = value.toLocaleLowerCase();
-    if (!value || seen.has(key)) return [];
-    seen.add(key);
-    return [value];
-  });
-}
-
 /**
  * Case-insensitively adds or removes one value. Computed from reducer state
  * (not from a render-time closure) so two rapid toggles can't clobber each
@@ -152,35 +141,6 @@ function toggleInList(list: string[], value: string): string[] {
   return list.some((item) => item.toLocaleLowerCase() === key)
     ? list.filter((item) => item.toLocaleLowerCase() !== key)
     : [...list, value];
-}
-
-/**
- * Reduces what someone realistically pastes — "https://Stripe.com/pricing",
- * "www.stripe.com", "stripe.com:443" — down to the bare host the scoring
- * pipeline expects, so a copied URL isn't rejected as a malformed domain.
- */
-export function normalizeDomainInput(value: string): string {
-  return value
-    .trim()
-    .toLowerCase()
-    .replace(/^[a-z][a-z\d+.-]*:\/\//, "")
-    .replace(/^www\./, "")
-    .replace(/[/?#].*$/, "")
-    .replace(/:\d+$/, "")
-    .replace(/\.$/, "");
-}
-
-/** Normalizes and dedupes candidate seed domains; shape is checked by DOMAIN_PATTERN. */
-function cleanDomainList(list: unknown): string[] {
-  const seen = new Set<string>();
-  return cleanStringList(list)
-    .map(normalizeDomainInput)
-    .filter((domain) => {
-      if (!domain || seen.has(domain)) return false;
-      seen.add(domain);
-      return true;
-    })
-    .slice(0, MAX_SEED_DOMAINS);
 }
 
 export function createOnboardingState(

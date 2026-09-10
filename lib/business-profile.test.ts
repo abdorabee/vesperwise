@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  businessProfilePatchSchema,
+  mergeBusinessProfile,
   normalizeBusinessProfile,
   profileUpdateSchema,
 } from "./business-profile";
+import { buildBusinessProfile } from "./onboarding-profile";
 import type { BusinessProfile } from "./types";
 
 const VALID_PROFILE: BusinessProfile = {
@@ -139,5 +142,129 @@ describe("profileUpdateSchema", () => {
       business_profile: { ...VALID_PROFILE, workspace_name: "x".repeat(121) },
     });
     expect(tooLong.success).toBe(false);
+  });
+});
+
+describe("PUT contract stays frozen for onboarding", () => {
+  it("round-trips a real buildBusinessProfile payload unchanged", () => {
+    // businessProfileSchema was refactored to derive from a shared shape so the
+    // Settings patch schema could reuse it. This proves nothing observable
+    // changed for onboarding's PUT.
+    const built = buildBusinessProfile({
+      ...VALID_PROFILE,
+      geography: ["United States"],
+      tech_stack_include: ["Salesforce"],
+      seed_domains: ["https://www.Stripe.com/pricing"],
+      workspace_name: "Northwind Analytics",
+    });
+    expect(built).not.toBeNull();
+
+    const parsed = profileUpdateSchema.safeParse({ business_profile: built });
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.business_profile).toEqual(built);
+    }
+  });
+});
+
+describe("businessProfilePatchSchema", () => {
+  it("accepts a single field on its own", () => {
+    const parsed = businessProfilePatchSchema.safeParse({ geography: ["ANZ"] });
+    expect(parsed.success).toBe(true);
+  });
+
+  it("drops workspace_name so an ICP save cannot move an account attribute", () => {
+    const parsed = businessProfilePatchSchema.safeParse({
+      company_size: "SMB (51-200)",
+      workspace_name: "Hijacked",
+    });
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data).not.toHaveProperty("workspace_name");
+    }
+  });
+
+  it("accepts an empty seed_domains list as a clear instruction", () => {
+    expect(businessProfilePatchSchema.safeParse({ seed_domains: [] }).success).toBe(true);
+  });
+
+  it("still rejects an empty industry list and bad domains", () => {
+    expect(businessProfilePatchSchema.safeParse({ target_industries: [] }).success).toBe(false);
+    expect(
+      businessProfilePatchSchema.safeParse({ seed_domains: ["not a domain"] }).success
+    ).toBe(false);
+    expect(
+      businessProfilePatchSchema.safeParse({
+        seed_domains: ["a.com", "b.com", "c.com", "d.com", "e.com", "f.com"],
+      }).success
+    ).toBe(false);
+  });
+});
+
+describe("mergeBusinessProfile", () => {
+  it("applies the patch over the stored profile", () => {
+    const merged = mergeBusinessProfile(VALID_PROFILE, {
+      target_industries: ["Healthcare", "Education"],
+    });
+    expect(merged.ok).toBe(true);
+    if (merged.ok) {
+      expect(merged.profile.target_industries).toEqual(["Healthcare", "Education"]);
+      expect(merged.profile.company_size).toBe(VALID_PROFILE.company_size);
+    }
+  });
+
+  it("does not require the patch to resend required fields", () => {
+    const merged = mergeBusinessProfile(VALID_PROFILE, { deal_size: "$100K+" });
+    expect(merged.ok).toBe(true);
+  });
+
+  it("cannot leave the stored profile invalid", () => {
+    const storedWithoutSize = { ...VALID_PROFILE, company_size: "" };
+    const merged = mergeBusinessProfile(storedWithoutSize, { deal_size: "$100K+" });
+    expect(merged.ok).toBe(false);
+    if (!merged.ok) {
+      expect(merged.issues.some((issue) => issue.path === "company_size")).toBe(true);
+    }
+  });
+
+  it("preserves stored workspace_name and unknown legacy keys", () => {
+    const stored = {
+      ...VALID_PROFILE,
+      workspace_name: "Northwind Analytics",
+      legacy_field: "kept",
+    };
+    const merged = mergeBusinessProfile(stored, { deal_size: "$100K+" });
+    expect(merged.ok).toBe(true);
+    if (merged.ok) {
+      expect(merged.profile.workspace_name).toBe("Northwind Analytics");
+      expect(merged.profile).toHaveProperty("legacy_field", "kept");
+    }
+  });
+
+  it("drops cleared optional lists rather than storing an empty array", () => {
+    const stored = { ...VALID_PROFILE, geography: ["ANZ"], seed_domains: ["stripe.com"] };
+    const merged = mergeBusinessProfile(stored, { geography: [], seed_domains: [] });
+    expect(merged.ok).toBe(true);
+    if (merged.ok) {
+      expect(merged.profile).not.toHaveProperty("geography");
+      expect(merged.profile).not.toHaveProperty("seed_domains");
+    }
+  });
+
+  it("normalizes pasted domains and dedupes list entries", () => {
+    const merged = mergeBusinessProfile(VALID_PROFILE, {
+      seed_domains: ["https://www.Stripe.com/pricing"],
+      target_industries: ["Technology", "  technology  ", "Healthcare"],
+    });
+    expect(merged.ok).toBe(true);
+    if (merged.ok) {
+      expect(merged.profile.seed_domains).toEqual(["stripe.com"]);
+      expect(merged.profile.target_industries).toEqual(["Technology", "Healthcare"]);
+    }
+  });
+
+  it("refuses to create a profile from nothing", () => {
+    expect(mergeBusinessProfile(null, { deal_size: "$100K+" }).ok).toBe(false);
+    expect(mergeBusinessProfile("garbage", { deal_size: "$100K+" }).ok).toBe(false);
   });
 });

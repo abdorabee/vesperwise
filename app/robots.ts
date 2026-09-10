@@ -6,7 +6,7 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
-        disallow: ["/dashboard/", "/api/", "/memory/", "/pipeline/", "/people/", "/history/", "/watchlist/", "/billing/", "/api-keys/"],
+        disallow: ["/dashboard/", "/api/", "/settings/", "/pipeline/", "/people/", "/history/", "/watchlist/", "/billing/", "/api-keys/"],
       },
     ],
     sitemap: "https://www.vesperwise.com/sitemap.xml",

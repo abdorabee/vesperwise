@@ -13,6 +13,7 @@ import {
   List,
   Upload,
   BrainCircuit,
+  Settings,
 } from "lucide-react";
 
 export type SearchResultKind = "page" | "company" | "person" | "watchlist" | "list" | "action";
@@ -47,7 +48,9 @@ export const SEARCH_NAV_ITEMS: SearchNavItem[] = [
   { id: "bulk", kind: "page", label: "Bulk Score", href: "/bulk", keywords: "bulk csv upload score companies", icon: Upload },
   { id: "autopilot", kind: "page", label: "Autopilot", href: "/autopilot", keywords: "autopilot workflows automation", icon: Zap },
   { id: "inbox", kind: "page", label: "Inbox", href: "/inbox", keywords: "inbox notifications messages alerts", icon: Inbox },
-  { id: "memory", kind: "page", label: "Profile", href: "/memory", keywords: "profile memory settings business profile", icon: BrainCircuit },
+  // "memory" stays in the keywords so anyone who learned the old name still lands here.
+  { id: "settings-profile", kind: "page", label: "Business Profile", href: "/settings/profile", keywords: "profile memory settings business profile icp industries", icon: BrainCircuit },
+  { id: "settings-account", kind: "page", label: "Settings", href: "/settings/account", keywords: "settings account workspace name role preferences", icon: Settings },
   { id: "billing", kind: "page", label: "Billing", href: "/billing", keywords: "billing credits plan invoice", icon: CreditCard },
   { id: "api-keys", kind: "page", label: "API Keys", href: "/api-keys", keywords: "api keys developer token", icon: Key },
 ];

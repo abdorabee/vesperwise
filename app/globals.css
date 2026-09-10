@@ -582,7 +582,7 @@ a { color: inherit; text-decoration: none; }
  * utilities on every button. Onboarding is excluded (see the reset note above)
  * so its buttons can size their own type.
  */
-button:not([class*="bg-"]):not([class*="border"]):not(.onboarding-shell button) { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+button:not([class*="bg-"]):not([class*="border"]):not(.onboarding-shell button):not(.settings-page button) { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
 button:not(.onboarding-shell button) { font: inherit; cursor: pointer; }
 .onboarding-shell button { cursor: pointer; }
 img, svg { display: block; max-width: 100%; }
@@ -9274,4 +9274,347 @@ button.signal-card.gen-axis.is-selected {
     background: var(--surface-glass);
     border: 1px solid var(--hairline);
   }
+}
+
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Settings — page-scoped, tokens only so it holds up in both themes.
+   Namespaced under .settings-page, matching the .billing-page precedent.
+   ────────────────────────────────────────────────────────────────────────── */
+
+.settings-page { width: 100%; }
+
+/* Opted out of the global button reset above, so restore its useful half. */
+.settings-page button { font: inherit; color: inherit; cursor: pointer; }
+.settings-page button:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.settings-page .set-shell {
+  display: grid;
+  grid-template-columns: 216px minmax(0, 1fr);
+  gap: 28px;
+  align-items: start;
+  max-width: 1180px;
+  margin: 0 auto;
+}
+.settings-page .set-content { min-width: 0; }
+
+/* ── Section rail ─────────────────────────────── */
+.settings-page .set-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  position: sticky;
+  top: 0;
+}
+.settings-page .set-rail-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: var(--r-md);
+  border: 1px solid transparent;
+  color: var(--text-tertiary);
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.settings-page .set-rail-item:hover {
+  background: rgba(127, 127, 127, 0.07);
+  color: var(--text-primary);
+}
+.settings-page .set-rail-item.active {
+  background: rgba(127, 127, 127, 0.09);
+  border-color: var(--border);
+  color: var(--text-primary);
+}
+.settings-page .set-rail-item .ic {
+  width: 14px;
+  height: 14px;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+.settings-page .set-rail-item.active .ic { color: var(--brand); }
+.settings-page .set-rail-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.settings-page .set-rail-label {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.008em;
+}
+.settings-page .set-rail-sub {
+  font-size: 11px;
+  color: var(--text-quaternary);
+  letter-spacing: -0.004em;
+}
+.settings-page .set-rail-item.external { opacity: 0.82; }
+
+/* ── Panel ────────────────────────────────────── */
+.settings-page .set-panel { display: flex; flex-direction: column; }
+.settings-page .set-panel .page-head { align-items: flex-start; }
+.settings-page .set-panel .page-sub { max-width: 62ch; }
+
+.settings-page .set-meter {
+  font-size: 11px;
+  color: var(--text-quaternary);
+  padding-right: 4px;
+  white-space: nowrap;
+}
+
+.settings-page .set-alert {
+  font-size: 12px;
+  color: var(--red);
+  background: rgba(248, 113, 113, 0.08);
+  border: 1px solid rgba(248, 113, 113, 0.25);
+  border-radius: var(--r-md);
+  padding: 9px 12px;
+  margin-bottom: 14px;
+}
+
+.settings-page .set-summary {
+  border: 1px solid var(--border);
+  border-left: 2px solid var(--brand);
+  background: var(--bg-elevated);
+  border-radius: var(--r-md);
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+.settings-page .set-summary-label {
+  display: block;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--text-quaternary);
+  margin-bottom: 5px;
+}
+.settings-page .set-summary p {
+  font-size: 13.5px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  letter-spacing: -0.008em;
+}
+
+.settings-page .set-card { margin-bottom: 14px; }
+.settings-page .set-card .card-body { padding: 4px 18px; }
+
+.settings-page .set-foot {
+  font-size: 12px;
+  color: var(--text-quaternary);
+  line-height: 1.55;
+  max-width: 68ch;
+  margin: 4px 2px 8px;
+}
+
+/* ── Row primitive ────────────────────────────── */
+.settings-page .set-row {
+  display: grid;
+  grid-template-columns: minmax(0, 260px) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.settings-page .set-row:last-child { border-bottom: none; }
+.settings-page .set-row-l { min-width: 0; padding-top: 3px; }
+.settings-page .set-row-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  letter-spacing: -0.008em;
+}
+.settings-page .set-row-help {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  line-height: 1.5;
+  margin-top: 3px;
+  letter-spacing: -0.004em;
+}
+.settings-page .set-row-error {
+  font-size: 12px;
+  color: var(--red);
+  margin-top: 5px;
+}
+.settings-page .set-row-c { min-width: 0; }
+
+/* A pill rather than lime text: solid --brand is unreadable on the light theme. */
+.settings-page .set-badge {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  background: var(--brand-soft);
+  border: 1px solid var(--brand-border);
+  border-radius: 999px;
+  padding: 1px 6px;
+  white-space: nowrap;
+}
+.settings-page .set-badge.muted {
+  color: var(--text-quaternary);
+  background: none;
+  border-color: transparent;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+/* ── Chips ────────────────────────────────────── */
+.settings-page .chip-row { display: flex; flex-wrap: wrap; gap: 7px; }
+.settings-page .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 30px;
+  padding: 0 11px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-tertiary);
+  font-size: 12.5px;
+  font-weight: 500;
+  letter-spacing: -0.006em;
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s, color 0.12s;
+}
+.settings-page .chip:hover {
+  border-color: var(--border-strong);
+  background: rgba(127, 127, 127, 0.06);
+  color: var(--text-primary);
+}
+.settings-page .chip.on {
+  border-color: var(--brand-border);
+  background: var(--brand-soft);
+  color: var(--text-primary);
+}
+.settings-page .chip.custom { cursor: default; padding-right: 5px; }
+.settings-page .chip-ic { width: 12px; height: 12px; }
+.settings-page .chip-x {
+  display: inline-grid;
+  place-items: center;
+  background: none;
+  border: 0;
+  padding: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  color: var(--text-quaternary);
+  cursor: pointer;
+}
+.settings-page .chip-x:hover { color: var(--text-primary); background: rgba(127, 127, 127, 0.14); }
+
+.settings-page .segmented {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  max-width: 100%;
+  flex-wrap: wrap;
+}
+.settings-page .seg {
+  min-height: 30px;
+  padding: 5px 12px;
+  /* Explicit reset: the section opts out of the global button reset above, so
+     without this the UA's default 2px border shows on the other three sides. */
+  border: 0;
+  border-right: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-tertiary);
+  font-size: 12.5px;
+  font-weight: 500;
+  letter-spacing: -0.006em;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+.settings-page .seg:last-child { border-right: none; }
+.settings-page .seg:hover { background: rgba(127, 127, 127, 0.06); color: var(--text-primary); }
+.settings-page .seg.on {
+  background: var(--brand-soft);
+  box-shadow: inset 0 0 0 1px var(--brand-border);
+  color: var(--text-primary);
+}
+
+.settings-page .chip-input {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface);
+}
+.settings-page .chip-input:focus-within { border-color: var(--border-strong); }
+.settings-page .chip-input input {
+  flex: 1;
+  min-width: 130px;
+  height: 24px;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-primary);
+  font-size: 12.5px;
+  letter-spacing: -0.006em;
+}
+.settings-page .chip-input input::placeholder { color: var(--text-quaternary); }
+.settings-page .chip-token {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 24px;
+  padding: 0 4px 0 8px;
+  border-radius: var(--r-sm);
+  background: rgba(127, 127, 127, 0.12);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+}
+.settings-page .chip-limit { font-size: 11.5px; color: var(--text-quaternary); }
+
+/* ── Account controls ─────────────────────────── */
+.settings-page .set-input {
+  width: 100%;
+  max-width: 340px;
+  height: 34px;
+  padding: 0 11px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--text-primary);
+  font-size: 13px;
+  letter-spacing: -0.006em;
+  outline: none;
+}
+.settings-page .set-input:focus { border-color: var(--border-strong); }
+.settings-page .set-input::placeholder { color: var(--text-quaternary); }
+
+.settings-page .set-readonly {
+  display: inline-block;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  padding-top: 6px;
+}
+.settings-page .set-plan { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.settings-page .set-plan-name {
+  text-transform: capitalize;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  padding: 3px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+/* ── Narrow viewports ─────────────────────────── */
+@media (max-width: 900px) {
+  .settings-page .set-shell { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .settings-page .set-rail {
+    position: static;
+    flex-direction: row;
+    overflow-x: auto;
+    gap: 6px;
+    padding-bottom: 4px;
+  }
+  .settings-page .set-rail-item { flex-shrink: 0; }
+  .settings-page .set-rail-sub { display: none; }
+  .settings-page .set-row { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .settings-page .set-panel .page-head { flex-direction: column; gap: 12px; }
 }
