@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import OnboardingWizard from "@/components/onboarding/onboarding-wizard";
 import { WorkspaceSetupError } from "@/components/workspace-setup-error";
 import { getOnboardingRedirect } from "@/lib/onboarding-profile";
-import { getWorkspaceLabel } from "@/lib/workspace-label";
+import { getWorkspaceLabel, storedWorkspaceName } from "@/lib/workspace-label";
 import { createSupabaseAdmin } from "@/lib/supabase";
 import type { BusinessProfile } from "@/lib/types";
 import { ensureUserRecord } from "@/lib/user-provisioning";
@@ -63,10 +63,11 @@ export default async function OnboardingPage() {
       ? (profile.business_profile as Partial<BusinessProfile>)
       : null;
 
-  const workspaceName =
-    profile?.workspace_name ??
-    storedProfile?.workspace_name ??
-    getWorkspaceLabel({ fullName: user?.fullName, email });
+  const workspaceName = getWorkspaceLabel({
+    workspaceName: storedWorkspaceName(profile),
+    fullName: user?.fullName,
+    email,
+  });
 
   const initialProfile: Partial<BusinessProfile> = {
     ...storedProfile,

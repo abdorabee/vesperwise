@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getOnboardingRedirect } from "@/lib/onboarding-profile";
 import { createSupabaseAdmin } from "@/lib/supabase";
 import { ensureUserRecord } from "@/lib/user-provisioning";
+import { storedWorkspaceName } from "@/lib/workspace-label";
 import DashboardShell from "@/components/dashboard/dashboard-shell";
 import { WorkspaceSetupError } from "@/components/workspace-setup-error";
 
@@ -16,7 +17,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const admin = createSupabaseAdmin();
   const { data: profile } = await admin
     .from("users")
-    .select("credits_remaining, onboarding_completed, plan")
+    .select("credits_remaining, onboarding_completed, plan, workspace_name, business_profile")
     .eq("id", userId)
     .maybeSingle();
 
@@ -54,6 +55,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     <DashboardShell
       creditsRemaining={creditsRemaining}
       plan={plan}
+      workspaceName={storedWorkspaceName(profile)}
       inboxCount={inboxCount ?? 0}
       watchlistCount={watchlistCount ?? 0}
       pipelineHotCount={pipelineHotCount ?? 0}

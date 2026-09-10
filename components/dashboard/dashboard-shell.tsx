@@ -11,6 +11,7 @@ interface DashboardShellProps {
   children: React.ReactNode;
   creditsRemaining: number;
   plan: DbUser["plan"];
+  workspaceName?: string | null;
   inboxCount?: number;
   watchlistCount?: number;
   pipelineHotCount?: number;
@@ -20,6 +21,7 @@ export default function DashboardShell({
   children,
   creditsRemaining,
   plan,
+  workspaceName,
   inboxCount,
   watchlistCount,
   pipelineHotCount,
@@ -73,6 +75,7 @@ export default function DashboardShell({
         <DashboardNav
           creditsRemaining={creditsRemaining}
           plan={plan}
+          workspaceName={workspaceName}
           collapsed={effectiveCollapsed}
           onToggle={toggle}
           inboxCount={inboxCount}

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   profileWriteOutcome,
+  rowWriteOutcome,
   userRowOutcome,
   userUpsertOutcome,
 } from "./user-provisioning-result";
@@ -51,5 +52,28 @@ describe("profileWriteOutcome", () => {
     expect(profileWriteOutcome({ data: { id: "user_abc" }, error: null })).toEqual({
       status: 200,
     });
+  });
+});
+
+describe("rowWriteOutcome", () => {
+  it("carries the caller's own failure message on error", () => {
+    expect(
+      rowWriteOutcome(
+        { data: null, error: { message: "boom" } },
+        "Failed to save account settings"
+      )
+    ).toEqual({ status: 500, error: "Failed to save account settings" });
+  });
+
+  it("treats a 0-row update as a 404, never a silent success", () => {
+    expect(rowWriteOutcome({ data: null, error: null }, "Failed to save account settings")).toEqual(
+      { status: 404, error: "Workspace not found. Reload and try again." }
+    );
+  });
+
+  it("returns 200 when a row was written", () => {
+    expect(
+      rowWriteOutcome({ data: { id: "user_1" }, error: null }, "Failed to save account settings")
+    ).toEqual({ status: 200 });
   });
 });

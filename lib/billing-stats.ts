@@ -60,6 +60,7 @@ export interface BillingStats {
     | "subscription_renews_at"
     | "subscription_cancel_at_period_end"
     | "email"
+    | "workspace_name"
   >;
   totalCredits: number;
   usedCredits: number;
@@ -184,7 +185,7 @@ export async function buildBillingStats(userId: string): Promise<BillingStats> {
   const { data: profile } = await supabase
     .from("users")
     .select(
-      "plan, credits_remaining, polar_subscription_id, polar_customer_id, subscription_renews_at, subscription_cancel_at_period_end, email",
+      "plan, credits_remaining, polar_subscription_id, polar_customer_id, subscription_renews_at, subscription_cancel_at_period_end, email, workspace_name",
     )
     .eq("id", userId)
     .single();
@@ -197,6 +198,7 @@ export async function buildBillingStats(userId: string): Promise<BillingStats> {
     subscription_renews_at: null,
     subscription_cancel_at_period_end: false,
     email: "",
+    workspace_name: null,
   };
 
   const plan = (p.plan ?? "free") as PlanKey;

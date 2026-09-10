@@ -20,6 +20,7 @@ import {
   Inbox,
   CreditCard,
   Key,
+  Settings,
   LogOut,
   Sun,
   Moon,
@@ -55,6 +56,7 @@ const WORKSPACE_ITEMS: NavItem[] = [
 ];
 
 const BOTTOM_ITEMS: NavItem[] = [
+  { href: "/settings", label: "Settings", icon: Settings },
   { href: "/billing", label: "Billing", icon: CreditCard },
   { href: "/api-keys", label: "API Keys", icon: Key, comingSoon: true },
 ];
@@ -62,6 +64,8 @@ const BOTTOM_ITEMS: NavItem[] = [
 interface DashboardNavProps {
   creditsRemaining?: number;
   plan: DbUser["plan"];
+  /** Resolved server-side from users.workspace_name; falls back to the Clerk identity. */
+  workspaceName?: string | null;
   collapsed?: boolean;
   onToggle?: () => void;
   inboxCount?: number;
@@ -72,6 +76,7 @@ interface DashboardNavProps {
 export default function DashboardNav({
   creditsRemaining = 0,
   plan,
+  workspaceName,
   collapsed = false,
   onToggle,
   inboxCount,
@@ -86,7 +91,7 @@ export default function DashboardNav({
   const creditPct = creditCap > 0 ? Math.min(100, Math.round((creditsRemaining / creditCap) * 100)) : 0;
   const displayName = user?.fullName || user?.firstName || "Account";
   const email = user?.primaryEmailAddress?.emailAddress ?? "";
-  const workspaceLabel = getWorkspaceLabel({ fullName: user?.fullName, email });
+  const workspaceLabel = getWorkspaceLabel({ workspaceName, fullName: user?.fullName, email });
   const initials =
     (user?.firstName?.[0] ?? "") + (user?.lastName?.[0] ?? "") ||
     email.slice(0, 2).toUpperCase() ||

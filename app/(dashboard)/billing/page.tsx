@@ -18,6 +18,7 @@ export default async function BillingPage() {
     "";
 
   const workspaceLabel = getWorkspaceLabel({
+    workspaceName: stats.profile.workspace_name,
     fullName: clerkUser?.fullName,
     email,
   });
