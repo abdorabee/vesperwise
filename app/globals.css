@@ -5,17 +5,25 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Brand accent (lime #dfff00 / #DFFF00, hover #e8ff40): use sparingly —
- * primary CTA, score emphasis, and active nav only.
- * Borders default to --border / white-alpha — never accent on every edge.
- * Primary button = lime + near-black --primary-foreground (not white-on-lime).
- * HOT / WARM / COLD bands keep --hot / --warm / --cold semantic colors.
+ * Token contract (Score Redesign Brief — overrides lime-as-CTA plan):
+ *
+ * --primary / --primary-foreground = near-white #F7F8F8 on near-black #08090A
+ *   (~18.7:1). Primary actions use these — never saturated lime.
+ * --accent / --accent-foreground = shadcn subtle hover wash (neutral), NOT brand.
+ * --brand / --signature = lime #DFFF00 — signature only (≤2 lime elements/screen:
+ *   logo mark + focus/active). Hover #E8FF40 via --brand-hover.
+ * Borders / elevation = neutral ramp + border-first (--elevate-*), not lime edges.
+ * HOT / WARM / COLD = --hot / --warm / --cold (+ label/shape second channel).
+ * Type: Geist Sans only — no monospace face. --font-mono aliases sans for shadcn.
+ * Numerals = font-sans + tabular-nums (.quantity). UA mono on code/pre/kbd/samp overridden.
  */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-jetbrains), ui-monospace, monospace;
+  --font-mono: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --color-brand: var(--brand);
+  --color-signature: var(--signature);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -54,57 +62,68 @@
   --radius-4xl: calc(var(--radius) + 16px);
 }
 
-/* Reference palette tokens (shared naming with HTML mocks) */
+/*
+ * Legacy --iq-* aliases (prefer --brand / --signature / --hot|warm|cold / neutrals).
+ * --iq-cyan must NOT equal lime — that collision is retired.
+ */
 :root {
   --iq-bg: #08090a;
   --iq-bg-elevated: #0e1011;
   --iq-surface: #131517;
-  --iq-accent: #dfff00;
-  --iq-accent-2: #e8ff40;
-  --iq-cyan: #dfff00;
+  --iq-accent: var(--signature);
+  --iq-accent-2: var(--brand-hover);
+  --iq-cyan: #8b9cb3;
   --iq-hot: #4ade80;
   --iq-warm: #f5b544;
   --iq-cold: #8a8f98;
 }
 
-/* Light mode kept as fallback — lime primary (theme-overrides may refine) */
+/* Light — primary = near-black fill / near-white text; accent = subtle hover */
 :root {
   --radius: 0.5rem;
-  --background: oklch(0.984 0.002 247);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: #dfff00;
-  --primary-foreground: #0a0a0a;
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: rgba(223, 255, 0, 0.14);
-  --accent-foreground: #0a0a0a;
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --border-subtle: oklch(0 0 0 / 0.08);
-  --input: oklch(0.922 0 0);
-  --ring: #c8e600;
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(1 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: #dfff00;
-  --sidebar-primary-foreground: #0a0a0a;
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0 0 0 / 0.08);
-  --sidebar-ring: #c8e600;
+  --background: #f7f8fa;
+  --foreground: #08090a;
+  --card: #ffffff;
+  --card-foreground: #08090a;
+  --popover: #ffffff;
+  --popover-foreground: #08090a;
+  --primary: #08090a;
+  --primary-foreground: #f7f8f8;
+  --secondary: rgba(8, 9, 10, 0.06);
+  --secondary-foreground: #08090a;
+  --muted: rgba(8, 9, 10, 0.06);
+  --muted-foreground: #5b6472;
+  --accent: rgba(8, 9, 10, 0.06);
+  --accent-foreground: #08090a;
+  --destructive: #dc2626;
+  --border: rgba(8, 9, 10, 0.10);
+  --border-subtle: rgba(8, 9, 10, 0.06);
+  --input: rgba(8, 9, 10, 0.12);
+  --ring: var(--brand);
+  --chart-1: #8a8f98;
+  --chart-2: #4ade80;
+  --chart-3: #f5b544;
+  --chart-4: #62666d;
+  --chart-5: #08090a;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #3a4150;
+  --sidebar-primary: var(--brand);
+  --sidebar-primary-foreground: #08090a;
+  --sidebar-accent: rgba(8, 9, 10, 0.06);
+  --sidebar-accent-foreground: #08090a;
+  --sidebar-border: rgba(8, 9, 10, 0.10);
+  --sidebar-ring: var(--brand);
+
+  --brand: #dfff00;
+  --brand-hover: #e8ff40;
+  --brand-active: #c8e600;
+  --brand-soft: rgba(223, 255, 0, 0.14);
+  --brand-border: rgba(223, 255, 0, 0.28);
+  --brand-glow: rgba(223, 255, 0, 0.22);
+  --signature: var(--brand);
 }
 
-/* Dark — Linear-inspired (VesperWise HTML references) */
+/* Dark — Linear-like neutrals; primary = #F7F8F8 on #08090A (~18.7:1) */
 .dark {
   --radius: 0.5rem;
   --background: #08090a;
@@ -113,32 +132,40 @@
   --card-foreground: #f7f8f8;
   --popover: #131517;
   --popover-foreground: #f7f8f8;
-  --primary: #dfff00;
-  --primary-foreground: #0a0a0a;
+  --primary: #f7f8f8;
+  --primary-foreground: #08090a;
   --secondary: rgba(255, 255, 255, 0.06);
   --secondary-foreground: #f7f8f8;
   --muted: rgba(255, 255, 255, 0.06);
   --muted-foreground: #8a8f98;
-  --accent: rgba(223,255,0, 0.18);
-  --accent-foreground: #dfff00;
+  --accent: rgba(255, 255, 255, 0.06);
+  --accent-foreground: #f7f8f8;
   --destructive: #f87171;
   --border: rgba(255, 255, 255, 0.08);
   --border-subtle: rgba(255, 255, 255, 0.04);
   --input: rgba(255, 255, 255, 0.08);
-  --ring: #e8ff40;
-  --chart-1: #dfff00;
+  --ring: var(--brand);
+  --chart-1: #b4bbc8;
   --chart-2: #4ade80;
   --chart-3: #f5b544;
-  --chart-4: #e8ff40;
-  --chart-5: #8a8f98;
+  --chart-4: #8a8f98;
+  --chart-5: #f7f8f8;
   --sidebar: #0a0b0d;
   --sidebar-foreground: #b4bbc8;
-  --sidebar-primary: #dfff00;
-  --sidebar-primary-foreground: #0a0a0a;
+  --sidebar-primary: var(--brand);
+  --sidebar-primary-foreground: #08090a;
   --sidebar-accent: rgba(255, 255, 255, 0.06);
   --sidebar-accent-foreground: #f7f8f8;
   --sidebar-border: rgba(255, 255, 255, 0.08);
-  --sidebar-ring: #e8ff40;
+  --sidebar-ring: var(--brand);
+
+  --brand: #dfff00;
+  --brand-hover: #e8ff40;
+  --brand-active: #c8e600;
+  --brand-soft: rgba(223, 255, 0, 0.12);
+  --brand-border: rgba(223, 255, 0, 0.28);
+  --brand-glow: rgba(223, 255, 0, 0.28);
+  --signature: var(--brand);
 }
 
 @layer base {
@@ -147,10 +174,22 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-feature-settings: "ss01", "cv11";
+    font-feature-settings: "ss01", "cv11", "tnum";
+  }
+  /* User lock: no monospace anywhere — kill UA mono on code elements */
+  code,
+  pre,
+  kbd,
+  samp {
+    font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+    font-variant-numeric: tabular-nums;
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
   }
   ::selection {
-    background: rgba(223,255,0, 0.45);
+    background: rgba(247, 248, 248, 0.18);
     color: #f7f8f8;
   }
 }
@@ -160,7 +199,15 @@
     border-color: var(--border-subtle);
   }
 
-  /* Glass panel â€” base frosted glass */
+  /* Quantities: UI sans + tabular figures (scores, credits, weights, %) */
+  .quantity,
+  .tnum {
+    font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum", "ss01", "cv11";
+  }
+
+  /* Glass panel — base frosted glass */
   .glass {
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
@@ -497,44 +544,78 @@ details.nav-dd[open] .nav-chevron {
    Linear-inspired tokens, adapted to the VesperWise palette
    â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 :root {
-  /* Surface */
-  --bg:           #08090a;
-  --bg-elevated:  #0e1011;
-  --bg-translucent: rgba(10,10,10,0.55);
-  --surface:      #131517;
-  --surface-2:    #1a1d20;
+  /* Neutral ramp (near-black → near-white) */
+  --neutral-0: #08090a;
+  --neutral-50: #0e1011;
+  --neutral-100: #131517;
+  --neutral-200: #1a1d20;
+  --neutral-300: #262a2e;
+  --neutral-400: #3a3f45;
+  --neutral-500: #62666d;
+  --neutral-600: #8a8f98;
+  --neutral-700: #b4bbc8;
+  --neutral-800: #e4e5e7;
+  --neutral-900: #f7f8f8;
 
-  /* Text â€” Linear's exact greys */
-  --text-primary:  #f7f8f8;
-  --text-secondary:#b4bbc8;
-  --text-tertiary: #8a8f98;
-  --text-quaternary:#62666d;
+  /* Surface (map onto ramp) */
+  --bg:           var(--neutral-0);
+  --bg-elevated:  var(--neutral-50);
+  --bg-translucent: rgba(8, 9, 10, 0.55);
+  --surface:      var(--neutral-100);
+  --surface-2:    var(--neutral-200);
 
-  /* Borders */
-  --border:        rgba(255,255,255,0.08);
-  --border-strong: rgba(255,255,255,0.13);
-  --border-subtle: rgba(255,255,255,0.04);
+  /* Text */
+  --text-primary:   var(--neutral-900);
+  --text-secondary: var(--neutral-700);
+  --text-tertiary:  var(--neutral-600);
+  --text-quaternary:var(--neutral-500);
 
-  /* Accent — VesperWise lime, used sparingly (CTA / score / active nav) */
-  --accent:        #dfff00;
-  --accent-2:      #e8ff40;
-  --cyan:          #dfff00;
-  --cyan-soft:     rgba(223,255,0,0.16);
+  /* Borders — neutral white-alpha, never brand lime */
+  --border:        rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.13);
+  --border-subtle: rgba(255, 255, 255, 0.04);
 
-  /* Score band colors (HOT / WARM / COLD — do not remap to lime) */
+  /*
+   * Brand signature (lime) — NOT --accent, NOT --primary.
+   * Budget ≤2 lime elements/screen (logo + focus/active).
+   */
+  --brand:         #dfff00;
+  --brand-hover:   #e8ff40;
+  --brand-active:  #c8e600;
+  --brand-soft:    rgba(223, 255, 0, 0.12);
+  --brand-border:  rgba(223, 255, 0, 0.28);
+  --brand-glow:    rgba(223, 255, 0, 0.28);
+  --signature:     var(--brand);
+  /* Legacy aliases that meant "lime" — point at brand, not shadcn accent */
+  --accent-2:      var(--brand-hover);
+  --accent-soft:   var(--brand-soft);
+  --accent-border: var(--brand-border);
+  --accent-glow:   var(--brand-glow);
+  /* Cool signal (not lime) — retired cyan=lime collision */
+  --cyan:          #8b9cb3;
+  --cyan-soft:     rgba(139, 156, 179, 0.16);
+
+  /* Score bands — hue + second channel (shape via --band-*-shape) */
   --hot:           #4ade80;
-  --hot-bg:        rgba(74,222,128,0.10);
-  --hot-border:    rgba(74,222,128,0.25);
+  --hot-bg:        rgba(74, 222, 128, 0.10);
+  --hot-border:    rgba(74, 222, 128, 0.25);
+  --hot-glow:      rgba(74, 222, 128, 0.30);
   --warm:          #f5b544;
-  --warm-bg:       rgba(245,181,68,0.10);
-  --warm-border:   rgba(245,181,68,0.25);
+  --warm-bg:       rgba(245, 181, 68, 0.10);
+  --warm-border:   rgba(245, 181, 68, 0.25);
   --cold:          #8a8f98;
-  --cold-bg:       rgba(138,143,152,0.08);
-  --cold-border:   rgba(138,143,152,0.22);
+  --cold-bg:       rgba(138, 143, 152, 0.08);
+  --cold-border:   rgba(138, 143, 152, 0.22);
+  --band-hot-shape: circle;
+  --band-warm-shape: diamond;
+  --band-cold-shape: square;
+  --band-hot-label: "HOT";
+  --band-warm-label: "WARM";
+  --band-cold-label: "COLD";
 
-  /* Type — Geist Sans via next/font (--font-geist-sans); JetBrains Mono */
+  /* Type — Geist Sans only; --font-mono aliases sans (no mono face) */
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-jetbrains), ui-monospace, SFMono-Regular, monospace;
+  --font-mono: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
 
   /* Radii */
   --r-sm: 4px;
@@ -543,14 +624,15 @@ details.nav-dd[open] .nav-chevron {
   --r-xl: 12px;
   --r-2xl: 16px;
 
-  /* Shadows */
-  --shadow-card: 0 0 0 1px rgba(255,255,255,0.06), 0 1px 2px rgba(0,0,0,0.3);
-  --shadow-elevated: 0 0 0 1px rgba(255,255,255,0.08), 0 24px 48px -12px rgba(0,0,0,0.6);
-  --shadow-screen: 0 0 0 1px rgba(255,255,255,0.06), 0 50px 100px -20px rgba(0,0,0,0.5), 0 30px 60px -30px rgba(0,0,0,0.6);
+  /* Elevation — border-first on near-black */
+  --elevate-1: 0 0 0 1px var(--border);
+  --elevate-2: 0 0 0 1px var(--border-strong);
+  --elevate-3: 0 0 0 1px var(--border-strong), 0 12px 32px -16px rgba(0, 0, 0, 0.55);
+  --shadow-card: var(--elevate-1);
+  --shadow-elevated: var(--elevate-3);
+  --shadow-screen: 0 0 0 1px var(--border), 0 50px 100px -20px rgba(0, 0, 0, 0.5), 0 30px 60px -30px rgba(0, 0, 0, 0.6);
 
-  /* Misc tokens used across components */
-  --red:         #f87171;
-  --accent-soft: rgba(223,255,0,0.14);
+  --red: #f87171;
 }
 
 /* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -570,6 +652,10 @@ details.nav-dd[open] .nav-chevron {
 *:not(.onboarding-shell, .onboarding-shell *)::before,
 *:not(.onboarding-shell, .onboarding-shell *)::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
+code, pre, kbd, samp {
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif !important;
+  font-variant-numeric: tabular-nums;
+}
 body {
   background: var(--bg);
   font-family: var(--font-sans);
@@ -649,7 +735,7 @@ img, svg { display: block; max-width: 100%; }
 }
 .body { font-size: 15px; line-height: 1.6; color: var(--text-secondary); }
 .caption { font-size: 13px; color: var(--text-tertiary); }
-.mono { font-family: var(--font-mono); font-feature-settings: "tnum", "ss01"; }
+.mono { font-family: var(--font-sans); font-variant-numeric: tabular-nums; font-feature-settings: "tnum", "ss01", "cv11"; letter-spacing: 0.02em; }
 
 /* Gradient text */
 .grad-text {
@@ -1106,26 +1192,28 @@ nav.primary .row {
   border-radius: 999px;
   border: 1px solid;
   font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
+  font-variant-numeric: tabular-nums;
   text-transform: uppercase;
 }
-.band .dot { width: 6px; height: 6px; border-radius: 999px; }
+.band .dot { width: 6px; height: 6px; flex-shrink: 0; }
 .band-hot { background: var(--hot-bg); border-color: var(--hot-border); color: var(--hot); }
-.band-hot .dot { background: var(--hot); box-shadow: 0 0 6px var(--hot); }
+.band-hot .dot { background: var(--hot); border-radius: 999px; box-shadow: 0 0 6px var(--hot); } /* circle */
 .band-warm { background: var(--warm-bg); border-color: var(--warm-border); color: var(--warm); }
-.band-warm .dot { background: var(--warm); }
+.band-warm .dot { background: var(--warm); border-radius: 1px; transform: rotate(45deg); } /* diamond */
 .band-cold { background: var(--cold-bg); border-color: var(--cold-border); color: var(--cold); }
-.band-cold .dot { background: var(--cold); }
+.band-cold .dot { background: var(--cold); border-radius: 0; } /* square */
 
 /* Score number */
 .score-cell {
   display: flex; align-items: center; gap: 10px;
 }
 .score-num {
-  font-family: var(--font-mono); font-weight: 600;
+  font-family: var(--font-sans); font-weight: 600;
   font-size: 15px; letter-spacing: -0.02em;
   color: var(--text-primary);
   font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum", "ss01", "cv11";
   min-width: 28px;
 }
 .score-bar {
@@ -2379,7 +2467,7 @@ footer.site-footer {
 }
 .sb-credits .label { font-size: 11px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; }
 .sb-credits .row { display: flex; align-items: baseline; justify-content: space-between; }
-.sb-credits .val { font-family: var(--font-mono); font-size: 16px; font-weight: 600; color: var(--text-primary); letter-spacing: -0.02em; }
+.sb-credits .val { font-family: var(--font-sans); font-size: 16px; font-weight: 600; color: var(--text-primary); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
 .sb-credits .of { font-size: 11px; color: var(--text-tertiary); margin-left: 2px; }
 .sb-credits .topup { font-size: 11px; color: var(--accent-2); font-weight: 500; }
 .sb-credits .bar { margin-top: 6px; height: 3px; border-radius: 999px; overflow: hidden; background: rgba(255,255,255,0.06); }
@@ -2434,8 +2522,8 @@ footer.site-footer {
 .tb-btn.outlined:hover { border-color: var(--border-strong); }
 .tb-btn .ic { width: 12px; height: 12px; opacity: 0.85; }
 .tb-btn .kbd { font-family: var(--font-mono); font-size: 11px; padding: 1px 5px; border-radius: 3px; background: rgba(255,255,255,0.06); color: var(--text-tertiary); }
-.btn-primary { background: var(--brand); color: #000000; padding: 4px 12px; border-radius: var(--r-md); font-size: 13px; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12), 0 1px 2px rgba(0,0,0,0.3); letter-spacing: -0.006em; }
-.btn-primary:hover { background: var(--brand-hover); }
+.btn-primary { background: var(--primary); color: var(--primary-foreground); padding: 4px 12px; border-radius: var(--r-md); font-size: 13px; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; box-shadow: var(--elevate-1); letter-spacing: -0.006em; }
+.btn-primary:hover { filter: brightness(0.96); }
 .btn-primary .ic { width: 12px; height: 12px; }
 
 .notif { position: relative; width: 28px; height: 28px; display: grid; place-items: center; color: var(--text-tertiary); border-radius: var(--r-sm); cursor: pointer; }
@@ -2596,17 +2684,17 @@ footer.site-footer {
 .ap-row .col-num { font-family: var(--font-mono); font-size: 13px; font-weight: 500; color: var(--text-primary); text-align: right; font-variant-numeric: tabular-nums; }
 .ap-row .col-num .label-small { display: block; font-size: 10px; color: var(--text-tertiary); font-weight: 400; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 1px; }
 
-/* Score bands */
-.band { display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px; border-radius: 999px; border: 1px solid; font-size: 10px; font-weight: 600; letter-spacing: 0.04em; font-family: var(--font-mono); text-transform: uppercase; }
-.band .dot { width: 5px; height: 5px; border-radius: 999px; }
+/* Score bands — hue + shape second channel; labels uppercase (not hue-only) */
+.band { display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px; border-radius: 999px; border: 1px solid; font-size: 10px; font-weight: 600; letter-spacing: 0.04em; font-family: var(--font-sans); text-transform: uppercase; font-variant-numeric: tabular-nums; }
+.band .dot { width: 5px; height: 5px; flex-shrink: 0; }
 .band-hot { background: var(--hot-bg); border-color: var(--hot-border); color: var(--hot); }
-.band-hot .dot { background: var(--hot); box-shadow: 0 0 4px var(--hot); }
+.band-hot .dot { background: var(--hot); border-radius: 999px; box-shadow: 0 0 4px var(--hot); }
 .band-warm { background: var(--warm-bg); border-color: var(--warm-border); color: var(--warm); }
-.band-warm .dot { background: var(--warm); }
+.band-warm .dot { background: var(--warm); border-radius: 1px; transform: rotate(45deg); }
 .band-cold { background: var(--cold-bg); border-color: var(--cold-border); color: var(--cold); }
-.band-cold .dot { background: var(--cold); }
-.band-blue { background: rgba(223,255,0,0.12); border-color: rgba(223,255,0,0.25); color: #dfff00; }
-.band-blue .dot { background: var(--accent-2); }
+.band-cold .dot { background: var(--cold); border-radius: 0; }
+.band-blue { background: rgba(139,156,179,0.12); border-color: rgba(139,156,179,0.25); color: var(--cyan); }
+.band-blue .dot { background: var(--cyan); border-radius: 999px; }
 
 /* Card footer */
 .card-foot { padding: 10px 16px; border-top: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--text-tertiary); letter-spacing: -0.006em; }
@@ -3414,12 +3502,12 @@ button.signal-card.gen-axis.is-selected {
   color: var(--text-primary);
 }
 .score-elements-submit {
-  background: var(--accent) !important;
-  color: #08090a !important;
-  border-color: var(--accent) !important;
+  background: var(--primary) !important;
+  color: var(--primary-foreground) !important;
+  border-color: var(--primary) !important;
 }
 .score-elements-submit:hover {
-  background: var(--accent-2) !important;
+  filter: brightness(0.96);
 }
 .score-elements-suggestions {
   max-width: 1040px;

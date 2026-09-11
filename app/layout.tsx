@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, JetBrains_Mono } from "next/font/google";
+import { Geist } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -13,12 +13,6 @@ import "./bulk-workspace.css";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
-});
-
-const jetbrainsMono = JetBrains_Mono({
-  variable: "--font-jetbrains",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -134,7 +128,7 @@ export default function RootLayout({
           />
           <GoogleAnalytics />
         </head>
-        <body className={`${geistSans.variable} ${jetbrainsMono.variable} font-sans antialiased`}>
+        <body className={`${geistSans.variable} font-sans antialiased`}>
           <ThemeProvider>
             <TooltipProvider>
               {children}
