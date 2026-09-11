@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import type { IntentScore, ScoreBand } from "@/lib/types";
 import { CHAT_CREDIT_COST } from "@/lib/types";
 import { extractDomain, seedChatSession, streamChat } from "@/lib/chat-client";
-import { avColor, scoreFromToolResult } from "@/components/score/score-result-card";
+import { scoreFromToolResult } from "@/components/score/score-result-card";
 import type { ScoreCardData } from "@/components/score/score-result-card";
 import { GenUiWorkspace } from "@/components/score/gen-ui/workspace";
 import { sanitizeUiBlocks, suggestionsFromBlocks, workspaceFromScore } from "@/lib/gen-ui";
@@ -186,6 +186,16 @@ function bandTone(band: RecentScore["score_band"]): "hot" | "warm" | "cold" {
   return "cold";
 }
 
+function recentAvatarTone(name: string): string {
+  const palette = [
+    "linear-gradient(135deg, #3a3f45, #8a8f98)",
+    "linear-gradient(135deg, #2a3038, #5c6570)",
+    "linear-gradient(135deg, #454a52, #9aa0a8)",
+    "linear-gradient(135deg, #32363c, #6e757e)",
+  ];
+  return palette[(name.charCodeAt(0) ?? 0) % palette.length];
+}
+
 function ScoreComposerCost({
   primary,
   balance,
@@ -243,7 +253,7 @@ function ScorePromptStage({ onScore, creditsRemaining, recentScores, busy }: Sco
               disabled={busy || zeroCredits}
               size="sm"
               variant="default"
-              className="score-elements-submit"
+              className="score-elements-submit rounded-md shadow-[inset_0_1px_0_rgba(255,255,255,0.28)] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.28)]"
             >
               Score
             </PromptInputSubmit>
@@ -275,7 +285,7 @@ function ScorePromptStage({ onScore, creditsRemaining, recentScores, busy }: Sco
                     >
                       <span
                         className="score-recent-av"
-                        style={{ background: avColor(r.company_name || r.domain) }}
+                        style={{ background: recentAvatarTone(r.company_name || r.domain) }}
                         aria-hidden
                       >
                         {(r.company_name || r.domain)[0]?.toUpperCase()}
@@ -647,7 +657,7 @@ export function ScoreView({ creditsRemaining, recentScores }: ScoreViewProps) {
                     disabled={busy}
                     size="sm"
                     variant="default"
-                    className="score-elements-submit"
+                    className="score-elements-submit rounded-md shadow-[inset_0_1px_0_rgba(255,255,255,0.28)] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.28)]"
                   >
                     Send
                   </PromptInputSubmit>
