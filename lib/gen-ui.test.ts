@@ -96,5 +96,9 @@ describe("workspaceFromScore", () => {
       "outreach_studio",
       "action_rail",
     ]);
+    expect(blocks[0]).toMatchObject({
+      type: "intent_hero",
+      latest_signal_at: "2026-08-01T00:00:00.000Z",
+    });
   });
 });
