@@ -207,7 +207,7 @@ export default function AuthLayout({
             width: "360px",
             height: "360px",
             borderRadius: "999px",
-            background: "rgba(223,255,0,0.055)",
+            background: "rgba(255,255,255,0.04)",
             filter: "blur(150px)",
             pointerEvents: "none",
           }}
