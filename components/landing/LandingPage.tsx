@@ -145,7 +145,7 @@ export default function LandingPage() {
                   <div className="label">Credits</div>
                   <div className="row">
                     <div><span className="val">1,548</span><span className="of"> / 2,500</span></div>
-                    <a className="caption" style={{ color: 'var(--accent-2)', fontWeight: 500, fontSize: '12px', textDecoration: 'none' }}>Top up</a>
+                    <a className="caption" style={{ color: 'var(--text-secondary)', fontWeight: 500, fontSize: '12px', textDecoration: 'none' }}>Top up</a>
                   </div>
                   <div className="bar"><div className="fill"></div></div>
                 </div>
