@@ -8,7 +8,12 @@ import { extractDomain, seedChatSession, streamChat } from "@/lib/chat-client";
 import { avColor, scoreFromToolResult } from "@/components/score/score-result-card";
 import type { ScoreCardData } from "@/components/score/score-result-card";
 import { GenUiWorkspace } from "@/components/score/gen-ui/workspace";
-import { sanitizeUiBlocks, suggestionsFromBlocks, workspaceFromScore } from "@/lib/gen-ui";
+import {
+  isDurableScoreBlocks,
+  sanitizeUiBlocks,
+  suggestionsFromBlocks,
+  workspaceFromScore,
+} from "@/lib/gen-ui";
 import type { UiBlock } from "@/lib/gen-ui";
 import {
   Conversation,
@@ -531,8 +536,19 @@ export function ScoreView({ creditsRemaining, recentScores }: ScoreViewProps) {
   }
 
   const active = messages.length > 0;
+  /** Latest durable score artifact — pinned above chat so follow-ups do not scroll it away. */
+  const pinnedScore = [...messages]
+    .reverse()
+    .find((m): m is Extract<ThreadMessage, { role: "assistant"; kind: "ui" }> =>
+      m.role === "assistant" && m.kind === "ui" && isDurableScoreBlocks(m.blocks),
+    );
   const lastUi = [...messages].reverse().find((m) => m.role === "assistant" && m.kind === "ui");
   const chips = lastUi && lastUi.kind === "ui" ? suggestionsFromBlocks(lastUi.blocks) : [];
+  const workspaceHandlers = {
+    onWatchlist: (company: string, d: string) => void handleAddToWatchlist(company, d),
+    watchlistByDomain,
+    onPrompt: (prompt: string) => void submitMessage(prompt),
+  };
 
   return (
     <div className="score-chat">
@@ -545,74 +561,105 @@ export function ScoreView({ creditsRemaining, recentScores }: ScoreViewProps) {
         />
       ) : (
         <>
-          <Conversation className="score-chat-thread">
-            <ConversationContent className="score-chat-col">
-              {messages.map((message) => {
-                if (message.role === "user") {
-                  return (
-                    <Message key={message.id} from="user">
-                      <MessageContent className="chat-bubble user">{message.content}</MessageContent>
-                    </Message>
-                  );
-                }
-                if (message.role === "error") {
-                  return (
-                    <Message key={message.id} from="assistant">
-                      <p className="chat-error" role="alert">{message.content}</p>
-                    </Message>
-                  );
-                }
-                if (message.kind === "thinking") {
-                  return (
-                    <Message key={message.id} from="assistant">
-                      {message.mode === "score" ? (
-                        <LiveProgressBar loading stepIndex={stepIndex} />
-                      ) : (
-                        <div className="chat-thinking">
-                          <span className="pulse" />
-                          Designing view…
-                        </div>
-                      )}
-                    </Message>
-                  );
-                }
-                if (message.kind === "ui") {
+          <div className="flex min-h-0 flex-1 flex-col">
+            {pinnedScore ? (
+              <section
+                aria-label="Score document"
+                className="score-document-pin shrink-0 max-h-[min(58vh,720px)] overflow-y-auto border-b border-border bg-background/90 px-4 py-4 sm:px-6"
+              >
+                <div className="mx-auto w-full max-w-[1040px] space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] uppercase tracking-[0.06em] text-muted-foreground">
+                    <span>Score document · pinned</span>
+                    {pinnedScore.billing ? (
+                      <span className="quantity normal-case tracking-normal">{pinnedScore.billing}</span>
+                    ) : null}
+                  </div>
+                  <GenUiWorkspace blocks={pinnedScore.blocks} handlers={workspaceHandlers} />
+                </div>
+              </section>
+            ) : null}
+            <Conversation className="score-chat-thread min-h-0 flex-1">
+              <ConversationContent className="score-chat-col">
+                {messages.map((message) => {
+                  if (message.role === "user") {
+                    return (
+                      <Message key={message.id} from="user">
+                        <MessageContent className="chat-bubble user">{message.content}</MessageContent>
+                      </Message>
+                    );
+                  }
+                  if (message.role === "error") {
+                    return (
+                      <Message key={message.id} from="assistant">
+                        <p className="chat-error" role="alert">{message.content}</p>
+                      </Message>
+                    );
+                  }
+                  if (message.kind === "thinking") {
+                    return (
+                      <Message key={message.id} from="assistant">
+                        {message.mode === "score" ? (
+                          <LiveProgressBar loading stepIndex={stepIndex} />
+                        ) : (
+                          <div className="chat-thinking">
+                            <span className="pulse" />
+                            Designing view…
+                          </div>
+                        )}
+                      </Message>
+                    );
+                  }
+                  if (message.kind === "ui") {
+                    const durable = isDurableScoreBlocks(message.blocks);
+                    const isPinned = pinnedScore?.id === message.id;
+                    if (durable && isPinned) {
+                      return (
+                        <Message key={message.id} from="assistant">
+                          <MessageContent>
+                            {message.billing ? (
+                              <LiveProgressBar
+                                loading={false}
+                                stepIndex={STEPS.length - 1}
+                                billingLabel={message.billing}
+                              />
+                            ) : null}
+                            <p className="text-sm text-muted-foreground">
+                              Intent score ready — document stays pinned above while you chat.
+                            </p>
+                          </MessageContent>
+                        </Message>
+                      );
+                    }
+                    return (
+                      <Message key={message.id} from="assistant">
+                        <MessageContent>
+                          {message.billing && (
+                            <LiveProgressBar
+                              loading={false}
+                              stepIndex={STEPS.length - 1}
+                              billingLabel={message.billing}
+                            />
+                          )}
+                          <ToolChips tools={message.tools} />
+                          {message.content && <AssistantText content={message.content} />}
+                          <GenUiWorkspace blocks={message.blocks} handlers={workspaceHandlers} />
+                        </MessageContent>
+                      </Message>
+                    );
+                  }
                   return (
                     <Message key={message.id} from="assistant">
                       <MessageContent>
-                        {message.billing && (
-                          <LiveProgressBar
-                            loading={false}
-                            stepIndex={STEPS.length - 1}
-                            billingLabel={message.billing}
-                          />
-                        )}
                         <ToolChips tools={message.tools} />
                         {message.content && <AssistantText content={message.content} />}
-                        <GenUiWorkspace
-                          blocks={message.blocks}
-                          handlers={{
-                            onWatchlist: (company, d) => void handleAddToWatchlist(company, d),
-                            watchlistByDomain,
-                            onPrompt: (prompt) => void submitMessage(prompt),
-                          }}
-                        />
                       </MessageContent>
                     </Message>
                   );
-                }
-                return (
-                  <Message key={message.id} from="assistant">
-                    <MessageContent>
-                      <ToolChips tools={message.tools} />
-                      {message.content && <AssistantText content={message.content} />}
-                    </MessageContent>
-                  </Message>
-                );
-              })}
-            </ConversationContent>
-            <ConversationScrollButton className="score-elements-scroll" />
-          </Conversation>
+                })}
+              </ConversationContent>
+              <ConversationScrollButton className="score-elements-scroll" />
+            </Conversation>
+          </div>
           <div className="score-chat-composer">
             {chips.length > 0 && (
               <Suggestions className="score-elements-suggestions">
