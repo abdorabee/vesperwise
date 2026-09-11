@@ -1216,7 +1216,7 @@ export type PromptInputSubmitProps = ComponentProps<typeof InputGroupButton> & {
 export const PromptInputSubmit = ({
   className,
   variant = "default",
-  size = "icon-sm",
+  size,
   status,
   onStop,
   onClick,
@@ -1224,6 +1224,7 @@ export const PromptInputSubmit = ({
   ...props
 }: PromptInputSubmitProps) => {
   const isGenerating = status === "submitted" || status === "streaming";
+  const resolvedSize = size ?? (children ? "sm" : "icon-sm");
 
   let Icon = <CornerDownLeftIcon className="size-4" />;
 
@@ -1252,7 +1253,7 @@ export const PromptInputSubmit = ({
       aria-label={isGenerating ? "Stop" : "Submit"}
       className={cn(className)}
       onClick={handleClick}
-      size={size}
+      size={resolvedSize}
       type={isGenerating && onStop ? "button" : "submit"}
       variant={variant}
       {...props}
