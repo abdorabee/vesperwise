@@ -18,7 +18,7 @@ const basePublicRoutes = [
   "/api/contact",
 ];
 
-const previewPublicRoutes = [...basePublicRoutes, "/onboarding(.*)"];
+const previewPublicRoutes = [...basePublicRoutes, "/onboarding(.*)", "/dev/score-entry(.*)"];
 
 const isPublicRoute = createRouteMatcher(
   process.env.VERCEL_ENV === "production" ? basePublicRoutes : previewPublicRoutes
