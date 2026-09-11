@@ -263,7 +263,7 @@ function LoginFormInner() {
           <Button
             type="submit"
             disabled={busy}
-            className="h-[42px] w-full rounded-full bg-[linear-gradient(180deg,#ecff58,#dfff00)] text-[#050505] hover:bg-[linear-gradient(180deg,#ecff58,#dfff00)]"
+            className="h-[42px] w-full rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
           >
             {busy ? "Signing in…" : "Continue"}
           </Button>
@@ -293,7 +293,7 @@ function LoginFormInner() {
           <Button
             type="submit"
             disabled={busy}
-            className="h-[42px] w-full rounded-full bg-[linear-gradient(180deg,#ecff58,#dfff00)] text-[#050505]"
+            className="h-[42px] w-full rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
           >
             {busy ? "Checking…" : "Verify code"}
           </Button>
@@ -336,7 +336,7 @@ function LoginFormInner() {
           <Button
             type="submit"
             disabled={busy}
-            className="h-[42px] w-full rounded-full bg-[linear-gradient(180deg,#ecff58,#dfff00)] text-[#050505]"
+            className="h-[42px] w-full rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
           >
             {busy ? "Saving…" : "Update password"}
           </Button>
@@ -366,7 +366,7 @@ function LoginFormInner() {
           <Button
             type="submit"
             disabled={busy}
-            className="h-[42px] w-full rounded-full bg-[linear-gradient(180deg,#ecff58,#dfff00)] text-[#050505]"
+            className="h-[42px] w-full rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
           >
             {busy ? "Verifying…" : "Verify"}
           </Button>

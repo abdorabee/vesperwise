@@ -154,12 +154,12 @@ export default function DashboardNav({
                   </span>
                 )}
                 {item.beta && !item.comingSoon && (
-                  <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--accent-2)" }}>
+                  <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--text-quaternary)" }}>
                     Beta
                   </span>
                 )}
                 {displayCount && (
-                  <span className={cn("count", item.hotCount && "hot")}>{displayCount}</span>
+                  <span className={cn("count quantity", item.hotCount && "hot")}>{displayCount}</span>
                 )}
                 {item.indicator && <span className="indicator" />}
               </>
@@ -204,8 +204,8 @@ export default function DashboardNav({
           <div className="label">Credits this month</div>
           <div className="row">
             <div>
-              <span className="val">{creditsRemaining.toLocaleString()}</span>
-              <span className="of"> / {creditCap.toLocaleString()}</span>
+              <span className="val quantity">{creditsRemaining.toLocaleString()}</span>
+              <span className="of quantity"> / {creditCap.toLocaleString()}</span>
             </div>
             <Link href="/billing" className="topup">Top up</Link>
           </div>
@@ -216,7 +216,8 @@ export default function DashboardNav({
       ) : (
         <div
           title={`${creditsRemaining} credits`}
-          style={{ margin: "8px 4px", padding: "8px 4px", textAlign: "center", fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-primary)", border: "1px solid var(--border)", borderRadius: "var(--r-md)" }}
+          className="quantity"
+          style={{ margin: "8px 4px", padding: "8px 4px", textAlign: "center", fontFamily: "var(--font-sans)", fontSize: 11, color: "var(--text-primary)", border: "1px solid var(--border)", borderRadius: "var(--r-md)", fontVariantNumeric: "tabular-nums" }}
         >
           {creditsRemaining}
         </div>

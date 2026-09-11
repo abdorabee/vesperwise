@@ -43,7 +43,7 @@ function LeftPanel() {
           width: "620px",
           height: "620px",
           borderRadius: "50%",
-          background: "rgba(223,255,0,0.1)",
+          background: "rgba(255,255,255,0.06)",
           filter: "blur(280px)",
           pointerEvents: "none",
         }}
@@ -67,8 +67,8 @@ function LeftPanel() {
         <p
           style={{
             marginBottom: "18px",
-            color: "#dfff00",
-            fontFamily: "var(--font-jetbrains), ui-monospace, monospace",
+            color: "#8a8f98",
+            fontFamily: "var(--font-sans), ui-sans-serif, system-ui, sans-serif",
             fontSize: "11px",
             letterSpacing: "0.14em",
             textTransform: "uppercase",
@@ -117,8 +117,8 @@ function LeftPanel() {
                 aria-hidden="true"
                 style={{
                   marginTop: "4px",
-                  color: "#dfff00",
-                  fontFamily: "var(--font-jetbrains), ui-monospace, monospace",
+                  color: "#a8afb9",
+                  fontFamily: "var(--font-sans), ui-sans-serif, system-ui, sans-serif",
                   fontSize: "11px",
                 }}
               >
@@ -143,10 +143,11 @@ function LeftPanel() {
           zIndex: 1,
           margin: 0,
           color: "#737980",
-          fontFamily: "var(--font-jetbrains), ui-monospace, monospace",
+          fontFamily: "var(--font-sans), ui-sans-serif, system-ui, sans-serif",
           fontSize: "11px",
           letterSpacing: "0.08em",
           textTransform: "uppercase",
+          fontVariantNumeric: "tabular-nums",
         }}
       >
         Start with 20 free credits · no credit card
@@ -166,9 +167,9 @@ export default function AuthLayout({
       style={{
         minHeight: "100dvh",
         background:
-          "radial-gradient(circle at 12% -12%, rgba(223,255,0,0.12), transparent 36rem), radial-gradient(circle at 92% 10%, rgba(74,222,128,0.07), transparent 30rem), #08090a",
+          "radial-gradient(circle at 12% -12%, rgba(255,255,255,0.06), transparent 36rem), radial-gradient(circle at 92% 10%, rgba(255,255,255,0.03), transparent 30rem), #08090a",
         display: "flex",
-        fontFamily: "var(--font-sans, Inter, system-ui, sans-serif)",
+        fontFamily: "var(--font-sans), ui-sans-serif, system-ui, sans-serif",
       }}
     >
       <style>{`
