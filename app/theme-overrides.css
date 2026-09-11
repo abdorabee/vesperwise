@@ -3,6 +3,11 @@
    Loaded AFTER globals.css so these win by source order.
    The whole app defaults to dark via <html class="dark">; this
    file makes the design-system + shadcn tokens actually flip.
+
+   Lime (#dfff00): primary CTA / score emphasis / active nav only.
+   Borders stay neutral (white-alpha / ink-alpha), not accent.
+   Primary button = brand lime + near-black foreground.
+   HOT/WARM/COLD use --hot/--warm/--cold (unchanged below).
    ============================================================ */
 
 :root {
@@ -24,13 +29,13 @@
   --popover: #ffffff;
   --popover-foreground: #0a0e1a;
   --primary: var(--brand);
-  --primary-foreground: #000000;
+  --primary-foreground: #0a0a0a;
   --secondary: #eef1f6;
   --secondary-foreground: #0a0e1a;
   --muted: #eef1f6;
   --muted-foreground: #5b6472;
   --accent: var(--brand-soft);
-  --accent-foreground: #111111;
+  --accent-foreground: #0a0a0a;
   --destructive: #dc2626;
   --border: rgba(10, 14, 26, 0.10);
   --input: rgba(10, 14, 26, 0.12);
@@ -43,7 +48,7 @@
   --sidebar: #ffffff;
   --sidebar-foreground: #3a4150;
   --sidebar-primary: var(--brand);
-  --sidebar-primary-foreground: #000000;
+  --sidebar-primary-foreground: #0a0a0a;
   --sidebar-accent: #eef1f6;
   --sidebar-accent-foreground: #0a0e1a;
   --sidebar-border: rgba(10, 14, 26, 0.10);
@@ -109,17 +114,17 @@
   --brand-border: rgba(223, 255, 0, 0.28);
   --brand-glow: rgba(223, 255, 0, 0.38);
 
-  /* shadcn semantic tokens (dark) */
-  --background: #000000;
-  --foreground: #ffffff;
-  --card: #111111;
-  --card-foreground: #ffffff;
-  --popover: #181818;
-  --popover-foreground: #ffffff;
+  /* shadcn semantic tokens (dark) — Linear-like neutrals, align with globals */
+  --background: #08090a;
+  --foreground: #f7f8f8;
+  --card: #0e1011;
+  --card-foreground: #f7f8f8;
+  --popover: #131517;
+  --popover-foreground: #f7f8f8;
   --primary: var(--brand);
-  --primary-foreground: #000000;
+  --primary-foreground: #0a0a0a;
   --secondary: rgba(255, 255, 255, 0.06);
-  --secondary-foreground: #ffffff;
+  --secondary-foreground: #f7f8f8;
   --muted: rgba(255, 255, 255, 0.06);
   --muted-foreground: #8a8f98;
   --accent: var(--brand-soft);
@@ -132,31 +137,31 @@
   --chart-2: #4ade80;
   --chart-3: #f5b544;
   --chart-4: #8a8f98;
-  --chart-5: #ffffff;
-  --sidebar: #000000;
-  --sidebar-foreground: #a0a0a0;
+  --chart-5: #f7f8f8;
+  --sidebar: #0a0b0d;
+  --sidebar-foreground: #b4bbc8;
   --sidebar-primary: var(--brand);
-  --sidebar-primary-foreground: #000000;
+  --sidebar-primary-foreground: #0a0a0a;
   --sidebar-accent: rgba(255, 255, 255, 0.06);
-  --sidebar-accent-foreground: #ffffff;
+  --sidebar-accent-foreground: #f7f8f8;
   --sidebar-border: rgba(255, 255, 255, 0.08);
   --sidebar-ring: var(--brand-active);
 
   /* design-system tokens (dark) */
-  --bg: #000000;
-  --bg-elevated: #111111;
-  --bg-overlay: #181818;
-  --surface: #111111;
-  --surface-hover: #181818;
-  --surface-active: #202020;
+  --bg: #08090a;
+  --bg-elevated: #0e1011;
+  --bg-overlay: #131517;
+  --surface: #131517;
+  --surface-hover: #1a1d20;
+  --surface-active: #202428;
   --accent-2: var(--brand-hover);
   --accent-glow: var(--brand-glow);
   --accent-soft: var(--brand-soft);
   --accent-border: var(--brand-border);
-  --text-primary: #ffffff;
-  --text-secondary: #a0a0a0;
-  --text-tertiary: #666666;
-  --text-quaternary: #4a4a4a;
+  --text-primary: #f7f8f8;
+  --text-secondary: #b4bbc8;
+  --text-tertiary: #8a8f98;
+  --text-quaternary: #62666d;
   --success: #4ade80;
   --success-bg: rgba(74, 222, 128, 0.12);
   --warning: #f5b544;
@@ -180,7 +185,7 @@
   --cyan-soft: var(--brand-soft);
   --border-strong: rgba(255, 255, 255, 0.13);
   --border-subtle: rgba(255, 255, 255, 0.04);
-  --surface-2: #181818;
+  --surface-2: #1a1d20;
   --bg-translucent: rgba(0, 0, 0, 0.55);
   --red: #f87171;
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);

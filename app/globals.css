@@ -4,10 +4,17 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/*
+ * Brand accent (lime #dfff00 / #DFFF00, hover #e8ff40): use sparingly —
+ * primary CTA, score emphasis, and active nav only.
+ * Borders default to --border / white-alpha — never accent on every edge.
+ * Primary button = lime + near-black --primary-foreground (not white-on-lime).
+ * HOT / WARM / COLD bands keep --hot / --warm / --cold semantic colors.
+ */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-jetbrains), ui-monospace, monospace;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -60,7 +67,7 @@
   --iq-cold: #8a8f98;
 }
 
-/* Light mode kept as fallback */
+/* Light mode kept as fallback — lime primary (theme-overrides may refine) */
 :root {
   --radius: 0.5rem;
   --background: oklch(0.984 0.002 247);
@@ -69,19 +76,19 @@
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.52 0.18 277);
-  --primary-foreground: oklch(0.985 0 0);
+  --primary: #dfff00;
+  --primary-foreground: #0a0a0a;
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
   --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --accent: rgba(223, 255, 0, 0.14);
+  --accent-foreground: #0a0a0a;
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.922 0 0);
   --border-subtle: oklch(0 0 0 / 0.08);
   --input: oklch(0.922 0 0);
-  --ring: oklch(0.52 0.18 277);
+  --ring: #c8e600;
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -89,15 +96,15 @@
   --chart-5: oklch(0.769 0.188 70.08);
   --sidebar: oklch(1 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.715 0.143 200);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-primary: #dfff00;
+  --sidebar-primary-foreground: #0a0a0a;
   --sidebar-accent: oklch(0.97 0 0);
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0 0 0 / 0.08);
-  --sidebar-ring: oklch(0.715 0.143 200);
+  --sidebar-ring: #c8e600;
 }
 
-/* Dark â€” Linear-inspired (VesperWise HTML references) */
+/* Dark — Linear-inspired (VesperWise HTML references) */
 .dark {
   --radius: 0.5rem;
   --background: #08090a;
@@ -107,7 +114,7 @@
   --popover: #131517;
   --popover-foreground: #f7f8f8;
   --primary: #dfff00;
-  --primary-foreground: #ffffff;
+  --primary-foreground: #0a0a0a;
   --secondary: rgba(255, 255, 255, 0.06);
   --secondary-foreground: #f7f8f8;
   --muted: rgba(255, 255, 255, 0.06);
@@ -127,7 +134,7 @@
   --sidebar: #0a0b0d;
   --sidebar-foreground: #b4bbc8;
   --sidebar-primary: #dfff00;
-  --sidebar-primary-foreground: #ffffff;
+  --sidebar-primary-foreground: #0a0a0a;
   --sidebar-accent: rgba(255, 255, 255, 0.06);
   --sidebar-accent-foreground: #f7f8f8;
   --sidebar-border: rgba(255, 255, 255, 0.08);
@@ -508,13 +515,13 @@ details.nav-dd[open] .nav-chevron {
   --border-strong: rgba(255,255,255,0.13);
   --border-subtle: rgba(255,255,255,0.04);
 
-  /* Accent â€” VesperWise's cyan, used sparingly */
-  --accent:        #dfff00; /* Linear-style violet for primary */
+  /* Accent — VesperWise lime, used sparingly (CTA / score / active nav) */
+  --accent:        #dfff00;
   --accent-2:      #e8ff40;
   --cyan:          #dfff00;
   --cyan-soft:     rgba(223,255,0,0.16);
 
-  /* Score band colors */
+  /* Score band colors (HOT / WARM / COLD — do not remap to lime) */
   --hot:           #4ade80;
   --hot-bg:        rgba(74,222,128,0.10);
   --hot-border:    rgba(74,222,128,0.25);
@@ -525,9 +532,9 @@ details.nav-dd[open] .nav-chevron {
   --cold-bg:       rgba(138,143,152,0.08);
   --cold-border:   rgba(138,143,152,0.22);
 
-  /* Type scale */
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+  /* Type — Geist Sans via next/font (--font-geist-sans); JetBrains Mono */
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, SFMono-Regular, monospace;
 
   /* Radii */
   --r-sm: 4px;
