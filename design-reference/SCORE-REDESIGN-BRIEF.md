@@ -50,8 +50,9 @@ Three consequences you must design for, not decorate around:
 ## What exists now, and what is wrong with it
 
 Stack: Next.js 16 App Router, React 19, Tailwind v4, shadcn/ui (new-york, base `neutral`),
-Lucide, dark-only (`<html class="dark">`). Fonts: Inter (UI) / JetBrains Mono (all numerics,
-tabular-nums).
+Lucide, dark-only (`<html class="dark">`). Fonts today: Inter for UI, JetBrains Mono for all
+numerics. Treat that second half as current state, not direction - see *Typography direction*
+below.
 
 Files: `app/(dashboard)/score/score-view.tsx` (~700 lines, hero + chat thread),
 `components/score/score-result-card.tsx` (ring, `ResultHead`, `OverviewBlock`, `SignalGrid`),
@@ -160,6 +161,25 @@ Prefer border-first over shadow-first on a near-black ground; if you disagree, s
 `--primary-foreground` is currently `#ffffff` in one definition and `#000000` in another.
 Say which is correct for your primary and why, with the ratio.
 
+## Typography direction (decided - implement it, do not relitigate)
+
+**Numerals do not get a monospace face.** Today JetBrains Mono sets every number in the
+product, which puts one typeface in charge of two unrelated jobs: *this is code* and *this is
+a number*. That is the same one-signal-two-meanings error as the `--accent` collision, wearing
+different clothes. A score of 82, a 25% weight and a credit balance are quantities a person
+reads, not source code.
+
+Set quantities in the UI face with `tabular-nums` and let weight, size and tracking carry them.
+Reserve monospace - if you keep it at all - for literal source: file paths, token names, hex
+values, shell. Note that dropping the face is not sufficient on its own; the browser's UA
+stylesheet sets `font-family: monospace` on `code`, `pre`, `kbd` and `samp`, so those need an
+explicit override or they silently keep it.
+
+When an identifier stops being monospaced it still has to read as an identifier rather than as
+emphasised prose. Give it another channel - a tinted panel, uppercase with wider tracking, a
+weight step - and say in the token sheet which channel carries which role. Numerals that align
+in a column keep `tabular-nums` regardless of face.
+
 ## Deliverables
 
 ### 1. Annotated critique
@@ -220,7 +240,8 @@ Extract the rules those routes must follow: density, type scale, band treatment,
 empty states, loading, the lime budget.
 
 Write them as **rules that can be checked**, not principles that can be nodded at.
-"Numerics are mono with tabular-nums" is checkable. "Maintain visual hierarchy" is not.
+"Every score in a table carries its signal date within 8px of it" is checkable.
+"Maintain visual hierarchy" is not.
 
 ## How I will judge the response
 
