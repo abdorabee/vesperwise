@@ -1,7 +1,7 @@
 import type { ComponentType } from "react";
 import {
   LayoutGrid,
-  Flame,
+  Crosshair,
   Gauge,
   History,
   UserSearch,
@@ -28,7 +28,7 @@ export interface NavItem {
 /** Primary work — dashboard-01 NavMain */
 export const NAV_MAIN: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutGrid },
-  { href: "/pipeline", label: "Intent Hub", icon: Flame, hotCount: true },
+  { href: "/pipeline", label: "Intent Hub", icon: Crosshair, hotCount: true },
   { href: "/score", label: "Score", icon: Gauge },
   { href: "/people", label: "People", icon: UserSearch, beta: true },
   { href: "/inbox", label: "Inbox", icon: Inbox },
