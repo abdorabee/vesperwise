@@ -4,25 +4,18 @@ import { useEffect } from "react";
 import { AppSidebar } from "@/components/dashboard/app-sidebar";
 import { SiteHeader } from "@/components/dashboard/site-header";
 import { SearchProvider } from "@/components/dashboard/search-provider";
+import { getStoredTheme, setStoredTheme } from "@/components/theme-provider";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 
 /**
  * Public no-auth mock of Pass 1 Blocks chrome.
- * Forces light theme so review can match ui.shadcn.com/blocks dashboard-01.
+ * Forces light theme while mounted for Blocks comparison; restores prior preference on leave.
  */
 export default function DevShellPage() {
   useEffect(() => {
-    const root = document.documentElement;
-    const hadDark = root.classList.contains("dark");
-    root.classList.remove("dark");
-    try {
-      localStorage.setItem("intentiq-theme", "light");
-    } catch {
-      /* ignore */
-    }
-    return () => {
-      if (hadDark) root.classList.add("dark");
-    };
+    const previous = getStoredTheme();
+    setStoredTheme("light");
+    return () => setStoredTheme(previous);
   }, []);
 
   return (
