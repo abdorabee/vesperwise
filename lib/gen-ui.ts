@@ -30,6 +30,8 @@ const intentHeroSchema = z.object({
   data_coverage: z.number().optional(),
   score_status: z.string().max(40).optional(),
   icp_fit_score: z.number().nullable().optional(),
+  /** Newest signal observation — primary next to the score (recency is the product). */
+  latest_signal_at: z.string().max(80).nullable().optional(),
 });
 
 const signalExplorerSchema = z.object({
@@ -145,23 +147,57 @@ export type WorkspaceScore = {
 };
 
 export function defaultSuggestions(score: { company: string; score_band: string }): UiSuggestion[] {
+  if (score.score_band === "COLD") {
+    return [
+      {
+        label: "What would warm this?",
+        prompt: `What dated funding, hiring, news, or technology triggers would move ${score.company} out of COLD, and what should I monitor?`,
+      },
+      {
+        label: "Nurture angle",
+        prompt: `Give a non-urgent nurture note for ${score.company} that treats quiet signals as the finding — no fake urgency.`,
+      },
+      {
+        label: "Who to watch",
+        prompt: `Who should I park on the radar at ${score.company} (buyer role) and what signal would justify a first call?`,
+      },
+    ];
+  }
+
   return [
     {
       label: `Why ${score.score_band}?`,
-      prompt: `Why is ${score.company} ${score.score_band}? What evidence matters most, and what would move the score?`,
+      prompt: `Why is ${score.company} ${score.score_band}? Cite the dated signals that matter most and what would move the score.`,
     },
     {
       label: "Draft outreach",
-      prompt: `Draft a personalized outreach email for ${score.company}`,
+      prompt: `Draft a short outreach email for ${score.company} that opens on the strongest dated trigger and names who to contact.`,
     },
     {
       label: "Who to call",
-      prompt: `Who should I talk to at ${score.company} and what's the angle?`,
+      prompt: `Who should I call at ${score.company}, which channel, and what exact signal/date is the angle?`,
     },
   ];
 }
 
+function latestSignalAt(signals?: SignalSet): string | null {
+  if (!signals) return null;
+  if (signals.latestSignalDate) return signals.latestSignalDate;
+  let newest: string | null = null;
+  for (const key of ["funding", "hiring", "news", "technology", "web", "github"] as const) {
+    const at = signals[key]?.observed_at;
+    if (at && (!newest || at > newest)) newest = at;
+  }
+  return newest;
+}
+
+/** Durable score document blocks (pin above chat — not an ephemeral turn). */
+export function isDurableScoreBlocks(blocks: UiBlock[]): boolean {
+  return blocks.some((block) => block.type === "intent_hero");
+}
+
 export function workspaceFromScore(score: WorkspaceScore): UiBlock[] {
+  const axes = score.signals ? signalAxesFromSet(score.signals) : [];
   const blocks: UiBlock[] = [
     {
       type: "intent_hero",
@@ -174,31 +210,30 @@ export function workspaceFromScore(score: WorkspaceScore): UiBlock[] {
       data_coverage: score.data_coverage,
       score_status: score.score_status,
       icp_fit_score: score.icp_fit_score,
+      latest_signal_at: latestSignalAt(score.signals),
     },
   ];
 
-  if (score.signals) {
-    const axes = signalAxesFromSet(score.signals);
-    if (axes.length > 0) {
-      const weakest = axes
-        .filter((a) => !a.context)
-        .slice()
-        .sort((a, b) => a.score / a.max - b.score / b.max)[0];
-      blocks.push({
-        type: "signal_explorer",
-        selected_key: weakest?.key,
-        axes,
-      });
-    }
+  if (axes.length > 0) {
+    const weakest = axes
+      .filter((a) => !a.context)
+      .slice()
+      .sort((a, b) => a.score / a.max - b.score / b.max)[0];
+    blocks.push({
+      type: "signal_explorer",
+      selected_key: weakest?.key,
+      axes,
+    });
   }
 
+  // Thesis = short prose; verdict callout in UI is recommended_action (who/channel/angle) + why_now (dated).
   if (score.ai_summary) {
     blocks.push({
       type: "thesis",
       summary: score.ai_summary,
       urgency: score.urgency,
-      recommended_action: score.recommended_action,
-      why_now: score.why_now,
+      recommended_action: score.recommended_action?.trim() || undefined,
+      why_now: score.why_now?.trim() || undefined,
     });
   }
 
@@ -206,8 +241,8 @@ export function workspaceFromScore(score: WorkspaceScore): UiBlock[] {
     blocks.push({
       type: "outreach_studio",
       company: score.company,
-      subject: score.email_subject,
-      talk_track: score.talk_track,
+      subject: score.email_subject?.trim() || undefined,
+      talk_track: score.talk_track?.trim() || undefined,
     });
   }
 

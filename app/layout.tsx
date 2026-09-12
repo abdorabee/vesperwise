@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { Geist } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -10,16 +10,9 @@ import "./theme-overrides.css";
 import "./responsive.css";
 import "./bulk-workspace.css";
 
-const inter = Inter({
-  variable: "--font-inter",
+const geistSans = Geist({
+  variable: "--font-geist-sans",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-});
-
-const jetbrainsMono = JetBrains_Mono({
-  variable: "--font-jetbrains",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -103,26 +96,41 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const vercelUrl = process.env.VERCEL_URL || process.env.VERCEL_BRANCH_URL;
   const isPreview = process.env.VERCEL_ENV !== "production";
-  
-  const clerkProps = isPreview && vercelUrl
-    ? {
-        signInUrl: "/login",
-        signUpUrl: "/signup",
-        afterSignInUrl: "/dashboard",
-        afterSignUpUrl: "/dashboard",
-        allowedRedirectOrigins: [
-          `https://${vercelUrl}`,
-          "https://www.vesperwise.com",
-        ],
-      }
-    : {
-        signInUrl: "/login",
-        signUpUrl: "/signup",
-        afterSignInUrl: "/dashboard",
-        afterSignUpUrl: "/dashboard",
-      };
+  const previewOrigins = Array.from(
+    new Set(
+      [
+        process.env.VERCEL_URL,
+        process.env.VERCEL_BRANCH_URL,
+        process.env.VERCEL_PROJECT_PRODUCTION_URL,
+      ]
+        .filter((value): value is string => Boolean(value))
+        .map((host) => (host.startsWith("http") ? host : `https://${host}`))
+    )
+  );
+
+  // Relative paths only — never hardcode vesperwise.com for after-sign-in on preview.
+  // Production Clerk keys on Vercel previews still need Dashboard allowlists; this keeps
+  // client redirects on-host when Clerk returns an absolute production URL.
+  const clerkProps = {
+    signInUrl: "/login",
+    signUpUrl: "/signup",
+    signInFallbackRedirectUrl: "/dashboard",
+    signUpFallbackRedirectUrl: "/dashboard",
+    afterSignInUrl: "/dashboard",
+    afterSignUpUrl: "/dashboard",
+    ...(isPreview
+      ? {
+          // Strings only — RegExp is not serializable across the RSC → ClerkProvider boundary.
+          allowedRedirectOrigins: [
+            ...previewOrigins,
+            "https://www.vesperwise.com",
+            "https://vesperwise.com",
+            "http://localhost:3000",
+          ],
+        }
+      : {}),
+  };
 
   return (
     <ClerkProvider {...clerkProps}>
@@ -135,7 +143,7 @@ export default function RootLayout({
           />
           <GoogleAnalytics />
         </head>
-        <body className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased`}>
+        <body className={`${geistSans.variable} font-sans antialiased`}>
           <ThemeProvider>
             <TooltipProvider>
               {children}

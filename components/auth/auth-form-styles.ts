@@ -121,7 +121,7 @@ export const AUTH_FORM_CSS = `
     font-size: 13px;
   }
   .auth-form-footer a {
-    color: #e8ff40;
+    color: #f7f8f8;
     font-weight: 500;
     text-decoration: none;
   }
@@ -133,14 +133,15 @@ export const AUTH_FORM_CSS = `
     font-size: 11px;
     color: #62666d;
     margin: 16px 0 0;
-    font-family: "JetBrains Mono", ui-monospace, monospace;
-    letter-spacing: 0.06em;
+    font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
   }
   .auth-text-button {
     background: none;
     border: 0;
     padding: 0;
-    color: #e8ff40;
+    color: #a8afb9;
     font-size: 12px;
     font-weight: 500;
     cursor: pointer;

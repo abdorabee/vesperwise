@@ -18,7 +18,13 @@ const basePublicRoutes = [
   "/api/contact",
 ];
 
-const previewPublicRoutes = [...basePublicRoutes, "/onboarding(.*)"];
+/** Non-production visual QA — must stay public so share links work without Clerk. */
+const previewPublicRoutes = [
+  ...basePublicRoutes,
+  "/onboarding(.*)",
+  "/dev(.*)",
+  "/score-surfaces-preview(.*)",
+];
 
 const isPublicRoute = createRouteMatcher(
   process.env.VERCEL_ENV === "production" ? basePublicRoutes : previewPublicRoutes
