@@ -30,6 +30,8 @@ const intentHeroSchema = z.object({
   data_coverage: z.number().optional(),
   score_status: z.string().max(40).optional(),
   icp_fit_score: z.number().nullable().optional(),
+  /** Newest signal observation — primary next to the score (recency is the product). */
+  latest_signal_at: z.string().max(80).nullable().optional(),
 });
 
 const signalExplorerSchema = z.object({
@@ -161,7 +163,24 @@ export function defaultSuggestions(score: { company: string; score_band: string 
   ];
 }
 
+function latestSignalAt(signals?: SignalSet): string | null {
+  if (!signals) return null;
+  if (signals.latestSignalDate) return signals.latestSignalDate;
+  let newest: string | null = null;
+  for (const key of ["funding", "hiring", "news", "technology", "web", "github"] as const) {
+    const at = signals[key]?.observed_at;
+    if (at && (!newest || at > newest)) newest = at;
+  }
+  return newest;
+}
+
+/** Durable score document blocks (pin above chat — not an ephemeral turn). */
+export function isDurableScoreBlocks(blocks: UiBlock[]): boolean {
+  return blocks.some((block) => block.type === "intent_hero");
+}
+
 export function workspaceFromScore(score: WorkspaceScore): UiBlock[] {
+  const axes = score.signals ? signalAxesFromSet(score.signals) : [];
   const blocks: UiBlock[] = [
     {
       type: "intent_hero",
@@ -174,22 +193,20 @@ export function workspaceFromScore(score: WorkspaceScore): UiBlock[] {
       data_coverage: score.data_coverage,
       score_status: score.score_status,
       icp_fit_score: score.icp_fit_score,
+      latest_signal_at: latestSignalAt(score.signals),
     },
   ];
 
-  if (score.signals) {
-    const axes = signalAxesFromSet(score.signals);
-    if (axes.length > 0) {
-      const weakest = axes
-        .filter((a) => !a.context)
-        .slice()
-        .sort((a, b) => a.score / a.max - b.score / b.max)[0];
-      blocks.push({
-        type: "signal_explorer",
-        selected_key: weakest?.key,
-        axes,
-      });
-    }
+  if (axes.length > 0) {
+    const weakest = axes
+      .filter((a) => !a.context)
+      .slice()
+      .sort((a, b) => a.score / a.max - b.score / b.max)[0];
+    blocks.push({
+      type: "signal_explorer",
+      selected_key: weakest?.key,
+      axes,
+    });
   }
 
   if (score.ai_summary) {
