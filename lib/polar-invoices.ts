@@ -27,26 +27,24 @@ export async function fetchPolarInvoices(
 
   try {
     const polar = getPolar();
-    const iterator = await polar.orders.list({ customerId, limit });
+    const response = await polar.orders.list({ customer_id: customerId, limit });
     const orders: PolarInvoiceRow[] = [];
 
-    for await (const page of iterator) {
-      for (const order of page.result.items) {
-        orders.push({
-          id: order.id,
-          date: order.createdAt.toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-          }),
-          createdAt: order.createdAt,
-          description: order.description || order.product?.name || "Order",
-          amount: order.totalAmount / 100,
-          invoiceNumber: order.invoiceNumber || order.id.slice(0, 8).toUpperCase(),
-          status: mapOrderStatus(order.paid, order.status),
-          portalUrl: "/api/billing/portal",
-        });
-      }
+    for (const order of response.items ?? []) {
+      orders.push({
+        id: order.id,
+        date: new Date(order.created_at).toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        }),
+        createdAt: new Date(order.created_at),
+        description: order.description || order.product?.name || "Order",
+        amount: order.total_amount / 100,
+        invoiceNumber: order.invoice_number || order.id.slice(0, 8).toUpperCase(),
+        status: mapOrderStatus(order.paid, order.status),
+        portalUrl: "/api/billing/portal",
+      });
       if (orders.length >= limit) break;
     }
 

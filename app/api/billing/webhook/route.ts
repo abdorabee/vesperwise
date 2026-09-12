@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { validateEvent, WebhookVerificationError } from "@polar-sh/sdk/webhooks";
+import { webhooks } from "@polar-sh/sdk/2026-04";
 import { createSupabaseAdmin } from "@/lib/supabase";
 import { PLAN_CREDITS } from "@/lib/types";
 
@@ -34,15 +34,15 @@ export async function POST(req: NextRequest) {
   const rawBody = await req.text();
 
   // ── Signature verification ───────────────────────────────────────────────────
-  let event: ReturnType<typeof validateEvent>;
+  let event: Awaited<ReturnType<typeof webhooks.validateEvent>>;
   try {
-    event = validateEvent(
+    event = await webhooks.validateEvent(
       rawBody,
       Object.fromEntries(req.headers.entries()),
       process.env.POLAR_WEBHOOK_SECRET!
     );
   } catch (err) {
-    if (err instanceof WebhookVerificationError) {
+    if (err instanceof webhooks.PolarWebhookVerificationError) {
       return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
     }
     throw err;
@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
       const [rpcResult] = await Promise.all([
         admin.rpc("increment_credits", { p_user_id: userId, p_amount: credits }),
         admin.from("users")
-          .update({ polar_customer_id: event.data.customerId })
+          .update({ polar_customer_id: event.data.customer_id })
           .eq("id", userId),
         admin.from("credits_log").insert({
           user_id: userId,
@@ -105,16 +105,16 @@ export async function POST(req: NextRequest) {
       const userId = meta.user_id;
       if (!userId) break;
 
-      const plan = PRODUCT_TO_PLAN[event.data.productId] ?? meta.plan;
+      const plan = PRODUCT_TO_PLAN[event.data.product_id] ?? meta.plan;
       if (!plan || !(plan in PLAN_CREDITS)) break;
 
       const { error } = await admin.from("users").update({
         plan,
         credits_remaining: PLAN_CREDITS[plan as keyof typeof PLAN_CREDITS],
-        polar_customer_id: event.data.customerId,
+        polar_customer_id: event.data.customer_id,
         polar_subscription_id: event.data.id,
-        subscription_renews_at: event.data.currentPeriodEnd?.toISOString() ?? null,
-        subscription_cancel_at_period_end: event.data.cancelAtPeriodEnd ?? false,
+        subscription_renews_at: event.data.current_period_end ?? null,
+        subscription_cancel_at_period_end: event.data.cancel_at_period_end ?? false,
       }).eq("id", userId);
       if (error) {
         console.error("[billing/webhook] subscription.created update failed:", error);
@@ -129,10 +129,10 @@ export async function POST(req: NextRequest) {
       const userId = meta.user_id;
       if (!userId) break;
 
-      if (event.data.cancelAtPeriodEnd === true) {
+      if (event.data.cancel_at_period_end === true) {
         // User scheduled a cancellation — preserve plan/credits, update status fields only
         const { error } = await admin.from("users").update({
-          subscription_renews_at: event.data.currentPeriodEnd?.toISOString() ?? null,
+          subscription_renews_at: event.data.current_period_end ?? null,
           subscription_cancel_at_period_end: true,
         }).eq("id", userId);
         if (error) {
@@ -142,13 +142,13 @@ export async function POST(req: NextRequest) {
         break;
       }
 
-      const plan = PRODUCT_TO_PLAN[event.data.productId] ?? meta.plan;
+      const plan = PRODUCT_TO_PLAN[event.data.product_id] ?? meta.plan;
       if (!plan || !(plan in PLAN_CREDITS)) {
         // Unknown plan but subscription is active (e.g. un-cancel with stale metadata).
         // At minimum clear the cancel flag so the UI reflects active status.
         await admin.from("users").update({
           subscription_cancel_at_period_end: false,
-          subscription_renews_at: event.data.currentPeriodEnd?.toISOString() ?? null,
+          subscription_renews_at: event.data.current_period_end ?? null,
         }).eq("id", userId);
         break;
       }
@@ -156,9 +156,9 @@ export async function POST(req: NextRequest) {
       const { error } = await admin.from("users").update({
         plan,
         credits_remaining: PLAN_CREDITS[plan as keyof typeof PLAN_CREDITS],
-        polar_customer_id: event.data.customerId,
+        polar_customer_id: event.data.customer_id,
         polar_subscription_id: event.data.id,
-        subscription_renews_at: event.data.currentPeriodEnd?.toISOString() ?? null,
+        subscription_renews_at: event.data.current_period_end ?? null,
         subscription_cancel_at_period_end: false,
       }).eq("id", userId);
       if (error) {

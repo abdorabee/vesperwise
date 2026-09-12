@@ -21,9 +21,9 @@ export async function GET(req: NextRequest) {
 
   try {
     const session = await getPolar().customerSessions.create({
-      customerId: profile.polar_customer_id,
+      customer_id: profile.polar_customer_id,
     });
-    return NextResponse.redirect(session.customerPortalUrl, 303);
+    return NextResponse.redirect(session.customer_portal_url, 303);
   } catch (err) {
     console.error("[billing/portal] failed:", err);
     return NextResponse.redirect(new URL("/billing", req.url));

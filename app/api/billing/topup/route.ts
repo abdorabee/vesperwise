@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
   try {
     const checkout = await getPolar().checkouts.create({
       products: [pack.productId],
-      successUrl: `${origin}/billing?topup=true`,
+      success_url: `${origin}/billing?topup=true`,
       metadata: {
         user_id: userId,
         credits: String(pack.credits),
