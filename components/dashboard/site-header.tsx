@@ -3,20 +3,11 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { Plus, Search } from "lucide-react";
-import { useDashboardSearch } from "@/components/dashboard/search-provider";
+import { Plus } from "lucide-react";
 import { CRUMB } from "@/components/dashboard/nav-config";
 import { focusWatchlistAdd } from "@/lib/watchlist-events";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 
 export function SiteHeader() {
@@ -27,7 +18,6 @@ export function SiteHeader() {
   const listIdMatch = pathname.match(/^\/lists\/([^/]+)$/);
   const listId = listIdMatch?.[1] ?? null;
   const [fetchedListName, setFetchedListName] = useState<string | null>(null);
-  const { open: openSearch } = useDashboardSearch();
 
   useEffect(() => {
     if (!listId) return;
@@ -45,73 +35,50 @@ export function SiteHeader() {
     };
   }, [listId]);
 
-  const listName = listId ? fetchedListName : null;
-
-  const crumb = CRUMB[pathname] ?? (
-    listId
-      ? { parent: "Lists", current: listName ?? "List detail" }
-      : { parent: "Workspace", current: "VesperWise" }
-  );
+  const title =
+    (listId ? fetchedListName : null) ??
+    CRUMB[pathname]?.current ??
+    "VesperWise";
 
   function openNewListModal() {
     window.dispatchEvent(new Event("lists-open-modal"));
   }
 
   return (
-    <header className="flex h-12 shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
+    <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
       <div className="flex w-full items-center gap-1 px-4 lg:gap-2 lg:px-6">
         <SidebarTrigger className="-ml-1" />
         <Separator
           orientation="vertical"
           className="mx-2 data-[orientation=vertical]:h-4"
         />
-        <Breadcrumb>
-          <BreadcrumbList>
-            <BreadcrumbItem className="hidden md:block">
-              {listId ? (
-                <BreadcrumbLink asChild>
-                  <Link href="/lists">{crumb.parent}</Link>
-                </BreadcrumbLink>
-              ) : (
-                <BreadcrumbPage className="text-muted-foreground">{crumb.parent}</BreadcrumbPage>
-              )}
-            </BreadcrumbItem>
-            <BreadcrumbSeparator className="hidden md:block" />
-            <BreadcrumbItem>
-              <BreadcrumbPage>{listId ? (listName ?? "…") : crumb.current}</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
-
+        <h1 className="text-base font-medium">{title}</h1>
         <div className="ml-auto flex items-center gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="hidden sm:inline-flex"
-            onClick={openSearch}
-          >
-            <Search className="size-4" />
-            Search
-            <kbd className="pointer-events-none ml-1 hidden h-5 select-none items-center rounded border bg-muted px-1.5 font-sans text-[10px] font-medium text-muted-foreground tabular-nums sm:inline-flex">
-              ⌘K
-            </kbd>
-          </Button>
           {isLists ? (
-            <Button type="button" size="sm" onClick={openNewListModal}>
+            <Button type="button" size="sm" className="rounded-lg" onClick={openNewListModal}>
               <Plus className="size-4" />
               New list
             </Button>
           ) : null}
           {isBilling ? (
-            <Button type="button" variant="outline" size="sm">
+            <Button type="button" variant="outline" size="sm" className="rounded-lg">
               Export
             </Button>
           ) : null}
           {isWatchlist ? (
-            <Button type="button" size="sm" onClick={focusWatchlistAdd}>
+            <Button
+              type="button"
+              size="sm"
+              className="rounded-lg"
+              onClick={focusWatchlistAdd}
+            >
               <Plus className="size-4" />
               Add to watchlist
+            </Button>
+          ) : null}
+          {listId ? (
+            <Button type="button" variant="ghost" size="sm" className="rounded-lg" asChild>
+              <Link href="/lists">Lists</Link>
             </Button>
           ) : null}
         </div>

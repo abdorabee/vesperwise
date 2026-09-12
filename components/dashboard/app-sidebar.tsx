@@ -3,14 +3,22 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
-import { Search } from "lucide-react";
+import { CirclePlus, Inbox, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PLAN_CREDITS, type DbUser } from "@/lib/types";
 import { getWorkspaceLabel } from "@/lib/workspace-label";
 import { useDashboardSearch } from "@/components/dashboard/search-provider";
 import VesperWiseLogo from "@/components/vesperwise-logo";
-import { BOTTOM_ITEMS, WORKSPACE_ITEMS, isNavActive, type NavItem } from "@/components/dashboard/nav-config";
+import {
+  HELP_ITEM,
+  NAV_LIBRARY,
+  NAV_MAIN,
+  NAV_SECONDARY,
+  isNavActive,
+  type NavItem,
+} from "@/components/dashboard/nav-config";
 import { NavUser } from "@/components/dashboard/nav-user";
+import { Button } from "@/components/ui/button";
 import {
   Sidebar,
   SidebarContent,
@@ -24,10 +32,9 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
-  SidebarSeparator,
 } from "@/components/ui/sidebar";
 
-interface AppSidebarProps {
+interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   creditsRemaining: number;
   plan: DbUser["plan"];
   workspaceName?: string | null;
@@ -36,7 +43,7 @@ interface AppSidebarProps {
   pipelineHotCount?: number;
 }
 
-function navCount(
+function itemCount(
   item: NavItem,
   counts: { inbox?: number; watchlist?: number; pipelineHot?: number }
 ): string | undefined {
@@ -50,6 +57,50 @@ function navCount(
   return undefined;
 }
 
+function NavRow({
+  item,
+  pathname,
+  counts,
+}: {
+  item: NavItem;
+  pathname: string;
+  counts: { inbox?: number; watchlist?: number; pipelineHot?: number };
+}) {
+  const Icon = item.icon;
+  const active = isNavActive(pathname, item.href);
+  const count = itemCount(item, counts);
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton asChild isActive={active} tooltip={item.label}>
+        <Link href={item.href}>
+          <Icon className={cn(active && "text-[var(--brand)]")} />
+          <span>{item.label}</span>
+          {item.comingSoon ? (
+            <span className="ml-auto text-[9px] font-bold uppercase tracking-wide text-muted-foreground group-data-[collapsible=icon]:hidden">
+              Soon
+            </span>
+          ) : null}
+          {item.beta && !item.comingSoon ? (
+            <span className="ml-auto text-[9px] font-bold uppercase tracking-wide text-muted-foreground group-data-[collapsible=icon]:hidden">
+              Beta
+            </span>
+          ) : null}
+        </Link>
+      </SidebarMenuButton>
+      {count ? (
+        <SidebarMenuBadge
+          className={cn(
+            "tabular-nums",
+            item.hotCount && "bg-[var(--hot-bg)] text-[var(--hot)]"
+          )}
+        >
+          {count}
+        </SidebarMenuBadge>
+      ) : null}
+    </SidebarMenuItem>
+  );
+}
+
 export function AppSidebar({
   creditsRemaining,
   plan,
@@ -57,6 +108,7 @@ export function AppSidebar({
   inboxCount = 0,
   watchlistCount = 0,
   pipelineHotCount = 0,
+  ...props
 }: AppSidebarProps) {
   const pathname = usePathname();
   const { open: openSearch } = useDashboardSearch();
@@ -70,33 +122,22 @@ export function AppSidebar({
     email: user?.primaryEmailAddress?.emailAddress,
   });
   const counts = { inbox: inboxCount, watchlist: watchlistCount, pipelineHot: pipelineHotCount };
+  const HelpIcon = HELP_ITEM.icon;
 
   return (
-    <Sidebar collapsible="icon" variant="inset">
+    <Sidebar collapsible="icon" variant="inset" {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild tooltip={workspaceLabel}>
+            <SidebarMenuButton
+              asChild
+              className="data-[slot=sidebar-menu-button]:p-1.5!"
+              tooltip="VesperWise"
+            >
               <Link href="/dashboard">
-                <VesperWiseLogo className="size-8 shrink-0" size={28} />
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">VesperWise</span>
-                  <span className="truncate text-xs text-muted-foreground">
-                    {workspaceLabel} · {plan}
-                  </span>
-                </div>
+                <VesperWiseLogo className="size-5!" size={20} />
+                <span className="text-base font-semibold">VesperWise</span>
               </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton tooltip="Search" onClick={openSearch}>
-              <Search />
-              <span>Search</span>
-              <kbd className="ml-auto pointer-events-none hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-sans text-[10px] font-medium text-muted-foreground tabular-nums group-data-[collapsible=icon]:hidden sm:flex">
-                ⌘K
-              </kbd>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
@@ -104,108 +145,116 @@ export function AppSidebar({
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Workspace</SidebarGroupLabel>
-          <SidebarGroupContent>
+          <SidebarGroupContent className="flex flex-col gap-2">
             <SidebarMenu>
-              {WORKSPACE_ITEMS.map((item) => {
-                const Icon = item.icon;
-                const active = isNavActive(pathname, item.href);
-                const count = navCount(item, counts);
-                return (
-                  <SidebarMenuItem key={`${item.href}-${item.label}`}>
-                    <SidebarMenuButton asChild isActive={active} tooltip={item.label}>
-                      <Link href={item.href}>
-                        <Icon
-                          className={cn(active && "text-[var(--brand)]")}
-                        />
-                        <span>{item.label}</span>
-                        {item.comingSoon ? (
-                          <span className="ml-auto text-[9px] font-bold uppercase tracking-wide text-muted-foreground group-data-[collapsible=icon]:hidden">
-                            Soon
-                          </span>
-                        ) : null}
-                        {item.beta && !item.comingSoon ? (
-                          <span className="ml-auto text-[9px] font-bold uppercase tracking-wide text-muted-foreground group-data-[collapsible=icon]:hidden">
-                            Beta
-                          </span>
-                        ) : null}
-                      </Link>
-                    </SidebarMenuButton>
-                    {count ? (
-                      <SidebarMenuBadge
-                        className={cn(
-                          "tabular-nums",
-                          item.hotCount && "bg-[var(--hot-bg)] text-[var(--hot)]"
-                        )}
-                      >
-                        {count}
-                      </SidebarMenuBadge>
-                    ) : null}
-                  </SidebarMenuItem>
-                );
-              })}
+              <SidebarMenuItem className="flex items-center gap-2">
+                <SidebarMenuButton
+                  asChild
+                  tooltip="Score a company"
+                  className="min-w-8 rounded-lg bg-primary text-primary-foreground duration-200 ease-linear hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground"
+                >
+                  <Link href="/score">
+                    <CirclePlus />
+                    <span>Quick Score</span>
+                  </Link>
+                </SidebarMenuButton>
+                <Button
+                  size="icon"
+                  className="size-8 rounded-lg group-data-[collapsible=icon]:opacity-0"
+                  variant="outline"
+                  asChild
+                >
+                  <Link href="/inbox" aria-label="Inbox">
+                    <Inbox />
+                  </Link>
+                </Button>
+              </SidebarMenuItem>
+            </SidebarMenu>
+            <SidebarMenu>
+              {NAV_MAIN.map((item) => (
+                <NavRow
+                  key={`${item.href}-${item.label}`}
+                  item={item}
+                  pathname={pathname}
+                  counts={counts}
+                />
+              ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarSeparator />
-
-        <SidebarGroup>
+        <SidebarGroup className="group-data-[collapsible=icon]:hidden">
+          <SidebarGroupLabel>Library</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {BOTTOM_ITEMS.map((item) => {
-                const Icon = item.icon;
-                const active = isNavActive(pathname, item.href);
-                return (
-                  <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton asChild isActive={active} tooltip={item.label}>
-                      <Link href={item.href}>
-                        <Icon className={cn(active && "text-[var(--brand)]")} />
-                        <span>{item.label}</span>
-                        {item.comingSoon ? (
-                          <span className="ml-auto text-[9px] font-bold uppercase tracking-wide text-muted-foreground group-data-[collapsible=icon]:hidden">
-                            Soon
-                          </span>
-                        ) : null}
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
+              {NAV_LIBRARY.map((item) => (
+                <NavRow
+                  key={`${item.href}-${item.label}`}
+                  item={item}
+                  pathname={pathname}
+                  counts={counts}
+                />
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup className="mt-auto">
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {NAV_SECONDARY.map((item) => (
+                <NavRow
+                  key={`${item.href}-${item.label}`}
+                  item={item}
+                  pathname={pathname}
+                  counts={counts}
+                />
+              ))}
+              <SidebarMenuItem>
+                <SidebarMenuButton tooltip="Search" onClick={openSearch}>
+                  <Search />
+                  <span>Search</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild tooltip={HELP_ITEM.label}>
+                  <Link href={HELP_ITEM.href}>
+                    <HelpIcon />
+                    <span>{HELP_ITEM.label}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
 
       <SidebarFooter>
-        <div className="mx-2 mb-1 rounded-lg border border-sidebar-border bg-sidebar-accent/40 p-3 group-data-[collapsible=icon]:hidden">
-          <div className="text-[11px] text-muted-foreground">Credits this month</div>
-          <div className="mt-1 flex items-baseline justify-between gap-2">
-            <div className="text-sm tabular-nums">
-              <span className="font-medium text-sidebar-accent-foreground">
-                {creditsRemaining.toLocaleString()}
-              </span>
-              <span className="text-muted-foreground"> / {creditCap.toLocaleString()}</span>
-            </div>
+        <div className="mx-2 rounded-lg border border-sidebar-border bg-sidebar-accent/40 px-3 py-2 group-data-[collapsible=icon]:hidden">
+          <div className="flex items-center justify-between gap-2 text-[11px]">
+            <span className="text-muted-foreground">Credits</span>
             <Link
               href="/billing"
-              className="text-[11px] font-medium text-sidebar-accent-foreground underline-offset-2 hover:underline"
+              className="font-medium text-sidebar-accent-foreground underline-offset-2 hover:underline"
             >
               Top up
             </Link>
           </div>
-          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-sidebar-border">
+          <div className="mt-1 text-sm tabular-nums">
+            <span className="font-medium text-sidebar-accent-foreground">
+              {creditsRemaining.toLocaleString()}
+            </span>
+            <span className="text-muted-foreground"> / {creditCap.toLocaleString()}</span>
+          </div>
+          <div className="mt-2 h-1 overflow-hidden rounded-full bg-sidebar-border">
             <div
               className="h-full rounded-full bg-primary transition-[width]"
               style={{ width: `${creditPct}%` }}
             />
           </div>
-        </div>
-        <div
-          className="mx-2 mb-1 hidden rounded-md border border-sidebar-border px-1 py-2 text-center text-[11px] tabular-nums text-sidebar-accent-foreground group-data-[collapsible=icon]:block"
-          title={`${creditsRemaining} credits`}
-        >
-          {creditsRemaining}
+          <div className="mt-1 truncate text-[10px] text-muted-foreground">
+            {workspaceLabel} · {plan}
+          </div>
         </div>
         <NavUser />
       </SidebarFooter>
@@ -214,5 +263,4 @@ export function AppSidebar({
   );
 }
 
-/** @deprecated Prefer AppSidebar — kept for nav.test.ts route inventory */
-export { WORKSPACE_ITEMS, BOTTOM_ITEMS };
+export { WORKSPACE_ITEMS, BOTTOM_ITEMS } from "@/components/dashboard/nav-config";
