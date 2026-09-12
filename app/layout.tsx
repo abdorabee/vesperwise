@@ -121,9 +121,9 @@ export default function RootLayout({
     afterSignUpUrl: "/dashboard",
     ...(isPreview
       ? {
+          // Strings only — RegExp is not serializable across the RSC → ClerkProvider boundary.
           allowedRedirectOrigins: [
             ...previewOrigins,
-            /^https:\/\/.*\.vercel\.app$/,
             "https://www.vesperwise.com",
             "https://vesperwise.com",
             "http://localhost:3000",
