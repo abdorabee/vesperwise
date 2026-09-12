@@ -147,18 +147,35 @@ export type WorkspaceScore = {
 };
 
 export function defaultSuggestions(score: { company: string; score_band: string }): UiSuggestion[] {
+  if (score.score_band === "COLD") {
+    return [
+      {
+        label: "What would warm this?",
+        prompt: `What dated funding, hiring, news, or technology triggers would move ${score.company} out of COLD, and what should I monitor?`,
+      },
+      {
+        label: "Nurture angle",
+        prompt: `Give a non-urgent nurture note for ${score.company} that treats quiet signals as the finding — no fake urgency.`,
+      },
+      {
+        label: "Who to watch",
+        prompt: `Who should I park on the radar at ${score.company} (buyer role) and what signal would justify a first call?`,
+      },
+    ];
+  }
+
   return [
     {
       label: `Why ${score.score_band}?`,
-      prompt: `Why is ${score.company} ${score.score_band}? What evidence matters most, and what would move the score?`,
+      prompt: `Why is ${score.company} ${score.score_band}? Cite the dated signals that matter most and what would move the score.`,
     },
     {
       label: "Draft outreach",
-      prompt: `Draft a personalized outreach email for ${score.company}`,
+      prompt: `Draft a short outreach email for ${score.company} that opens on the strongest dated trigger and names who to contact.`,
     },
     {
       label: "Who to call",
-      prompt: `Who should I talk to at ${score.company} and what's the angle?`,
+      prompt: `Who should I call at ${score.company}, which channel, and what exact signal/date is the angle?`,
     },
   ];
 }
@@ -209,13 +226,14 @@ export function workspaceFromScore(score: WorkspaceScore): UiBlock[] {
     });
   }
 
+  // Thesis = short prose; verdict callout in UI is recommended_action (who/channel/angle) + why_now (dated).
   if (score.ai_summary) {
     blocks.push({
       type: "thesis",
       summary: score.ai_summary,
       urgency: score.urgency,
-      recommended_action: score.recommended_action,
-      why_now: score.why_now,
+      recommended_action: score.recommended_action?.trim() || undefined,
+      why_now: score.why_now?.trim() || undefined,
     });
   }
 
@@ -223,8 +241,8 @@ export function workspaceFromScore(score: WorkspaceScore): UiBlock[] {
     blocks.push({
       type: "outreach_studio",
       company: score.company,
-      subject: score.email_subject,
-      talk_track: score.talk_track,
+      subject: score.email_subject?.trim() || undefined,
+      talk_track: score.talk_track?.trim() || undefined,
     });
   }
 

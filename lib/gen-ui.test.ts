@@ -85,6 +85,8 @@ describe("workspaceFromScore", () => {
       score_band: "COLD",
       ai_summary: "No current trigger.",
       urgency: "nurture",
+      recommended_action: "Do not cold-call the economic buyer; re-score on funding.",
+      why_now: "No dated purchase trigger — quiet is the finding.",
       email_subject: "Quick note",
       talk_track: "Hi",
       signals: signals(),
@@ -100,5 +102,13 @@ describe("workspaceFromScore", () => {
       type: "intent_hero",
       latest_signal_at: "2026-08-01T00:00:00.000Z",
     });
+    const thesis = blocks.find((b) => b.type === "thesis");
+    expect(thesis).toMatchObject({
+      type: "thesis",
+      recommended_action: "Do not cold-call the economic buyer; re-score on funding.",
+      why_now: "No dated purchase trigger — quiet is the finding.",
+    });
+    const rail = blocks.find((b) => b.type === "action_rail");
+    expect(rail?.type === "action_rail" && rail.suggestions?.[0]?.label).toBe("What would warm this?");
   });
 });
