@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, type ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
 import type { IntentScore, ScoreBand } from "@/lib/types";
 import { CHAT_CREDIT_COST } from "@/lib/types";
 import { extractDomain, seedChatSession, streamChat } from "@/lib/chat-client";
-import { avColor, scoreFromToolResult } from "@/components/score/score-result-card";
+import { scoreFromToolResult } from "@/components/score/score-result-card";
 import type { ScoreCardData } from "@/components/score/score-result-card";
 import { GenUiWorkspace } from "@/components/score/gen-ui/workspace";
 import { sanitizeUiBlocks, suggestionsFromBlocks, workspaceFromScore } from "@/lib/gen-ui";
@@ -26,9 +26,11 @@ import {
   PromptInputFooter,
   PromptInputSubmit,
   PromptInputTextarea,
+  PromptInputTools,
 } from "@/components/ai-elements/prompt-input";
 import { Suggestion, Suggestions } from "@/components/ai-elements/suggestion";
 import { Tool, ToolHeader } from "@/components/ai-elements/tool";
+import { cn } from "@/lib/utils";
 
 type ScorableIntentScore = IntentScore & {
   intent_score: number;
@@ -65,14 +67,6 @@ interface ScoreViewProps {
   creditsRemaining: number;
   recentScores: RecentScore[];
 }
-
-const HOT_PICKS = [
-  { domain: "stripe.com",     name: "Stripe",      signal: "funding" },
-  { domain: "anthropic.com",  name: "Anthropic",   signal: "news" },
-  { domain: "linear.app",     name: "Linear",      signal: "hiring" },
-  { domain: "notion.so",      name: "Notion",      signal: "news" },
-  { domain: "databricks.com", name: "Databricks",  signal: "tech" },
-];
 
 type ToolChip = {
   name: string;
@@ -180,26 +174,55 @@ function submitPromptText(text: string, onSubmit: (value: string) => void) {
   if (raw) onSubmit(raw);
 }
 
-function ScorePromptStage({ onScore, creditsRemaining, recentScores, busy }: ScorePromptStageProps) {
-  return (
-    <div className="prompt-stage">
-      <div className="prompt-bg">
-        <div className="grid" />
-      </div>
-      <div className="prompt-inner">
-        <div className="prompt-eyebrow">
-          <span className="badge">Score</span>
-          Drop in a domain — we&apos;ll verify coverage and you can ask follow-ups
-        </div>
+function formatScoreDate(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
 
-        <h1 className="prompt-h1">
-          What account do you want to{" "}
-          <span className="grad">score</span>?
-        </h1>
-        <p className="prompt-sub">
-          Paste any company domain. Four dated purchase triggers drive the score;
-          then keep chatting about the account.
-        </p>
+function bandTone(band: RecentScore["score_band"]): "hot" | "warm" | "cold" {
+  if (band === "HOT") return "hot";
+  if (band === "WARM") return "warm";
+  return "cold";
+}
+
+function recentAvatarTone(name: string): string {
+  const palette = [
+    "linear-gradient(135deg, #3a3f45, #8a8f98)",
+    "linear-gradient(135deg, #2a3038, #5c6570)",
+    "linear-gradient(135deg, #454a52, #9aa0a8)",
+    "linear-gradient(135deg, #32363c, #6e757e)",
+  ];
+  return palette[(name.charCodeAt(0) ?? 0) % palette.length];
+}
+
+function ScoreComposerCost({
+  primary,
+  balance,
+}: {
+  primary: ReactNode;
+  balance: number;
+}) {
+  return (
+    <div className="score-composer-cost" aria-live="polite">
+      <span className="score-composer-cost-primary">{primary}</span>
+      <span className="score-composer-cost-balance">
+        <span className="quantity">{balance}</span> credits left
+      </span>
+    </div>
+  );
+}
+
+function ScorePromptStage({ onScore, creditsRemaining, recentScores, busy }: ScorePromptStageProps) {
+  const zeroCredits = creditsRemaining < 1;
+
+  return (
+    <div className="score-entry">
+      <div className="score-entry-inner">
+        <header className="score-entry-header">
+          <h1 className="score-entry-title">Score an account</h1>
+          <p className="score-entry-hint">Paste a company domain. Fresh scores cost 1 credit; cache hits are free for 6h.</p>
+        </header>
 
         <PromptInput
           className="score-elements-input"
@@ -207,114 +230,88 @@ function ScorePromptStage({ onScore, creditsRemaining, recentScores, busy }: Sco
         >
           <PromptInputBody>
             <PromptInputTextarea
-              placeholder="stripe.com"
-              disabled={busy}
+              className="score-elements-textarea"
+              placeholder="company.com"
+              disabled={busy || zeroCredits}
               autoFocus
               aria-label="Company domain"
             />
           </PromptInputBody>
-          <PromptInputFooter>
-            <PromptInputSubmit disabled={busy} className="score-elements-submit">
+          <PromptInputFooter className="score-elements-footer">
+            <PromptInputTools>
+              <ScoreComposerCost
+                primary={
+                  <>
+                    <span className="quantity">1</span> credit · cache{" "}
+                    <span className="quantity">6</span>h free
+                  </>
+                }
+                balance={creditsRemaining}
+              />
+            </PromptInputTools>
+            <PromptInputSubmit
+              disabled={busy || zeroCredits}
+              size="sm"
+              variant="default"
+              className="score-elements-submit rounded-md shadow-[inset_0_1px_0_rgba(255,255,255,0.28)] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.28)]"
+            >
               Score
             </PromptInputSubmit>
           </PromptInputFooter>
         </PromptInput>
 
-        <div className="prompt-meta">
-          <div className="left">
-            <span><strong>1</strong> credit on a fresh scorable result · follow-ups {CHAT_CREDIT_COST} credits</span>
-            <span>Cached for <strong>6h</strong></span>
-          </div>
-          <div className="right">
-            <span>Provider calls are bounded</span>
-            <span><strong>{creditsRemaining}</strong> credits left</span>
-          </div>
-        </div>
-
-        <div className="prompt-section-label">
-          <span>Try a hot pick</span>
-          <span className="line" />
-        </div>
-        <div className="suggestion-row">
-          {HOT_PICKS.map((pick) => (
-            <button key={pick.domain} type="button" className="sugg" onClick={() => onScore(pick.domain)}>
-              <div className="av" style={{ background: avColor(pick.name) }}>{pick.name[0]}</div>
-              {pick.domain}
-              <span className="mono-sm">▲ {pick.signal}</span>
-            </button>
-          ))}
-        </div>
-
-        {recentScores.length > 0 && (
-          <>
-            <div className="prompt-section-label">
-              <span>Recent</span>
-              <span className="line" />
-            </div>
-            <div className="recent-row">
-              {recentScores.map((r) => (
-                <button key={r.domain} type="button" className="sugg recent" onClick={() => onScore(r.domain)}>
-                  <div className="av" style={{ background: avColor(r.company_name) }}>{r.company_name[0]}</div>
-                  {r.domain}
-                  <span
-                    className="score-mini"
-                    style={{
-                      background:
-                        r.score_band === "HOT"
-                          ? "var(--hot-bg)"
-                          : r.score_band === "WARM"
-                          ? "var(--warm-bg)"
-                          : "var(--cold-bg)",
-                      color:
-                        r.score_band === "HOT"
-                          ? "var(--hot)"
-                          : r.score_band === "WARM"
-                          ? "var(--warm)"
-                          : "var(--cold)",
-                    }}
-                  >
-                    {r.score ?? "—"}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </>
+        {zeroCredits && (
+          <p className="score-entry-warn" role="status">
+            No credits left. Top up or wait for your monthly reset before scoring.
+          </p>
         )}
 
-        <div className="prompt-feature-row">
-          <div className="feat">
-            <span className="ic" style={{ background: "rgba(223,255,0,0.12)", color: "var(--cyan)" }}>
-              <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" width="10" height="10">
-                <path d="M2 8l3-3 2 2 3-4" />
-              </svg>
-            </span>
-            4 trigger axes
-          </div>
-          <div className="feat">
-            <span className="ic" style={{ background: "rgba(223,255,0,0.12)", color: "#dfff00" }}>
-              <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" width="10" height="10">
-                <circle cx="6" cy="6" r="4" /><path d="M6 4v3l2 1" />
-              </svg>
-            </span>
-            Interactive chat
-          </div>
-          <div className="feat">
-            <span className="ic" style={{ background: "rgba(74,222,128,0.12)", color: "var(--hot)" }}>
-              <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" width="10" height="10">
-                <path d="M2 9V5m3 4V3m3 6V6" />
-              </svg>
-            </span>
-            Signal breakdown · 4 triggers + context
-          </div>
-          <div className="feat">
-            <span className="ic" style={{ background: "rgba(245,181,68,0.12)", color: "var(--warm)" }}>
-              <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" width="10" height="10">
-                <path d="M3 6l3 3 5-7" />
-              </svg>
-            </span>
-            Recommended next action
-          </div>
-        </div>
+        <section className="score-recent" aria-label="Recent scores">
+          <div className="score-recent-label">Recent</div>
+          {recentScores.length === 0 ? (
+            <p className="score-recent-empty">No scores yet. Your last six appear here with dates.</p>
+          ) : (
+            <ul className="score-recent-list">
+              {recentScores.map((r) => {
+                const tone = bandTone(r.score_band);
+                const when = formatScoreDate(r.created_at);
+                return (
+                  <li key={`${r.domain}-${r.created_at}`}>
+                    <button
+                      type="button"
+                      className="score-recent-row"
+                      onClick={() => onScore(r.domain)}
+                      disabled={busy}
+                    >
+                      <span
+                        className="score-recent-av"
+                        style={{ background: recentAvatarTone(r.company_name || r.domain) }}
+                        aria-hidden
+                      >
+                        {(r.company_name || r.domain)[0]?.toUpperCase()}
+                      </span>
+                      <span className="score-recent-copy">
+                        <span className="score-recent-name">{r.company_name || r.domain}</span>
+                        <span className="score-recent-domain">{r.domain}</span>
+                      </span>
+                      <span className="score-recent-meta">
+                        <span className={cn("score-recent-score", `is-${tone}`)}>
+                          <span className="quantity">{r.score ?? "—"}</span>
+                          {r.score_band && <span className="score-recent-band">{r.score_band}</span>}
+                        </span>
+                        {when && (
+                          <time className="score-recent-date quantity" dateTime={r.created_at}>
+                            {when}
+                          </time>
+                        )}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
       </div>
     </div>
   );
@@ -634,28 +631,39 @@ export function ScoreView({ creditsRemaining, recentScores }: ScoreViewProps) {
             >
               <PromptInputBody>
                 <PromptInputTextarea
+                  className="score-elements-textarea"
                   placeholder="Ask a follow-up or score another domain"
                   disabled={busy}
                   aria-label="Chat message"
                 />
               </PromptInputBody>
-              <PromptInputFooter>
-                <PromptInputSubmit disabled={busy} className="score-elements-submit">
-                  Send
-                </PromptInputSubmit>
+              <PromptInputFooter className="score-elements-footer">
+                <PromptInputTools>
+                  <ScoreComposerCost
+                    primary={
+                      <>
+                        Follow-up <span className="quantity">{CHAT_CREDIT_COST}</span> · domain{" "}
+                        <span className="quantity">1</span>
+                      </>
+                    }
+                    balance={creditsRemaining}
+                  />
+                </PromptInputTools>
+                <div className="score-composer-actions">
+                  <button type="button" className="chat-new" onClick={handleNewChat} disabled={busy}>
+                    New chat
+                  </button>
+                  <PromptInputSubmit
+                    disabled={busy}
+                    size="sm"
+                    variant="default"
+                    className="score-elements-submit rounded-md shadow-[inset_0_1px_0_rgba(255,255,255,0.28)] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.28)]"
+                  >
+                    Send
+                  </PromptInputSubmit>
+                </div>
               </PromptInputFooter>
             </PromptInput>
-            <div className="prompt-meta">
-              <div className="left">
-                <span>Follow-ups <strong>{CHAT_CREDIT_COST}</strong> credits · new domain <strong>1</strong> credit</span>
-              </div>
-              <div className="right">
-                <button type="button" className="chat-new" onClick={handleNewChat} disabled={busy}>
-                  New chat
-                </button>
-                <span><strong>{creditsRemaining}</strong> credits left</span>
-              </div>
-            </div>
           </div>
         </>
       )}
