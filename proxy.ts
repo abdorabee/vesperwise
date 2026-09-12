@@ -18,10 +18,11 @@ const basePublicRoutes = [
   "/api/contact",
 ];
 
+/** Non-production visual QA — must stay public so share links work without Clerk. */
 const previewPublicRoutes = [
   ...basePublicRoutes,
   "/onboarding(.*)",
-  "/dev/score-entry(.*)",
+  "/dev(.*)",
   "/score-surfaces-preview(.*)",
 ];
 

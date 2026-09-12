@@ -1,11 +1,13 @@
+import { notFound } from "next/navigation";
+
 import { ScoreView } from "@/app/(dashboard)/score/score-view";
 
 export const dynamic = "force-dynamic";
 
-/** Non-prod visual QA for Agent 2 empty/composer. Not linked from nav. */
+/** Non-prod visual QA for empty/composer. Public via proxy preview matcher. */
 export default function ScoreEntryPreviewPage() {
   if (process.env.VERCEL_ENV === "production") {
-    return null;
+    notFound();
   }
 
   return (

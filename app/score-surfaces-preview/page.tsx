@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
 import { GenUiWorkspace } from "@/components/score/gen-ui/workspace";
 import { workspaceFromScore } from "@/lib/gen-ui";
 import type { SignalSet } from "@/lib/types";
@@ -35,21 +37,37 @@ function build(domain: string, company: string, intent: number, band: "HOT" | "W
 }
 
 /**
- * Non-auth visual QA for Agent 3 result surfaces (dev / non-production only).
+ * Non-auth visual QA for result surfaces (dev / non-production only).
  * Route is public via proxy preview matcher when VERCEL_ENV !== production.
  */
 export default function ScoreSurfacesPreviewPage() {
+  const [blocked, setBlocked] = useState(false);
   const hot = build("stripe.com", "Stripe", 82, "HOT");
   const cold = build("example.com", "Example", 28, "COLD");
+
+  useEffect(() => {
+    const host = window.location.hostname;
+    if (host === "vesperwise.com" || host === "www.vesperwise.com") {
+      setBlocked(true);
+    }
+  }, []);
+
+  if (blocked) {
+    return (
+      <main className="min-h-screen bg-background px-6 py-12 text-foreground">
+        <p className="text-sm text-muted-foreground">Preview route is disabled on production hosts.</p>
+      </main>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background px-4 py-8 text-foreground sm:px-8">
       <div className="mx-auto flex max-w-[1040px] flex-col gap-12">
         <header className="space-y-1 border-b border-border pb-4">
           <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-            Score surfaces preview
+            Score surfaces preview · no auth
           </p>
-          <h1 className="text-xl font-semibold tracking-tight">Agent 3 — HOT / COLD parity</h1>
+          <h1 className="text-xl font-semibold tracking-tight">HOT / COLD result surfaces</h1>
         </header>
 
         <section aria-label="HOT result" className="space-y-3">

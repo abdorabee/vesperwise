@@ -96,26 +96,41 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const vercelUrl = process.env.VERCEL_URL || process.env.VERCEL_BRANCH_URL;
   const isPreview = process.env.VERCEL_ENV !== "production";
-  
-  const clerkProps = isPreview && vercelUrl
-    ? {
-        signInUrl: "/login",
-        signUpUrl: "/signup",
-        afterSignInUrl: "/dashboard",
-        afterSignUpUrl: "/dashboard",
-        allowedRedirectOrigins: [
-          `https://${vercelUrl}`,
-          "https://www.vesperwise.com",
-        ],
-      }
-    : {
-        signInUrl: "/login",
-        signUpUrl: "/signup",
-        afterSignInUrl: "/dashboard",
-        afterSignUpUrl: "/dashboard",
-      };
+  const previewOrigins = Array.from(
+    new Set(
+      [
+        process.env.VERCEL_URL,
+        process.env.VERCEL_BRANCH_URL,
+        process.env.VERCEL_PROJECT_PRODUCTION_URL,
+      ]
+        .filter((value): value is string => Boolean(value))
+        .map((host) => (host.startsWith("http") ? host : `https://${host}`))
+    )
+  );
+
+  // Relative paths only — never hardcode vesperwise.com for after-sign-in on preview.
+  // Production Clerk keys on Vercel previews still need Dashboard allowlists; this keeps
+  // client redirects on-host when Clerk returns an absolute production URL.
+  const clerkProps = {
+    signInUrl: "/login",
+    signUpUrl: "/signup",
+    signInFallbackRedirectUrl: "/dashboard",
+    signUpFallbackRedirectUrl: "/dashboard",
+    afterSignInUrl: "/dashboard",
+    afterSignUpUrl: "/dashboard",
+    ...(isPreview
+      ? {
+          allowedRedirectOrigins: [
+            ...previewOrigins,
+            /^https:\/\/.*\.vercel\.app$/,
+            "https://www.vesperwise.com",
+            "https://vesperwise.com",
+            "http://localhost:3000",
+          ],
+        }
+      : {}),
+  };
 
   return (
     <ClerkProvider {...clerkProps}>
