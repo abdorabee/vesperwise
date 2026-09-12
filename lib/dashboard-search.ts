@@ -1,7 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import {
   LayoutGrid,
-  Flame,
+  Crosshair,
   Gauge,
   History,
   UserSearch,
@@ -39,7 +39,7 @@ export interface SearchResultItem {
 
 export const SEARCH_NAV_ITEMS: SearchNavItem[] = [
   { id: "dashboard", kind: "page", label: "Dashboard", href: "/dashboard", keywords: "home overview", icon: LayoutGrid },
-  { id: "pipeline", kind: "page", label: "Intent Hub", href: "/pipeline", keywords: "pipeline intent hub deals", icon: Flame },
+  { id: "pipeline", kind: "page", label: "Intent Hub", href: "/pipeline", keywords: "pipeline intent hub deals", icon: Crosshair },
   { id: "score", kind: "page", label: "Score", href: "/score", keywords: "score company domain lookup", icon: Gauge },
   { id: "history", kind: "page", label: "History", href: "/history", keywords: "history runs past scores", icon: History },
   { id: "people", kind: "page", label: "People", href: "/people", keywords: "people contacts person scoring", icon: UserSearch },
