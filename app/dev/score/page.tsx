@@ -351,7 +351,7 @@ function DevScoreBody() {
               <GenUiWorkspace blocks={resultBlocks} handlers={{}} />
             </div>
             <div className="mx-auto w-full max-w-5xl rounded-xl bg-muted/50 p-4 text-sm text-muted-foreground">
-              Static result document — use Live HOT/COLD for stage-by-stage artifacts. No AI thesis.
+              Static result document — use Live HOT/COLD for stage-by-stage artifacts (compact next-action only).
             </div>
           </div>
         </div>
