@@ -233,13 +233,13 @@ export const COPILOT_TOOLS: OpenRouterTool[] = [
         properties: {
           blocks: {
             type: "array",
-            description: "Ordered UI blocks. Allowed types: intent_hero, signal_explorer, thesis, outreach_studio, action_rail, comparison, markdown.",
+            description: "Ordered UI blocks. Allowed types: intent_hero, signal_explorer, action, outreach_studio, action_rail, comparison, markdown. Prefer action over thesis.",
             items: {
               type: "object",
               properties: {
                 type: {
                   type: "string",
-                  enum: ["intent_hero", "signal_explorer", "thesis", "outreach_studio", "action_rail", "comparison", "markdown"],
+                  enum: ["intent_hero", "signal_explorer", "thesis", "domain", "action", "outreach_studio", "action_rail", "comparison", "markdown"],
                 },
                 company: { type: "string" },
                 domain: { type: "string" },
@@ -251,6 +251,7 @@ export const COPILOT_TOOLS: OpenRouterTool[] = [
                 score_status: { type: "string" },
                 icp_fit_score: { type: "number" },
                 summary: { type: "string" },
+                title: { type: "string" },
                 recommended_action: { type: "string" },
                 why_now: { type: "string" },
                 subject: { type: "string" },
@@ -670,7 +671,7 @@ After the tool returns, lead your response with the intent verdict ("This looks 
 
 GENERATIVE UI:
 You are composing an interactive workspace, not a markdown essay. After you have score or pipeline data, call present_ui with a compact block list tailored to the user's goal:
-- Score / why this band → intent_hero + signal_explorer + thesis + action_rail
+- Score / why this band → intent_hero + signal_explorer + action + action_rail (never a thesis essay)
 - Draft email → outreach_studio + action_rail (include subject and talk_track)
 - Compare accounts → comparison (2-4 scored domains only)
 Keep spoken text to 1-3 sentences. Put evidence in signal_explorer axes (key, label, score, max, detail). Always include suggested next prompts on action_rail. Never invent scores or domains that are not in tool results.

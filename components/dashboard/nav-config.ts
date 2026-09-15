@@ -67,9 +67,11 @@ export const CRUMB: Record<string, { parent: string; current: string }> = {
   "/billing": { parent: "Workspace", current: "Billing" },
   "/api-keys": { parent: "Workspace", current: "API Keys" },
   "/score": { parent: "Workspace", current: "Score" },
+  "/dev/score": { parent: "Preview", current: "Score" },
+  "/dev/shell": { parent: "Preview", current: "Shell" },
+  "/dev/shell-dark": { parent: "Preview", current: "Shell" },
   "/settings": { parent: "Workspace", current: "Settings" },
   "/inbox": { parent: "Workspace", current: "Inbox" },
-  "/dev/shell": { parent: "Workspace", current: "Shell preview" },
 };
 
 export function isNavActive(pathname: string, href: string): boolean {

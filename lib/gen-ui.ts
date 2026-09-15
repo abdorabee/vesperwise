@@ -30,6 +30,7 @@ const intentHeroSchema = z.object({
   data_coverage: z.number().optional(),
   score_status: z.string().max(40).optional(),
   icp_fit_score: z.number().nullable().optional(),
+  latest_signal_at: z.string().max(80).optional(),
 });
 
 const signalExplorerSchema = z.object({
@@ -44,6 +45,19 @@ const thesisSchema = z.object({
   urgency: z.string().max(40).optional(),
   recommended_action: z.string().max(500).optional(),
   why_now: z.string().max(2000).optional(),
+});
+
+const domainResolvedSchema = z.object({
+  type: z.literal("domain"),
+  company: z.string().min(1).max(120),
+  domain: z.string().min(1).max(200),
+});
+
+const actionSchema = z.object({
+  type: z.literal("action"),
+  title: z.string().min(1).max(500),
+  why_now: z.string().max(2000).optional(),
+  urgency: z.string().max(40).optional(),
 });
 
 const outreachStudioSchema = z.object({
@@ -86,6 +100,8 @@ export const uiBlockSchema = z.discriminatedUnion("type", [
   intentHeroSchema,
   signalExplorerSchema,
   thesisSchema,
+  domainResolvedSchema,
+  actionSchema,
   outreachStudioSchema,
   actionRailSchema,
   comparisonSchema,
@@ -162,6 +178,11 @@ export function defaultSuggestions(score: { company: string; score_band: string 
 }
 
 export function workspaceFromScore(score: WorkspaceScore): UiBlock[] {
+  const latest_signal_at =
+    score.signals?.latestSignalDate ??
+    (score.signals ? signalAxesFromSet(score.signals).find((a) => a.observed_at)?.observed_at : undefined) ??
+    undefined;
+
   const blocks: UiBlock[] = [
     {
       type: "intent_hero",
@@ -174,6 +195,7 @@ export function workspaceFromScore(score: WorkspaceScore): UiBlock[] {
       data_coverage: score.data_coverage,
       score_status: score.score_status,
       icp_fit_score: score.icp_fit_score,
+      latest_signal_at: latest_signal_at ?? undefined,
     },
   ];
 
@@ -192,13 +214,12 @@ export function workspaceFromScore(score: WorkspaceScore): UiBlock[] {
     }
   }
 
-  if (score.ai_summary) {
+  if (score.recommended_action || score.why_now) {
     blocks.push({
-      type: "thesis",
-      summary: score.ai_summary,
-      urgency: score.urgency,
-      recommended_action: score.recommended_action,
+      type: "action",
+      title: score.recommended_action ?? "Next step",
       why_now: score.why_now,
+      urgency: score.urgency,
     });
   }
 
@@ -221,6 +242,68 @@ export function workspaceFromScore(score: WorkspaceScore): UiBlock[] {
   return blocks;
 }
 
+/** Build a single conversation artifact card for one honest score pipeline stage. */
+export function blockFromScoreStage(
+  stage:
+    | { stage: "domain"; company: string; domain: string }
+    | { stage: "signals"; company: string; domain: string; signals: SignalSet }
+    | {
+        stage: "score";
+        company: string;
+        domain: string;
+        intent_score: number;
+        score_band: ScoreBand;
+        buying_stage?: string;
+        urgency?: string;
+        data_coverage?: number;
+        score_status?: string;
+        icp_fit_score?: number | null;
+        signals?: SignalSet;
+        latest_signal_at?: string;
+      }
+    | {
+        stage: "action";
+        recommended_action?: string;
+        why_now?: string;
+        urgency?: string;
+      },
+): UiBlock | null {
+  if (stage.stage === "domain") {
+    return { type: "domain", company: stage.company, domain: stage.domain };
+  }
+  if (stage.stage === "signals") {
+    const axes = signalAxesFromSet(stage.signals);
+    if (axes.length === 0) return null;
+    const weakest = axes
+      .filter((a) => !a.context)
+      .slice()
+      .sort((a, b) => a.score / a.max - b.score / b.max)[0];
+    return { type: "signal_explorer", selected_key: weakest?.key, axes };
+  }
+  if (stage.stage === "score") {
+    return {
+      type: "intent_hero",
+      company: stage.company,
+      domain: stage.domain,
+      intent_score: stage.intent_score,
+      score_band: stage.score_band,
+      buying_stage: stage.buying_stage,
+      urgency: stage.urgency,
+      data_coverage: stage.data_coverage,
+      score_status: stage.score_status,
+      icp_fit_score: stage.icp_fit_score,
+      latest_signal_at: stage.latest_signal_at ?? stage.signals?.latestSignalDate,
+    };
+  }
+  if (!stage.recommended_action && !stage.why_now) return null;
+  return {
+    type: "action",
+    title: stage.recommended_action ?? "Next step",
+    why_now: stage.why_now,
+    urgency: stage.urgency,
+  };
+}
+
 function extractBlocksInput(input: unknown): unknown[] {
   if (Array.isArray(input)) return input;
   if (input && typeof input === "object") {
@@ -231,7 +314,9 @@ function extractBlocksInput(input: unknown): unknown[] {
 }
 
 function domainOf(block: UiBlock): string | undefined {
-  if (block.type === "intent_hero" || block.type === "action_rail") return block.domain.toLowerCase();
+  if (block.type === "intent_hero" || block.type === "action_rail" || block.type === "domain") {
+    return block.domain.toLowerCase();
+  }
   return undefined;
 }
 
