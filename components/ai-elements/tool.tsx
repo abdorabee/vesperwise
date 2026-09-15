@@ -142,9 +142,10 @@ export const ToolOutput = ({
     return null;
   }
 
-  let Output = <div>{output as ReactNode}</div>;
+  const isElement = isValidElement(output);
+  let Output: ReactNode = <div>{output as ReactNode}</div>;
 
-  if (typeof output === "object" && !isValidElement(output)) {
+  if (typeof output === "object" && !isElement) {
     Output = (
       <CodeBlock code={JSON.stringify(output, null, 2)} language="json" />
     );
@@ -159,10 +160,13 @@ export const ToolOutput = ({
       </h4>
       <div
         className={cn(
-          "overflow-x-auto rounded-md text-xs [&_table]:w-full",
+          "overflow-x-auto rounded-md [&_table]:w-full",
+          isElement ? "text-sm" : "text-xs",
           errorText
-            ? "bg-destructive/10 text-destructive"
-            : "bg-muted/50 text-foreground"
+            ? "bg-destructive/10 p-3 text-destructive"
+            : isElement
+              ? "bg-transparent text-foreground"
+              : "bg-muted/50 text-foreground"
         )}
       >
         {errorText && <div>{errorText}</div>}

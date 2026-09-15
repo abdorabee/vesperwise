@@ -1,14 +1,22 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, type ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
 import { format, isValid, parseISO } from "date-fns";
 import type { IntentScore, ScoreBand } from "@/lib/types";
 import { CHAT_CREDIT_COST } from "@/lib/types";
 import { extractDomain, seedChatSession, streamChat, streamScore } from "@/lib/chat-client";
+import type { ScoreStreamEvent } from "@/lib/chat-client";
 import { BandBadge, avColor, scoreFromToolResult } from "@/components/score/score-result-card";
 import type { ScoreCardData } from "@/components/score/score-result-card";
 import { GenUiWorkspace } from "@/components/score/gen-ui/workspace";
+import {
+  ScoreStageToolRow,
+  SCORE_STAGE_TITLES,
+  nextScoreStage,
+  type ScoreStageKey,
+  type ScoreStageToolState,
+} from "@/components/score/score-stage-tool";
 import { blockFromScoreStage, defaultSuggestions, sanitizeUiBlocks, suggestionsFromBlocks, workspaceFromScore } from "@/lib/gen-ui";
 import type { UiBlock } from "@/lib/gen-ui";
 import {
@@ -22,6 +30,11 @@ import {
   MessageResponse,
 } from "@/components/ai-elements/message";
 import {
+  Reasoning,
+  ReasoningContent,
+  ReasoningTrigger,
+} from "@/components/ai-elements/reasoning";
+import {
   PromptInput,
   PromptInputBody,
   PromptInputFooter,
@@ -29,7 +42,7 @@ import {
   PromptInputTextarea,
 } from "@/components/ai-elements/prompt-input";
 import { Suggestion, Suggestions } from "@/components/ai-elements/suggestion";
-import { Tool, ToolHeader } from "@/components/ai-elements/tool";
+import { Tool, ToolContent, ToolHeader, ToolInput, ToolOutput } from "@/components/ai-elements/tool";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -39,7 +52,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
 
 type ScorableIntentScore = IntentScore & {
   intent_score: number;
@@ -52,13 +64,6 @@ function requireScorableResult(value: IntentScore): ScorableIntentScore {
   }
   return value as ScorableIntentScore;
 }
-
-const SCORE_STAGE_LABELS = {
-  domain: "Resolving domain",
-  signals: "Gathering signals",
-  score: "Computing intent",
-  action: "Next action",
-} as const;
 
 export interface RecentScore {
   domain: string;
@@ -77,13 +82,22 @@ type ToolChip = {
   name: string;
   status: "running" | "done";
   result?: unknown;
+  args?: Record<string, unknown>;
 };
 
 type ThreadMessage =
   | { id: string; role: "user"; content: string }
   | { id: string; role: "assistant"; kind: "ui"; blocks: UiBlock[]; content: string; tools: ToolChip[]; billing?: string }
-  | { id: string; role: "assistant"; kind: "text"; content: string; tools: ToolChip[] }
-  | { id: string; role: "assistant"; kind: "thinking"; mode: "score" | "chat" }
+  | { id: string; role: "assistant"; kind: "text"; content: string; tools: ToolChip[]; isAnimating?: boolean }
+  | {
+      id: string;
+      role: "assistant";
+      kind: "thinking";
+      mode: "score" | "chat";
+      isStreaming: boolean;
+      detail?: string;
+    }
+  | { id: string; role: "assistant"; kind: "stage_tool"; tool: ScoreStageToolState }
   | { id: string; role: "error"; content: string };
 
 function messageTools(message: ThreadMessage): ToolChip[] {
@@ -110,66 +124,74 @@ function formatRecentDate(iso: string): string {
   }
 }
 
-function StageStatus({
-  activeStage,
-  billing,
-}: {
-  activeStage: keyof typeof SCORE_STAGE_LABELS | null;
-  billing?: string;
-}) {
-  const order = Object.keys(SCORE_STAGE_LABELS) as Array<keyof typeof SCORE_STAGE_LABELS>;
-  const activeIndex = activeStage ? order.indexOf(activeStage) : order.length;
-  return (
-    <div className="rounded-xl bg-muted/50 p-3">
-      <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground">
-        <span
-          className={cn(
-            "size-1.5 rounded-full",
-            activeStage ? "animate-pulse bg-foreground" : "bg-[color:var(--hot)]",
-          )}
-        />
-        {activeStage ? "Scoring…" : "Scored"}
-        {billing ? <span className="ml-auto tabular-nums">{billing}</span> : null}
-      </div>
-      <div className="flex flex-wrap gap-1.5">
-        {order.map((key, i) => (
-          <span
-            key={key}
-            className={cn(
-              "inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px]",
-              i < activeIndex && "border-foreground/20 bg-card text-foreground",
-              i === activeIndex && "border-foreground/40 bg-card font-medium text-foreground",
-              i > activeIndex && "border-transparent text-muted-foreground",
-            )}
-          >
-            {SCORE_STAGE_LABELS[key]}
-          </span>
-        ))}
-      </div>
-    </div>
-  );
+function stageInputFromEvent(event: Extract<ScoreStreamEvent, { type: "stage" }>): Record<string, unknown> {
+  if (event.stage === "domain") {
+    return { company: event.company, domain: event.domain };
+  }
+  if (event.stage === "signals") {
+    const axes = Object.entries(event.signals)
+      .filter(([key, value]) => key !== "latestSignalDate" && value && typeof value === "object" && "score" in value)
+      .map(([key]) => key);
+    return { domain: event.domain, axes };
+  }
+  if (event.stage === "score") {
+    return {
+      domain: event.domain,
+      intent_score: event.intent_score,
+      score_band: event.score_band,
+    };
+  }
+  return {
+    urgency: event.urgency ?? null,
+    has_action: Boolean(event.recommended_action),
+  };
 }
 
-function ToolChips({ tools }: { tools: ToolChip[] }) {
+function thinkingDetail(stage: ScoreStageKey | null, billing?: string | null): string {
+  if (billing) return `Scored · ${billing}`;
+  if (!stage) return "Preparing score pipeline…";
+  return `${SCORE_STAGE_TITLES[stage]}…`;
+}
+
+function ChatToolRows({ tools }: { tools: ToolChip[] }) {
   if (tools.length === 0) return null;
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex w-full flex-col gap-2">
       {tools.map((entry) => (
-        <Tool key={entry.name} className="overflow-hidden rounded-lg border shadow-none" defaultOpen={false}>
+        <Tool
+          key={entry.name}
+          defaultOpen={entry.status === "done" && entry.result != null}
+          className="mb-0 overflow-hidden rounded-lg border shadow-none"
+        >
           <ToolHeader
             className="px-3 py-2 text-xs"
             title={entry.name.replace(/_/g, " ")}
             type={`tool-${entry.name}`}
-            state={entry.status === "running" ? "input-streaming" : "output-available"}
+            state={entry.status === "running" ? "input-available" : "output-available"}
           />
+          <ToolContent className="space-y-3 p-3 pt-0">
+            {entry.args ? <ToolInput input={entry.args} /> : null}
+            <ToolOutput
+              output={entry.result as ReactNode}
+              errorText={undefined}
+            />
+          </ToolContent>
         </Tool>
       ))}
     </div>
   );
 }
 
-function AssistantText({ content }: { content: string }) {
-  return <MessageResponse className="prose prose-sm dark:prose-invert max-w-none">{content}</MessageResponse>;
+function AssistantText({ content, isAnimating }: { content: string; isAnimating?: boolean }) {
+  return (
+    <MessageResponse
+      className="prose prose-sm dark:prose-invert max-w-none"
+      isAnimating={Boolean(isAnimating)}
+      caret={isAnimating ? "block" : undefined}
+    >
+      {content}
+    </MessageResponse>
+  );
 }
 
 interface ScorePromptStageProps {
@@ -281,12 +303,68 @@ function ScorePromptStage({ onScore, creditsRemaining, recentScores, busy }: Sco
   );
 }
 
+function upsertStageTool(
+  messages: ThreadMessage[],
+  thinkingId: string,
+  stage: ScoreStageKey,
+  patch: Partial<ScoreStageToolState> & Pick<ScoreStageToolState, "status">,
+): ThreadMessage[] {
+  const existingIdx = messages.findIndex(
+    (m) => m.role === "assistant" && m.kind === "stage_tool" && m.tool.stage === stage,
+  );
+  const nextTool: ScoreStageToolState = {
+    stage,
+    status: patch.status,
+    input: patch.input,
+    block: patch.block,
+    errorText: patch.errorText,
+    open: patch.open ?? (patch.status === "running" || patch.status === "done"),
+  };
+
+  if (existingIdx >= 0) {
+    const current = messages[existingIdx];
+    if (current.role === "assistant" && current.kind === "stage_tool") {
+      const updated = [...messages];
+      updated[existingIdx] = {
+        ...current,
+        tool: {
+          ...current.tool,
+          ...nextTool,
+          input: patch.input ?? current.tool.input,
+          block: patch.block === undefined ? current.tool.block : patch.block,
+        },
+      };
+      return updated;
+    }
+  }
+
+  const thinkingIdx = messages.findIndex((m) => m.id === thinkingId);
+  // Keep Thinking above tools: append after the thinking row (or after last stage tool).
+  let insertAt = messages.length;
+  if (thinkingIdx >= 0) {
+    insertAt = thinkingIdx + 1;
+    for (let i = thinkingIdx + 1; i < messages.length; i++) {
+      const m = messages[i];
+      if (m.role === "assistant" && m.kind === "stage_tool") insertAt = i + 1;
+      else break;
+    }
+  }
+  const next = [...messages];
+  next.splice(insertAt, 0, {
+    id: nextId(),
+    role: "assistant",
+    kind: "stage_tool",
+    tool: nextTool,
+  });
+  return next;
+}
+
 export function ScoreView({ creditsRemaining, recentScores }: ScoreViewProps) {
   const searchParams = useSearchParams();
   const autoScoredRef = useRef<string | null>(null);
   const [messages, setMessages] = useState<ThreadMessage[]>([]);
   const [busy, setBusy] = useState(false);
-  const [activeStage, setActiveStage] = useState<keyof typeof SCORE_STAGE_LABELS | null>(null);
+  const [activeStage, setActiveStage] = useState<ScoreStageKey | null>(null);
   const [pinnedBlocks, setPinnedBlocks] = useState<UiBlock[]>([]);
   const [scoreBilling, setScoreBilling] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -302,11 +380,29 @@ export function ScoreView({ creditsRemaining, recentScores }: ScoreViewProps) {
   }, [searchParams]);
 
   async function runScore(raw: string, domain: string) {
-    const statusId = nextId();
+    const thinkingId = nextId();
     setMessages((prev) => [
       ...prev,
       { id: nextId(), role: "user", content: raw },
-      { id: statusId, role: "assistant", kind: "thinking", mode: "score" },
+      {
+        id: thinkingId,
+        role: "assistant",
+        kind: "thinking",
+        mode: "score",
+        isStreaming: true,
+        detail: thinkingDetail("domain"),
+      },
+      {
+        id: nextId(),
+        role: "assistant",
+        kind: "stage_tool",
+        tool: {
+          stage: "domain",
+          status: "running",
+          input: { domain },
+          open: true,
+        },
+      },
     ]);
     setBusy(true);
     setActiveStage("domain");
@@ -319,31 +415,35 @@ export function ScoreView({ creditsRemaining, recentScores }: ScoreViewProps) {
         if (event.type === "stage") {
           setActiveStage(event.stage);
           const block = blockFromScoreStage(event);
-          if (!block) return;
+          const input = stageInputFromEvent(event);
 
-          if (event.stage === "score") {
-            setPinnedBlocks([block]);
-            // Durable pin above chat — skip duplicate conversation dump.
-            return;
+          if (event.stage === "score" && block) {
+            // Intent hero stays in the tool output (AICSS mid-convo), not a detached pin dump.
+            setPinnedBlocks([]);
           }
 
           setMessages((prev) => {
-            const withoutThinking = prev.filter((m) => m.id !== statusId);
-            return [
-              ...withoutThinking,
-              {
-                id: nextId(),
-                role: "assistant",
-                kind: "ui",
-                blocks: [block],
-                content: "",
-                tools: [{
-                  name: SCORE_STAGE_LABELS[event.stage],
-                  status: "done" as const,
-                }],
-              },
-              { id: statusId, role: "assistant", kind: "thinking", mode: "score" },
-            ];
+            let next = upsertStageTool(prev, thinkingId, event.stage, {
+              status: "done",
+              input,
+              block,
+              open: true,
+            });
+
+            const upcoming = nextScoreStage(event.stage);
+            if (upcoming) {
+              next = upsertStageTool(next, thinkingId, upcoming, {
+                status: "running",
+                input: upcoming === "domain" ? { domain } : { domain },
+                open: true,
+              });
+            }
+
+            return next.map((m) =>
+              m.id === thinkingId && m.role === "assistant" && m.kind === "thinking"
+                ? { ...m, isStreaming: true, detail: thinkingDetail(upcoming ?? event.stage) }
+                : m,
+            );
           });
           return;
         }
@@ -378,11 +478,15 @@ export function ScoreView({ creditsRemaining, recentScores }: ScoreViewProps) {
             : [];
 
           setMessages((prev) => {
-            const withoutThinking = prev.filter((m) => m.id !== statusId);
+            const withoutThinkingStream = prev.map((m) =>
+              m.id === thinkingId && m.role === "assistant" && m.kind === "thinking"
+                ? { ...m, isStreaming: false, detail: thinkingDetail(null, doneBilling) }
+                : m,
+            );
             const extras = [...outreach, rail];
-            if (extras.length === 0) return withoutThinking;
+            if (extras.length === 0) return withoutThinkingStream;
             return [
-              ...withoutThinking,
+              ...withoutThinkingStream,
               {
                 id: nextId(),
                 role: "assistant",
@@ -414,13 +518,25 @@ export function ScoreView({ creditsRemaining, recentScores }: ScoreViewProps) {
     } catch (e) {
       setActiveStage(null);
       setMessages((prev) => [
-        ...prev.filter((m) => !(m.role === "assistant" && m.kind === "thinking" && m.id === statusId)),
-        { id: statusId, role: "error", content: (e as Error).message },
+        ...prev
+          .filter((m) => !(m.role === "assistant" && m.kind === "thinking" && m.id === thinkingId))
+          .map((m) =>
+            m.role === "assistant" && m.kind === "stage_tool" && m.tool.status === "running"
+              ? { ...m, tool: { ...m.tool, status: "error" as const, errorText: (e as Error).message, open: true } }
+              : m,
+          ),
+        { id: thinkingId, role: "error", content: (e as Error).message },
       ]);
     } finally {
       setBusy(false);
       setActiveStage(null);
-      setMessages((prev) => prev.filter((m) => !(m.role === "assistant" && m.kind === "thinking" && m.mode === "score")));
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.role === "assistant" && m.kind === "thinking" && m.mode === "score" && m.id === thinkingId
+            ? { ...m, isStreaming: false }
+            : m,
+        ),
+      );
     }
   }
 
@@ -429,7 +545,14 @@ export function ScoreView({ creditsRemaining, recentScores }: ScoreViewProps) {
     setMessages((prev) => [
       ...prev,
       { id: nextId(), role: "user", content: text },
-      { id: thinkingId, role: "assistant", kind: "thinking", mode: "chat" },
+      {
+        id: thinkingId,
+        role: "assistant",
+        kind: "thinking",
+        mode: "chat",
+        isStreaming: true,
+        detail: "Drafting follow-up…",
+      },
     ]);
     setBusy(true);
     try {
@@ -440,37 +563,64 @@ export function ScoreView({ creditsRemaining, recentScores }: ScoreViewProps) {
             const current = prev.find((m) => m.id === thinkingId);
             if (!current) return prev;
             if (event.type === "text") {
-              if (current.role === "assistant" && current.kind === "ui") {
-                return prev.map((m) => (m.id === thinkingId ? { ...current, content: current.content + event.content } : m));
+              const withoutThinking = prev.filter((m) => !(m.role === "assistant" && m.kind === "thinking" && m.id === thinkingId));
+              const existing = withoutThinking.find((m) => m.id === thinkingId);
+              if (existing && existing.role === "assistant" && existing.kind === "ui") {
+                return withoutThinking.map((m) =>
+                  m.id === thinkingId
+                    ? { ...existing, content: existing.content + event.content }
+                    : m,
+                );
               }
-              const next: ThreadMessage = current.role === "assistant" && current.kind === "text"
-                ? { ...current, content: current.content + event.content }
-                : { id: thinkingId, role: "assistant", kind: "text", content: event.content, tools: messageTools(current) };
-              return prev.map((m) => (m.id === thinkingId ? next : m));
+              const next: ThreadMessage =
+                existing && existing.role === "assistant" && existing.kind === "text"
+                  ? { ...existing, content: existing.content + event.content, isAnimating: true }
+                  : {
+                      id: thinkingId,
+                      role: "assistant",
+                      kind: "text",
+                      content: event.content,
+                      tools: messageTools(current),
+                      isAnimating: true,
+                    };
+              if (existing) {
+                return withoutThinking.map((m) => (m.id === thinkingId ? next : m));
+              }
+              return [...withoutThinking, next];
             }
             if (event.type === "ui") {
               const blocks = sanitizeUiBlocks(event.blocks);
               if (blocks.length === 0) return prev;
+              const withoutThinking = prev.filter((m) => !(m.role === "assistant" && m.kind === "thinking" && m.id === thinkingId));
+              const existing = withoutThinking.find((m) => m.id === thinkingId);
               const next: ThreadMessage = {
                 id: thinkingId,
                 role: "assistant",
                 kind: "ui",
                 blocks,
-                content: current.role === "assistant" && "content" in current ? current.content : "",
-                tools: messageTools(current),
+                content: existing && existing.role === "assistant" && "content" in existing ? existing.content : "",
+                tools: messageTools(existing ?? current),
               };
-              return prev.map((m) => (m.id === thinkingId ? next : m));
+              if (existing) {
+                return withoutThinking.map((m) => (m.id === thinkingId ? next : m));
+              }
+              return [...withoutThinking, next];
             }
             if (event.type === "tool_call") {
-              const tools: ToolChip[] = [...messageTools(current), { name: event.name, status: "running" }];
-              if (current.role === "assistant" && (current.kind === "text" || current.kind === "ui")) {
-                return prev.map((m) => (m.id === thinkingId ? { ...current, tools } : m));
+              const withoutThinking = prev.filter((m) => !(m.role === "assistant" && m.kind === "thinking" && m.id === thinkingId));
+              const existing = withoutThinking.find((m) => m.id === thinkingId);
+              const tools: ToolChip[] = [
+                ...messageTools(existing ?? current),
+                { name: event.name, status: "running", args: event.args },
+              ];
+              const next: ThreadMessage =
+                existing && existing.role === "assistant" && (existing.kind === "text" || existing.kind === "ui")
+                  ? { ...existing, tools }
+                  : { id: thinkingId, role: "assistant", kind: "text", content: "", tools, isAnimating: false };
+              if (existing) {
+                return withoutThinking.map((m) => (m.id === thinkingId ? next : m));
               }
-              return prev.map((m) => (
-                m.id === thinkingId
-                  ? { id: thinkingId, role: "assistant", kind: "text", content: "", tools }
-                  : m
-              ));
+              return [...withoutThinking, next];
             }
             if (event.type === "tool_result") {
               const tools: ToolChip[] = messageTools(current).map((t) => (
@@ -492,7 +642,7 @@ export function ScoreView({ creditsRemaining, recentScores }: ScoreViewProps) {
                 return prev.map((m) => (m.id === thinkingId ? next : m));
               }
               const base: ThreadMessage = current.role === "assistant" && current.kind === "text"
-                ? { ...current, tools }
+                ? { ...current, tools, isAnimating: false }
                 : { id: thinkingId, role: "assistant", kind: "text", content: "", tools };
               return prev.map((m) => (m.id === thinkingId ? base : m));
             }
@@ -501,17 +651,15 @@ export function ScoreView({ creditsRemaining, recentScores }: ScoreViewProps) {
         },
       );
       if (nextSession) setSessionId(nextSession);
-      setMessages((prev) => {
-        const current = prev.find((m) => m.id === thinkingId);
-        if (current && current.role === "assistant" && current.kind === "thinking") {
-          return prev.map((m) => (
-            m.id === thinkingId
-              ? { id: thinkingId, role: "assistant", kind: "text", content: "", tools: [] }
-              : m
-          ));
-        }
-        return prev;
-      });
+      setMessages((prev) =>
+        prev
+          .filter((m) => !(m.role === "assistant" && m.kind === "thinking" && m.id === thinkingId))
+          .map((m) =>
+            m.id === thinkingId && m.role === "assistant" && m.kind === "text"
+              ? { ...m, isAnimating: false }
+              : m,
+          ),
+      );
     } catch (e) {
       setMessages((prev) => prev.map((m) => (
         m.id === thinkingId
@@ -566,14 +714,32 @@ export function ScoreView({ creditsRemaining, recentScores }: ScoreViewProps) {
 
   const active = messages.length > 0;
   const lastUi = [...messages].reverse().find((m) => m.role === "assistant" && m.kind === "ui");
+  const lastScoreHero = [...messages].reverse().find(
+    (m): m is Extract<ThreadMessage, { role: "assistant"; kind: "stage_tool" }> =>
+      m.role === "assistant"
+      && m.kind === "stage_tool"
+      && m.tool.stage === "score"
+      && m.tool.block?.type === "intent_hero",
+  );
   const chips = lastUi && lastUi.kind === "ui"
     ? suggestionsFromBlocks(lastUi.blocks)
-    : pinnedBlocks.length > 0
+    : lastScoreHero?.tool.block?.type === "intent_hero"
       ? defaultSuggestions({
-          company: pinnedBlocks[0]?.type === "intent_hero" ? pinnedBlocks[0].company : "Company",
-          score_band: pinnedBlocks[0]?.type === "intent_hero" ? pinnedBlocks[0].score_band : "COLD",
+          company: lastScoreHero.tool.block.company,
+          score_band: lastScoreHero.tool.block.score_band,
         })
-      : [];
+      : pinnedBlocks.length > 0
+        ? defaultSuggestions({
+            company: pinnedBlocks[0]?.type === "intent_hero" ? pinnedBlocks[0].company : "Company",
+            score_band: pinnedBlocks[0]?.type === "intent_hero" ? pinnedBlocks[0].score_band : "COLD",
+          })
+        : [];
+
+  const workspaceHandlers = {
+    onWatchlist: (company: string, d: string) => void handleAddToWatchlist(company, d),
+    watchlistByDomain,
+    onPrompt: (prompt: string) => void submitMessage(prompt),
+  };
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -590,19 +756,12 @@ export function ScoreView({ creditsRemaining, recentScores }: ScoreViewProps) {
             {pinnedBlocks.length > 0 ? (
               <div className="shrink-0 px-4 lg:px-6">
                 <div className="mx-auto w-full max-w-5xl">
-                  <GenUiWorkspace
-                    blocks={pinnedBlocks}
-                    handlers={{
-                      onWatchlist: (company, d) => void handleAddToWatchlist(company, d),
-                      watchlistByDomain,
-                      onPrompt: (prompt) => void submitMessage(prompt),
-                    }}
-                  />
+                  <GenUiWorkspace blocks={pinnedBlocks} handlers={workspaceHandlers} />
                 </div>
               </div>
             ) : null}
             <Conversation className="min-h-0 flex-1 px-4 lg:px-6">
-              <ConversationContent className="mx-auto flex w-full max-w-5xl flex-col gap-4">
+              <ConversationContent className="mx-auto flex w-full max-w-5xl flex-col gap-3">
                 {messages.map((message) => {
                   if (message.role === "user") {
                     return (
@@ -625,34 +784,37 @@ export function ScoreView({ creditsRemaining, recentScores }: ScoreViewProps) {
                   if (message.kind === "thinking") {
                     return (
                       <Message key={message.id} from="assistant">
-                        {message.mode === "score" ? (
-                          <StageStatus activeStage={activeStage} />
-                        ) : (
-                          <div className="flex items-center gap-2 rounded-xl bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
-                            <span className="size-2 animate-pulse rounded-full bg-foreground" />
-                            Designing view…
-                          </div>
-                        )}
+                        <Reasoning isStreaming={message.isStreaming} className="mb-0 w-full">
+                          <ReasoningTrigger />
+                          <ReasoningContent>
+                            <div className="rounded-md bg-muted/50 px-3 py-2 text-xs leading-relaxed">
+                              <p>{message.detail ?? (message.mode === "score" ? thinkingDetail(activeStage, scoreBilling) : "Working…")}</p>
+                              {message.mode === "score" && scoreBilling && !message.isStreaming ? (
+                                <p className="mt-1 tabular-nums text-muted-foreground">{scoreBilling}</p>
+                              ) : null}
+                            </div>
+                          </ReasoningContent>
+                        </Reasoning>
+                      </Message>
+                    );
+                  }
+                  if (message.kind === "stage_tool") {
+                    return (
+                      <Message key={`${message.id}-${message.tool.status}`} from="assistant">
+                        <ScoreStageToolRow tool={message.tool} handlers={workspaceHandlers} />
                       </Message>
                     );
                   }
                   if (message.kind === "ui") {
                     return (
                       <Message key={message.id} from="assistant">
-                        <MessageContent className="flex w-full flex-col gap-4">
+                        <MessageContent className="flex w-full flex-col gap-3">
                           {message.billing ? (
-                            <StageStatus activeStage={null} billing={message.billing} />
+                            <p className="text-xs tabular-nums text-muted-foreground">{message.billing}</p>
                           ) : null}
-                          <ToolChips tools={message.tools} />
-                          {message.content && <AssistantText content={message.content} />}
-                          <GenUiWorkspace
-                            blocks={message.blocks}
-                            handlers={{
-                              onWatchlist: (company, d) => void handleAddToWatchlist(company, d),
-                              watchlistByDomain,
-                              onPrompt: (prompt) => void submitMessage(prompt),
-                            }}
-                          />
+                          <ChatToolRows tools={message.tools} />
+                          {message.content ? <AssistantText content={message.content} /> : null}
+                          <GenUiWorkspace blocks={message.blocks} handlers={workspaceHandlers} />
                         </MessageContent>
                       </Message>
                     );
@@ -660,8 +822,10 @@ export function ScoreView({ creditsRemaining, recentScores }: ScoreViewProps) {
                   return (
                     <Message key={message.id} from="assistant">
                       <MessageContent className="flex w-full flex-col gap-3">
-                        <ToolChips tools={message.tools} />
-                        {message.content && <AssistantText content={message.content} />}
+                        <ChatToolRows tools={message.tools} />
+                        {message.content ? (
+                          <AssistantText content={message.content} isAnimating={message.isAnimating} />
+                        ) : null}
                       </MessageContent>
                     </Message>
                   );

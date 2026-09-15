@@ -9,8 +9,24 @@ import { SearchProvider } from "@/components/dashboard/search-provider";
 import { getStoredTheme, setStoredTheme } from "@/components/theme-provider";
 import { ScoreView } from "@/app/(dashboard)/score/score-view";
 import { GenUiWorkspace } from "@/components/score/gen-ui/workspace";
+import {
+  Reasoning,
+  ReasoningContent,
+  ReasoningTrigger,
+} from "@/components/ai-elements/reasoning";
+import {
+  Message,
+  MessageContent,
+} from "@/components/ai-elements/message";
+import {
+  ScoreStageToolRow,
+  SCORE_STAGE_ORDER,
+  SCORE_STAGE_TITLES,
+  nextScoreStage,
+  type ScoreStageKey,
+  type ScoreStageToolState,
+} from "@/components/score/score-stage-tool";
 import { blockFromScoreStage, workspaceFromScore } from "@/lib/gen-ui";
-import type { UiBlock } from "@/lib/gen-ui";
 import type { SignalResult, SignalSet } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -73,13 +89,37 @@ const RECENT = [
   },
 ];
 
-type LiveStage = "idle" | "domain" | "signals" | "score" | "action" | "done";
+function upsertTool(
+  tools: ScoreStageToolState[],
+  stage: ScoreStageKey,
+  patch: Partial<ScoreStageToolState> & Pick<ScoreStageToolState, "status">,
+): ScoreStageToolState[] {
+  const idx = tools.findIndex((t) => t.stage === stage);
+  const next: ScoreStageToolState = {
+    stage,
+    status: patch.status,
+    input: patch.input,
+    block: patch.block,
+    open: patch.open ?? true,
+  };
+  if (idx >= 0) {
+    const copy = [...tools];
+    copy[idx] = {
+      ...copy[idx],
+      ...next,
+      input: patch.input ?? copy[idx].input,
+      block: patch.block === undefined ? copy[idx].block : patch.block,
+    };
+    return copy;
+  }
+  return [...tools, next];
+}
 
 function LiveStagePlayback({ band }: { band: "hot" | "cold" }) {
-  const [stage, setStage] = useState<LiveStage>("idle");
-  const [artifacts, setArtifacts] = useState<UiBlock[]>([]);
-  const [pinned, setPinned] = useState<UiBlock[]>([]);
+  return <LiveStagePlaybackInner key={band} band={band} />;
+}
 
+function LiveStagePlaybackInner({ band }: { band: "hot" | "cold" }) {
   const mock = useMemo(() => {
     if (band === "cold") {
       return {
@@ -117,29 +157,57 @@ function LiveStagePlayback({ band }: { band: "hot" | "cold" }) {
     };
   }, [band]);
 
+  const [thinking, setThinking] = useState(true);
+  const [detail, setDetail] = useState("Resolve domain…");
+  const [tools, setTools] = useState<ScoreStageToolState[]>(() => [
+    {
+      stage: "domain",
+      status: "running",
+      input: { domain: mock.domain },
+      open: true,
+    },
+  ]);
+  const [extras, setExtras] = useState<ReturnType<typeof workspaceFromScore>>([]);
+
   useEffect(() => {
-    setStage("idle");
-    setArtifacts([]);
-    setPinned([]);
     let cancelled = false;
     const timers: number[] = [];
 
-    const push = (delay: number, next: LiveStage, block: UiBlock | null, pin = false) => {
+    const complete = (
+      delay: number,
+      stage: ScoreStageKey,
+      block: ReturnType<typeof blockFromScoreStage>,
+      input: Record<string, unknown>,
+    ) => {
       timers.push(
         window.setTimeout(() => {
           if (cancelled) return;
-          setStage(next);
-          if (block) {
-            if (pin) setPinned([block]);
-            else setArtifacts((prev) => [...prev, block]);
-          }
+          setTools((prev) => {
+            let next = upsertTool(prev, stage, { status: "done", block, input, open: true });
+            const upcoming = nextScoreStage(stage);
+            if (upcoming) {
+              next = upsertTool(next, upcoming, {
+                status: "running",
+                input: { domain: mock.domain },
+                open: true,
+              });
+            }
+            return next;
+          });
+          const upcoming = nextScoreStage(stage);
+          setDetail(upcoming ? `${SCORE_STAGE_TITLES[upcoming]}…` : "Finishing…");
         }, delay),
       );
     };
 
-    push(400, "domain", blockFromScoreStage({ stage: "domain", company: mock.company, domain: mock.domain }));
-    push(
-      1100,
+    complete(
+      500,
+      "domain",
+      blockFromScoreStage({ stage: "domain", company: mock.company, domain: mock.domain }),
+      { company: mock.company, domain: mock.domain },
+    );
+    complete(
+      1300,
       "signals",
       blockFromScoreStage({
         stage: "signals",
@@ -147,9 +215,13 @@ function LiveStagePlayback({ band }: { band: "hot" | "cold" }) {
         domain: mock.domain,
         signals: mock.signals,
       }),
+      {
+        domain: mock.domain,
+        axes: ["funding", "hiring", "news", "technology", "web", "github"],
+      },
     );
-    push(
-      1900,
+    complete(
+      2200,
       "score",
       blockFromScoreStage({
         stage: "score",
@@ -165,10 +237,14 @@ function LiveStagePlayback({ band }: { band: "hot" | "cold" }) {
         signals: mock.signals,
         latest_signal_at: mock.signals.latestSignalDate,
       }),
-      true,
+      {
+        domain: mock.domain,
+        intent_score: mock.intent_score,
+        score_band: mock.score_band,
+      },
     );
-    push(
-      2700,
+    complete(
+      3000,
       "action",
       blockFromScoreStage({
         stage: "action",
@@ -176,16 +252,18 @@ function LiveStagePlayback({ band }: { band: "hot" | "cold" }) {
         why_now: mock.why_now,
         urgency: mock.urgency,
       }),
+      { urgency: mock.urgency, has_action: true },
     );
+
     timers.push(
       window.setTimeout(() => {
         if (cancelled) return;
-        setStage("done");
-        setArtifacts((prev) => [
-          ...prev,
-          ...workspaceFromScore(mock).filter((b) => b.type === "outreach_studio" || b.type === "action_rail"),
-        ]);
-      }, 3200),
+        setThinking(false);
+        setDetail("Scored · demo (no credit)");
+        setExtras(
+          workspaceFromScore(mock).filter((b) => b.type === "outreach_studio" || b.type === "action_rail"),
+        );
+      }, 3600),
     );
 
     return () => {
@@ -194,31 +272,28 @@ function LiveStagePlayback({ band }: { band: "hot" | "cold" }) {
     };
   }, [mock]);
 
-  const labels: LiveStage[] = ["domain", "signals", "score", "action", "done"];
-
   return (
     <div className="@container/main flex min-h-0 flex-1 flex-col overflow-auto">
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-4 py-4 md:gap-6 md:py-6 lg:px-6">
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-3 px-4 py-4 md:gap-4 md:py-6 lg:px-6">
         <Card className="gap-3 rounded-xl py-4 shadow-xs">
           <CardHeader className="px-4">
-            <CardDescription>Live stage playback</CardDescription>
+            <CardDescription>AICSS mid-convo live playback</CardDescription>
             <CardTitle className="text-base">
-              Mock score stream · {band.toUpperCase()} · no Clerk
+              Thinking + tool stages · {band.toUpperCase()} · no Clerk
             </CardTitle>
           </CardHeader>
           <CardContent className="px-4">
             <div className="flex flex-wrap gap-1.5">
-              {labels.map((label) => {
-                const idx = labels.indexOf(label);
-                const current = labels.indexOf(stage === "idle" ? "domain" : stage);
+              {SCORE_STAGE_ORDER.map((label) => {
+                const tool = tools.find((t) => t.stage === label);
                 return (
                   <span
                     key={label}
                     className={cn(
                       "inline-flex rounded-md border px-2 py-0.5 text-[11px]",
-                      idx < current && "border-foreground/20 bg-card text-foreground",
-                      idx === current && stage !== "idle" && "border-foreground/40 bg-card font-medium",
-                      idx > current && "border-transparent text-muted-foreground",
+                      tool?.status === "done" && "border-foreground/20 bg-card text-foreground",
+                      tool?.status === "running" && "border-foreground/40 bg-card font-medium",
+                      !tool && "border-transparent text-muted-foreground",
                     )}
                   >
                     {label}
@@ -229,17 +304,34 @@ function LiveStagePlayback({ band }: { band: "hot" | "cold" }) {
           </CardContent>
         </Card>
 
-        {pinned.length > 0 ? <GenUiWorkspace blocks={pinned} handlers={{}} /> : null}
+        <Message from="user">
+          <MessageContent className="rounded-xl bg-foreground px-3 py-2 text-sm text-background">
+            {mock.domain}
+          </MessageContent>
+        </Message>
 
-        {artifacts.length === 0 && stage === "idle" ? (
-          <div className="flex min-h-[10rem] items-center justify-center rounded-xl bg-muted/50 p-6 text-sm text-muted-foreground">
-            Waiting for domain stage…
-          </div>
-        ) : (
-          <div className="flex flex-col gap-4">
-            <GenUiWorkspace blocks={artifacts} handlers={{}} />
-          </div>
-        )}
+        <Message from="assistant">
+          <Reasoning isStreaming={thinking} className="mb-0 w-full">
+            <ReasoningTrigger />
+            <ReasoningContent>
+              <div className="rounded-md bg-muted/50 px-3 py-2 text-xs leading-relaxed">{detail}</div>
+            </ReasoningContent>
+          </Reasoning>
+        </Message>
+
+        {tools.map((tool) => (
+          <Message key={`${tool.stage}-${tool.status}`} from="assistant">
+            <ScoreStageToolRow tool={tool} handlers={{}} />
+          </Message>
+        ))}
+
+        {extras.length > 0 ? (
+          <Message from="assistant">
+            <MessageContent className="flex w-full flex-col gap-3">
+              <GenUiWorkspace blocks={extras} handlers={{}} />
+            </MessageContent>
+          </Message>
+        ) : null}
       </div>
     </div>
   );
@@ -290,7 +382,7 @@ function DevScoreBody() {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex flex-wrap items-center gap-2 border-b px-4 py-2 text-xs text-muted-foreground lg:px-6">
-        <span className="font-medium text-foreground">Pass 2 · Score live artifacts</span>
+        <span className="font-medium text-foreground">Pass 2 · AICSS Score mid-convo</span>
         <span className="text-border">·</span>
         <Link
           href="/dev/score?view=empty"
@@ -351,7 +443,7 @@ function DevScoreBody() {
               <GenUiWorkspace blocks={resultBlocks} handlers={{}} />
             </div>
             <div className="mx-auto w-full max-w-5xl rounded-xl bg-muted/50 p-4 text-sm text-muted-foreground">
-              Static result document — use Live HOT/COLD for stage-by-stage artifacts (compact next-action only).
+              Static result document — use Live HOT/COLD for Thinking + expandable tool stages (no AI thesis).
             </div>
           </div>
         </div>
@@ -363,7 +455,7 @@ function DevScoreBody() {
 }
 
 /**
- * Public no-auth mock of Pass 2 Score (empty + live stages + result) inside Pass 1 Blocks chrome.
+ * Public no-auth mock of Pass 2 Score (empty + AICSS live stages + result) inside Pass 1 Blocks chrome.
  * Forces light theme while mounted for Blocks comparison.
  */
 export default function DevScorePage() {
