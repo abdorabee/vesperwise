@@ -12,7 +12,7 @@
  * After running, copy the printed env block into your .env.local file.
  */
 
-import { Polar } from "@polar-sh/sdk";
+import { createPolar } from "@polar-sh/sdk/2026-04";
 
 const token = process.env.POLAR_ACCESS_TOKEN;
 if (!token) {
@@ -21,8 +21,8 @@ if (!token) {
   process.exit(1);
 }
 
-const server = (process.env.POLAR_SERVER ?? "sandbox") as "sandbox" | "production";
-const polar = new Polar({ accessToken: token, server });
+const environment = (process.env.POLAR_SERVER ?? "sandbox") as "sandbox" | "production";
+const polar = createPolar({ accessToken: token, environment });
 
 // ─── Product definitions ──────────────────────────────────────────────────────
 
@@ -115,12 +115,12 @@ async function main() {
       const product = await polar.products.create({
         name: plan.name,
         description: plan.description,
-        recurringInterval: "month",
+        recurring_interval: "month",
         prices: [
           {
-            amountType: "fixed",
-            priceAmount: plan.priceAmount,
-            priceCurrency: "usd",
+            amount_type: "fixed",
+            price_amount: plan.priceAmount,
+            price_currency: "usd",
           },
         ],
       });
@@ -141,12 +141,12 @@ async function main() {
       const product = await polar.products.create({
         name: pack.name,
         description: pack.description,
-        recurringInterval: null,
+        recurring_interval: null,
         prices: [
           {
-            amountType: "fixed",
-            priceAmount: pack.priceAmount,
-            priceCurrency: "usd",
+            amount_type: "fixed",
+            price_amount: pack.priceAmount,
+            price_currency: "usd",
           },
         ],
       });

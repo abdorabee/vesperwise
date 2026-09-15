@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
   try {
     const checkout = await getPolar().checkouts.create({
       products: [PLAN_PRODUCT_IDS[plan]],
-      successUrl: `${origin}/billing?success=true`,
+      success_url: `${origin}/billing?success=true`,
       metadata: { user_id: userId, plan },
     });
 
