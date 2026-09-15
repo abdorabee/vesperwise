@@ -134,7 +134,6 @@ export function ScoreRing({
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center gap-0.5">
-        <BandBadge band={band} className="scale-90" />
         <span className="text-3xl font-semibold tracking-tight tabular-nums text-foreground">{score}</span>
         <span className="text-[11px] text-muted-foreground">/ 100</span>
         {signalDate ? (
