@@ -28,9 +28,12 @@ export default async function HistoryPage() {
   if (!userId) return null;
   const supabase = createSupabaseAdmin();
 
-  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-  const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString();
-  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  // This server-rendered page uses one request-time snapshot for every range calculation.
+  // eslint-disable-next-line react-hooks/purity
+  const now = Date.now();
+  const thirtyDaysAgo = new Date(now - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const sixtyDaysAgo = new Date(now - 60 * 24 * 60 * 60 * 1000).toISOString();
+  const sevenDaysAgo = new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString();
 
   const [
     { count: totalCount },
@@ -78,7 +81,7 @@ export default async function HistoryPage() {
 
   const bucketMap = new Map<string, { hot: number; warm: number; cold: number }>();
   for (let i = 29; i >= 0; i--) {
-    const d = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
+    const d = new Date(now - i * 24 * 60 * 60 * 1000);
     const key = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
     bucketMap.set(key, { hot: 0, warm: 0, cold: 0 });
   }

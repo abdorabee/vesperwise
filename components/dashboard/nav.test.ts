@@ -34,6 +34,13 @@ describe("dashboard profile navigation cleanup", () => {
     expect(appSidebarSource).toContain('collapsible="icon"');
   });
 
+  it("keeps Score and Inbox as normal destinations without a Quick Score shortcut row", () => {
+    expect(navConfigSource).toContain('{ href: "/score", label: "Score"');
+    expect(navConfigSource).toContain('{ href: "/inbox", label: "Inbox"');
+    expect(appSidebarSource).not.toContain("Quick Score");
+    expect(appSidebarSource).not.toContain('aria-label="Inbox"');
+  });
+
   it("deletes the Memory page rather than leaving it reachable", () => {
     expect(
       existsSync(new URL("../../app/(dashboard)/memory/page.tsx", import.meta.url))

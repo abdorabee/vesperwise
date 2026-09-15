@@ -27,9 +27,8 @@ function LeftPanel() {
         padding: "44px",
         display: "flex",
         flexDirection: "column",
-        background:
-          "linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.018)), #0d0f11",
-        borderRight: "1px solid rgba(255,255,255,0.09)",
+        background: "var(--card)",
+        borderRight: "1px solid var(--border)",
         position: "relative",
         overflow: "hidden",
       }}
@@ -43,8 +42,8 @@ function LeftPanel() {
           width: "620px",
           height: "620px",
           borderRadius: "50%",
-          background: "rgba(223,255,0,0.1)",
-          filter: "blur(280px)",
+          background: "var(--brand-soft)",
+          filter: "blur(240px)",
           pointerEvents: "none",
         }}
       />
@@ -67,8 +66,8 @@ function LeftPanel() {
         <p
           style={{
             marginBottom: "18px",
-            color: "#dfff00",
-            fontFamily: "var(--font-jetbrains), ui-monospace, monospace",
+            color: "var(--brand-active)",
+            fontFamily: "var(--font-sans)",
             fontSize: "11px",
             letterSpacing: "0.14em",
             textTransform: "uppercase",
@@ -80,7 +79,7 @@ function LeftPanel() {
           style={{
             maxWidth: "430px",
             margin: 0,
-            color: "#f7f8f8",
+            color: "var(--foreground)",
             fontSize: "clamp(38px, 4.3vw, 60px)",
             fontWeight: 650,
             letterSpacing: "-0.04em",
@@ -93,7 +92,7 @@ function LeftPanel() {
           style={{
             maxWidth: "420px",
             marginTop: "22px",
-            color: "#9298a1",
+            color: "var(--muted-foreground)",
             fontSize: "15px",
             lineHeight: 1.7,
           }}
@@ -110,25 +109,25 @@ function LeftPanel() {
                 gridTemplateColumns: "20px 1fr",
                 gap: "12px",
                 padding: "16px 0",
-                borderTop: "1px solid rgba(255,255,255,0.08)",
+                borderTop: "1px solid var(--border)",
               }}
             >
               <span
                 aria-hidden="true"
                 style={{
                   marginTop: "4px",
-                  color: "#dfff00",
-                  fontFamily: "var(--font-jetbrains), ui-monospace, monospace",
+                  color: "var(--brand-active)",
+                  fontFamily: "var(--font-sans)",
                   fontSize: "11px",
                 }}
               >
                 ✓
               </span>
               <div>
-                <h2 style={{ margin: 0, color: "#e7e9ec", fontSize: "14px", fontWeight: 600 }}>
+                <h2 style={{ margin: 0, color: "var(--foreground)", fontSize: "14px", fontWeight: 600 }}>
                   {capability.title}
                 </h2>
-                <p style={{ margin: "5px 0 0", color: "#777d85", fontSize: "13px", lineHeight: 1.55 }}>
+                <p style={{ margin: "5px 0 0", color: "var(--muted-foreground)", fontSize: "13px", lineHeight: 1.55 }}>
                   {capability.description}
                 </p>
               </div>
@@ -142,8 +141,8 @@ function LeftPanel() {
           position: "relative",
           zIndex: 1,
           margin: 0,
-          color: "#737980",
-          fontFamily: "var(--font-jetbrains), ui-monospace, monospace",
+          color: "var(--muted-foreground)",
+          fontFamily: "var(--font-sans)",
           fontSize: "11px",
           letterSpacing: "0.08em",
           textTransform: "uppercase",
@@ -165,10 +164,9 @@ export default function AuthLayout({
       className="auth-shell"
       style={{
         minHeight: "100dvh",
-        background:
-          "radial-gradient(circle at 12% -12%, rgba(223,255,0,0.12), transparent 36rem), radial-gradient(circle at 92% 10%, rgba(74,222,128,0.07), transparent 30rem), #08090a",
+        background: "var(--background)",
         display: "flex",
-        fontFamily: "var(--font-sans, Inter, system-ui, sans-serif)",
+        fontFamily: "var(--font-sans)",
       }}
     >
       <style>{`
@@ -206,7 +204,7 @@ export default function AuthLayout({
             width: "360px",
             height: "360px",
             borderRadius: "999px",
-            background: "rgba(223,255,0,0.055)",
+            background: "var(--brand-soft)",
             filter: "blur(150px)",
             pointerEvents: "none",
           }}

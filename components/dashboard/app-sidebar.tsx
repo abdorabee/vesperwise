@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
-import { CirclePlus, Inbox, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PLAN_CREDITS, type DbUser } from "@/lib/types";
 import { getWorkspaceLabel } from "@/lib/workspace-label";
@@ -18,7 +18,6 @@ import {
   type NavItem,
 } from "@/components/dashboard/nav-config";
 import { NavUser } from "@/components/dashboard/nav-user";
-import { Button } from "@/components/ui/button";
 import {
   Sidebar,
   SidebarContent,
@@ -145,31 +144,7 @@ export function AppSidebar({
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupContent className="flex flex-col gap-2">
-            <SidebarMenu>
-              <SidebarMenuItem className="flex items-center gap-2">
-                <SidebarMenuButton
-                  asChild
-                  tooltip="Score a company"
-                  className="min-w-8 rounded-lg bg-primary text-primary-foreground duration-200 ease-linear hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground"
-                >
-                  <Link href="/score">
-                    <CirclePlus />
-                    <span>Quick Score</span>
-                  </Link>
-                </SidebarMenuButton>
-                <Button
-                  size="icon"
-                  className="size-8 rounded-lg group-data-[collapsible=icon]:opacity-0"
-                  variant="outline"
-                  asChild
-                >
-                  <Link href="/inbox" aria-label="Inbox">
-                    <Inbox />
-                  </Link>
-                </Button>
-              </SidebarMenuItem>
-            </SidebarMenu>
+          <SidebarGroupContent>
             <SidebarMenu>
               {NAV_MAIN.map((item) => (
                 <NavRow

@@ -20,11 +20,10 @@ export const AUTH_FORM_CSS = `
   }
   .auth-form-card {
     width: 100%;
-    background: rgba(20,20,22,0.82);
-    backdrop-filter: blur(28px) saturate(180%);
-    border: 1px solid rgba(255,255,255,0.10);
-    border-radius: 24px;
-    box-shadow: 0 1px 0 rgba(255,255,255,0.06) inset, 0 40px 110px -30px rgba(0,0,0,0.9);
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    box-shadow: var(--shadow-md);
     padding: 30px;
   }
   .auth-form-header {
@@ -34,12 +33,12 @@ export const AUTH_FORM_CSS = `
     margin: 0;
     font-size: 24px;
     font-weight: 650;
-    color: #f7f8f8;
-    letter-spacing: 0;
+    color: var(--foreground);
+    letter-spacing: -0.025em;
   }
   .auth-form-header p {
     margin: 8px 0 0;
-    color: #a8afb9;
+    color: var(--muted-foreground);
     font-size: 14px;
     line-height: 1.5;
   }
@@ -54,7 +53,7 @@ export const AUTH_FORM_CSS = `
     gap: 6px;
   }
   .auth-field label {
-    color: #b4bbc8;
+    color: var(--foreground);
     font-size: 13px;
     font-weight: 500;
   }
@@ -77,18 +76,18 @@ export const AUTH_FORM_CSS = `
     transform: translateY(-50%);
     background: none;
     border: 0;
-    color: #8a8f98;
+    color: var(--muted-foreground);
     cursor: pointer;
     padding: 4px;
     display: inline-flex;
   }
   .auth-password-toggle:hover {
-    color: #f7f8f8;
+    color: var(--foreground);
   }
   .auth-field-error,
   .auth-global-error {
     margin: 0;
-    color: #f87171;
+    color: var(--destructive);
     font-size: 12px;
     line-height: 1.4;
   }
@@ -104,7 +103,7 @@ export const AUTH_FORM_CSS = `
     display: flex;
     align-items: center;
     gap: 12px;
-    color: #62666d;
+    color: var(--muted-foreground);
     font-size: 12px;
   }
   .auth-divider::before,
@@ -112,16 +111,16 @@ export const AUTH_FORM_CSS = `
     content: "";
     flex: 1;
     height: 1px;
-    background: rgba(255,255,255,0.07);
+    background: var(--border);
   }
   .auth-form-footer {
     margin-top: 18px;
     text-align: center;
-    color: #8a8f98;
+    color: var(--muted-foreground);
     font-size: 13px;
   }
   .auth-form-footer a {
-    color: #e8ff40;
+    color: var(--brand-active);
     font-weight: 500;
     text-decoration: none;
   }
@@ -131,16 +130,16 @@ export const AUTH_FORM_CSS = `
   .auth-form-caption {
     text-align: center;
     font-size: 11px;
-    color: #62666d;
+    color: var(--muted-foreground);
     margin: 16px 0 0;
-    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-family: var(--font-sans);
     letter-spacing: 0.06em;
   }
   .auth-text-button {
     background: none;
     border: 0;
     padding: 0;
-    color: #e8ff40;
+    color: var(--brand-active);
     font-size: 12px;
     font-weight: 500;
     cursor: pointer;

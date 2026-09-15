@@ -6,21 +6,21 @@ import VesperWiseLogo from "@/components/vesperwise-logo";
 import { PLAN_CREDITS, PLAN_WATCHLIST_LIMIT, PLAN_AUTOPILOT_LIMIT } from "@/lib/types";
 
 const T = {
-  bg:           "#08090a",
-  bgEl:         "#0e1011",
-  surface:      "#131517",
-  txtPrimary:   "#f7f8f8",
-  txtSecondary: "#b4bbc8",
-  txtTertiary:  "#8a8f98",
-  txtQuaternary:"#62666d",
-  border:       "rgba(255,255,255,0.08)",
-  borderStrong: "rgba(255,255,255,0.13)",
-  accent:       "#dfff00",
-  accent2:      "#e8ff40",
-  cyan:         "#dfff00",
-  cyanSoft:     "rgba(223,255,0,0.16)",
-  fontSans:     "Inter, -apple-system, BlinkMacSystemFont, system-ui, sans-serif",
-  fontMono:     "'JetBrains Mono', ui-monospace, SFMono-Regular, monospace",
+  bg:           "var(--background)",
+  bgEl:         "var(--card)",
+  surface:      "var(--popover)",
+  txtPrimary:   "var(--foreground)",
+  txtSecondary: "var(--text-secondary)",
+  txtTertiary:  "var(--muted-foreground)",
+  txtQuaternary:"var(--text-quaternary)",
+  border:       "var(--border)",
+  borderStrong: "var(--border-strong)",
+  accent:       "var(--brand)",
+  accent2:      "var(--brand-hover)",
+  cyan:         "var(--brand)",
+  cyanSoft:     "var(--brand-soft)",
+  fontSans:     "var(--font-sans)",
+  fontMono:     "var(--font-sans)",
 };
 
 const NAV_LINKS = [
@@ -40,13 +40,13 @@ export default function PricingView() {
         .price-card.featured:hover { border-color: rgba(223,255,0,0.4); box-shadow: 0 4px 16px rgba(223,255,0,0.12); }
       `}</style>
 
-      <div style={{ position: "sticky", top: 0, zIndex: 100, height: "36px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "13px", color: T.txtSecondary, background: "rgba(8,9,10,0.92)", backdropFilter: "saturate(180%) blur(20px)", WebkitBackdropFilter: "saturate(180%) blur(20px)", borderBottom: `1px solid ${T.border}`, letterSpacing: "-0.011em" } as React.CSSProperties}>
+      <div style={{ position: "sticky", top: 0, zIndex: 100, height: "36px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "13px", color: T.txtSecondary, background: "var(--bg-translucent)", backdropFilter: "saturate(180%) blur(20px)", WebkitBackdropFilter: "saturate(180%) blur(20px)", borderBottom: `1px solid ${T.border}`, letterSpacing: "-0.011em" } as React.CSSProperties}>
         <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", marginRight: "10px", fontSize: "11px", fontWeight: 600, color: T.cyan, background: T.cyanSoft, padding: "1px 8px", borderRadius: "999px" }}>NEW</span>
         <span><strong style={{ color: T.txtPrimary, fontWeight: 500 }}>Autopilot</strong> — workflows that fire when intent crosses your threshold</span>
-        <a href="/#autopilot" style={{ marginLeft: "8px", color: T.txtSecondary }}>→</a>
+        <Link href="/#autopilot" style={{ marginLeft: "8px", color: T.txtSecondary }}>→</Link>
       </div>
 
-      <nav style={{ position: "sticky", top: "36px", zIndex: 50, background: "rgba(8,9,10,0.72)", backdropFilter: "saturate(180%) blur(20px)", WebkitBackdropFilter: "saturate(180%) blur(20px)", borderBottom: `1px solid ${T.border}` } as React.CSSProperties}>
+      <nav style={{ position: "sticky", top: "36px", zIndex: 50, background: "var(--bg-translucent)", backdropFilter: "saturate(180%) blur(20px)", WebkitBackdropFilter: "saturate(180%) blur(20px)", borderBottom: `1px solid ${T.border}` } as React.CSSProperties}>
         <div style={{ display: "flex", alignItems: "center", height: "56px", padding: "0 24px", maxWidth: "1320px", margin: "0 auto", gap: "28px" }}>
           <Link href="/" aria-label="VesperWise home" style={{ display: "inline-flex", alignItems: "center", gap: "8px", fontWeight: 600, letterSpacing: "-0.022em", fontSize: "15px", color: T.txtPrimary, textDecoration: "none" }}>
             <VesperWiseLogo size={42} variant="wordmark" />
@@ -212,7 +212,7 @@ export default function PricingView() {
           <h3 style={{ fontSize: "18px", fontWeight: 600, color: T.txtPrimary, marginBottom: "16px", letterSpacing: "-0.011em" }}>Frequently asked questions</h3>
           <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
             <div>
-              <div style={{ fontSize: "14px", fontWeight: 500, color: T.txtPrimary, marginBottom: "6px" }}>What is a "credit"?</div>
+              <div style={{ fontSize: "14px", fontWeight: 500, color: T.txtPrimary, marginBottom: "6px" }}>What is a &quot;credit&quot;?</div>
               <div style={{ fontSize: "13px", color: T.txtSecondary, lineHeight: 1.6 }}>One credit = one company scored. Scores are cached for 6 hours, so re-requests within that window cost 0 credits. Bulk jobs deduct credits upfront (one per company).</div>
             </div>
             <div>

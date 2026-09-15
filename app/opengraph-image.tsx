@@ -18,7 +18,7 @@ export default function OGImage() {
           alignItems: "flex-start",
           justifyContent: "center",
           padding: "80px",
-          fontFamily: "monospace",
+          fontFamily: "sans-serif",
         }}
       >
         {/* Background glow */}

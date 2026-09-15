@@ -6,20 +6,21 @@ import VesperWiseLogo from "@/components/vesperwise-logo";
 
 /* ─── Design tokens ──────────────────────────────────────────── */
 const T = {
-  bg: "#050608",
-  bgEl: "#0c0e12",
-  border: "rgba(255,255,255,0.07)",
-  borderStrong: "rgba(255,255,255,0.13)",
-  borderSubtle: "rgba(255,255,255,0.04)",
-  txt: "#f7f8f8",
-  txtSec: "#8a8f98",
-  txtTert: "#62666d",
-  txtQ: "#3d4147",
-  accent: "#dfff00",
-  accentBg: "rgba(223,255,0,0.10)",
-  cyan: "#dfff00",
+  bg: "var(--background)",
+  bgEl: "var(--card)",
+  border: "var(--border)",
+  borderStrong: "var(--border-strong)",
+  borderSubtle: "var(--border-subtle)",
+  txt: "var(--foreground)",
+  txtSec: "var(--text-secondary)",
+  txtTert: "var(--muted-foreground)",
+  txtQ: "var(--text-quaternary)",
+  accent: "var(--brand)",
+  accentBg: "var(--brand-soft)",
+  cyan: "var(--brand)",
   hot: "#4ade80",
-  mono: "'JetBrains Mono','Fira Code',monospace",
+  mono: "var(--font-sans)",
+  code: "var(--font-code)",
   r: { sm: "4px", md: "6px", lg: "12px", xl: "16px" },
 };
 
@@ -35,7 +36,7 @@ const NUMBERS = [
 
 const TIMELINE = [
   { time: "At work",          isNow: false, title: "An idea shows up uninvited", body: <>I&apos;m at my day job, staring at a sales pipeline that nobody could read. Halfway through a boring meeting, a thought won&apos;t leave me alone: <em style={{ color: T.txt }}>this should just be one number.</em> I scribble it on a notepad and try to focus on the meeting. I don&apos;t.</> },
-  { time: "That night",       isNow: false, title: "Home, room, laptop, go",      body: <>Get home, eat, open the laptop in my room. By 1 AM there&apos;s a tiny script that prints a number next to a company name. It&apos;s ugly. It works. I buy <code style={{ fontFamily: T.mono, fontSize: "13px", padding: "1px 5px", borderRadius: "3px", background: "rgba(255,255,255,0.05)" }}>vesperwise.com</code> while I should be sleeping.</> },
+  { time: "That night",       isNow: false, title: "Home, room, laptop, go",      body: <>Get home, eat, open the laptop in my room. By 1 AM there&apos;s a tiny script that prints a number next to a company name. It&apos;s ugly. It works. I buy <code style={{ fontFamily: T.code, fontSize: "13px", padding: "1px 5px", borderRadius: "3px", background: "var(--muted)" }}>vesperwise.com</code> while I should be sleeping.</> },
   { time: "The months after", isNow: false, title: "Evenings, weekends, three rewrites", body: "Day job in the day. VesperWise at night. I throw the whole thing away twice — once because it was slow, once because it was ugly. Friends ask what I'm working on. I say \"a side project,\" which is technically true." },
   { time: "Today",            isNow: true,  title: "Still in the same room. Now you can sign up.", body: <>Still just me. Same desk, same lamp, slightly more confident. If you want in, sign up free — or just email <a href="mailto:support@vesperwise.com" style={{ color: T.txt, textDecoration: "underline", textDecorationColor: T.borderStrong, textUnderlineOffset: "3px" }}>support@vesperwise.com</a>. I&apos;m the one who replies.</> },
 ];
@@ -88,28 +89,27 @@ export default function AboutView() {
       </div>
 
       {/* ── Sticky nav ── */}
-      <nav style={{ position: "sticky", top: "36px", zIndex: 40, height: "56px", background: "rgba(5,6,8,0.90)", backdropFilter: "blur(12px)", borderBottom: `1px solid ${T.borderSubtle}`, display: "flex", alignItems: "center" }}>
+      <nav style={{ position: "sticky", top: "36px", zIndex: 40, height: "56px", background: "var(--bg-translucent)", backdropFilter: "blur(12px)", borderBottom: `1px solid ${T.borderSubtle}`, display: "flex", alignItems: "center" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", maxWidth: "1200px", margin: "0 auto", padding: "0 24px", gap: "24px" }}>
           <Link href="/" aria-label="VesperWise home" style={{ display: "inline-flex", alignItems: "center", gap: "8px", textDecoration: "none" }}>
             <VesperWiseLogo size={42} variant="wordmark" />
           </Link>
           <div className="mkt-navlinks" style={{ display: "flex", gap: "4px" }}>
             {(["Product","Autopilot","Developers","Pricing","Customers","Company"] as const).map(label => (
-              <a key={label} href={label === "Company" ? "/about" : label === "Developers" ? "/docs" : "#"} style={{ fontSize: "13px", padding: "5px 10px", borderRadius: T.r.md, color: label === "Company" ? T.txt : T.txtTert, background: label === "Company" ? "rgba(255,255,255,0.05)" : "transparent", letterSpacing: "-0.006em", textDecoration: "none" }}>
+              <a key={label} href={label === "Company" ? "/about" : label === "Developers" ? "/docs" : "#"} style={{ fontSize: "13px", padding: "5px 10px", borderRadius: T.r.md, color: label === "Company" ? T.txt : T.txtTert, background: label === "Company" ? "var(--muted)" : "transparent", letterSpacing: "-0.006em", textDecoration: "none" }}>
                 {label}
               </a>
             ))}
           </div>
           <div style={{ display: "flex", gap: "8px", marginLeft: "auto" }}>
-            <Link href="/login"   style={{ fontSize: "13px", padding: "5px 12px", borderRadius: "999px", color: T.txtSec, border: `1px solid ${T.border}`, textDecoration: "none" }}>Sign in</Link>
-            <Link href="/contact" style={{ fontSize: "13px", padding: "5px 14px", borderRadius: "999px", color: "#000000", background: T.accent, textDecoration: "none", fontWeight: 500 }}>Talk to us →</Link>
+            <Link href="/login"   style={{ fontSize: "13px", padding: "6px 12px", borderRadius: T.r.md, color: T.txtSec, background: "var(--background)", border: `1px solid ${T.border}`, textDecoration: "none" }}>Sign in</Link>
+            <Link href="/contact" style={{ fontSize: "13px", padding: "6px 14px", borderRadius: T.r.md, color: "#000000", background: T.accent, textDecoration: "none", fontWeight: 500 }}>Talk to us →</Link>
           </div>
         </div>
       </nav>
 
       {/* ── Hero ── */}
       <section style={{ position: "relative", padding: "72px 24px 64px", borderBottom: `1px solid ${T.borderSubtle}`, overflow: "hidden" }}>
-        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 80% 60% at 50% -20%,rgba(223,255,0,0.12) 0%,transparent 70%)", pointerEvents: "none" }} />
         <div style={{ position: "relative", maxWidth: "1080px", margin: "0 auto" }}>
           <div style={{ fontSize: "12px", color: T.txtTert, letterSpacing: "0.06em", textTransform: "uppercase", fontWeight: 500, marginBottom: "16px" }}>
             <span style={{ color: T.accent, marginRight: "8px" }}>✦</span>About VesperWise

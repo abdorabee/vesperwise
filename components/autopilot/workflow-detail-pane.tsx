@@ -45,17 +45,14 @@ export default function WorkflowDetailPane({
 }: WorkflowDetailPaneProps) {
   const [tab, setTab] = useState<Tab>("builder");
   const [renaming, setRenaming] = useState(false);
-  const [nameDraft, setNameDraft] = useState("");
+  const [nameDraft, setNameDraft] = useState(workflow?.name ?? "");
   const [menuOpen, setMenuOpen] = useState(false);
-  const [logActions, setLogActions] = useState<DbAutopilotAction[]>([]);
-  const [lastFire, setLastFire] = useState<{ company: string; ago: string } | null>(null);
+  const [logResult, setLogResult] = useState<{ workflowId: string; actions: DbAutopilotAction[] } | null>(null);
+  const [lastFireResult, setLastFireResult] = useState<{
+    runId: string;
+    value: { company: string; ago: string };
+  } | null>(null);
   const nameRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (!workflow) return;
-    setNameDraft(workflow.name);
-    setRenaming(false);
-  }, [workflow?.id, workflow?.name]);
 
   useEffect(() => {
     if (!workflow || tab !== "logs") return;
@@ -70,28 +67,31 @@ export default function WorkflowDetailPane({
         }
       }
       all.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-      setLogActions(all.slice(0, 20));
+      setLogResult({ workflowId: workflow.id, actions: all.slice(0, 20) });
     })();
-  }, [workflow?.id, tab, runs]);
+  }, [workflow, tab, runs]);
 
   useEffect(() => {
-    if (!workflow || runs.length === 0) {
-      setLastFire(null);
-      return;
-    }
+    if (!workflow || runs.length === 0) return;
     (async () => {
       const res = await fetch(`/api/autopilot/runs/${runs[0].id}`);
       if (res.ok) {
         const data = await res.json();
         const actions: DbAutopilotAction[] = data.actions ?? [];
         if (actions.length > 0) {
-          setLastFire({ company: actions[0].company_name, ago: relTime(actions[0].created_at) });
+          setLastFireResult({
+            runId: runs[0].id,
+            value: { company: actions[0].company_name, ago: relTime(actions[0].created_at) },
+          });
         } else {
-          setLastFire({ company: "—", ago: relTime(runs[0].started_at) });
+          setLastFireResult({
+            runId: runs[0].id,
+            value: { company: "—", ago: relTime(runs[0].started_at) },
+          });
         }
       }
     })();
-  }, [workflow?.id, runs]);
+  }, [workflow, runs]);
 
   if (!workflow) {
     return (
@@ -103,6 +103,8 @@ export default function WorkflowDetailPane({
   }
 
   const wf = workflow;
+  const logActions = logResult?.workflowId === wf.id ? logResult.actions : [];
+  const lastFire = runs[0] && lastFireResult?.runId === runs[0].id ? lastFireResult.value : null;
   const status = workflowStatus(wf);
   const band = statusBand(status);
   const match = computeMatchRate(runs);

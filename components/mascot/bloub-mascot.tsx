@@ -57,19 +57,13 @@ export default function BloubMascot({
   const uid = useId().replace(/:/g, "");
   const maskId = `bloub-mask-${uid}`;
   const svgRef = useRef<SVGSVGElement | null>(null);
-  const engineRef = useRef<BotEngine | null>(null);
+  const [engine] = useState(() => new BotEngine(RAYON, "idle"));
   const [frame, setFrame] = useState<BotFrame>(sampleIdle);
 
-  if (!engineRef.current) {
-    engineRef.current = new BotEngine(RAYON, "idle");
-  }
-
   useEffect(() => {
-    const engine = engineRef.current!;
     const reduced = prefersReducedMotion();
     if (reduced) {
       engine.reset("idle", 0);
-      setFrame(engine.sample(0));
       return;
     }
 
@@ -85,7 +79,6 @@ export default function BloubMascot({
     let turnSince = 0;
 
     engine.reset(cycle[0]?.state ?? "idle", 0);
-    setFrame(engine.sample(0));
 
     const release = () => {
       if (!aiming) return;
@@ -165,7 +158,7 @@ export default function BloubMascot({
       window.removeEventListener("pointermove", onPointerMove);
       document.removeEventListener("pointerleave", onPointerLeave);
     };
-  }, [follow, playing]);
+  }, [engine, follow, playing]);
 
   return (
     <svg

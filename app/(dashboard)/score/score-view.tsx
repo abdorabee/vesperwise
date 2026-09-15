@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
+import { ArrowRight, Clock3, Coins, Gauge, Plus, Sparkles } from "lucide-react";
 import type { IntentScore, ScoreBand } from "@/lib/types";
 import { CHAT_CREDIT_COST } from "@/lib/types";
 import { extractDomain, seedChatSession, streamChat } from "@/lib/chat-client";
@@ -29,6 +30,10 @@ import {
 } from "@/components/ai-elements/prompt-input";
 import { Suggestion, Suggestions } from "@/components/ai-elements/suggestion";
 import { Tool, ToolHeader } from "@/components/ai-elements/tool";
+import { EmptyState, PageHeader, PageSurface } from "@/components/app-ui/page-primitives";
+import { ScoreWorkspaceLayout } from "@/components/score/score-workspace-layout";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 type ScorableIntentScore = IntentScore & {
   intent_score: number;
@@ -182,140 +187,116 @@ function submitPromptText(text: string, onSubmit: (value: string) => void) {
 
 function ScorePromptStage({ onScore, creditsRemaining, recentScores, busy }: ScorePromptStageProps) {
   return (
-    <div className="prompt-stage">
-      <div className="prompt-bg">
-        <div className="grid" />
-      </div>
-      <div className="prompt-inner">
-        <div className="prompt-eyebrow">
-          <span className="badge">Score</span>
-          Drop in a domain — we&apos;ll verify coverage and you can ask follow-ups
-        </div>
-
-        <h1 className="prompt-h1">
-          What account do you want to{" "}
-          <span className="grad">score</span>?
-        </h1>
-        <p className="prompt-sub">
-          Paste any company domain. Four dated purchase triggers drive the score;
-          then keep chatting about the account.
-        </p>
-
-        <PromptInput
-          className="score-elements-input"
-          onSubmit={({ text }) => submitPromptText(text, onScore)}
-        >
-          <PromptInputBody>
-            <PromptInputTextarea
-              placeholder="stripe.com"
-              disabled={busy}
-              autoFocus
-              aria-label="Company domain"
-            />
-          </PromptInputBody>
-          <PromptInputFooter>
-            <PromptInputSubmit disabled={busy} className="score-elements-submit">
-              Score
-            </PromptInputSubmit>
-          </PromptInputFooter>
-        </PromptInput>
-
-        <div className="prompt-meta">
-          <div className="left">
-            <span><strong>1</strong> credit on a fresh scorable result · follow-ups {CHAT_CREDIT_COST} credits</span>
-            <span>Cached for <strong>6h</strong></span>
+    <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 p-4 sm:p-6 lg:p-8">
+      <PageHeader
+        eyebrow="Account research"
+        title="Score a company"
+        description="Enter a company domain to verify current buying signals, understand the evidence, and continue with focused follow-up questions."
+        actions={(
+          <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm">
+            <Coins className="size-4 text-muted-foreground" aria-hidden="true" />
+            <span className="font-semibold tabular-nums">{creditsRemaining}</span>
+            <span className="text-muted-foreground">credits left</span>
           </div>
-          <div className="right">
-            <span>Provider calls are bounded</span>
-            <span><strong>{creditsRemaining}</strong> credits left</span>
-          </div>
-        </div>
+        )}
+      />
 
-        <div className="prompt-section-label">
-          <span>Try a hot pick</span>
-          <span className="line" />
-        </div>
-        <div className="suggestion-row">
-          {HOT_PICKS.map((pick) => (
-            <button key={pick.domain} type="button" className="sugg" onClick={() => onScore(pick.domain)}>
-              <div className="av" style={{ background: avColor(pick.name) }}>{pick.name[0]}</div>
-              {pick.domain}
-              <span className="mono-sm">▲ {pick.signal}</span>
-            </button>
-          ))}
-        </div>
-
-        {recentScores.length > 0 && (
-          <>
-            <div className="prompt-section-label">
-              <span>Recent</span>
-              <span className="line" />
+      <Card className="gap-5 py-5 shadow-sm">
+        <CardHeader className="gap-1 px-5 sm:px-6">
+          <div className="flex items-center gap-2">
+            <div className="flex size-8 items-center justify-center rounded-lg bg-[var(--brand-soft)] text-[var(--brand-active)]">
+              <Gauge className="size-4" aria-hidden="true" />
             </div>
-            <div className="recent-row">
-              {recentScores.map((r) => (
-                <button key={r.domain} type="button" className="sugg recent" onClick={() => onScore(r.domain)}>
-                  <div className="av" style={{ background: avColor(r.company_name) }}>{r.company_name[0]}</div>
-                  {r.domain}
+            <div>
+              <CardTitle>Company domain</CardTitle>
+              <CardDescription>Fresh scorable results use 1 credit. Cached results do not.</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4 px-5 sm:px-6">
+          <PromptInput
+            className="score-elements-input"
+            onSubmit={({ text }) => submitPromptText(text, onScore)}
+          >
+            <PromptInputBody>
+              <PromptInputTextarea
+                placeholder="stripe.com"
+                disabled={busy}
+                autoFocus
+                aria-label="Company domain"
+              />
+            </PromptInputBody>
+            <PromptInputFooter>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Clock3 className="size-3.5" aria-hidden="true" />
+                Cached for 6 hours
+              </div>
+              <PromptInputSubmit disabled={busy} className="score-elements-submit">
+                Score company
+                <ArrowRight className="size-4" aria-hidden="true" />
+              </PromptInputSubmit>
+            </PromptInputFooter>
+          </PromptInput>
+
+          <div>
+            <p className="mb-2 text-xs font-medium text-muted-foreground">Try an example</p>
+            <div className="flex flex-wrap gap-2">
+              {HOT_PICKS.map((pick) => (
+                <Button
+                  key={pick.domain}
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => onScore(pick.domain)}
+                >
                   <span
-                    className="score-mini"
-                    style={{
-                      background:
-                        r.score_band === "HOT"
-                          ? "var(--hot-bg)"
-                          : r.score_band === "WARM"
-                          ? "var(--warm-bg)"
-                          : "var(--cold-bg)",
-                      color:
-                        r.score_band === "HOT"
-                          ? "var(--hot)"
-                          : r.score_band === "WARM"
-                          ? "var(--warm)"
-                          : "var(--cold)",
-                    }}
+                    className="flex size-5 items-center justify-center rounded text-[10px] font-semibold text-black"
+                    style={{ background: avColor(pick.name) }}
                   >
-                    {r.score ?? "—"}
+                    {pick.name[0]}
                   </span>
-                </button>
+                  {pick.domain}
+                  <span className="text-xs font-normal text-muted-foreground">{pick.signal}</span>
+                </Button>
               ))}
             </div>
-          </>
-        )}
+          </div>
 
-        <div className="prompt-feature-row">
-          <div className="feat">
-            <span className="ic" style={{ background: "rgba(223,255,0,0.12)", color: "var(--cyan)" }}>
-              <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" width="10" height="10">
-                <path d="M2 8l3-3 2 2 3-4" />
-              </svg>
-            </span>
-            4 trigger axes
+          <div className="flex flex-wrap gap-x-5 gap-y-2 border-t border-border pt-4 text-xs text-muted-foreground">
+            <span>Four dated trigger axes</span>
+            <span>Source-backed evidence</span>
+            <span>Follow-ups use {CHAT_CREDIT_COST} credits</span>
           </div>
-          <div className="feat">
-            <span className="ic" style={{ background: "rgba(223,255,0,0.12)", color: "#dfff00" }}>
-              <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" width="10" height="10">
-                <circle cx="6" cy="6" r="4" /><path d="M6 4v3l2 1" />
-              </svg>
-            </span>
-            Interactive chat
+        </CardContent>
+      </Card>
+
+      {recentScores.length > 0 ? (
+        <PageSurface title="Recent scores" description="Continue research from a recently scored account.">
+          <div className="divide-y divide-border">
+            {recentScores.map((recent) => (
+              <button
+                key={`${recent.domain}-${recent.created_at}`}
+                type="button"
+                className="flex w-full items-center gap-3 px-5 py-3 text-left transition-colors duration-200 hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring motion-reduce:transition-none"
+                onClick={() => onScore(recent.domain)}
+              >
+                <span
+                  className="flex size-8 shrink-0 items-center justify-center rounded-lg text-xs font-semibold text-black"
+                  style={{ background: avColor(recent.company_name) }}
+                >
+                  {recent.company_name[0]}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-medium text-foreground">{recent.company_name}</span>
+                  <span className="block truncate text-xs text-muted-foreground">{recent.domain}</span>
+                </span>
+                <span className="text-sm font-semibold tabular-nums text-foreground">{recent.score ?? "—"}</span>
+                <span className="w-12 text-right text-xs font-medium text-muted-foreground">{recent.score_band ?? "Unavailable"}</span>
+              </button>
+            ))}
           </div>
-          <div className="feat">
-            <span className="ic" style={{ background: "rgba(74,222,128,0.12)", color: "var(--hot)" }}>
-              <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" width="10" height="10">
-                <path d="M2 9V5m3 4V3m3 6V6" />
-              </svg>
-            </span>
-            Signal breakdown · 4 triggers + context
-          </div>
-          <div className="feat">
-            <span className="ic" style={{ background: "rgba(245,181,68,0.12)", color: "var(--warm)" }}>
-              <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" width="10" height="10">
-                <path d="M3 6l3 3 5-7" />
-              </svg>
-            </span>
-            Recommended next action
-          </div>
-        </div>
-      </div>
+        </PageSurface>
+      ) : null}
     </div>
   );
 }
@@ -534,6 +515,140 @@ export function ScoreView({ creditsRemaining, recentScores }: ScoreViewProps) {
   const lastUi = [...messages].reverse().find((m) => m.role === "assistant" && m.kind === "ui");
   const chips = lastUi && lastUi.kind === "ui" ? suggestionsFromBlocks(lastUi.blocks) : [];
 
+  const conversation = (
+    <Conversation className="score-chat-thread">
+      <ConversationContent className="score-chat-col">
+        {messages.map((message) => {
+          if (message.role === "user") {
+            return (
+              <Message key={message.id} from="user">
+                <MessageContent className="chat-bubble user">{message.content}</MessageContent>
+              </Message>
+            );
+          }
+          if (message.role === "error") {
+            return (
+              <Message key={message.id} from="assistant">
+                <p className="chat-error" role="alert">{message.content}</p>
+              </Message>
+            );
+          }
+          if (message.kind === "thinking") {
+            return (
+              <Message key={message.id} from="assistant">
+                {message.mode === "score" ? (
+                  <LiveProgressBar loading stepIndex={stepIndex} />
+                ) : (
+                  <div className="chat-thinking">
+                    <span className="pulse" />
+                    Preparing the next view…
+                  </div>
+                )}
+              </Message>
+            );
+          }
+          if (message.kind === "ui") {
+            return (
+              <Message key={message.id} from="assistant">
+                <MessageContent className="space-y-3">
+                  {message.billing ? (
+                    <LiveProgressBar
+                      loading={false}
+                      stepIndex={STEPS.length - 1}
+                      billingLabel={message.billing}
+                    />
+                  ) : null}
+                  <ToolChips tools={message.tools} />
+                  {message.content ? <AssistantText content={message.content} /> : null}
+                  <div className="flex items-start gap-3 rounded-lg border border-border bg-muted/40 p-3 text-sm">
+                    <Sparkles className="mt-0.5 size-4 shrink-0 text-[var(--brand-active)]" aria-hidden="true" />
+                    <div>
+                      <p className="font-medium text-foreground">Evidence workspace updated</p>
+                      <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                        Review the score, signal coverage, thesis, and recommended action in the Evidence pane.
+                      </p>
+                    </div>
+                  </div>
+                </MessageContent>
+              </Message>
+            );
+          }
+          return (
+            <Message key={message.id} from="assistant">
+              <MessageContent>
+                <ToolChips tools={message.tools} />
+                {message.content ? <AssistantText content={message.content} /> : null}
+              </MessageContent>
+            </Message>
+          );
+        })}
+      </ConversationContent>
+      <ConversationScrollButton className="score-elements-scroll" />
+    </Conversation>
+  );
+
+  const composer = (
+    <div className="score-chat-composer">
+      {chips.length > 0 ? (
+        <Suggestions className="score-elements-suggestions">
+          {chips.map((chip) => (
+            <Suggestion
+              key={chip.prompt}
+              suggestion={chip.prompt}
+              disabled={busy}
+              onClick={(prompt) => void submitMessage(prompt)}
+            >
+              {chip.label}
+            </Suggestion>
+          ))}
+        </Suggestions>
+      ) : null}
+      <PromptInput
+        className="score-elements-input"
+        onSubmit={({ text }) => submitPromptText(text, (value) => void submitMessage(value))}
+      >
+        <PromptInputBody>
+          <PromptInputTextarea
+            placeholder="Ask a follow-up or score another domain"
+            disabled={busy}
+            aria-label="Chat message"
+          />
+        </PromptInputBody>
+        <PromptInputFooter>
+          <span className="text-xs text-muted-foreground">
+            Follow-up {CHAT_CREDIT_COST} credits · new score 1 credit
+          </span>
+          <PromptInputSubmit disabled={busy} className="score-elements-submit">
+            Send
+            <ArrowRight className="size-4" aria-hidden="true" />
+          </PromptInputSubmit>
+        </PromptInputFooter>
+      </PromptInput>
+    </div>
+  );
+
+  const evidence = lastUi && lastUi.kind === "ui" ? (
+    <GenUiWorkspace
+      blocks={lastUi.blocks}
+      handlers={{
+        onWatchlist: (company, domain) => void handleAddToWatchlist(company, domain),
+        watchlistByDomain,
+        onPrompt: (prompt) => void submitMessage(prompt),
+      }}
+    />
+  ) : (
+    <EmptyState
+      className="min-h-[24rem]"
+      icon={<Gauge className="size-4" aria-hidden="true" />}
+      title={scoring ? "Verifying account signals" : "Evidence will appear here"}
+      description={
+        scoring
+          ? "We are checking dated purchase signals and assembling the evidence snapshot."
+          : "Score a company to review its signal coverage, score breakdown, and recommended action."
+      }
+    />
+  );
+
   return (
     <div className="score-chat">
       {!active ? (
@@ -544,120 +659,29 @@ export function ScoreView({ creditsRemaining, recentScores }: ScoreViewProps) {
           busy={busy}
         />
       ) : (
-        <>
-          <Conversation className="score-chat-thread">
-            <ConversationContent className="score-chat-col">
-              {messages.map((message) => {
-                if (message.role === "user") {
-                  return (
-                    <Message key={message.id} from="user">
-                      <MessageContent className="chat-bubble user">{message.content}</MessageContent>
-                    </Message>
-                  );
-                }
-                if (message.role === "error") {
-                  return (
-                    <Message key={message.id} from="assistant">
-                      <p className="chat-error" role="alert">{message.content}</p>
-                    </Message>
-                  );
-                }
-                if (message.kind === "thinking") {
-                  return (
-                    <Message key={message.id} from="assistant">
-                      {message.mode === "score" ? (
-                        <LiveProgressBar loading stepIndex={stepIndex} />
-                      ) : (
-                        <div className="chat-thinking">
-                          <span className="pulse" />
-                          Designing view…
-                        </div>
-                      )}
-                    </Message>
-                  );
-                }
-                if (message.kind === "ui") {
-                  return (
-                    <Message key={message.id} from="assistant">
-                      <MessageContent>
-                        {message.billing && (
-                          <LiveProgressBar
-                            loading={false}
-                            stepIndex={STEPS.length - 1}
-                            billingLabel={message.billing}
-                          />
-                        )}
-                        <ToolChips tools={message.tools} />
-                        {message.content && <AssistantText content={message.content} />}
-                        <GenUiWorkspace
-                          blocks={message.blocks}
-                          handlers={{
-                            onWatchlist: (company, d) => void handleAddToWatchlist(company, d),
-                            watchlistByDomain,
-                            onPrompt: (prompt) => void submitMessage(prompt),
-                          }}
-                        />
-                      </MessageContent>
-                    </Message>
-                  );
-                }
-                return (
-                  <Message key={message.id} from="assistant">
-                    <MessageContent>
-                      <ToolChips tools={message.tools} />
-                      {message.content && <AssistantText content={message.content} />}
-                    </MessageContent>
-                  </Message>
-                );
-              })}
-            </ConversationContent>
-            <ConversationScrollButton className="score-elements-scroll" />
-          </Conversation>
-          <div className="score-chat-composer">
-            {chips.length > 0 && (
-              <Suggestions className="score-elements-suggestions">
-                {chips.map((chip) => (
-                  <Suggestion
-                    key={chip.prompt}
-                    suggestion={chip.prompt}
-                    disabled={busy}
-                    onClick={(prompt) => void submitMessage(prompt)}
-                  >
-                    {chip.label}
-                  </Suggestion>
-                ))}
-              </Suggestions>
-            )}
-            <PromptInput
-              className="score-elements-input"
-              onSubmit={({ text }) => submitPromptText(text, (value) => void submitMessage(value))}
-            >
-              <PromptInputBody>
-                <PromptInputTextarea
-                  placeholder="Ask a follow-up or score another domain"
-                  disabled={busy}
-                  aria-label="Chat message"
-                />
-              </PromptInputBody>
-              <PromptInputFooter>
-                <PromptInputSubmit disabled={busy} className="score-elements-submit">
-                  Send
-                </PromptInputSubmit>
-              </PromptInputFooter>
-            </PromptInput>
-            <div className="prompt-meta">
-              <div className="left">
-                <span>Follow-ups <strong>{CHAT_CREDIT_COST}</strong> credits · new domain <strong>1</strong> credit</span>
-              </div>
-              <div className="right">
-                <button type="button" className="chat-new" onClick={handleNewChat} disabled={busy}>
+        <div className="mx-auto flex min-h-0 w-full max-w-[96rem] flex-1 flex-col gap-5 p-4 sm:p-6 lg:p-8">
+          <PageHeader
+            eyebrow="Account research"
+            title="Score workspace"
+            description="Ask focused questions in the conversation and inspect the source-backed evidence alongside it."
+            actions={(
+              <div className="flex items-center gap-2">
+                <span className="hidden text-sm text-muted-foreground sm:inline">
+                  <strong className="font-semibold tabular-nums text-foreground">{creditsRemaining}</strong> credits left
+                </span>
+                <Button type="button" size="sm" variant="outline" onClick={handleNewChat} disabled={busy}>
+                  <Plus className="size-4" aria-hidden="true" />
                   New chat
-                </button>
-                <span><strong>{creditsRemaining}</strong> credits left</span>
+                </Button>
               </div>
-            </div>
-          </div>
-        </>
+            )}
+          />
+          <ScoreWorkspaceLayout
+            conversation={conversation}
+            composer={composer}
+            evidence={evidence}
+          />
+        </div>
       )}
     </div>
   );

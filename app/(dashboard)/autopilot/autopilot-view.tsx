@@ -14,7 +14,6 @@ interface AutopilotViewProps {
 export function AutopilotView({ workflowLimit }: AutopilotViewProps) {
   const [workflows, setWorkflows] = useState<DbAutopilotWorkflow[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [runs, setRuns] = useState<DbAutopilotRun[]>([]);
   const [runsByWorkflow, setRunsByWorkflow] = useState<Record<string, DbAutopilotRun[]>>({});
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<WorkflowFilter>("all");
@@ -43,14 +42,10 @@ export function AutopilotView({ workflowLimit }: AutopilotViewProps) {
     setLoading(false);
   }, []);
 
-  useEffect(() => { fetchWorkflows(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
   useEffect(() => {
-    if (!selectedId) { setRuns([]); return; }
-    fetch(`/api/autopilot/runs?workflow_id=${selectedId}`)
-      .then(r => r.json())
-      .then(data => setRuns(data.runs ?? []));
-  }, [selectedId]);
+    const timer = window.setTimeout(() => void fetchWorkflows(), 0);
+    return () => window.clearTimeout(timer);
+  }, [fetchWorkflows]);
 
   useEffect(() => {
     const handler = () => {
@@ -70,6 +65,7 @@ export function AutopilotView({ workflowLimit }: AutopilotViewProps) {
   }, []);
 
   const selected = workflows.find(w => w.id === selectedId) ?? null;
+  const runs = selectedId ? runsByWorkflow[selectedId] ?? [] : [];
 
   function handleUpdate(wf: DbAutopilotWorkflow) {
     setWorkflows(prev => prev.map(w => w.id === wf.id ? wf : w));
@@ -111,6 +107,7 @@ export function AutopilotView({ workflowLimit }: AutopilotViewProps) {
         onCreated={handleCreated}
       />
       <WorkflowDetailPane
+        key={selected?.id ?? "empty"}
         workflow={selected}
         runs={runs}
         onUpdate={handleUpdate}

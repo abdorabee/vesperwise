@@ -52,7 +52,6 @@ const itemActiveClass = "active";
 export function SearchPalette({ open, onOpenChange }: SearchPaletteProps) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
-  const [mounted, setMounted] = useState(false);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [remote, setRemote] = useState<RemoteResults>(EMPTY);
@@ -121,35 +120,18 @@ export function SearchPalette({ open, onOpenChange }: SearchPaletteProps) {
   const flatRows = useMemo(() => sections.flatMap((s) => s.rows), [sections]);
 
   useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (!open) {
-      setQuery("");
-      setRemote(EMPTY);
-      setActiveIndex(0);
-      return;
-    }
+    if (!open) return;
     const t = window.setTimeout(() => inputRef.current?.focus(), 0);
     return () => window.clearTimeout(t);
   }, [open]);
 
   useEffect(() => {
-    setActiveIndex(0);
-  }, [query]);
-
-  useEffect(() => {
     if (!open) return;
-    if (trimmedQuery.length < 2) {
-      setRemote(EMPTY);
-      setLoading(false);
-      return;
-    }
+    if (trimmedQuery.length < 2) return;
 
     const controller = new AbortController();
-    setLoading(true);
     const timer = window.setTimeout(() => {
+      setLoading(true);
       fetch(`/api/dashboard/search?q=${encodeURIComponent(trimmedQuery)}`, {
         signal: controller.signal,
       })
@@ -173,6 +155,9 @@ export function SearchPalette({ open, onOpenChange }: SearchPaletteProps) {
 
   const selectRow = useCallback(
     (row: PaletteRow) => {
+      setQuery("");
+      setRemote(EMPTY);
+      setActiveIndex(0);
       onOpenChange(false);
       router.push(row.type === "page" ? row.item.href : row.item.href);
     },
@@ -192,7 +177,7 @@ export function SearchPalette({ open, onOpenChange }: SearchPaletteProps) {
     }
   }
 
-  if (!open || !mounted) return null;
+  if (!open || typeof document === "undefined") return null;
 
   const showEmpty =
     !loading &&
@@ -202,7 +187,16 @@ export function SearchPalette({ open, onOpenChange }: SearchPaletteProps) {
   let rowIndex = -1;
 
   const palette = (
-    <div className="cmd-backdrop" onClick={() => onOpenChange(false)} role="presentation">
+    <div
+      className="cmd-backdrop"
+      onClick={() => {
+        setQuery("");
+        setRemote(EMPTY);
+        setActiveIndex(0);
+        onOpenChange(false);
+      }}
+      role="presentation"
+    >
       <div
         className="cmd-palette"
         onClick={(e) => e.stopPropagation()}
@@ -218,7 +212,15 @@ export function SearchPalette({ open, onOpenChange }: SearchPaletteProps) {
             className="cmd-input min-w-0 flex-1 border-none bg-transparent text-[15px] text-[var(--text-primary)] outline-none"
             placeholder="Search companies, people, pages…"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              const nextQuery = e.target.value;
+              setQuery(nextQuery);
+              setActiveIndex(0);
+              if (nextQuery.trim().length < 2) {
+                setRemote(EMPTY);
+                setLoading(false);
+              }
+            }}
             onKeyDown={onKeyDown}
             autoComplete="off"
             spellCheck={false}

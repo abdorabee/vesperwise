@@ -155,7 +155,7 @@ export function ProfileForm({ initialProfile }: { initialProfile: BusinessProfil
     <div className="set-panel">
       <div className="page-head">
         <div>
-          <div className="page-title">Business profile</div>
+          <h1 className="page-title">Business profile</h1>
           <div className="page-sub">
             What VesperWise knows about who you sell to. It drives every score, every
             recommended action, and the ICP Fit % on each result.

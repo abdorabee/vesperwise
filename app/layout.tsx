@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Inter } from "next/font/google";
+import { Instrument_Sans } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -10,13 +10,8 @@ import "./theme-overrides.css";
 import "./responsive.css";
 import "./bulk-workspace.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const inter = Inter({
-  variable: "--font-inter",
+const instrumentSans = Instrument_Sans({
+  variable: "--font-instrument-sans",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
 });
@@ -94,7 +89,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#000000",
+  themeColor: "#0b0c0e",
 };
 
 export default function RootLayout({
@@ -134,7 +129,7 @@ export default function RootLayout({
           />
           <GoogleAnalytics />
         </head>
-        <body className={`${geistSans.variable} ${inter.variable} font-sans antialiased`}>
+        <body className={`${instrumentSans.variable} font-sans antialiased`}>
           <ThemeProvider>
             <TooltipProvider>
               {children}
