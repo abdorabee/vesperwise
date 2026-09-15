@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
+import { format, isValid, parseISO } from "date-fns";
 import type { IntentScore, ScoreBand } from "@/lib/types";
 import { CHAT_CREDIT_COST } from "@/lib/types";
 import { extractDomain, seedChatSession, streamChat } from "@/lib/chat-client";
-import { avColor, scoreFromToolResult } from "@/components/score/score-result-card";
+import { BandBadge, avColor, scoreFromToolResult } from "@/components/score/score-result-card";
 import type { ScoreCardData } from "@/components/score/score-result-card";
 import { GenUiWorkspace } from "@/components/score/gen-ui/workspace";
 import { sanitizeUiBlocks, suggestionsFromBlocks, workspaceFromScore } from "@/lib/gen-ui";
@@ -29,6 +30,16 @@ import {
 } from "@/components/ai-elements/prompt-input";
 import { Suggestion, Suggestions } from "@/components/ai-elements/suggestion";
 import { Tool, ToolHeader } from "@/components/ai-elements/tool";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 type ScorableIntentScore = IntentScore & {
   intent_score: number;
@@ -66,14 +77,6 @@ interface ScoreViewProps {
   recentScores: RecentScore[];
 }
 
-const HOT_PICKS = [
-  { domain: "stripe.com",     name: "Stripe",      signal: "funding" },
-  { domain: "anthropic.com",  name: "Anthropic",   signal: "news" },
-  { domain: "linear.app",     name: "Linear",      signal: "hiring" },
-  { domain: "notion.so",      name: "Notion",      signal: "news" },
-  { domain: "databricks.com", name: "Databricks",  signal: "tech" },
-];
-
 type ToolChip = {
   name: string;
   status: "running" | "done";
@@ -101,6 +104,16 @@ function billingLabel(result: ScoreCardData & { charged?: boolean; cached?: bool
   return "no credit charged";
 }
 
+function formatRecentDate(iso: string): string {
+  try {
+    const d = parseISO(iso);
+    if (!isValid(d)) return iso.slice(0, 10);
+    return format(d, "MMM d, yyyy");
+  } catch {
+    return iso.slice(0, 10);
+  }
+}
+
 const STEPS = ["Domain resolved", "Funding signal", "Hiring + news", "Technology trigger", "Web + GitHub context", "AI thesis"];
 
 function LiveProgressBar({
@@ -122,26 +135,44 @@ function LiveProgressBar({
   }, [loading]);
 
   return (
-    <div className="live-progress">
-      <span className="pulse" />
-      <div className="steps">
+    <div className="rounded-xl bg-muted/50 p-4">
+      <div className="mb-3 flex items-center gap-2 text-sm text-muted-foreground">
+        <span
+          className={cn(
+            "size-2 rounded-full",
+            loading ? "animate-pulse bg-foreground" : "bg-[color:var(--hot)]",
+          )}
+        />
+        {loading ? "Scoring…" : "Scored"}
+        {!loading && label ? (
+          <span className="ml-auto tabular-nums text-xs">
+            {elapsed}s · {label}
+          </span>
+        ) : null}
+      </div>
+      <div className="flex flex-wrap gap-2">
         {STEPS.map((s, i) => (
-          <span key={i} className={`step ${i < stepIndex ? "done" : i === stepIndex ? "active" : "pending"}`}>
-            <span className="check">
-              {i < stepIndex && (
-                <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="2" width="7" height="7">
-                  <path d="M2 5l2 2 4-4" />
-                </svg>
+          <span
+            key={s}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs",
+              i < stepIndex && "border-foreground/20 bg-card text-foreground",
+              i === stepIndex && "border-foreground/40 bg-card font-medium text-foreground",
+              i > stepIndex && "border-transparent text-muted-foreground",
+            )}
+          >
+            <span
+              className={cn(
+                "size-1.5 rounded-full",
+                i < stepIndex && "bg-foreground",
+                i === stepIndex && "bg-foreground",
+                i > stepIndex && "bg-border",
               )}
-              {i === stepIndex && (
-                <span style={{ width: 5, height: 5, borderRadius: "50%", background: "currentColor", display: "block" }} />
-              )}
-            </span>
+            />
             {s}
           </span>
         ))}
       </div>
-      {!loading && label && <span className="timing">{elapsed}s · {label}</span>}
     </div>
   );
 }
@@ -149,11 +180,11 @@ function LiveProgressBar({
 function ToolChips({ tools }: { tools: ToolChip[] }) {
   if (tools.length === 0) return null;
   return (
-    <div className="chat-tools">
+    <div className="flex flex-wrap gap-2">
       {tools.map((entry) => (
-        <Tool key={entry.name} className="score-tool-chip" defaultOpen={false}>
+        <Tool key={entry.name} className="overflow-hidden rounded-lg border shadow-none" defaultOpen={false}>
           <ToolHeader
-            className="score-tool-chip-header"
+            className="px-3 py-2 text-xs"
             title={entry.name.replace(/_/g, " ")}
             type={`tool-${entry.name}`}
             state={entry.status === "running" ? "input-streaming" : "output-available"}
@@ -165,7 +196,7 @@ function ToolChips({ tools }: { tools: ToolChip[] }) {
 }
 
 function AssistantText({ content }: { content: string }) {
-  return <MessageResponse className="chat-md">{content}</MessageResponse>;
+  return <MessageResponse className="prose prose-sm dark:prose-invert max-w-none">{content}</MessageResponse>;
 }
 
 interface ScorePromptStageProps {
@@ -182,139 +213,96 @@ function submitPromptText(text: string, onSubmit: (value: string) => void) {
 
 function ScorePromptStage({ onScore, creditsRemaining, recentScores, busy }: ScorePromptStageProps) {
   return (
-    <div className="prompt-stage">
-      <div className="prompt-bg">
-        <div className="grid" />
-      </div>
-      <div className="prompt-inner">
-        <div className="prompt-eyebrow">
-          <span className="badge">Score</span>
-          Drop in a domain — we&apos;ll verify coverage and you can ask follow-ups
-        </div>
-
-        <h1 className="prompt-h1">
-          What account do you want to{" "}
-          <span className="grad">score</span>?
-        </h1>
-        <p className="prompt-sub">
-          Paste any company domain. Four dated purchase triggers drive the score;
-          then keep chatting about the account.
-        </p>
-
-        <PromptInput
-          className="score-elements-input"
-          onSubmit={({ text }) => submitPromptText(text, onScore)}
-        >
-          <PromptInputBody>
-            <PromptInputTextarea
-              placeholder="stripe.com"
-              disabled={busy}
-              autoFocus
-              aria-label="Company domain"
-            />
-          </PromptInputBody>
-          <PromptInputFooter>
-            <PromptInputSubmit disabled={busy} className="score-elements-submit">
-              Score
-            </PromptInputSubmit>
-          </PromptInputFooter>
-        </PromptInput>
-
-        <div className="prompt-meta">
-          <div className="left">
-            <span><strong>1</strong> credit on a fresh scorable result · follow-ups {CHAT_CREDIT_COST} credits</span>
-            <span>Cached for <strong>6h</strong></span>
-          </div>
-          <div className="right">
-            <span>Provider calls are bounded</span>
-            <span><strong>{creditsRemaining}</strong> credits left</span>
-          </div>
-        </div>
-
-        <div className="prompt-section-label">
-          <span>Try a hot pick</span>
-          <span className="line" />
-        </div>
-        <div className="suggestion-row">
-          {HOT_PICKS.map((pick) => (
-            <button key={pick.domain} type="button" className="sugg" onClick={() => onScore(pick.domain)}>
-              <div className="av" style={{ background: avColor(pick.name) }}>{pick.name[0]}</div>
-              {pick.domain}
-              <span className="mono-sm">▲ {pick.signal}</span>
-            </button>
-          ))}
-        </div>
-
-        {recentScores.length > 0 && (
-          <>
-            <div className="prompt-section-label">
-              <span>Recent</span>
-              <span className="line" />
-            </div>
-            <div className="recent-row">
-              {recentScores.map((r) => (
-                <button key={r.domain} type="button" className="sugg recent" onClick={() => onScore(r.domain)}>
-                  <div className="av" style={{ background: avColor(r.company_name) }}>{r.company_name[0]}</div>
-                  {r.domain}
-                  <span
-                    className="score-mini"
-                    style={{
-                      background:
-                        r.score_band === "HOT"
-                          ? "var(--hot-bg)"
-                          : r.score_band === "WARM"
-                          ? "var(--warm-bg)"
-                          : "var(--cold-bg)",
-                      color:
-                        r.score_band === "HOT"
-                          ? "var(--hot)"
-                          : r.score_band === "WARM"
-                          ? "var(--warm)"
-                          : "var(--cold)",
-                    }}
-                  >
-                    {r.score ?? "—"}
+    <div className="@container/main flex flex-1 flex-col">
+      <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
+        <div className="px-4 lg:px-6">
+          <Card className="gap-4 rounded-xl py-4 shadow-xs">
+            <CardHeader className="px-4">
+              <CardTitle className="text-xl">Score a company</CardTitle>
+              <CardDescription>
+                Paste a domain. Dated purchase triggers drive the score; then ask follow-ups.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="px-4">
+              <PromptInput
+                className="rounded-xl border bg-muted/50 p-2 shadow-none"
+                onSubmit={({ text }) => submitPromptText(text, onScore)}
+              >
+                <PromptInputBody>
+                  <PromptInputTextarea
+                    placeholder="stripe.com"
+                    disabled={busy}
+                    autoFocus
+                    aria-label="Company domain"
+                    className="min-h-12 border-0 bg-transparent shadow-none focus-visible:ring-0"
+                  />
+                </PromptInputBody>
+                <PromptInputFooter className="justify-between gap-3 px-1">
+                  <span className="text-xs text-muted-foreground">
+                    <span className="font-medium tabular-nums text-foreground">1</span> credit on a fresh
+                    scorable result · follow-ups{" "}
+                    <span className="font-medium tabular-nums text-foreground">{CHAT_CREDIT_COST}</span> ·
+                    cached 6h
                   </span>
-                </button>
-              ))}
-            </div>
-          </>
-        )}
-
-        <div className="prompt-feature-row">
-          <div className="feat">
-            <span className="ic" style={{ background: "rgba(223,255,0,0.12)", color: "var(--cyan)" }}>
-              <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" width="10" height="10">
-                <path d="M2 8l3-3 2 2 3-4" />
-              </svg>
-            </span>
-            4 trigger axes
-          </div>
-          <div className="feat">
-            <span className="ic" style={{ background: "rgba(223,255,0,0.12)", color: "#dfff00" }}>
-              <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" width="10" height="10">
-                <circle cx="6" cy="6" r="4" /><path d="M6 4v3l2 1" />
-              </svg>
-            </span>
-            Interactive chat
-          </div>
-          <div className="feat">
-            <span className="ic" style={{ background: "rgba(74,222,128,0.12)", color: "var(--hot)" }}>
-              <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" width="10" height="10">
-                <path d="M2 9V5m3 4V3m3 6V6" />
-              </svg>
-            </span>
-            Signal breakdown · 4 triggers + context
-          </div>
-          <div className="feat">
-            <span className="ic" style={{ background: "rgba(245,181,68,0.12)", color: "var(--warm)" }}>
-              <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" width="10" height="10">
-                <path d="M3 6l3 3 5-7" />
-              </svg>
-            </span>
-            Recommended next action
-          </div>
+                  <PromptInputSubmit disabled={busy} size="sm" className="rounded-lg">
+                    Score
+                  </PromptInputSubmit>
+                </PromptInputFooter>
+              </PromptInput>
+            </CardContent>
+            <CardFooter className="justify-between border-t px-4 pt-4 text-xs text-muted-foreground">
+              <span>Returning tool — not a first-run tour</span>
+              <span>
+                <span className="font-medium tabular-nums text-foreground">{creditsRemaining}</span> credits left
+              </span>
+            </CardFooter>
+          </Card>
         </div>
+
+        {recentScores.length > 0 ? (
+          <div className="px-4 lg:px-6">
+            <div className="rounded-xl bg-muted/50 p-4">
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <h2 className="text-sm font-medium text-foreground">Recent</h2>
+                <span className="text-xs text-muted-foreground">Re-score from history</span>
+              </div>
+              <div className="grid grid-cols-1 gap-2 @xl/main:grid-cols-2 @3xl/main:grid-cols-3">
+                {recentScores.map((r) => (
+                  <button
+                    key={`${r.domain}-${r.created_at}`}
+                    type="button"
+                    onClick={() => onScore(r.domain)}
+                    className="flex items-center gap-3 rounded-xl border border-transparent bg-card/80 p-3 text-left shadow-xs transition-colors hover:border-border hover:bg-card focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30"
+                  >
+                    <span
+                      className="flex size-8 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-primary-foreground"
+                      style={{ background: avColor(r.company_name) }}
+                      aria-hidden
+                    >
+                      {r.company_name[0]}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-medium text-foreground">{r.company_name}</span>
+                      <span className="block truncate text-xs text-muted-foreground">{r.domain}</span>
+                    </span>
+                    <span className="flex shrink-0 flex-col items-end gap-1">
+                      {r.score_band ? <BandBadge band={r.score_band} /> : null}
+                      <span className="text-xs tabular-nums text-muted-foreground">
+                        {r.score ?? "—"} · {formatRecentDate(r.created_at)}
+                      </span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="px-4 lg:px-6">
+            <div className="flex min-h-[12rem] items-center justify-center rounded-xl bg-muted/50 p-6 text-center text-sm text-muted-foreground">
+              No recent scores yet. Score a domain to populate this well.
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -535,7 +523,7 @@ export function ScoreView({ creditsRemaining, recentScores }: ScoreViewProps) {
   const chips = lastUi && lastUi.kind === "ui" ? suggestionsFromBlocks(lastUi.blocks) : [];
 
   return (
-    <div className="score-chat">
+    <div className="flex min-h-0 flex-1 flex-col">
       {!active ? (
         <ScorePromptStage
           onScore={(value) => void submitMessage(value)}
@@ -544,120 +532,143 @@ export function ScoreView({ creditsRemaining, recentScores }: ScoreViewProps) {
           busy={busy}
         />
       ) : (
-        <>
-          <Conversation className="score-chat-thread">
-            <ConversationContent className="score-chat-col">
-              {messages.map((message) => {
-                if (message.role === "user") {
-                  return (
-                    <Message key={message.id} from="user">
-                      <MessageContent className="chat-bubble user">{message.content}</MessageContent>
-                    </Message>
-                  );
-                }
-                if (message.role === "error") {
-                  return (
-                    <Message key={message.id} from="assistant">
-                      <p className="chat-error" role="alert">{message.content}</p>
-                    </Message>
-                  );
-                }
-                if (message.kind === "thinking") {
-                  return (
-                    <Message key={message.id} from="assistant">
-                      {message.mode === "score" ? (
-                        <LiveProgressBar loading stepIndex={stepIndex} />
-                      ) : (
-                        <div className="chat-thinking">
-                          <span className="pulse" />
-                          Designing view…
-                        </div>
-                      )}
-                    </Message>
-                  );
-                }
-                if (message.kind === "ui") {
-                  return (
-                    <Message key={message.id} from="assistant">
-                      <MessageContent>
-                        {message.billing && (
-                          <LiveProgressBar
-                            loading={false}
-                            stepIndex={STEPS.length - 1}
-                            billingLabel={message.billing}
-                          />
+        <div className="@container/main flex min-h-0 flex-1 flex-col">
+          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-auto py-4 md:gap-6 md:py-6">
+            <Conversation className="min-h-0 flex-1 px-4 lg:px-6">
+              <ConversationContent className="mx-auto flex w-full max-w-5xl flex-col gap-4">
+                {messages.map((message) => {
+                  if (message.role === "user") {
+                    return (
+                      <Message key={message.id} from="user">
+                        <MessageContent className="rounded-xl bg-foreground px-3 py-2 text-sm text-background">
+                          {message.content}
+                        </MessageContent>
+                      </Message>
+                    );
+                  }
+                  if (message.role === "error") {
+                    return (
+                      <Message key={message.id} from="assistant">
+                        <p className="rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive" role="alert">
+                          {message.content}
+                        </p>
+                      </Message>
+                    );
+                  }
+                  if (message.kind === "thinking") {
+                    return (
+                      <Message key={message.id} from="assistant">
+                        {message.mode === "score" ? (
+                          <LiveProgressBar loading stepIndex={stepIndex} />
+                        ) : (
+                          <div className="flex items-center gap-2 rounded-xl bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
+                            <span className="size-2 animate-pulse rounded-full bg-foreground" />
+                            Designing view…
+                          </div>
                         )}
+                      </Message>
+                    );
+                  }
+                  if (message.kind === "ui") {
+                    return (
+                      <Message key={message.id} from="assistant">
+                        <MessageContent className="flex w-full flex-col gap-4">
+                          {message.billing && (
+                            <LiveProgressBar
+                              loading={false}
+                              stepIndex={STEPS.length - 1}
+                              billingLabel={message.billing}
+                            />
+                          )}
+                          <ToolChips tools={message.tools} />
+                          {message.content && <AssistantText content={message.content} />}
+                          <GenUiWorkspace
+                            blocks={message.blocks}
+                            handlers={{
+                              onWatchlist: (company, d) => void handleAddToWatchlist(company, d),
+                              watchlistByDomain,
+                              onPrompt: (prompt) => void submitMessage(prompt),
+                            }}
+                          />
+                        </MessageContent>
+                      </Message>
+                    );
+                  }
+                  return (
+                    <Message key={message.id} from="assistant">
+                      <MessageContent className="flex w-full flex-col gap-3">
                         <ToolChips tools={message.tools} />
                         {message.content && <AssistantText content={message.content} />}
-                        <GenUiWorkspace
-                          blocks={message.blocks}
-                          handlers={{
-                            onWatchlist: (company, d) => void handleAddToWatchlist(company, d),
-                            watchlistByDomain,
-                            onPrompt: (prompt) => void submitMessage(prompt),
-                          }}
-                        />
                       </MessageContent>
                     </Message>
                   );
-                }
-                return (
-                  <Message key={message.id} from="assistant">
-                    <MessageContent>
-                      <ToolChips tools={message.tools} />
-                      {message.content && <AssistantText content={message.content} />}
-                    </MessageContent>
-                  </Message>
-                );
-              })}
-            </ConversationContent>
-            <ConversationScrollButton className="score-elements-scroll" />
-          </Conversation>
-          <div className="score-chat-composer">
-            {chips.length > 0 && (
-              <Suggestions className="score-elements-suggestions">
-                {chips.map((chip) => (
-                  <Suggestion
-                    key={chip.prompt}
-                    suggestion={chip.prompt}
-                    disabled={busy}
-                    onClick={(prompt) => void submitMessage(prompt)}
+                })}
+              </ConversationContent>
+              <ConversationScrollButton className="rounded-full border bg-card shadow-xs" />
+            </Conversation>
+          </div>
+
+          <div className="shrink-0 border-t bg-background/80 px-4 py-4 backdrop-blur-sm lg:px-6">
+            <div className="mx-auto flex w-full max-w-5xl flex-col gap-3">
+              {chips.length > 0 && (
+                <Suggestions className="flex flex-wrap gap-2">
+                  {chips.map((chip) => (
+                    <Suggestion
+                      key={chip.prompt}
+                      suggestion={chip.prompt}
+                      disabled={busy}
+                      onClick={(prompt) => void submitMessage(prompt)}
+                      className="rounded-lg"
+                    >
+                      {chip.label}
+                    </Suggestion>
+                  ))}
+                </Suggestions>
+              )}
+              <Card className="gap-0 rounded-xl py-2 shadow-xs">
+                <CardContent className="px-2">
+                  <PromptInput
+                    className="border-0 bg-transparent p-0 shadow-none"
+                    onSubmit={({ text }) => submitPromptText(text, (value) => void submitMessage(value))}
                   >
-                    {chip.label}
-                  </Suggestion>
-                ))}
-              </Suggestions>
-            )}
-            <PromptInput
-              className="score-elements-input"
-              onSubmit={({ text }) => submitPromptText(text, (value) => void submitMessage(value))}
-            >
-              <PromptInputBody>
-                <PromptInputTextarea
-                  placeholder="Ask a follow-up or score another domain"
-                  disabled={busy}
-                  aria-label="Chat message"
-                />
-              </PromptInputBody>
-              <PromptInputFooter>
-                <PromptInputSubmit disabled={busy} className="score-elements-submit">
-                  Send
-                </PromptInputSubmit>
-              </PromptInputFooter>
-            </PromptInput>
-            <div className="prompt-meta">
-              <div className="left">
-                <span>Follow-ups <strong>{CHAT_CREDIT_COST}</strong> credits · new domain <strong>1</strong> credit</span>
-              </div>
-              <div className="right">
-                <button type="button" className="chat-new" onClick={handleNewChat} disabled={busy}>
-                  New chat
-                </button>
-                <span><strong>{creditsRemaining}</strong> credits left</span>
-              </div>
+                    <PromptInputBody>
+                      <PromptInputTextarea
+                        placeholder="Ask a follow-up or score another domain"
+                        disabled={busy}
+                        aria-label="Chat message"
+                        className="min-h-12 border-0 bg-transparent shadow-none focus-visible:ring-0"
+                      />
+                    </PromptInputBody>
+                    <PromptInputFooter className="justify-between gap-3 px-1">
+                      <span className="text-xs text-muted-foreground">
+                        Follow-ups <span className="font-medium tabular-nums text-foreground">{CHAT_CREDIT_COST}</span> ·
+                        new domain <span className="font-medium tabular-nums text-foreground">1</span>
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="rounded-lg"
+                          onClick={handleNewChat}
+                          disabled={busy}
+                        >
+                          New chat
+                        </Button>
+                        <span className="text-xs text-muted-foreground">
+                          <span className="font-medium tabular-nums text-foreground">{creditsRemaining}</span> left
+                        </span>
+                        <PromptInputSubmit disabled={busy} size="sm" className="rounded-lg">
+                          Send
+                        </PromptInputSubmit>
+                      </div>
+                    </PromptInputFooter>
+                  </PromptInput>
+                </CardContent>
+              </Card>
             </div>
           </div>
-        </>
+        </div>
       )}
     </div>
   );

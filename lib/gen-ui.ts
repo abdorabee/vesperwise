@@ -30,6 +30,7 @@ const intentHeroSchema = z.object({
   data_coverage: z.number().optional(),
   score_status: z.string().max(40).optional(),
   icp_fit_score: z.number().nullable().optional(),
+  latest_signal_at: z.string().max(80).optional(),
 });
 
 const signalExplorerSchema = z.object({
@@ -162,6 +163,11 @@ export function defaultSuggestions(score: { company: string; score_band: string 
 }
 
 export function workspaceFromScore(score: WorkspaceScore): UiBlock[] {
+  const latest_signal_at =
+    score.signals?.latestSignalDate ??
+    (score.signals ? signalAxesFromSet(score.signals).find((a) => a.observed_at)?.observed_at : undefined) ??
+    undefined;
+
   const blocks: UiBlock[] = [
     {
       type: "intent_hero",
@@ -174,6 +180,7 @@ export function workspaceFromScore(score: WorkspaceScore): UiBlock[] {
       data_coverage: score.data_coverage,
       score_status: score.score_status,
       icp_fit_score: score.icp_fit_score,
+      latest_signal_at: latest_signal_at ?? undefined,
     },
   ];
 
