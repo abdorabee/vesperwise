@@ -7,11 +7,13 @@ type Theme = "dark" | "light";
 interface ThemeContextValue {
   theme: Theme;
   toggleTheme: () => void;
+  setTheme: (theme: Theme) => void;
 }
 
 const ThemeContext = createContext<ThemeContextValue>({
   theme: "dark",
   toggleTheme: () => {},
+  setTheme: () => {},
 });
 
 export function useTheme() {
@@ -25,34 +27,59 @@ function emitChange() {
 
 function subscribe(listener: () => void) {
   listeners = [...listeners, listener];
-  return () => { listeners = listeners.filter((l) => l !== listener); };
+  return () => {
+    listeners = listeners.filter((l) => l !== listener);
+  };
+}
+
+function readStoredTheme(): Theme {
+  try {
+    return localStorage.getItem("intentiq-theme") === "light" ? "light" : "dark";
+  } catch {
+    return "dark";
+  }
 }
 
 function getSnapshot(): Theme {
-  const stored = localStorage.getItem("intentiq-theme");
-  return stored === "light" ? "light" : "dark";
+  return readStoredTheme();
 }
 
 function getServerSnapshot(): Theme {
   return "dark";
 }
 
+/** Imperative theme write — keeps ThemeProvider subscribers in sync (e.g. /dev/shell preview). */
+export function setStoredTheme(theme: Theme) {
+  try {
+    localStorage.setItem("intentiq-theme", theme);
+  } catch {
+    /* ignore */
+  }
+  document.documentElement.classList.toggle("dark", theme === "dark");
+  emitChange();
+}
+
+export function getStoredTheme(): Theme {
+  return readStoredTheme();
+}
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const theme = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
-  // Sync the `.dark` class on <html> whenever the theme changes.
   useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark");
   }, [theme]);
 
+  const setTheme = useCallback((next: Theme) => {
+    setStoredTheme(next);
+  }, []);
+
   const toggleTheme = useCallback(() => {
-    const next = theme === "dark" ? "light" : "dark";
-    localStorage.setItem("intentiq-theme", next);
-    emitChange();
+    setStoredTheme(theme === "dark" ? "light" : "dark");
   }, [theme]);
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+    <ThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>
       {children}
     </ThemeContext.Provider>
   );

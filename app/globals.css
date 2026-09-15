@@ -7,8 +7,8 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-jetbrains), ui-monospace, monospace;
+  --font-sans: var(--font-geist-sans), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -87,14 +87,14 @@
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(1 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.715 0.143 200);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0 0 0 / 0.08);
-  --sidebar-ring: oklch(0.715 0.143 200);
+  --sidebar: #ffffff;
+  --sidebar-foreground: #3a4150;
+  --sidebar-primary: var(--brand, #dfff00);
+  --sidebar-primary-foreground: #000000;
+  --sidebar-accent: #eef1f6;
+  --sidebar-accent-foreground: #0a0e1a;
+  --sidebar-border: rgba(10, 14, 26, 0.10);
+  --sidebar-ring: var(--brand-active, #c8e600);
 }
 
 /* Dark â€” Linear-inspired (VesperWise HTML references) */
@@ -124,14 +124,14 @@
   --chart-3: #f5b544;
   --chart-4: #e8ff40;
   --chart-5: #8a8f98;
-  --sidebar: #0a0b0d;
-  --sidebar-foreground: #b4bbc8;
-  --sidebar-primary: #dfff00;
-  --sidebar-primary-foreground: #ffffff;
+  --sidebar: #000000;
+  --sidebar-foreground: #a0a0a0;
+  --sidebar-primary: var(--brand, #dfff00);
+  --sidebar-primary-foreground: #000000;
   --sidebar-accent: rgba(255, 255, 255, 0.06);
-  --sidebar-accent-foreground: #f7f8f8;
+  --sidebar-accent-foreground: #ffffff;
   --sidebar-border: rgba(255, 255, 255, 0.08);
-  --sidebar-ring: #e8ff40;
+  --sidebar-ring: var(--brand-active, #c8e600);
 }
 
 @layer base {
@@ -6595,7 +6595,6 @@ button.signal-card.gen-axis.is-selected {
   margin-top: 2px;
 }
 
-
 /* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
    Billing page â€” dedicated billing & credits surface
    â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
@@ -7725,7 +7724,6 @@ button.signal-card.gen-axis.is-selected {
   .billing-page .split-row, .billing-page .bot-row { grid-template-columns: 1fr; }
 }
 
-
 /* form reset for plan/topup CTAs */
 .billing-page form { margin: 0; }
 .billing-page button.pc-cta,
@@ -7764,7 +7762,6 @@ button.signal-card.gen-axis.is-selected {
   min-height: 0;
   padding-bottom: 24px;
 }
-
 
 /* Watchlist tabs */
 .watchlist-page .wl-tabs {
@@ -8000,7 +7997,6 @@ button.signal-card.gen-axis.is-selected {
   font-family: var(--font-mono);
 }
 
-
 .watchlist-page button.wl-tab {
   appearance: none;
   -webkit-appearance: none;
@@ -8023,8 +8019,6 @@ button.signal-card.gen-axis.is-selected {
 }
 
 /* end Watchlist CSS */
-
-
 
 /* Command palette (global search) */
 .cmd-backdrop {
@@ -9276,7 +9270,6 @@ button.signal-card.gen-axis.is-selected {
   }
 }
 
-
 /* ──────────────────────────────────────────────────────────────────────────
    Settings — page-scoped, tokens only so it holds up in both themes.
    Namespaced under .settings-page, matching the .billing-page precedent.
@@ -9617,4 +9610,18 @@ button.signal-card.gen-axis.is-selected {
   .settings-page .set-rail-sub { display: none; }
   .settings-page .set-row { grid-template-columns: minmax(0, 1fr); gap: 10px; }
   .settings-page .set-panel .page-head { flex-direction: column; gap: 12px; }
+}
+
+/* ─── Shadcn Blocks dashboard shell (Pass 1) ─────────────────────────────── */
+[data-slot="sidebar-inset"] > .page {
+  min-height: 0;
+}
+[data-slot="sidebar-inset"] .page .page {
+  padding: 0;
+}
+[data-sidebar="menu-button"][data-active="true"] {
+  box-shadow: inset 2px 0 0 var(--brand);
+}
+[data-sidebar="menu-button"][data-active="true"] svg {
+  color: var(--brand);
 }

@@ -2,8 +2,13 @@ import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const navSource = readFileSync(new URL("./nav.tsx", import.meta.url), "utf8");
+const navConfigSource = readFileSync(new URL("./nav-config.ts", import.meta.url), "utf8");
 const shellSource = readFileSync(
   new URL("./dashboard-shell.tsx", import.meta.url),
+  "utf8"
+);
+const appSidebarSource = readFileSync(
+  new URL("./app-sidebar.tsx", import.meta.url),
   "utf8"
 );
 const dashboardLayoutSource = readFileSync(
@@ -17,15 +22,16 @@ const settingsSource = readFileSync(
 
 describe("dashboard profile navigation cleanup", () => {
   it("omits the retired Memory page from the shared dashboard navigation", () => {
-    expect(navSource).not.toMatch(/href:\s*["']\/memory["']/);
-    expect(navSource).not.toMatch(/label:\s*["']Profile["']/);
+    expect(navConfigSource).not.toMatch(/href:\s*["']\/memory["']/);
+    expect(navConfigSource).not.toMatch(/label:\s*["']Profile["']/);
   });
 
-  it("uses the same navigation for expanded, collapsed, and mobile drawer modes", () => {
-    expect(shellSource.match(/<DashboardNav\b/g)).toHaveLength(1);
-    expect(shellSource).toContain("collapsed={effectiveCollapsed}");
-    expect(shellSource).toContain('mobileOpen ? " nav-open" : ""');
-    expect(shellSource).toContain("const effectiveCollapsed = isMobile ? false : collapsed");
+  it("uses SidebarProvider chrome for expanded, collapsed, and mobile drawer modes", () => {
+    expect(shellSource).toContain("SidebarProvider");
+    expect(shellSource).toContain("AppSidebar");
+    expect(shellSource).toContain("SidebarInset");
+    expect(shellSource).toContain("SiteHeader");
+    expect(appSidebarSource).toContain('collapsible="icon"');
   });
 
   it("deletes the Memory page rather than leaving it reachable", () => {
@@ -46,9 +52,9 @@ describe("dashboard profile navigation cleanup", () => {
     expect(settingsSource).not.toContain('redirect("/memory")');
     expect(settingsSource).toContain('redirect("/settings/profile")');
 
-    // Billing keeps its own top-level page; Settings only links to it.
-    expect(navSource).toMatch(/href:\s*["']\/settings["']/);
-    expect(navSource).toMatch(/href:\s*["']\/billing["']/);
+    expect(navConfigSource).toMatch(/href:\s*["']\/settings["']/);
+    expect(navConfigSource).toMatch(/href:\s*["']\/billing["']/);
+    expect(navSource).toContain("WORKSPACE_ITEMS");
   });
 
   it("keeps standalone onboarding reachable", () => {
@@ -56,11 +62,9 @@ describe("dashboard profile navigation cleanup", () => {
   });
 
   it("feeds the sidebar the stored workspace name from the server", () => {
-    // Without this thread the sidebar silently falls back to the Clerk name and
-    // the workspace name a user set is never displayed anywhere.
     expect(dashboardLayoutSource).toContain("workspace_name");
     expect(dashboardLayoutSource).toContain("storedWorkspaceName");
     expect(shellSource).toContain("workspaceName={workspaceName}");
-    expect(navSource).toContain("workspaceName");
+    expect(appSidebarSource).toContain("workspaceName");
   });
 });

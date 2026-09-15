@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { Geist, Inter } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -10,14 +10,13 @@ import "./theme-overrides.css";
 import "./responsive.css";
 import "./bulk-workspace.css";
 
-const inter = Inter({
-  variable: "--font-inter",
+const geistSans = Geist({
+  variable: "--font-geist-sans",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
 });
 
-const jetbrainsMono = JetBrains_Mono({
-  variable: "--font-jetbrains",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
 });
@@ -135,7 +134,7 @@ export default function RootLayout({
           />
           <GoogleAnalytics />
         </head>
-        <body className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased`}>
+        <body className={`${geistSans.variable} ${inter.variable} font-sans antialiased`}>
           <ThemeProvider>
             <TooltipProvider>
               {children}

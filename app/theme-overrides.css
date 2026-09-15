@@ -23,14 +23,15 @@
   --card-foreground: #0a0e1a;
   --popover: #ffffff;
   --popover-foreground: #0a0e1a;
-  --primary: var(--brand);
-  --primary-foreground: #000000;
+  /* Near-white primary; lime stays --brand signature only */
+  --primary: #0a0e1a;
+  --primary-foreground: #f7f8f8;
   --secondary: #eef1f6;
   --secondary-foreground: #0a0e1a;
   --muted: #eef1f6;
   --muted-foreground: #5b6472;
-  --accent: var(--brand-soft);
-  --accent-foreground: #111111;
+  --accent: #eef1f6;
+  --accent-foreground: #0a0e1a;
   --destructive: #dc2626;
   --border: rgba(10, 14, 26, 0.10);
   --input: rgba(10, 14, 26, 0.12);
@@ -116,14 +117,15 @@
   --card-foreground: #ffffff;
   --popover: #181818;
   --popover-foreground: #ffffff;
-  --primary: var(--brand);
-  --primary-foreground: #000000;
+  /* Near-white primary; lime stays --brand signature only */
+  --primary: #f7f8f8;
+  --primary-foreground: #08090a;
   --secondary: rgba(255, 255, 255, 0.06);
   --secondary-foreground: #ffffff;
   --muted: rgba(255, 255, 255, 0.06);
   --muted-foreground: #8a8f98;
-  --accent: var(--brand-soft);
-  --accent-foreground: var(--brand);
+  --accent: rgba(255, 255, 255, 0.06);
+  --accent-foreground: #ffffff;
   --destructive: #f87171;
   --border: rgba(255, 255, 255, 0.08);
   --input: rgba(255, 255, 255, 0.08);
