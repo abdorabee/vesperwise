@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { sanitizeUiBlocks, workspaceFromScore } from "./gen-ui";
+import { blockFromScoreStage, sanitizeUiBlocks, workspaceFromScore } from "./gen-ui";
 import type { SignalResult, SignalSet } from "./types";
 
 function signal(score: number, max = 25): SignalResult {
@@ -77,13 +77,15 @@ describe("sanitizeUiBlocks", () => {
 });
 
 describe("workspaceFromScore", () => {
-  it("builds a default interactive workspace", () => {
+  it("builds a default interactive workspace without AI thesis", () => {
     const blocks = workspaceFromScore({
       company: "Acme",
       domain: "acme.com",
       intent_score: 12,
       score_band: "COLD",
       ai_summary: "No current trigger.",
+      recommended_action: "Park in nurture.",
+      why_now: "No dated trigger.",
       urgency: "nurture",
       email_subject: "Quick note",
       talk_track: "Hi",
@@ -92,13 +94,43 @@ describe("workspaceFromScore", () => {
     expect(blocks.map((b) => b.type)).toEqual([
       "intent_hero",
       "signal_explorer",
-      "thesis",
+      "action",
       "outreach_studio",
       "action_rail",
     ]);
+    expect(blocks.find((b) => b.type === "thesis")).toBeUndefined();
+    expect(blocks.find((b) => b.type === "action")).toMatchObject({
+      type: "action",
+      title: "Park in nurture.",
+      why_now: "No dated trigger.",
+    });
     expect(blocks[0]).toMatchObject({
       type: "intent_hero",
       latest_signal_at: "2026-08-01T00:00:00.000Z",
     });
+  });
+
+  it("builds progressive stage artifacts without thesis", () => {
+    expect(blockFromScoreStage({ stage: "domain", company: "Acme", domain: "acme.com" })).toMatchObject({
+      type: "domain",
+      domain: "acme.com",
+    });
+    expect(
+      blockFromScoreStage({
+        stage: "action",
+        recommended_action: "Call next week",
+        why_now: "Hiring spike",
+      }),
+    ).toMatchObject({ type: "action", title: "Call next week" });
+    expect(
+      blockFromScoreStage({
+        stage: "score",
+        company: "Acme",
+        domain: "acme.com",
+        intent_score: 12,
+        score_band: "COLD",
+        signals: signals(),
+      }),
+    ).toMatchObject({ type: "intent_hero", intent_score: 12 });
   });
 });

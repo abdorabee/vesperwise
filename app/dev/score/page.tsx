@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { AppSidebar } from "@/components/dashboard/app-sidebar";
@@ -9,9 +9,11 @@ import { SearchProvider } from "@/components/dashboard/search-provider";
 import { getStoredTheme, setStoredTheme } from "@/components/theme-provider";
 import { ScoreView } from "@/app/(dashboard)/score/score-view";
 import { GenUiWorkspace } from "@/components/score/gen-ui/workspace";
-import { workspaceFromScore } from "@/lib/gen-ui";
+import { blockFromScoreStage, workspaceFromScore } from "@/lib/gen-ui";
+import type { UiBlock } from "@/lib/gen-ui";
 import type { SignalResult, SignalSet } from "@/lib/types";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 
@@ -71,6 +73,178 @@ const RECENT = [
   },
 ];
 
+type LiveStage = "idle" | "domain" | "signals" | "score" | "action" | "done";
+
+function LiveStagePlayback({ band }: { band: "hot" | "cold" }) {
+  const [stage, setStage] = useState<LiveStage>("idle");
+  const [artifacts, setArtifacts] = useState<UiBlock[]>([]);
+  const [pinned, setPinned] = useState<UiBlock[]>([]);
+
+  const mock = useMemo(() => {
+    if (band === "cold") {
+      return {
+        company: "Acme",
+        domain: "acme.co",
+        intent_score: 28,
+        score_band: "COLD" as const,
+        buying_stage: "Research",
+        urgency: "nurture",
+        data_coverage: 0.62,
+        score_status: "partial",
+        icp_fit_score: 41,
+        recommended_action: "Park in nurture and re-score after the next hiring spike.",
+        why_now: "No dated trigger is strong enough to justify a same-week push.",
+        email_subject: "Quick note on timing",
+        talk_track: "Happy to reconnect when GTM hiring picks up — not pitching today.",
+        signals: COLD_SIGNALS,
+      };
+    }
+    return {
+      company: "Stripe",
+      domain: "stripe.com",
+      intent_score: 84,
+      score_band: "HOT" as const,
+      buying_stage: "Expand",
+      urgency: "this week",
+      data_coverage: 0.91,
+      score_status: "full",
+      icp_fit_score: 88,
+      recommended_action: "Open with the APAC AE hiring + Series C wedge this week.",
+      why_now: "Hiring and funding dates are both inside the 30-day window.",
+      email_subject: "Congrats on the round — APAC AE timing",
+      talk_track: "Saw the Series C and APAC AE openings — worth a short thread on enablement?",
+      signals: HOT_SIGNALS,
+    };
+  }, [band]);
+
+  useEffect(() => {
+    setStage("idle");
+    setArtifacts([]);
+    setPinned([]);
+    let cancelled = false;
+    const timers: number[] = [];
+
+    const push = (delay: number, next: LiveStage, block: UiBlock | null, pin = false) => {
+      timers.push(
+        window.setTimeout(() => {
+          if (cancelled) return;
+          setStage(next);
+          if (block) {
+            if (pin) setPinned([block]);
+            else setArtifacts((prev) => [...prev, block]);
+          }
+        }, delay),
+      );
+    };
+
+    push(400, "domain", blockFromScoreStage({ stage: "domain", company: mock.company, domain: mock.domain }));
+    push(
+      1100,
+      "signals",
+      blockFromScoreStage({
+        stage: "signals",
+        company: mock.company,
+        domain: mock.domain,
+        signals: mock.signals,
+      }),
+    );
+    push(
+      1900,
+      "score",
+      blockFromScoreStage({
+        stage: "score",
+        company: mock.company,
+        domain: mock.domain,
+        intent_score: mock.intent_score,
+        score_band: mock.score_band,
+        buying_stage: mock.buying_stage,
+        urgency: mock.urgency,
+        data_coverage: mock.data_coverage,
+        score_status: mock.score_status,
+        icp_fit_score: mock.icp_fit_score,
+        signals: mock.signals,
+        latest_signal_at: mock.signals.latestSignalDate,
+      }),
+      true,
+    );
+    push(
+      2700,
+      "action",
+      blockFromScoreStage({
+        stage: "action",
+        recommended_action: mock.recommended_action,
+        why_now: mock.why_now,
+        urgency: mock.urgency,
+      }),
+    );
+    timers.push(
+      window.setTimeout(() => {
+        if (cancelled) return;
+        setStage("done");
+        setArtifacts((prev) => [
+          ...prev,
+          ...workspaceFromScore(mock).filter((b) => b.type === "outreach_studio" || b.type === "action_rail"),
+        ]);
+      }, 3200),
+    );
+
+    return () => {
+      cancelled = true;
+      timers.forEach((id) => window.clearTimeout(id));
+    };
+  }, [mock]);
+
+  const labels: LiveStage[] = ["domain", "signals", "score", "action", "done"];
+
+  return (
+    <div className="@container/main flex min-h-0 flex-1 flex-col overflow-auto">
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-4 py-4 md:gap-6 md:py-6 lg:px-6">
+        <Card className="gap-3 rounded-xl py-4 shadow-xs">
+          <CardHeader className="px-4">
+            <CardDescription>Live stage playback</CardDescription>
+            <CardTitle className="text-base">
+              Mock score stream · {band.toUpperCase()} · no Clerk
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="px-4">
+            <div className="flex flex-wrap gap-1.5">
+              {labels.map((label) => {
+                const idx = labels.indexOf(label);
+                const current = labels.indexOf(stage === "idle" ? "domain" : stage);
+                return (
+                  <span
+                    key={label}
+                    className={cn(
+                      "inline-flex rounded-md border px-2 py-0.5 text-[11px]",
+                      idx < current && "border-foreground/20 bg-card text-foreground",
+                      idx === current && stage !== "idle" && "border-foreground/40 bg-card font-medium",
+                      idx > current && "border-transparent text-muted-foreground",
+                    )}
+                  >
+                    {label}
+                  </span>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+
+        {pinned.length > 0 ? <GenUiWorkspace blocks={pinned} handlers={{}} /> : null}
+
+        {artifacts.length === 0 && stage === "idle" ? (
+          <div className="flex min-h-[10rem] items-center justify-center rounded-xl bg-muted/50 p-6 text-sm text-muted-foreground">
+            Waiting for domain stage…
+          </div>
+        ) : (
+          <div className="flex flex-col gap-4">
+            <GenUiWorkspace blocks={artifacts} handlers={{}} />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function DevScoreBody() {
   const searchParams = useSearchParams();
   const view = searchParams.get("view") ?? "empty";
@@ -88,8 +262,6 @@ function DevScoreBody() {
         data_coverage: 0.62,
         score_status: "partial",
         icp_fit_score: 41,
-        ai_summary:
-          "Limited current purchase-intent evidence. Treat this as a research finding: monitor hiring and funding windows before outreach.",
         recommended_action: "Park in nurture and re-score after the next hiring spike.",
         why_now: "No dated trigger is strong enough to justify a same-week push.",
         email_subject: "Quick note on timing",
@@ -107,8 +279,6 @@ function DevScoreBody() {
       data_coverage: 0.91,
       score_status: "full",
       icp_fit_score: 88,
-      ai_summary:
-        "Fresh funding plus AE hiring and a partner announcement point to near-term GTM spend. Prioritize a solutions-led thread.",
       recommended_action: "Open with the APAC AE hiring + Series C wedge this week.",
       why_now: "Hiring and funding dates are both inside the 30-day window.",
       email_subject: "Congrats on the round — APAC AE timing",
@@ -120,7 +290,7 @@ function DevScoreBody() {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex flex-wrap items-center gap-2 border-b px-4 py-2 text-xs text-muted-foreground lg:px-6">
-        <span className="font-medium text-foreground">Pass 2 · Score preview</span>
+        <span className="font-medium text-foreground">Pass 2 · Score live artifacts</span>
         <span className="text-border">·</span>
         <Link
           href="/dev/score?view=empty"
@@ -130,6 +300,24 @@ function DevScoreBody() {
           )}
         >
           Empty
+        </Link>
+        <Link
+          href="/dev/score?view=live&band=hot"
+          className={cn(
+            "rounded-md px-2 py-1 hover:bg-muted",
+            view === "live" && band === "hot" && "bg-muted font-medium text-foreground",
+          )}
+        >
+          Live HOT
+        </Link>
+        <Link
+          href="/dev/score?view=live&band=cold"
+          className={cn(
+            "rounded-md px-2 py-1 hover:bg-muted",
+            view === "live" && band === "cold" && "bg-muted font-medium text-foreground",
+          )}
+        >
+          Live COLD
         </Link>
         <Link
           href="/dev/score?view=result&band=hot"
@@ -154,14 +342,16 @@ function DevScoreBody() {
         </Button>
       </div>
 
-      {view === "result" ? (
+      {view === "live" ? (
+        <LiveStagePlayback band={band} />
+      ) : view === "result" ? (
         <div className="@container/main flex min-h-0 flex-1 flex-col overflow-auto">
           <div className="flex flex-col gap-4 px-4 py-4 md:gap-6 md:py-6 lg:px-6">
             <div className="mx-auto w-full max-w-5xl">
               <GenUiWorkspace blocks={resultBlocks} handlers={{}} />
             </div>
             <div className="mx-auto w-full max-w-5xl rounded-xl bg-muted/50 p-4 text-sm text-muted-foreground">
-              Mock result document inside Pass 1 shell — chat composer lives on the live `/score` route.
+              Static result document — use Live HOT/COLD for stage-by-stage artifacts. No AI thesis.
             </div>
           </div>
         </div>
@@ -173,7 +363,7 @@ function DevScoreBody() {
 }
 
 /**
- * Public no-auth mock of Pass 2 Score (empty + result) inside Pass 1 Blocks chrome.
+ * Public no-auth mock of Pass 2 Score (empty + live stages + result) inside Pass 1 Blocks chrome.
  * Forces light theme while mounted for Blocks comparison.
  */
 export default function DevScorePage() {

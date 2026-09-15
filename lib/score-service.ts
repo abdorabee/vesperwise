@@ -105,7 +105,32 @@ export interface ScoreCompanyOptions {
   businessProfile?: BusinessProfile | null;
   skipCredits?: boolean;
   idempotencyKey?: string;
+  onProgress?: (event: ScoreProgressEvent) => void | Promise<void>;
 }
+
+export type ScoreProgressEvent =
+  | { stage: "domain"; company: string; domain: string }
+  | { stage: "signals"; company: string; domain: string; signals: SignalSet }
+  | {
+      stage: "score";
+      company: string;
+      domain: string;
+      intent_score: number;
+      score_band: NonNullable<IntentScore["score_band"]>;
+      buying_stage?: string;
+      urgency?: string;
+      data_coverage?: number;
+      score_status?: string;
+      icp_fit_score?: number | null;
+      signals: SignalSet;
+      latest_signal_at?: string;
+    }
+  | {
+      stage: "action";
+      recommended_action?: string;
+      why_now?: string;
+      urgency?: string;
+    };
 
 export interface ScorePersistenceMetadata {
   score_id?: string;
@@ -1201,6 +1226,7 @@ export async function scoreCompany(opts: ScoreCompanyOptions): Promise<StoredInt
     businessProfile,
     skipCredits = false,
     idempotencyKey,
+    onProgress,
   } = opts;
   const supabase = createSupabaseAdmin();
   const lookupDomain = canonicalizeDomain(domain);
@@ -1217,15 +1243,56 @@ export async function scoreCompany(opts: ScoreCompanyOptions): Promise<StoredInt
     scoringVersion
   );
 
+  const emit = async (event: ScoreProgressEvent) => {
+    if (!onProgress) return;
+    await onProgress(event);
+  };
+
+  const emitStoredProgress = async (stored: StoredIntentScore) => {
+    await emit({ stage: "domain", company: stored.company, domain: stored.domain });
+    if (stored.signals) {
+      await emit({
+        stage: "signals",
+        company: stored.company,
+        domain: stored.domain,
+        signals: stored.signals,
+      });
+    }
+    if (stored.intent_score != null && stored.score_band) {
+      await emit({
+        stage: "score",
+        company: stored.company,
+        domain: stored.domain,
+        intent_score: stored.intent_score,
+        score_band: stored.score_band,
+        buying_stage: stored.buying_stage,
+        urgency: stored.urgency,
+        data_coverage: stored.data_coverage,
+        score_status: stored.score_status,
+        icp_fit_score: stored.icp_fit_score,
+        signals: stored.signals,
+        latest_signal_at: stored.signals?.latestSignalDate,
+      });
+    }
+    await emit({
+      stage: "action",
+      recommended_action: stored.recommended_action,
+      why_now: stored.why_now,
+      urgency: stored.urgency,
+    });
+  };
+
   if (!normalizedIdempotencyKey) {
     const cached = await cacheGet<StoredIntentScore>(resultCacheKey);
     if (isStoredIntentScore(cached, scoringVersion)) {
-      return {
+      const hit = {
         ...cached,
         cached: true,
         charged: false,
         idempotent_replayed: false,
       };
+      await emitStoredProgress(hit);
+      return hit;
     }
   }
 
@@ -1271,6 +1338,7 @@ export async function scoreCompany(opts: ScoreCompanyOptions): Promise<StoredInt
       { ...replay, idempotent_replayed: false },
       SCORE_RESULT_TTL_SECONDS
     );
+    await emitStoredProgress(replay);
     return replay;
   }
 
@@ -1295,8 +1363,16 @@ export async function scoreCompany(opts: ScoreCompanyOptions): Promise<StoredInt
   let terminal = false;
 
   try {
+    await emit({ stage: "domain", company: lookupCompany, domain: lookupDomain });
+
     const snapshot = await getEvidenceSnapshot(supabase, lookupDomain);
     evidence = snapshot.rows;
+    await emit({
+      stage: "signals",
+      company: lookupCompany,
+      domain: lookupDomain,
+      signals: snapshot.signals,
+    });
     const shouldComputeV3Shadow =
       scoringVersion === SCORING_VERSION &&
       process.env.SCORING_V3_SHADOW_ENABLED === "true";
@@ -1376,6 +1452,19 @@ export async function scoreCompany(opts: ScoreCompanyOptions): Promise<StoredInt
       throw new UnscorableDomainError(unscorable);
     }
 
+    await emit({
+      stage: "score",
+      company: partial.company,
+      domain: partial.domain,
+      intent_score: partial.intent_score,
+      score_band: partial.score_band,
+      data_coverage: partial.data_coverage,
+      score_status: partial.score_status,
+      icp_fit_score: null,
+      signals: partial.signals,
+      latest_signal_at: partial.signals?.latestSignalDate,
+    });
+
     const firmographicsPromise = profile &&
       profile.target_industries.length > 0 &&
       parseEmployeeRange(profile.company_size)
@@ -1396,6 +1485,12 @@ export async function scoreCompany(opts: ScoreCompanyOptions): Promise<StoredInt
     ]);
     evidence.push(...firmographics.rows);
     const { used_fallback: modelFallback, ...reasoningResult } = reasoning;
+    await emit({
+      stage: "action",
+      recommended_action: reasoningResult.recommended_action,
+      why_now: reasoningResult.why_now,
+      urgency: reasoningResult.urgency,
+    });
     const automationEligible =
       partial.score_status === "complete" &&
       !isBaseline &&

@@ -212,30 +212,57 @@ function SignalExplorer({ block }: { block: Extract<UiBlock, { type: "signal_exp
   );
 }
 
-function Thesis({ block }: { block: Extract<UiBlock, { type: "thesis" }> }) {
+function Thesis(_block: { block: Extract<UiBlock, { type: "thesis" }> }) {
+  // Score surfaces no longer render AI thesis essays. Kept as a no-op so
+  // legacy present_ui payloads sanitize cleanly without crashing.
+  void _block;
+  return null;
+}
+
+function DomainResolved({ block }: { block: Extract<UiBlock, { type: "domain" }> }) {
   return (
     <Card className="gap-3 rounded-xl py-4 shadow-xs">
       <CardHeader className="px-4">
-        <CardTitle className="text-base">AI thesis</CardTitle>
-        <CardDescription>Why this score, and what to do next</CardDescription>
+        <CardDescription>Domain resolved</CardDescription>
+        <CardTitle className="flex flex-wrap items-center gap-2 text-base">
+          <span
+            className="flex size-7 items-center justify-center rounded-full text-xs font-semibold text-primary-foreground"
+            style={{ background: avColor(block.company) }}
+            aria-hidden
+          >
+            {block.company[0]}
+          </span>
+          {block.company}
+        </CardTitle>
+        <CardAction>
+          <Badge variant="outline" className="rounded-md font-normal tabular-nums">
+            {block.domain}
+          </Badge>
+        </CardAction>
       </CardHeader>
-      <CardContent className="space-y-4 px-4">
-        <p className="text-sm leading-relaxed text-foreground">{block.summary}</p>
-        {(block.recommended_action || block.why_now) && (
-          <div className="rounded-xl border border-l-4 border-l-foreground/30 bg-muted/50 p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">AI verdict</p>
-            {block.recommended_action ? (
-              <p className="mt-1 text-sm font-medium text-foreground">{block.recommended_action}</p>
-            ) : null}
-            {block.why_now ? (
-              <p className="mt-1 text-sm text-muted-foreground">{block.why_now}</p>
-            ) : null}
-          </div>
-        )}
-        {block.urgency ? (
-          <p className="text-xs text-muted-foreground">Urgency: {block.urgency}</p>
-        ) : null}
-      </CardContent>
+    </Card>
+  );
+}
+
+function ActionCard({ block }: { block: Extract<UiBlock, { type: "action" }> }) {
+  return (
+    <Card className="gap-3 rounded-xl border-l-4 border-l-foreground/25 py-4 shadow-xs">
+      <CardHeader className="px-4">
+        <CardDescription>Next action</CardDescription>
+        <CardTitle className="text-base leading-snug">{block.title}</CardTitle>
+      </CardHeader>
+      {(block.why_now || block.urgency) ? (
+        <CardContent className="space-y-2 px-4">
+          {block.why_now ? (
+            <p className="text-sm text-muted-foreground">{block.why_now}</p>
+          ) : null}
+          {block.urgency ? (
+            <Badge variant="outline" className="rounded-md font-normal">
+              Urgency {block.urgency}
+            </Badge>
+          ) : null}
+        </CardContent>
+      ) : null}
     </Card>
   );
 }
@@ -430,6 +457,10 @@ export function GenUiWorkspace({ blocks, handlers }: { blocks: UiBlock[]; handle
             return <SignalExplorer key={`${block.type}-${i}`} block={block} />;
           case "thesis":
             return <Thesis key={`${block.type}-${i}`} block={block} />;
+          case "domain":
+            return <DomainResolved key={`${block.type}-${i}`} block={block} />;
+          case "action":
+            return <ActionCard key={`${block.type}-${i}`} block={block} />;
           case "outreach_studio":
             return <OutreachStudio key={`${block.type}-${i}`} block={block} onPrompt={handlers.onPrompt} />;
           case "action_rail":

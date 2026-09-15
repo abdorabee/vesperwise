@@ -5,11 +5,11 @@ import { useSearchParams } from "next/navigation";
 import { format, isValid, parseISO } from "date-fns";
 import type { IntentScore, ScoreBand } from "@/lib/types";
 import { CHAT_CREDIT_COST } from "@/lib/types";
-import { extractDomain, seedChatSession, streamChat } from "@/lib/chat-client";
+import { extractDomain, seedChatSession, streamChat, streamScore } from "@/lib/chat-client";
 import { BandBadge, avColor, scoreFromToolResult } from "@/components/score/score-result-card";
 import type { ScoreCardData } from "@/components/score/score-result-card";
 import { GenUiWorkspace } from "@/components/score/gen-ui/workspace";
-import { sanitizeUiBlocks, suggestionsFromBlocks, workspaceFromScore } from "@/lib/gen-ui";
+import { blockFromScoreStage, defaultSuggestions, sanitizeUiBlocks, suggestionsFromBlocks, workspaceFromScore } from "@/lib/gen-ui";
 import type { UiBlock } from "@/lib/gen-ui";
 import {
   Conversation,
@@ -53,16 +53,12 @@ function requireScorableResult(value: IntentScore): ScorableIntentScore {
   return value as ScorableIntentScore;
 }
 
-async function requestScore(domain: string): Promise<ScorableIntentScore> {
-  const response = await fetch("/api/v1/score", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ domain }),
-  });
-  const payload = await response.json() as IntentScore & { error?: string };
-  if (!response.ok) throw new Error(payload.error ?? "Scoring failed");
-  return requireScorableResult(payload);
-}
+const SCORE_STAGE_LABELS = {
+  domain: "Resolving domain",
+  signals: "Gathering signals",
+  score: "Computing intent",
+  action: "Next action",
+} as const;
 
 export interface RecentScore {
   domain: string;
@@ -114,62 +110,39 @@ function formatRecentDate(iso: string): string {
   }
 }
 
-const STEPS = ["Domain resolved", "Funding signal", "Hiring + news", "Technology trigger", "Web + GitHub context", "AI thesis"];
-
-function LiveProgressBar({
-  loading,
-  stepIndex,
-  billingLabel: label,
+function StageStatus({
+  activeStage,
+  billing,
 }: {
-  loading: boolean;
-  stepIndex: number;
-  billingLabel?: string;
+  activeStage: keyof typeof SCORE_STAGE_LABELS | null;
+  billing?: string;
 }) {
-  const [elapsed, setElapsed] = useState(0);
-
-  useEffect(() => {
-    if (!loading) return;
-    const start = Date.now();
-    const t = setInterval(() => setElapsed(parseFloat(((Date.now() - start) / 1000).toFixed(2))), 100);
-    return () => clearInterval(t);
-  }, [loading]);
-
+  const order = Object.keys(SCORE_STAGE_LABELS) as Array<keyof typeof SCORE_STAGE_LABELS>;
+  const activeIndex = activeStage ? order.indexOf(activeStage) : order.length;
   return (
-    <div className="rounded-xl bg-muted/50 p-4">
-      <div className="mb-3 flex items-center gap-2 text-sm text-muted-foreground">
+    <div className="rounded-xl bg-muted/50 p-3">
+      <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground">
         <span
           className={cn(
-            "size-2 rounded-full",
-            loading ? "animate-pulse bg-foreground" : "bg-[color:var(--hot)]",
+            "size-1.5 rounded-full",
+            activeStage ? "animate-pulse bg-foreground" : "bg-[color:var(--hot)]",
           )}
         />
-        {loading ? "Scoring…" : "Scored"}
-        {!loading && label ? (
-          <span className="ml-auto tabular-nums text-xs">
-            {elapsed}s · {label}
-          </span>
-        ) : null}
+        {activeStage ? "Scoring…" : "Scored"}
+        {billing ? <span className="ml-auto tabular-nums">{billing}</span> : null}
       </div>
-      <div className="flex flex-wrap gap-2">
-        {STEPS.map((s, i) => (
+      <div className="flex flex-wrap gap-1.5">
+        {order.map((key, i) => (
           <span
-            key={s}
+            key={key}
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs",
-              i < stepIndex && "border-foreground/20 bg-card text-foreground",
-              i === stepIndex && "border-foreground/40 bg-card font-medium text-foreground",
-              i > stepIndex && "border-transparent text-muted-foreground",
+              "inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px]",
+              i < activeIndex && "border-foreground/20 bg-card text-foreground",
+              i === activeIndex && "border-foreground/40 bg-card font-medium text-foreground",
+              i > activeIndex && "border-transparent text-muted-foreground",
             )}
           >
-            <span
-              className={cn(
-                "size-1.5 rounded-full",
-                i < stepIndex && "bg-foreground",
-                i === stepIndex && "bg-foreground",
-                i > stepIndex && "bg-border",
-              )}
-            />
-            {s}
+            {SCORE_STAGE_LABELS[key]}
           </span>
         ))}
       </div>
@@ -313,10 +286,11 @@ export function ScoreView({ creditsRemaining, recentScores }: ScoreViewProps) {
   const autoScoredRef = useRef<string | null>(null);
   const [messages, setMessages] = useState<ThreadMessage[]>([]);
   const [busy, setBusy] = useState(false);
-  const [stepIndex, setStepIndex] = useState(0);
+  const [activeStage, setActiveStage] = useState<keyof typeof SCORE_STAGE_LABELS | null>(null);
+  const [pinnedBlocks, setPinnedBlocks] = useState<UiBlock[]>([]);
+  const [scoreBilling, setScoreBilling] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [watchlistByDomain, setWatchlistByDomain] = useState<Record<string, "adding" | "added">>({});
-  const scoring = busy && messages.some((m) => m.role === "assistant" && m.kind === "thinking" && m.mode === "score");
 
   useEffect(() => {
     const d = searchParams.get("domain")?.trim();
@@ -327,57 +301,126 @@ export function ScoreView({ creditsRemaining, recentScores }: ScoreViewProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
-  useEffect(() => {
-    if (!scoring) { setStepIndex(0); return; }
-    setStepIndex(0);
-    const t = setInterval(() => {
-      setStepIndex((s) => (s < STEPS.length - 1 ? s + 1 : s));
-    }, 430);
-    return () => clearInterval(t);
-  }, [scoring]);
-
   async function runScore(raw: string, domain: string) {
-    const thinkingId = nextId();
+    const statusId = nextId();
     setMessages((prev) => [
       ...prev,
       { id: nextId(), role: "user", content: raw },
-      { id: thinkingId, role: "assistant", kind: "thinking", mode: "score" },
+      { id: statusId, role: "assistant", kind: "thinking", mode: "score" },
     ]);
     setBusy(true);
+    setActiveStage("domain");
+    setScoreBilling(null);
     try {
-      const payload = await requestScore(domain);
-      setMessages((prev) => prev.map((m) => (
-        m.id === thinkingId
-          ? {
-              id: thinkingId,
-              role: "assistant",
-              kind: "ui",
-              blocks: workspaceFromScore(payload),
-              content: "",
-              tools: [],
-              billing: billingLabel(payload),
-            }
-          : m
-      )));
-      try {
-        const id = await seedChatSession({
-          sessionId: sessionId ?? undefined,
-          title: payload.domain,
-          user: `Score ${payload.domain}`,
-          assistant: payload.ai_summary || `${payload.company} scored ${payload.intent_score}/100 (${payload.score_band}).`,
-        });
-        setSessionId(id);
-      } catch {
-        // Follow-ups can still create a session on first chat turn.
+      let doneResult: (IntentScore & { charged?: boolean; cached?: boolean }) | null = null;
+      let doneBilling: string | undefined;
+
+      await streamScore(domain, (event) => {
+        if (event.type === "stage") {
+          setActiveStage(event.stage);
+          const block = blockFromScoreStage(event);
+          if (!block) return;
+
+          if (event.stage === "score") {
+            setPinnedBlocks([block]);
+            // Durable pin above chat — skip duplicate conversation dump.
+            return;
+          }
+
+          setMessages((prev) => {
+            const withoutThinking = prev.filter((m) => m.id !== statusId);
+            return [
+              ...withoutThinking,
+              {
+                id: nextId(),
+                role: "assistant",
+                kind: "ui",
+                blocks: [block],
+                content: "",
+                tools: [{
+                  name: SCORE_STAGE_LABELS[event.stage],
+                  status: "done" as const,
+                }],
+              },
+              { id: statusId, role: "assistant", kind: "thinking", mode: "score" },
+            ];
+          });
+          return;
+        }
+
+        if (event.type === "done") {
+          doneResult = event.result;
+          doneBilling = event.billing ?? billingLabel({
+            ...event.result,
+            intent_score: event.result.intent_score ?? 0,
+            score_band: (event.result.score_band ?? "COLD") as ScoreBand,
+          });
+          setScoreBilling(doneBilling);
+          setActiveStage(null);
+
+          const rail: UiBlock = {
+            type: "action_rail",
+            company: event.result.company,
+            domain: event.result.domain,
+            suggestions: defaultSuggestions({
+              company: event.result.company,
+              score_band: event.result.score_band ?? "COLD",
+            }),
+          };
+
+          const outreach: UiBlock[] = (event.result.email_subject || event.result.talk_track)
+            ? [{
+                type: "outreach_studio",
+                company: event.result.company,
+                subject: event.result.email_subject,
+                talk_track: event.result.talk_track,
+              }]
+            : [];
+
+          setMessages((prev) => {
+            const withoutThinking = prev.filter((m) => m.id !== statusId);
+            const extras = [...outreach, rail];
+            if (extras.length === 0) return withoutThinking;
+            return [
+              ...withoutThinking,
+              {
+                id: nextId(),
+                role: "assistant",
+                kind: "ui",
+                blocks: extras,
+                content: "",
+                tools: [],
+                billing: doneBilling,
+              },
+            ];
+          });
+        }
+      });
+
+      if (doneResult) {
+        const payload = requireScorableResult(doneResult);
+        try {
+          const id = await seedChatSession({
+            sessionId: sessionId ?? undefined,
+            title: payload.domain,
+            user: `Score ${payload.domain}`,
+            assistant: `${payload.company} scored ${payload.intent_score}/100 (${payload.score_band}).`,
+          });
+          setSessionId(id);
+        } catch {
+          // Follow-ups can still create a session on first chat turn.
+        }
       }
     } catch (e) {
-      setMessages((prev) => prev.map((m) => (
-        m.id === thinkingId
-          ? { id: thinkingId, role: "error", content: (e as Error).message }
-          : m
-      )));
+      setActiveStage(null);
+      setMessages((prev) => [
+        ...prev.filter((m) => !(m.role === "assistant" && m.kind === "thinking" && m.id === statusId)),
+        { id: statusId, role: "error", content: (e as Error).message },
+      ]);
     } finally {
       setBusy(false);
+      setActiveStage(null);
+      setMessages((prev) => prev.filter((m) => !(m.role === "assistant" && m.kind === "thinking" && m.mode === "score")));
     }
   }
 
@@ -515,12 +558,22 @@ export function ScoreView({ creditsRemaining, recentScores }: ScoreViewProps) {
     if (busy) return;
     setMessages([]);
     setSessionId(null);
+    setPinnedBlocks([]);
+    setScoreBilling(null);
+    setActiveStage(null);
     autoScoredRef.current = null;
   }
 
   const active = messages.length > 0;
   const lastUi = [...messages].reverse().find((m) => m.role === "assistant" && m.kind === "ui");
-  const chips = lastUi && lastUi.kind === "ui" ? suggestionsFromBlocks(lastUi.blocks) : [];
+  const chips = lastUi && lastUi.kind === "ui"
+    ? suggestionsFromBlocks(lastUi.blocks)
+    : pinnedBlocks.length > 0
+      ? defaultSuggestions({
+          company: pinnedBlocks[0]?.type === "intent_hero" ? pinnedBlocks[0].company : "Company",
+          score_band: pinnedBlocks[0]?.type === "intent_hero" ? pinnedBlocks[0].score_band : "COLD",
+        })
+      : [];
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -534,6 +587,20 @@ export function ScoreView({ creditsRemaining, recentScores }: ScoreViewProps) {
       ) : (
         <div className="@container/main flex min-h-0 flex-1 flex-col">
           <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-auto py-4 md:gap-6 md:py-6">
+            {pinnedBlocks.length > 0 ? (
+              <div className="shrink-0 px-4 lg:px-6">
+                <div className="mx-auto w-full max-w-5xl">
+                  <GenUiWorkspace
+                    blocks={pinnedBlocks}
+                    handlers={{
+                      onWatchlist: (company, d) => void handleAddToWatchlist(company, d),
+                      watchlistByDomain,
+                      onPrompt: (prompt) => void submitMessage(prompt),
+                    }}
+                  />
+                </div>
+              </div>
+            ) : null}
             <Conversation className="min-h-0 flex-1 px-4 lg:px-6">
               <ConversationContent className="mx-auto flex w-full max-w-5xl flex-col gap-4">
                 {messages.map((message) => {
@@ -559,7 +626,7 @@ export function ScoreView({ creditsRemaining, recentScores }: ScoreViewProps) {
                     return (
                       <Message key={message.id} from="assistant">
                         {message.mode === "score" ? (
-                          <LiveProgressBar loading stepIndex={stepIndex} />
+                          <StageStatus activeStage={activeStage} />
                         ) : (
                           <div className="flex items-center gap-2 rounded-xl bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
                             <span className="size-2 animate-pulse rounded-full bg-foreground" />
@@ -573,13 +640,9 @@ export function ScoreView({ creditsRemaining, recentScores }: ScoreViewProps) {
                     return (
                       <Message key={message.id} from="assistant">
                         <MessageContent className="flex w-full flex-col gap-4">
-                          {message.billing && (
-                            <LiveProgressBar
-                              loading={false}
-                              stepIndex={STEPS.length - 1}
-                              billingLabel={message.billing}
-                            />
-                          )}
+                          {message.billing ? (
+                            <StageStatus activeStage={null} billing={message.billing} />
+                          ) : null}
                           <ToolChips tools={message.tools} />
                           {message.content && <AssistantText content={message.content} />}
                           <GenUiWorkspace
