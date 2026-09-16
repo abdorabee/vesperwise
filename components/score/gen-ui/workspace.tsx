@@ -1,8 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { UiBlock, UiSuggestion, SignalAxis } from "@/lib/gen-ui";
-import { avColor, bandClass, ScoreRing } from "@/components/score/score-result-card";
+import { Check, Copy, ExternalLink, ListPlus } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import type { SignalAxis, UiBlock, UiSuggestion } from "@/lib/gen-ui";
+import { cn } from "@/lib/utils";
 
 export interface GenUiHandlers {
   onWatchlist?: (company: string, domain: string) => void;
@@ -10,150 +14,79 @@ export interface GenUiHandlers {
   onPrompt?: (prompt: string) => void;
 }
 
-const AXIS_COLOR: Record<string, string> = {
-  funding: "#dfff00",
-  hiring: "#4ade80",
-  news: "#f5b544",
-  technology: "#e8ff40",
-  web: "#8a8f98",
-  github: "#a78bfa",
-};
-
-const AXIS_GRAD: Record<string, string> = {
-  funding: "linear-gradient(90deg,#dfff00,#38a3b3)",
-  hiring: "linear-gradient(90deg,#4ade80,#22c55e)",
-  news: "linear-gradient(90deg,#f5b544,#d49530)",
-  technology: "linear-gradient(90deg,#e8ff40,#dfff00)",
-};
-
-function IntentHero({ block }: { block: Extract<UiBlock, { type: "intent_hero" }> }) {
+function IntentHeading({ block }: { block: Extract<UiBlock, { type: "intent_hero" }> }) {
+  const coverage = block.data_coverage == null ? "Coverage unavailable" : `${Math.round(block.data_coverage * 100)}% coverage`;
   return (
-    <div className="overview-block gen-hero">
-      <ScoreRing score={block.intent_score} band={block.score_band} />
-      <div className="gen-hero-copy">
-        <div className="result-title-row">
-          <div className="result-avatar" style={{ background: avColor(block.company), width: 36, height: 36, fontSize: 14 }}>
-            {block.company[0]}
-          </div>
-          <span className={`band ${bandClass(block.score_band)}`}>
-            <span className="dot" />{block.score_band}
-          </span>
-          <span className="result-title">{block.company}</span>
-        </div>
-        <div className="result-meta">
-          <span style={{ color: "var(--text-secondary)" }}>{block.domain}</span>
-          {block.buying_stage && (<><span className="dot" /><span>{block.buying_stage}</span></>)}
-          {block.urgency && (<><span className="dot" /><span>Urgency: {block.urgency}</span></>)}
-          {block.data_coverage != null && (
-            <>
-              <span className="dot" />
-              <span>Coverage: {Math.round(block.data_coverage * 100)}%{block.score_status ? ` (${block.score_status})` : ""}</span>
-            </>
-          )}
-          {block.icp_fit_score !== undefined && (
-            <>
-              <span className="dot" />
-              <span>{block.icp_fit_score == null ? "ICP fit unavailable" : `ICP fit: ${block.icp_fit_score}%`}</span>
-            </>
-          )}
-        </div>
+    <header className="flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b border-border/70 pb-5">
+      <div className="min-w-0 flex-1">
+        <h2 className="truncate text-xl font-semibold tracking-[-0.035em] text-foreground">{block.company}</h2>
+        <p className="mt-1 truncate text-sm text-muted-foreground">{block.domain}</p>
       </div>
-    </div>
+      <span className="text-4xl font-semibold tracking-[-0.06em] tabular-nums text-foreground">{block.intent_score}</span>
+      <Badge variant="secondary" className="rounded-full px-2.5 py-1 text-[11px] font-semibold">{block.score_band}</Badge>
+      <span className="basis-full text-right text-xs text-muted-foreground">{coverage}</span>
+    </header>
   );
 }
 
-function SignalExplorer({ block }: { block: Extract<UiBlock, { type: "signal_explorer" }> }) {
-  const triggers = block.axes.filter((a) => !a.context);
-  const context = block.axes.filter((a) => a.context);
-  const [selected, setSelected] = useState<string>(block.selected_key ?? triggers[0]?.key ?? block.axes[0]?.key);
-  const active = block.axes.find((a) => a.key === selected) ?? block.axes[0];
+function isUnavailable(axis: SignalAxis) {
+  return !axis.detail || axis.detail.trim().toLowerCase() === "unavailable";
+}
 
-  function AxisCard({ axis }: { axis: SignalAxis }) {
-    const pct = Math.round((axis.score / axis.max) * 100);
-    const isOn = axis.key === selected;
-    return (
-      <button
-        type="button"
-        className={`signal-card gen-axis ${isOn ? "is-selected" : ""}`}
-        onClick={() => setSelected(axis.key)}
-        aria-pressed={isOn}
-      >
-        <div className="name">
-          <span className="swatch" style={{ background: AXIS_COLOR[axis.key] ?? "#8a8f98" }} />
-          {axis.label}
-        </div>
-        <div className="num">{axis.score}</div>
-        <div className="delta" style={{ color: "var(--text-tertiary)" }}>/{axis.max}{axis.context ? " · context" : ""}</div>
-        <div className="bar">
-          <div className="fill" style={{ width: `${pct}%`, background: AXIS_GRAD[axis.key] ?? AXIS_COLOR[axis.key] ?? "#8a8f98" }} />
-        </div>
-      </button>
-    );
-  }
-
+function SignalRows({ axes }: { axes: SignalAxis[] }) {
   return (
-    <div className="gen-explorer">
-      <div className="section-label">
-        <span className="ic" />
-        <strong>Signal explorer</strong>
-        <span style={{ color: "var(--text-tertiary)" }}>· click an axis for evidence</span>
-        <span className="line" />
+    <TableBody>
+      {axes.map((axis) => {
+        const unavailable = isUnavailable(axis);
+        const evidence = unavailable ? "Unavailable" : [axis.observed_at?.slice(0, 10), axis.source].filter(Boolean).join(" · ") || "Source date unavailable";
+        return (
+          <TableRow key={axis.key} data-slot="score-signal-row" className="score-artifact-row align-top hover:bg-transparent">
+            <TableCell className="w-32 font-medium text-foreground">{axis.label}</TableCell>
+            <TableCell className="w-28 whitespace-nowrap font-medium tabular-nums text-foreground">{unavailable ? "Unavailable" : `${axis.score} / ${axis.max}`}</TableCell>
+            <TableCell className="min-w-64">
+              <p className={cn("leading-5", unavailable ? "text-muted-foreground" : "text-foreground/85")}>{unavailable ? "No current evidence available." : axis.detail}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{evidence}</p>
+            </TableCell>
+          </TableRow>
+        );
+      })}
+    </TableBody>
+  );
+}
+
+function SignalTable({ block }: { block: Extract<UiBlock, { type: "signal_explorer" }> }) {
+  const triggers = block.axes.filter((axis) => !axis.context);
+  const context = block.axes.filter((axis) => axis.context);
+  return (
+    <div className="space-y-7">
+      <div className="overflow-hidden rounded-lg border border-border/70">
+        <Table>
+          <TableHeader><TableRow className="bg-muted/35 hover:bg-muted/35"><TableHead>Signal</TableHead><TableHead>Current read</TableHead><TableHead>Dated evidence</TableHead></TableRow></TableHeader>
+          <SignalRows axes={triggers} />
+        </Table>
       </div>
-      <div className="signal-grid">
-        {triggers.map((axis) => <AxisCard key={axis.key} axis={axis} />)}
-      </div>
-      {context.length > 0 && (
-        <>
-          <div className="section-label" style={{ marginTop: 20 }}>
-            <span className="ic" style={{ background: "var(--text-tertiary)", boxShadow: "none" }} />
-            <strong>Account context</strong>
-            <span style={{ color: "var(--text-tertiary)" }}>· excluded from score</span>
-            <span className="line" />
+      {context.length > 0 ? (
+        <section aria-labelledby="supporting-context-title" className="space-y-3">
+          <div className="flex flex-wrap items-baseline gap-2"><h3 id="supporting-context-title" className="text-sm font-semibold text-foreground">Supporting context</h3><span className="text-xs text-muted-foreground">excluded from score</span></div>
+          <div className="overflow-hidden rounded-lg border border-border/70">
+            <Table>
+              <TableHeader><TableRow className="bg-muted/35 hover:bg-muted/35"><TableHead>Source</TableHead><TableHead>Current read</TableHead><TableHead>Context</TableHead></TableRow></TableHeader>
+              <SignalRows axes={context} />
+            </Table>
           </div>
-          <div className="signal-grid">
-            {context.map((axis) => <AxisCard key={axis.key} axis={axis} />)}
-          </div>
-        </>
-      )}
-      {active && (
-        <div className="gen-evidence">
-          <div className="gen-evidence-kicker">{active.label} evidence</div>
-          <p>{active.detail || "No detail available for this axis."}</p>
-          <div className="gen-evidence-meta">
-            {active.source && <span>Source: {active.source}</span>}
-            {active.observed_at && <span>Observed {active.observed_at.slice(0, 10)}</span>}
-            <span>{active.score}/{active.max}</span>
-          </div>
-        </div>
-      )}
+        </section>
+      ) : null}
     </div>
   );
 }
 
 function Thesis({ block }: { block: Extract<UiBlock, { type: "thesis" }> }) {
   return (
-    <div className="thesis-block">
-      <div className="thesis-head">
-        <span className="ic" />
-        AI thesis
-      </div>
-      <div className="thesis-text">{block.summary}</div>
-      {(block.recommended_action || block.why_now) && (
-        <div className="ca-verdict" style={{ marginTop: 14 }}>
-          <div className="ai-dot" />
-          <div className="text">
-            <span className="label">AI verdict</span>
-            {block.recommended_action && <strong>{block.recommended_action} </strong>}
-            {block.why_now}
-          </div>
-        </div>
-      )}
-      {block.urgency && (
-        <div className="thesis-meta">
-          <span>Urgency: {block.urgency}</span>
-        </div>
-      )}
-    </div>
+    <section className="score-artifact-copy space-y-5">
+      <div><h3 className="text-sm font-semibold text-foreground">Why now</h3><p className="mt-2 text-sm leading-6 text-foreground/85">{block.why_now || block.summary}</p></div>
+      {block.why_now && block.summary !== block.why_now ? <p className="text-sm leading-6 text-muted-foreground">{block.summary}</p> : null}
+      {block.recommended_action ? <div className="score-artifact-action border-l-2 border-primary pl-4"><p className="text-xs font-medium text-muted-foreground">Recommended next move</p><p className="mt-1 text-sm font-medium leading-6 text-foreground">{block.recommended_action}</p></div> : null}
+    </section>
   );
 }
 
@@ -161,178 +94,45 @@ function OutreachStudio({ block, onPrompt }: { block: Extract<UiBlock, { type: "
   const [subject, setSubject] = useState(block.subject ?? "");
   const [body, setBody] = useState(block.talk_track ?? "");
   const [copied, setCopied] = useState(false);
-
-  function copy() {
+  async function copy() {
     const text = [subject, body].filter(Boolean).join("\n\n");
     if (!text) return;
-    navigator.clipboard.writeText(text);
+    await navigator.clipboard.writeText(text);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    window.setTimeout(() => setCopied(false), 1500);
   }
-
   return (
-    <div className="gen-outreach">
-      <div className="section-label">
-        <span className="ic" style={{ background: "var(--brand)", boxShadow: "0 0 6px var(--brand-glow)" }} />
-        <strong>Outreach studio</strong>
-        <span style={{ color: "var(--text-tertiary)" }}>· edit, copy, or refine in chat</span>
-        <span className="line" />
-      </div>
-      <label className="gen-field">
-        <span>Subject</span>
-        <input value={subject} onChange={(e) => setSubject(e.target.value)} />
-      </label>
-      <label className="gen-field">
-        <span>Talk track</span>
-        <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={6} />
-      </label>
-      <div className="gen-outreach-actions">
-        <button type="button" className="tb-btn outlined" onClick={copy} disabled={!subject && !body}>
-          {copied ? "Copied!" : "Copy"}
-        </button>
-        {onPrompt && (
-          <button
-            type="button"
-            className="tb-btn outlined"
-            onClick={() => onPrompt("Rewrite this outreach to be shorter and more specific to the strongest trigger.")}
-          >
-            Refine in chat
-          </button>
-        )}
-      </div>
-    </div>
+    <section className="space-y-4 rounded-lg border border-border/70 bg-card/40 p-4">
+      <div><h3 className="text-sm font-semibold text-foreground">Outreach draft</h3><p className="mt-1 text-xs text-muted-foreground">Edit directly, then copy or refine it in the conversation.</p></div>
+      <label className="grid gap-1.5 text-xs font-medium text-muted-foreground">Subject<input className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring" value={subject} onChange={(event) => setSubject(event.target.value)} /></label>
+      <label className="grid gap-1.5 text-xs font-medium text-muted-foreground">Message<textarea className="min-h-36 resize-y rounded-md border border-input bg-background px-3 py-2 text-sm leading-6 text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring" value={body} onChange={(event) => setBody(event.target.value)} /></label>
+      <div className="flex flex-wrap gap-2"><Button type="button" size="sm" variant="outline" onClick={() => void copy()} disabled={!subject && !body}>{copied ? <Check className="size-4" /> : <Copy className="size-4" />}{copied ? "Copied" : "Copy"}</Button>{onPrompt ? <Button type="button" size="sm" variant="ghost" onClick={() => onPrompt("Rewrite this outreach to be shorter and more specific to the strongest trigger.")}>Refine</Button> : null}</div>
+    </section>
   );
 }
 
-function ActionRail({
-  block,
-  handlers,
-}: {
-  block: Extract<UiBlock, { type: "action_rail" }>;
-  handlers: GenUiHandlers;
-}) {
+function ActionRail({ block, handlers }: { block: Extract<UiBlock, { type: "action_rail" }>; handlers: GenUiHandlers }) {
+  const status = handlers.watchlistByDomain?.[block.domain];
   return (
-    <div className="gen-rail">
-      <div className="result-actions">
-        {handlers.onWatchlist && (
-          <button
-            type="button"
-            className="tb-btn outlined"
-            onClick={() => handlers.onWatchlist?.(block.company, block.domain)}
-            disabled={handlers.watchlistByDomain?.[block.domain] === "adding" || handlers.watchlistByDomain?.[block.domain] === "added"}
-          >
-            {handlers.watchlistByDomain?.[block.domain] === "added"
-              ? "Watching ✓"
-              : handlers.watchlistByDomain?.[block.domain] === "adding"
-                ? "Adding…"
-                : "Save to list"}
-          </button>
-        )}
-        <a
-          className="tb-btn outlined"
-          href={`https://www.linkedin.com/search/results/companies/?keywords=${encodeURIComponent(block.company)}`}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Open account →
-        </a>
-      </div>
+    <div className="score-artifact-actions flex flex-wrap gap-2 pt-1">
+      {handlers.onWatchlist ? <Button type="button" size="sm" variant="outline" onClick={() => handlers.onWatchlist?.(block.company, block.domain)} disabled={status === "adding" || status === "added"}><ListPlus className="size-4" />{status === "added" ? "Watching" : status === "adding" ? "Adding…" : "Save to watchlist"}</Button> : null}
+      <Button type="button" size="sm" variant="ghost" asChild><a href={`https://www.linkedin.com/search/results/companies/?keywords=${encodeURIComponent(block.company)}`} target="_blank" rel="noopener noreferrer">Open account <ExternalLink className="size-3.5" /></a></Button>
     </div>
   );
 }
 
 function Comparison({ block }: { block: Extract<UiBlock, { type: "comparison" }> }) {
-  const keys = useMemo(() => {
-    const set = new Set<string>();
-    for (const account of block.accounts) {
-      for (const axis of account.axes ?? []) set.add(axis.key);
-    }
-    return [...set];
-  }, [block.accounts]);
-
+  const keys = useMemo(() => { const set = new Set<string>(); for (const account of block.accounts) for (const axis of account.axes ?? []) set.add(axis.key); return [...set]; }, [block.accounts]);
   return (
-    <div className="gen-compare">
-      <div className="section-label">
-        <span className="ic" />
-        <strong>Comparison</strong>
-        <span className="line" />
-      </div>
-      <div className="gen-compare-grid" style={{ gridTemplateColumns: `120px repeat(${block.accounts.length}, 1fr)` }}>
-        <div />
-        {block.accounts.map((account) => (
-          <div key={account.domain} className="gen-compare-head">
-            <span className={`band ${bandClass(account.score_band)}`}><span className="dot" />{account.score_band}</span>
-            <strong>{account.company}</strong>
-            <span className="gen-compare-score">{account.intent_score}</span>
-          </div>
-        ))}
-        {keys.map((key) => (
-          <div key={key} className="gen-compare-row">
-            <span className="gen-compare-key">{key}</span>
-            {block.accounts.map((account) => {
-              const axis = account.axes?.find((a) => a.key === key);
-              return (
-                <span key={account.domain}>{axis ? `${axis.score}/${axis.max}` : "—"}</span>
-              );
-            })}
-          </div>
-        ))}
-      </div>
-    </div>
+    <section className="space-y-3"><h3 className="text-sm font-semibold text-foreground">Account comparison</h3><div className="overflow-hidden rounded-lg border border-border/70"><Table><TableHeader><TableRow className="bg-muted/35 hover:bg-muted/35"><TableHead>Account</TableHead><TableHead>Score</TableHead>{keys.map((key) => <TableHead key={key} className="capitalize">{key}</TableHead>)}</TableRow></TableHeader><TableBody>{block.accounts.map((account) => <TableRow key={account.domain}><TableCell><span className="font-medium">{account.company}</span><span className="block text-xs text-muted-foreground">{account.domain}</span></TableCell><TableCell className="font-semibold tabular-nums">{account.intent_score} · {account.score_band}</TableCell>{keys.map((key) => { const axis = account.axes?.find((item) => item.key === key); return <TableCell key={key} className="tabular-nums">{axis ? `${axis.score} / ${axis.max}` : "Unavailable"}</TableCell>; })}</TableRow>)}</TableBody></Table></div></section>
   );
 }
 
-export function SuggestionChips({
-  suggestions,
-  onPrompt,
-  disabled,
-}: {
-  suggestions: UiSuggestion[];
-  onPrompt?: (prompt: string) => void;
-  disabled?: boolean;
-}) {
+export function SuggestionChips({ suggestions, onPrompt, disabled }: { suggestions: UiSuggestion[]; onPrompt?: (prompt: string) => void; disabled?: boolean }) {
   if (!suggestions.length || !onPrompt) return null;
-  return (
-    <div className="gen-chips">
-      {suggestions.map((s) => (
-        <button
-          key={s.label}
-          type="button"
-          className="sugg"
-          disabled={disabled}
-          title={s.prompt}
-          onClick={() => onPrompt(s.prompt)}
-        >
-          {s.label}
-        </button>
-      ))}
-    </div>
-  );
+  return <div className="flex flex-wrap gap-2">{suggestions.map((suggestion) => <Button key={suggestion.label} type="button" size="sm" variant="outline" disabled={disabled} onClick={() => onPrompt(suggestion.prompt)}>{suggestion.label}</Button>)}</div>;
 }
 
 export function GenUiWorkspace({ blocks, handlers }: { blocks: UiBlock[]; handlers: GenUiHandlers }) {
-  return (
-    <div className="gen-workspace">
-      {blocks.map((block, i) => {
-        switch (block.type) {
-          case "intent_hero":
-            return <IntentHero key={`${block.type}-${i}`} block={block} />;
-          case "signal_explorer":
-            return <SignalExplorer key={`${block.type}-${i}`} block={block} />;
-          case "thesis":
-            return <Thesis key={`${block.type}-${i}`} block={block} />;
-          case "outreach_studio":
-            return <OutreachStudio key={`${block.type}-${i}`} block={block} onPrompt={handlers.onPrompt} />;
-          case "action_rail":
-            return <ActionRail key={`${block.type}-${i}`} block={block} handlers={handlers} />;
-          case "comparison":
-            return <Comparison key={`${block.type}-${i}`} block={block} />;
-          case "markdown":
-            return <div key={`${block.type}-${i}`} className="chat-md">{block.text}</div>;
-          default:
-            return null;
-        }
-      })}
-    </div>
-  );
+  return <div data-slot="score-artifact" className="score-artifact space-y-7">{blocks.map((block, index) => { switch (block.type) { case "intent_hero": return <IntentHeading key={`${block.type}-${index}`} block={block} />; case "signal_explorer": return <SignalTable key={`${block.type}-${index}`} block={block} />; case "thesis": return <Thesis key={`${block.type}-${index}`} block={block} />; case "outreach_studio": return <OutreachStudio key={`${block.type}-${index}`} block={block} onPrompt={handlers.onPrompt} />; case "action_rail": return <ActionRail key={`${block.type}-${index}`} block={block} handlers={handlers} />; case "comparison": return <Comparison key={`${block.type}-${index}`} block={block} />; case "markdown": return <p key={`${block.type}-${index}`} className="text-sm leading-6 text-foreground/85 whitespace-pre-wrap">{block.text}</p>; default: return null; } })}</div>;
 }

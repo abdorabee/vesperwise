@@ -195,7 +195,7 @@ function LoginFormInner() {
                   key={strategy}
                   type="button"
                   variant="outline"
-                  className="h-[42px] w-full rounded-full border-white/10 bg-white/[0.055] text-[#f7f8f8] hover:bg-white/[0.08]"
+                  className="h-[42px] w-full rounded-md border-border bg-background text-foreground hover:bg-muted"
                   disabled={busy}
                   onClick={() => onOauth(strategy)}
                 >
@@ -214,7 +214,7 @@ function LoginFormInner() {
               autoComplete="email"
               value={email}
               required
-              className="h-[42px] rounded-[14px] border-white/10 bg-white/[0.055] text-[#f7f8f8]"
+              className="h-[42px] rounded-md border-input bg-background text-foreground"
               {...avatar.watch("email")}
               onChange={(event) => {
                 setEmail(event.target.value);
@@ -238,7 +238,7 @@ function LoginFormInner() {
                 autoComplete="current-password"
                 value={password}
                 required
-                className="h-[42px] rounded-[14px] border-white/10 bg-white/[0.055] text-[#f7f8f8]"
+                className="h-[42px] rounded-md border-input bg-background text-foreground"
                 {...avatar.watch("password")}
                 onChange={(event) => {
                   setPassword(event.target.value);
@@ -263,7 +263,7 @@ function LoginFormInner() {
           <Button
             type="submit"
             disabled={busy}
-            className="h-[42px] w-full rounded-full bg-[linear-gradient(180deg,#ecff58,#dfff00)] text-[#050505] hover:bg-[linear-gradient(180deg,#ecff58,#dfff00)]"
+            className="h-[42px] w-full rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
           >
             {busy ? "Signing in…" : "Continue"}
           </Button>
@@ -280,7 +280,7 @@ function LoginFormInner() {
               autoComplete="one-time-code"
               value={code}
               required
-              className="h-[42px] rounded-[14px] border-white/10 bg-white/[0.055] text-[#f7f8f8]"
+              className="h-[42px] rounded-md border-input bg-background text-foreground"
               {...avatar.watch("code")}
               onChange={(event) => {
                 setCode(event.target.value);
@@ -293,7 +293,7 @@ function LoginFormInner() {
           <Button
             type="submit"
             disabled={busy}
-            className="h-[42px] w-full rounded-full bg-[linear-gradient(180deg,#ecff58,#dfff00)] text-[#050505]"
+            className="h-[42px] w-full rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
           >
             {busy ? "Checking…" : "Verify code"}
           </Button>
@@ -314,7 +314,7 @@ function LoginFormInner() {
                 autoComplete="new-password"
                 value={newPassword}
                 required
-                className="h-[42px] rounded-[14px] border-white/10 bg-white/[0.055] text-[#f7f8f8]"
+                className="h-[42px] rounded-md border-input bg-background text-foreground"
                 {...avatar.watch("password")}
                 onChange={(event) => {
                   setNewPassword(event.target.value);
@@ -336,7 +336,7 @@ function LoginFormInner() {
           <Button
             type="submit"
             disabled={busy}
-            className="h-[42px] w-full rounded-full bg-[linear-gradient(180deg,#ecff58,#dfff00)] text-[#050505]"
+            className="h-[42px] w-full rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
           >
             {busy ? "Saving…" : "Update password"}
           </Button>
@@ -353,7 +353,7 @@ function LoginFormInner() {
               autoComplete="one-time-code"
               value={code}
               required
-              className="h-[42px] rounded-[14px] border-white/10 bg-white/[0.055] text-[#f7f8f8]"
+              className="h-[42px] rounded-md border-input bg-background text-foreground"
               {...avatar.watch("code")}
               onChange={(event) => {
                 setCode(event.target.value);
@@ -366,7 +366,7 @@ function LoginFormInner() {
           <Button
             type="submit"
             disabled={busy}
-            className="h-[42px] w-full rounded-full bg-[linear-gradient(180deg,#ecff58,#dfff00)] text-[#050505]"
+            className="h-[42px] w-full rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
           >
             {busy ? "Verifying…" : "Verify"}
           </Button>

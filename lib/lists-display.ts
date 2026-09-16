@@ -118,9 +118,6 @@ export function buildHeroStats(
 ): ListsHeroStats {
   const bandMix = computeBandMix(allAccounts);
   const uniqueDomains = new Set<string>();
-  for (const s of summaries) {
-    // approximate from counts — overlap computed separately
-  }
   for (const [domain, lists] of domainToLists) {
     if (lists.length > 0) uniqueDomains.add(domain);
   }

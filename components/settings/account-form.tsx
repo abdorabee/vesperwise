@@ -73,7 +73,7 @@ export function AccountForm({ initial }: { initial: AccountSettings }) {
     <div className="set-panel">
       <div className="page-head">
         <div>
-          <div className="page-title">Account &amp; workspace</div>
+          <h1 className="page-title">Account &amp; workspace</h1>
           <div className="page-sub">
             How your workspace is labelled across the app, and who you are on the team.
           </div>

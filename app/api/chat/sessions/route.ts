@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { createSupabaseAdmin } from "@/lib/supabase";
+import { serializePresentation } from "@/lib/score-presentation";
 
 export async function GET() {
   const { userId } = await auth();
@@ -26,7 +27,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({})) as {
     title?: string;
     session_id?: string;
-    seed?: { user?: string; assistant?: string };
+    seed?: { user?: string; assistant?: string; presentation?: unknown; tools?: unknown; billing?: string };
   };
 
   const supabase = createSupabaseAdmin();
@@ -70,10 +71,18 @@ export async function POST(req: NextRequest) {
     });
   }
   if (seed?.assistant) {
+    const toolResult = Array.isArray(seed.presentation)
+      ? serializePresentation({
+          presentation: seed.presentation as never[],
+          tools: Array.isArray(seed.tools) ? seed.tools as never[] : [],
+          billing: seed.billing,
+        })
+      : null;
     await supabase.from("chat_messages").insert({
       session_id: session.id,
       role: "assistant",
       content: seed.assistant,
+      tool_result: toolResult,
     });
   }
 

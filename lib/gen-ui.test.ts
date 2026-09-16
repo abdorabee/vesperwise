@@ -97,4 +97,15 @@ describe("workspaceFromScore", () => {
       "action_rail",
     ]);
   });
+
+  it("keeps verified zero numeric while marking provider absence unavailable", () => {
+    const fixture = signals();
+    fixture.funding = { ...fixture.funding, score: 0, status: "no_signal", detail: "No qualifying funding event." };
+    fixture.news = { ...fixture.news, score: 0, status: "unavailable", detail: "Provider timed out." };
+    const explorer = workspaceFromScore({ company: "Acme", domain: "acme.com", intent_score: 0, score_band: "COLD", signals: fixture }).find((block) => block.type === "signal_explorer");
+    expect(explorer?.type).toBe("signal_explorer");
+    if (explorer?.type !== "signal_explorer") return;
+    expect(explorer.axes.find((axis) => axis.key === "funding")?.detail).toBe("No qualifying funding event.");
+    expect(explorer.axes.find((axis) => axis.key === "news")?.detail).toBe("Unavailable");
+  });
 });

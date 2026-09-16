@@ -7,26 +7,26 @@ import VesperWiseLogo from "@/components/vesperwise-logo";
 
 /* ─── Design tokens ──────────────────────────────────────────── */
 const T = {
-  bg: "#050608",
-  bgEl: "#0c0e12",
-  bgCode: "#0b0d10",
-  surface: "#111318",
-  border: "rgba(255,255,255,0.07)",
-  borderStrong: "rgba(255,255,255,0.13)",
-  borderSubtle: "rgba(255,255,255,0.04)",
-  txt: "#f7f8f8",
-  txtSec: "#8a8f98",
-  txtTert: "#62666d",
-  txtQ: "#3d4147",
-  accent: "#dfff00",
-  accentBg: "rgba(223,255,0,0.10)",
-  cyan: "#dfff00",
+  bg: "var(--background)",
+  bgEl: "var(--card)",
+  bgCode: "var(--popover)",
+  surface: "var(--card)",
+  border: "var(--border)",
+  borderStrong: "var(--border-strong)",
+  borderSubtle: "var(--border-subtle)",
+  txt: "var(--foreground)",
+  txtSec: "var(--text-secondary)",
+  txtTert: "var(--muted-foreground)",
+  txtQ: "var(--text-quaternary)",
+  accent: "var(--brand)",
+  accentBg: "var(--brand-soft)",
+  cyan: "var(--brand)",
   hot: "#4ade80",
   hotBd: "rgba(74,222,128,0.25)",
   warm: "#f5b544",
   warmBd: "rgba(245,181,68,0.25)",
   r: { sm: "4px", md: "6px", lg: "12px" },
-  mono: "'JetBrains Mono','Fira Code',monospace",
+  mono: "var(--font-code)",
 };
 
 /* ─── Syntax highlight helpers ───────────────────────────────── */
@@ -481,7 +481,7 @@ export default function DocsView() {
       {/* ── Sticky nav ── */}
       <nav style={{
         position: "sticky", top: "36px", zIndex: 40, height: "56px",
-        background: "rgba(5,6,8,0.90)", backdropFilter: "blur(12px)",
+        background: "var(--bg-translucent)", backdropFilter: "blur(12px)",
         borderBottom: `1px solid ${T.borderSubtle}`,
         display: "flex", alignItems: "center",
       }}>
@@ -491,14 +491,14 @@ export default function DocsView() {
           </Link>
           <div className="mkt-navlinks" style={{ display: "flex", gap: "4px" }}>
             {["Product", "Autopilot", "Developers", "Pricing", "Customers", "Company"].map(label => (
-              <a key={label} href={label === "Developers" ? "#quickstart" : "#"} style={{ fontSize: "13px", padding: "5px 10px", borderRadius: T.r.md, color: label === "Developers" ? T.txt : T.txtTert, background: label === "Developers" ? "rgba(255,255,255,0.05)" : "transparent", letterSpacing: "-0.006em", textDecoration: "none" }}>
+              <a key={label} href={label === "Developers" ? "#quickstart" : "#"} style={{ fontSize: "13px", padding: "5px 10px", borderRadius: T.r.md, color: label === "Developers" ? T.txt : T.txtTert, background: label === "Developers" ? "var(--muted)" : "transparent", letterSpacing: "-0.006em", textDecoration: "none" }}>
                 {label}
               </a>
             ))}
           </div>
           <div style={{ display: "flex", gap: "8px", marginLeft: "auto" }}>
-            <Link href="/login" style={{ fontSize: "13px", padding: "5px 12px", borderRadius: "999px", color: T.txtSec, border: `1px solid ${T.border}`, background: "transparent", textDecoration: "none" }}>Sign in</Link>
-            <Link href="/signup" style={{ fontSize: "13px", padding: "5px 14px", borderRadius: "999px", color: "#000000", background: T.accent, textDecoration: "none", fontWeight: 500 }}>Get API key</Link>
+            <Link href="/login" style={{ fontSize: "13px", padding: "6px 12px", borderRadius: T.r.md, color: T.txtSec, border: `1px solid ${T.border}`, background: "var(--background)", textDecoration: "none" }}>Sign in</Link>
+            <Link href="/signup" style={{ fontSize: "13px", padding: "6px 14px", borderRadius: T.r.md, color: "#000000", background: T.accent, textDecoration: "none", fontWeight: 500 }}>Get API key</Link>
           </div>
         </div>
       </nav>

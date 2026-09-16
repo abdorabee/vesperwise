@@ -428,7 +428,7 @@ export function HistoryView({ stats }: HistoryViewProps) {
     <div className="hist-page">
       <div className="page-head">
         <div>
-          <div className="page-title">Score history</div>
+          <h1 className="page-title">Score history</h1>
           <div className="page-sub">
             Every account you&apos;ve scored —{" "}
             <span className="mono" style={{ color: "var(--text-secondary)" }}>{stats.totalCount.toLocaleString()}</span> runs

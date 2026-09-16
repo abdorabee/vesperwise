@@ -140,10 +140,10 @@ export function PeopleView({ totalCount, hotCount, initialScores }: PeopleViewPr
 
       {/* ── LIST STATE ── */}
       {pageState === "list" && (
-        <div className="page">
+        <div className="people-page">
           <div className="page-head">
             <div>
-              <div className="page-title">People</div>
+              <h1 className="page-title">People</h1>
               <div className="page-sub">
                 Score the human, not just the logo ·{" "}
                 <span className="mono" style={{ color: "var(--text-secondary)" }}>{totalCount}</span> people indexed

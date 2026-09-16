@@ -118,7 +118,7 @@ export function signalAxesFromSet(signals: SignalSet): SignalAxis[] {
       label: meta.label,
       score: sig.score,
       max: sig.max,
-      detail: sig.detail,
+      detail: sig.status === "unavailable" || sig.status === "not_found" ? "Unavailable" : sig.detail,
       observed_at: sig.observed_at ?? null,
       source: sig.source,
       context: meta.context,

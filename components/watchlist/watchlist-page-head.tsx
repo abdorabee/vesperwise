@@ -20,7 +20,7 @@ export function WatchlistPageHead({ stats, range, onRangeChange, onExport }: Wat
   return (
     <div className="page-head">
       <div>
-        <div className="page-title">Watchlist</div>
+        <h1 className="page-title">Watchlist</h1>
         <div className="page-sub">
           {stats.total} account{stats.total === 1 ? "" : "s"} · {stats.hotCrossedToday} threshold
           {stats.hotCrossedToday === 1 ? "" : "s"} tripped today · last refresh{" "}

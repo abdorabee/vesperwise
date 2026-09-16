@@ -7,23 +7,23 @@ import VesperWiseLogo from "@/components/vesperwise-logo";
 
 /* ── Design tokens ───────────────────────────────────────────── */
 const T = {
-  bg:            "#08090a",
-  bgEl:          "#0e1011",
-  surface:       "#131517",
-  txtPrimary:    "#f7f8f8",
-  txtSecondary:  "#b4bbc8",
-  txtTertiary:   "#8a8f98",
-  txtQuaternary: "#62666d",
-  border:        "rgba(255,255,255,0.08)",
-  borderStrong:  "rgba(255,255,255,0.13)",
-  accent:        "#dfff00",
-  accent2:       "#e8ff40",
-  cyan:          "#dfff00",
-  cyanSoft:      "rgba(223,255,0,0.16)",
+  bg:            "var(--background)",
+  bgEl:          "var(--card)",
+  surface:       "var(--popover)",
+  txtPrimary:    "var(--foreground)",
+  txtSecondary:  "var(--text-secondary)",
+  txtTertiary:   "var(--muted-foreground)",
+  txtQuaternary: "var(--text-quaternary)",
+  border:        "var(--border)",
+  borderStrong:  "var(--border-strong)",
+  accent:        "var(--brand)",
+  accent2:       "var(--brand-hover)",
+  cyan:          "var(--brand)",
+  cyanSoft:      "var(--brand-soft)",
   hot:           "#4ade80",
   warm:          "#f5b544",
-  fontSans:      "Inter, -apple-system, BlinkMacSystemFont, system-ui, sans-serif",
-  fontMono:      "'JetBrains Mono', ui-monospace, SFMono-Regular, monospace",
+  fontSans:      "var(--font-sans)",
+  fontMono:      "var(--font-sans)",
 };
 
 const NAV_LINKS = [
@@ -206,20 +206,20 @@ export default function ContactView() {
     <div style={{ background: T.bg, color: T.txtPrimary, fontFamily: T.fontSans, WebkitFontSmoothing: "antialiased", MozOsxFontSmoothing: "grayscale" } as React.CSSProperties}>
       <style>{`
         html { scroll-behavior: smooth; }
-        .ch-card:hover { border-color: rgba(255,255,255,0.13) !important; background: rgba(255,255,255,0.02) !important; }
-        .ch-card:hover .ch-arrow { color: #f7f8f8 !important; transform: translateX(2px) !important; }
-        .nav-link-hover:hover { color: #f7f8f8 !important; background: rgba(255,255,255,0.04) !important; }
+        .ch-card:hover { border-color: var(--border-strong) !important; background: var(--muted) !important; }
+        .ch-card:hover .ch-arrow { color: var(--foreground) !important; transform: translateX(2px) !important; }
+        .nav-link-hover:hover { color: var(--foreground) !important; background: var(--muted) !important; }
         .field-input:focus { border-color: #dfff00 !important; background: rgba(223,255,0,0.04) !important; }
         .field-input::placeholder { color: #62666d; }
         .reason-chip { transition: border-color 0.15s, background 0.15s, color 0.15s; }
-        .reason-chip:hover:not(.active) { border-color: rgba(255,255,255,0.13) !important; }
-        .faq-item:hover { border-color: rgba(255,255,255,0.13) !important; }
+        .reason-chip:hover:not(.active) { border-color: var(--border-strong) !important; }
+        .faq-item:hover { border-color: var(--border-strong) !important; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
         .pulse-dot { animation: pulse 2s infinite; }
       `}</style>
 
       {/* ── Sticky banner ── */}
-      <div style={{ position: "sticky", top: 0, zIndex: 100, height: "36px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "13px", color: T.txtSecondary, background: "rgba(8,9,10,0.92)", backdropFilter: "saturate(180%) blur(20px)", WebkitBackdropFilter: "saturate(180%) blur(20px)", borderBottom: `1px solid ${T.border}`, letterSpacing: "-0.011em", gap: 0 } as React.CSSProperties}>
+      <div style={{ position: "sticky", top: 0, zIndex: 100, height: "36px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "13px", color: T.txtSecondary, background: "var(--bg-translucent)", backdropFilter: "saturate(180%) blur(20px)", WebkitBackdropFilter: "saturate(180%) blur(20px)", borderBottom: `1px solid ${T.border}`, letterSpacing: "-0.011em", gap: 0 } as React.CSSProperties}>
         <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", marginRight: "10px", fontSize: "11px", fontWeight: 600, color: T.cyan, background: T.cyanSoft, padding: "1px 8px", borderRadius: "999px" }}>Sales</span>
         <strong style={{ color: T.txtPrimary, fontWeight: 500 }}>Median response time</strong>
         <span style={{ margin: "0 6px", color: T.txtQuaternary }}>·</span>
@@ -232,7 +232,7 @@ export default function ContactView() {
       </div>
 
       {/* ── Sticky nav ── */}
-      <nav style={{ position: "sticky", top: "36px", zIndex: 50, background: "rgba(8,9,10,0.72)", backdropFilter: "saturate(180%) blur(20px)", WebkitBackdropFilter: "saturate(180%) blur(20px)", borderBottom: `1px solid ${T.border}` } as React.CSSProperties}>
+      <nav style={{ position: "sticky", top: "36px", zIndex: 50, background: "var(--bg-translucent)", backdropFilter: "saturate(180%) blur(20px)", WebkitBackdropFilter: "saturate(180%) blur(20px)", borderBottom: `1px solid ${T.border}` } as React.CSSProperties}>
         <div style={{ display: "flex", alignItems: "center", height: "56px", padding: "0 24px", maxWidth: "1320px", margin: "0 auto", gap: "28px" }}>
           <Link href="/" aria-label="VesperWise home" style={{ display: "inline-flex", alignItems: "center", gap: "8px", fontWeight: 600, letterSpacing: "-0.022em", fontSize: "15px", color: T.txtPrimary, textDecoration: "none" }}>
             <VesperWiseLogo size={42} variant="wordmark" />
@@ -320,10 +320,10 @@ export default function ContactView() {
               { city: "Cairo · HQ", flag: "EG", addr: "5 Sherif Pasha St.\nDowntown Cairo, 11511" },
               { city: "San Francisco", flag: "US", addr: "340 Brannan St., 4th fl.\nSan Francisco, CA 94107" },
             ].map((o) => (
-              <div key={o.flag} style={{ border: `1px solid rgba(255,255,255,0.05)`, background: "rgba(255,255,255,0.012)", borderRadius: "8px", padding: "14px 16px" }}>
+              <div key={o.flag} style={{ border: `1px solid ${T.border}`, background: T.bgEl, borderRadius: "8px", padding: "14px 16px" }}>
                 <div style={{ fontSize: "14px", fontWeight: 500, color: T.txtPrimary, letterSpacing: "-0.011em", display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
                   {o.city}
-                  <span style={{ fontFamily: T.fontMono, fontSize: "10px", padding: "1px 6px", borderRadius: "4px", background: "rgba(255,255,255,0.05)", color: T.txtTertiary, letterSpacing: "0.04em" }}>{o.flag}</span>
+                  <span style={{ fontFamily: T.fontMono, fontSize: "10px", padding: "1px 6px", borderRadius: "4px", background: "var(--muted)", color: T.txtTertiary, letterSpacing: "0.04em" }}>{o.flag}</span>
                 </div>
                 <div style={{ fontSize: "12px", color: T.txtTertiary, lineHeight: 1.5, letterSpacing: "-0.006em", whiteSpace: "pre-line" }}>{o.addr}</div>
               </div>
@@ -351,7 +351,7 @@ export default function ContactView() {
                   type="button"
                   className="reason-chip"
                   onClick={() => setReason(id)}
-                  style={{ padding: "6px 12px", border: `1px solid ${active ? "rgba(223,255,0,0.35)" : T.border}`, borderRadius: "999px", background: active ? "rgba(223,255,0,0.12)" : "rgba(255,255,255,0.02)", fontSize: "12px", color: active ? "#dfff00" : T.txtSecondary, cursor: "pointer", letterSpacing: "-0.006em", fontFamily: T.fontSans }}
+                   style={{ padding: "6px 12px", border: `1px solid ${active ? "var(--brand-border)" : T.border}`, borderRadius: "6px", background: active ? "var(--brand-soft)" : "var(--background)", fontSize: "12px", color: active ? T.txtPrimary : T.txtSecondary, cursor: "pointer", letterSpacing: "-0.006em", fontFamily: T.fontSans }}
                 >
                   {label}
                 </button>
@@ -464,7 +464,7 @@ export default function ContactView() {
       </div>
 
       {/* ── FAQ strip ── */}
-      <section style={{ borderTop: `1px solid ${T.border}`, background: "#050608", padding: "64px 0" }}>
+       <section style={{ borderTop: `1px solid ${T.border}`, background: T.bgEl, padding: "64px 0" }}>
         <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 24px" }}>
           <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: "48px" }}>
             <div>

@@ -86,7 +86,7 @@ const LINE_NUMBER_CLASSES = cn(
   "before:mr-4",
   "before:text-right",
   "before:text-muted-foreground/50",
-  "before:font-mono",
+  "before:[font-family:var(--font-code)]",
   "before:select-none"
 );
 
@@ -278,7 +278,7 @@ const CodeBlockBody = memo(
       >
         <code
           className={cn(
-            "font-mono text-sm",
+            "[font-family:var(--font-code)] text-sm",
             showLineNumbers && "[counter-increment:line_0] [counter-reset:line]"
           )}
         >
@@ -353,7 +353,7 @@ export const CodeBlockFilename = ({
   className,
   ...props
 }: HTMLAttributes<HTMLSpanElement>) => (
-  <span className={cn("font-mono", className)} {...props}>
+  <span className={cn("[font-family:var(--font-code)]", className)} {...props}>
     {children}
   </span>
 );
@@ -390,33 +390,27 @@ export const CodeBlockContent = ({
   );
 
   // Async highlighting result (populated after shiki loads)
-  const [asyncTokens, setAsyncTokens] = useState<TokenizedCode | null>(null);
-  const asyncKeyRef = useRef({ code, language });
-
-  // Invalidate stale async tokens synchronously during render
-  if (
-    asyncKeyRef.current.code !== code ||
-    asyncKeyRef.current.language !== language
-  ) {
-    asyncKeyRef.current = { code, language };
-    setAsyncTokens(null);
-  }
+  const tokenKey = getTokensCacheKey(code, language);
+  const [asyncResult, setAsyncResult] = useState<{
+    key: string;
+    tokens: TokenizedCode;
+  } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
 
     highlightCode(code, language, (result) => {
       if (!cancelled) {
-        setAsyncTokens(result);
+        setAsyncResult({ key: tokenKey, tokens: result });
       }
     });
 
     return () => {
       cancelled = true;
     };
-  }, [code, language]);
+  }, [code, language, tokenKey]);
 
-  const tokenized = asyncTokens ?? syncTokens;
+  const tokenized = asyncResult?.key === tokenKey ? asyncResult.tokens : syncTokens;
 
   return (
     <div className="relative overflow-auto">

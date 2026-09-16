@@ -150,7 +150,7 @@ export function WatchlistView({ initial }: WatchlistViewProps) {
   }
 
   return (
-    <div className="watchlist-page page">
+    <div className="watchlist-page">
       <WatchlistPageHead
         stats={stats}
         range={range}

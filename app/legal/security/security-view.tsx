@@ -5,23 +5,23 @@ import SiteFooter from "@/components/site-footer";
 import VesperWiseLogo from "@/components/vesperwise-logo";
 
 const T = {
-  bg:            "#08090a",
-  bgEl:          "#0e1011",
-  surface:       "#131517",
-  txtPrimary:    "#f7f8f8",
-  txtSecondary:  "#b4bbc8",
-  txtTertiary:   "#8a8f98",
-  txtQuaternary: "#62666d",
-  border:        "rgba(255,255,255,0.08)",
-  borderStrong:  "rgba(255,255,255,0.13)",
+  bg:            "var(--background)",
+  bgEl:          "var(--card)",
+  surface:       "var(--popover)",
+  txtPrimary:    "var(--foreground)",
+  txtSecondary:  "var(--text-secondary)",
+  txtTertiary:   "var(--muted-foreground)",
+  txtQuaternary: "var(--text-quaternary)",
+  border:        "var(--border)",
+  borderStrong:  "var(--border-strong)",
   borderSubtle:  "rgba(255,255,255,0.05)",
-  accent:        "#dfff00",
-  cyan:          "#dfff00",
-  cyanSoft:      "rgba(223,255,0,0.16)",
+  accent:        "var(--brand)",
+  cyan:          "var(--brand)",
+  cyanSoft:      "var(--brand-soft)",
   hot:           "#4ade80",
   warm:          "#f5b544",
-  fontSans:      "Inter, -apple-system, BlinkMacSystemFont, system-ui, sans-serif",
-  fontMono:      "'JetBrains Mono', ui-monospace, SFMono-Regular, monospace",
+  fontSans:      "var(--font-sans)",
+  fontMono:      "var(--font-sans)",
 };
 
 const NAV_LINKS = [
@@ -32,10 +32,6 @@ const NAV_LINKS = [
   { label: "Customers",  href: "/#"          },
   { label: "Company",    href: "/#"          },
 ];
-
-function Code({ children }: { children: React.ReactNode }) {
-  return <code style={{ fontFamily: T.fontMono, fontSize: "12px", padding: "1px 5px", borderRadius: "3px", background: "rgba(255,255,255,0.05)", color: T.txtPrimary }}>{children}</code>;
-}
 
 const CURRENT_CONTROLS = [
   {
@@ -101,7 +97,7 @@ export default function SecurityView() {
         html { scroll-behavior: smooth; }
       `}</style>
 
-      <nav style={{ position: "sticky", top: 0, zIndex: 50, background: "rgba(8,9,10,0.72)", backdropFilter: "saturate(180%) blur(20px)", WebkitBackdropFilter: "saturate(180%) blur(20px)", borderBottom: `1px solid ${T.border}` } as React.CSSProperties}>
+      <nav style={{ position: "sticky", top: 0, zIndex: 50, background: "var(--bg-translucent)", backdropFilter: "saturate(180%) blur(20px)", WebkitBackdropFilter: "saturate(180%) blur(20px)", borderBottom: `1px solid ${T.border}` } as React.CSSProperties}>
         <div style={{ display: "flex", alignItems: "center", height: "56px", padding: "0 24px", maxWidth: "1320px", margin: "0 auto", gap: "28px" }}>
           <Link href="/" aria-label="VesperWise home" style={{ display: "inline-flex", alignItems: "center", gap: "8px", fontWeight: 600, letterSpacing: "-0.022em", fontSize: "15px", color: T.txtPrimary, textDecoration: "none" }}>
             <VesperWiseLogo size={42} variant="wordmark" />
@@ -136,10 +132,10 @@ export default function SecurityView() {
             <span style={{ background: "linear-gradient(135deg, #dfff00 0%, #dfff00 50%, #e8ff40 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" } as React.CSSProperties}>VesperWise.</span>
           </h1>
           <p style={{ maxWidth: "620px", color: T.txtSecondary, fontSize: "clamp(16px, 1.25vw, 19px)", lineHeight: 1.55, letterSpacing: "-0.011em", marginBottom: "28px" }}>
-            VesperWise is an early-stage (v0.1) product built by a solo founder. This page describes the security controls we have today, what we're working toward, and what we don't yet have.
+            VesperWise is an early-stage (v0.1) product built by a solo founder. This page describes the security controls we have today, what we&apos;re working toward, and what we don&apos;t yet have.
           </p>
           <p style={{ maxWidth: "620px", color: T.txtTertiary, fontSize: "15px", lineHeight: 1.55, letterSpacing: "-0.011em" }}>
-            We're committed to transparency: if we don't have a control yet, we'll say so. We'll update this page as our security posture matures.
+            We&apos;re committed to transparency: if we don&apos;t have a control yet, we&apos;ll say so. We&apos;ll update this page as our security posture matures.
           </p>
         </div>
       </section>
@@ -186,7 +182,7 @@ export default function SecurityView() {
               In progress
             </div>
             <h2 style={{ fontSize: "clamp(28px, 4vw, 48px)", fontWeight: 500, letterSpacing: "-0.03em", lineHeight: 1.1, color: T.txtPrimary, marginBottom: "16px" }}>
-              What we're working on.
+              What we&apos;re working on.
             </h2>
             <p style={{ fontSize: "16px", color: T.txtTertiary, lineHeight: 1.55, letterSpacing: "-0.006em", maxWidth: "560px" }}>
               These improvements are planned as we scale.
@@ -214,10 +210,10 @@ export default function SecurityView() {
               Not yet available
             </div>
             <h2 style={{ fontSize: "clamp(28px, 4vw, 48px)", fontWeight: 500, letterSpacing: "-0.03em", lineHeight: 1.1, color: T.txtPrimary, marginBottom: "16px" }}>
-              What we don't have yet.
+              What we don&apos;t have yet.
             </h2>
             <p style={{ fontSize: "16px", color: T.txtTertiary, lineHeight: 1.55, letterSpacing: "-0.006em", maxWidth: "560px" }}>
-              We're honest about what we haven't built. This page will be updated as these become available.
+              We&apos;re honest about what we haven&apos;t built. This page will be updated as these become available.
             </p>
           </div>
 
@@ -248,7 +244,7 @@ export default function SecurityView() {
               Report a problem.
             </h2>
             <p style={{ fontSize: "16px", color: T.txtTertiary, lineHeight: 1.55, letterSpacing: "-0.006em", maxWidth: "560px", marginBottom: "24px" }}>
-              If you find a security issue, please email <a href="mailto:support@vesperwise.com" style={{ color: T.txtPrimary, textDecoration: "underline", textDecorationColor: T.borderStrong }}>support@vesperwise.com</a>. We don't have a formal bug bounty program yet, but we take security reports seriously and will respond promptly.
+              If you find a security issue, please email <a href="mailto:support@vesperwise.com" style={{ color: T.txtPrimary, textDecoration: "underline", textDecorationColor: T.borderStrong }}>support@vesperwise.com</a>. We don&apos;t have a formal bug bounty program yet, but we take security reports seriously and will respond promptly.
             </p>
             <p style={{ fontSize: "14px", color: T.txtTertiary, lineHeight: 1.55, letterSpacing: "-0.006em", maxWidth: "560px" }}>
               For other legal documents, see <Link href="/privacy" style={{ color: T.txtPrimary, textDecoration: "underline", textDecorationColor: T.borderStrong }}>Privacy</Link>, <Link href="/terms" style={{ color: T.txtPrimary, textDecoration: "underline", textDecorationColor: T.borderStrong }}>Terms</Link>, and <Link href="/legal/dpa" style={{ color: T.txtPrimary, textDecoration: "underline", textDecorationColor: T.borderStrong }}>DPA</Link>.

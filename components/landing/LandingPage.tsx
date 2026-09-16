@@ -192,7 +192,7 @@ export default function LandingPage() {
                     <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" width="10" height="10" className="x"><path d="M3 3l6 6M9 3l-6 6"/></svg>
                   </span>
                   <span className="filter-chip">+ Add filter</span>
-                  <div style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--text-tertiary)' }}>
+                  <div style={{ marginLeft: 'auto', fontFamily: 'var(--font-sans)', fontSize: '11px', color: 'var(--text-tertiary)' }}>
                     247 results
                   </div>
                 </div>
@@ -1354,7 +1354,7 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <p style={{ textAlign: 'center', marginTop: '18px', fontSize: '12px', color: 'var(--text-quaternary)', fontFamily: 'var(--font-mono)', letterSpacing: '0.04em' }}>
+          <p style={{ textAlign: 'center', marginTop: '18px', fontSize: '12px', color: 'var(--text-quaternary)', fontFamily: 'var(--font-sans)', letterSpacing: '0.04em' }}>
             Need 25,000+ scores? <a href="/contact#contact-form" style={{ color: 'var(--text-secondary)', textDecoration: 'underline', textDecorationColor: 'var(--border-strong)' }}>Contact us for Agency pricing ($499/mo) →</a>
           </p>
         </div>
@@ -1374,7 +1374,7 @@ export default function LandingPage() {
             </a>
             <a href="/contact#contact-form" className="btn btn-secondary btn-lg">Contact us</a>
           </div>
-          <p style={{ marginTop: '24px', fontSize: '12px', color: 'var(--text-quaternary)', fontFamily: 'var(--font-mono)', letterSpacing: '0.04em' }}>
+          <p style={{ marginTop: '24px', fontSize: '12px', color: 'var(--text-quaternary)', fontFamily: 'var(--font-sans)', letterSpacing: '0.04em' }}>
             20 FREE CREDITS · NO CARD · COVERAGE-AWARE SCORES
           </p>
         </div>

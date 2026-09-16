@@ -2,7 +2,18 @@
 
 import Link from "next/link";
 import { useUser, SignOutButton } from "@clerk/nextjs";
-import { CreditCard, EllipsisVertical, LogOut, Moon, Settings, Sun } from "lucide-react";
+import {
+  ChevronsUpDown,
+  CircleHelp,
+  CreditCard,
+  Key,
+  LogOut,
+  Moon,
+  Search,
+  Settings,
+  Sun,
+} from "lucide-react";
+import { useDashboardSearch } from "@/components/dashboard/search-provider";
 import {
   Avatar,
   AvatarFallback,
@@ -21,14 +32,46 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  useSidebar,
 } from "@/components/ui/sidebar";
 import { useTheme } from "@/components/theme-provider";
 
-export function NavUser() {
-  const { isMobile } = useSidebar();
+interface NavUserProps {
+  creditsRemaining: number;
+  creditCap: number;
+}
+
+function AccountCredits({ creditsRemaining, creditCap }: NavUserProps) {
+  const creditPct =
+    creditCap > 0 ? Math.min(100, Math.round((creditsRemaining / creditCap) * 100)) : 0;
+
+  return (
+    <div data-slot="account-credits" className="px-2 py-1.5 text-xs">
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-muted-foreground">Credits</span>
+        <Link href="/billing" className="font-medium underline-offset-4 hover:underline">
+          Top up
+        </Link>
+      </div>
+      <div className="mt-1 font-medium tabular-nums">
+        {creditsRemaining.toLocaleString()}
+        <span className="font-normal text-muted-foreground">
+          {" "}/ {creditCap.toLocaleString()}
+        </span>
+      </div>
+      <div className="mt-2 h-1 overflow-hidden rounded-full bg-muted">
+        <div
+          className="h-full rounded-full bg-primary transition-[width] motion-reduce:transition-none"
+          style={{ width: `${creditPct}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+export function NavUser({ creditsRemaining, creditCap }: NavUserProps) {
   const { user } = useUser();
   const { theme, toggleTheme } = useTheme();
+  const { open: openSearch } = useDashboardSearch();
 
   const displayName = user?.fullName || user?.firstName || "Account";
   const email = user?.primaryEmailAddress?.emailAddress ?? "";
@@ -55,12 +98,15 @@ export function NavUser() {
                 <span className="truncate font-medium">{displayName}</span>
                 <span className="truncate text-xs text-muted-foreground">{email}</span>
               </div>
-              <EllipsisVertical className="ml-auto size-4" />
+              <span className="sr-only">
+                {creditsRemaining.toLocaleString()} of {creditCap.toLocaleString()} credits remaining
+              </span>
+              <ChevronsUpDown className="ml-auto size-4" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
             className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
-            side={isMobile ? "bottom" : "right"}
+            side="bottom"
             align="end"
             sideOffset={4}
           >
@@ -77,7 +123,13 @@ export function NavUser() {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
+            <AccountCredits creditsRemaining={creditsRemaining} creditCap={creditCap} />
+            <DropdownMenuSeparator />
             <DropdownMenuGroup>
+              <DropdownMenuItem onClick={openSearch}>
+                <Search />
+                Search
+              </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href="/settings">
                   <Settings />
@@ -88,6 +140,18 @@ export function NavUser() {
                 <Link href="/billing">
                   <CreditCard />
                   Billing
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/api-keys">
+                  <Key />
+                  API Keys
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/docs">
+                  <CircleHelp />
+                  Get Help
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={toggleTheme}>

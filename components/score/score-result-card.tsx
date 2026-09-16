@@ -335,7 +335,7 @@ function CompetitiveAnalysis({
                 {companyPoints.map(([x, y], i) => (
                   <circle key={i} cx={x} cy={y} r="3" fill="#4ade80" />
                 ))}
-                <g fontFamily="JetBrains Mono" fontSize="9" fill="#8a8f98">
+                <g fontFamily="var(--font-sans)" fontSize="9" fill="#8a8f98">
                   {RADAR_ANGLES.map((a, i) => {
                     const lx = Math.cos(a) * (R + 14);
                     const ly = Math.sin(a) * (R + 14);

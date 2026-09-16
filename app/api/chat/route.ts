@@ -4,11 +4,13 @@ import { createOpenAI } from "@ai-sdk/openai";
 import { isStepCount, streamText, type ModelMessage } from "ai";
 
 import { createSupabaseAdmin } from "@/lib/supabase";
+import { isDevCreditBypassEnabled } from "@/lib/dev-credit-bypass";
 import { buildCopilotContext, buildCopilotSystemPrompt } from "@/lib/copilot";
 import { copilotSdkTools } from "@/lib/copilot-ai-tools";
 import { CHAT_CREDIT_COST } from "@/lib/types";
 import type { DbUser } from "@/lib/types";
 import { sanitizeUiBlocks } from "@/lib/gen-ui";
+import { serializePresentation, type ToolChip } from "@/lib/score-presentation";
 
 const COPILOT_MODEL = process.env.COPILOT_MODEL ?? "anthropic/claude-sonnet-4";
 const COPILOT_MAX_TOKENS = Number(process.env.COPILOT_MAX_TOKENS) || 1024;
@@ -54,6 +56,10 @@ export async function POST(req: NextRequest) {
   }
 
   const supabase = createSupabaseAdmin();
+  const bypassCredits = isDevCreditBypassEnabled();
+  const billingLabel = bypassCredits
+    ? "Testing mode · no credit charged"
+    : `${CHAT_CREDIT_COST} credits`;
 
   const { data: user } = await supabase
     .from("users")
@@ -63,7 +69,7 @@ export async function POST(req: NextRequest) {
 
   if (!user) return new Response(JSON.stringify({ error: "User not found" }), { status: 404 });
 
-  if (user.credits_remaining < CHAT_CREDIT_COST) {
+  if (!bypassCredits && user.credits_remaining < CHAT_CREDIT_COST) {
     return new Response(JSON.stringify({ error: "Insufficient credits" }), { status: 402 });
   }
 
@@ -111,7 +117,9 @@ export async function POST(req: NextRequest) {
     content: persistContent,
   });
 
-  await supabase.rpc("deduct_chat_credit", { p_user_id: userId, p_amount: CHAT_CREDIT_COST });
+  if (!bypassCredits) {
+    await supabase.rpc("deduct_chat_credit", { p_user_id: userId, p_amount: CHAT_CREDIT_COST });
+  }
 
   const context = await buildCopilotContext(userId);
   const instructions = buildCopilotSystemPrompt(user as DbUser, context);
@@ -150,6 +158,8 @@ export async function POST(req: NextRequest) {
         });
 
         let fullAssistantText = "";
+        let presentation = [] as ReturnType<typeof sanitizeUiBlocks>;
+        let streamedTools: ToolChip[] = [];
 
         for await (const part of result.fullStream) {
           if (part.type === "text-delta") {
@@ -158,18 +168,21 @@ export async function POST(req: NextRequest) {
             continue;
           }
           if (part.type === "tool-call") {
+            streamedTools = [...streamedTools, { name: part.toolName, status: "running" }];
             send({ type: "tool_call", name: part.toolName, args: part.input ?? {} });
             continue;
           }
           if (part.type === "tool-result") {
             const output = part.output;
+            streamedTools = streamedTools.map((tool) => tool.name === part.toolName && tool.status === "running" ? { ...tool, status: "done", result: output } : tool);
             if (part.toolName === "present_ui") {
               const blocks = sanitizeUiBlocks(
                 output && typeof output === "object" && "blocks" in output
                   ? (output as { blocks: unknown }).blocks
                   : output
               );
-              send({ type: "ui", blocks });
+              presentation = blocks;
+              send({ type: "ui", blocks, billing: billingLabel });
             }
             send({ type: "tool_result", name: part.toolName, result: output });
             continue;
@@ -188,11 +201,14 @@ export async function POST(req: NextRequest) {
           }
         }
 
-        if (fullAssistantText) {
+        if (fullAssistantText || presentation.length > 0) {
           await supabase.from("chat_messages").insert({
             session_id: sessionId,
             role: "assistant",
             content: fullAssistantText,
+            tool_result: presentation.length > 0
+              ? serializePresentation({ presentation, tools: streamedTools, billing: billingLabel })
+              : null,
           });
         }
 

@@ -132,7 +132,7 @@ export default function DashboardHomeView({
       {/* ── Page head ─────────────────────────────────────────────────── */}
       <div className="page-head">
         <div>
-          <div className="page-title">Dashboard</div>
+          <h1 className="page-title">Dashboard</h1>
           <div className="page-sub">
             <span style={{ fontFamily: "var(--font-mono)", color: "var(--text-secondary)" }}>{totalTracked}</span>
             {" accounts tracked · "}
