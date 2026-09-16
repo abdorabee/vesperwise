@@ -140,7 +140,7 @@ export function PeopleView({ totalCount, hotCount, initialScores }: PeopleViewPr
 
       {/* ── LIST STATE ── */}
       {pageState === "list" && (
-        <div className="page">
+        <div className="people-page">
           <div className="page-head">
             <div>
               <h1 className="page-title">People</h1>

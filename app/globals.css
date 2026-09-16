@@ -125,7 +125,7 @@
   --chart-3: #f5b544;
   --chart-4: #e8ff40;
   --chart-5: #8a8f98;
-  --sidebar: #000000;
+  --sidebar: #0b0c0d;
   --sidebar-foreground: #a0a0a0;
   --sidebar-primary: var(--brand, #dfff00);
   --sidebar-primary-foreground: #000000;
@@ -566,19 +566,7 @@ details.nav-dd[open] .nav-chevron {
 /* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
    Reset
    â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-/*
- * Scoped exclusion: this reset is unlayered, so per CSS Cascade Layers it
- * always wins over Tailwind's own (layered) utility classes site-wide —
- * every `p-*`/`px-*`/`m-*` etc. utility is silently nullified everywhere.
- * The rest of this app avoids the problem by using bespoke classes with
- * their own explicit padding/margin (also unlayered, so they still win via
- * normal specificity/order). The onboarding redesign at .onboarding-shell
- * is built with Tailwind spacing utilities throughout, so it's excluded
- * here rather than changing behavior for the whole app in one sweep.
- */
-*:not(.onboarding-shell, .onboarding-shell *),
-*:not(.onboarding-shell, .onboarding-shell *)::before,
-*:not(.onboarding-shell, .onboarding-shell *)::after { box-sizing: border-box; margin: 0; padding: 0; }
+/* Tailwind preflight owns the global box-model reset so utilities keep their spacing. */
 html { scroll-behavior: smooth; }
 body {
   background: var(--bg);
@@ -2436,16 +2424,7 @@ footer.site-footer {
 .notif:hover { background: rgba(255,255,255,0.06); color: var(--text-primary); }
 .notif .dot { position: absolute; top: 6px; right: 7px; width: 6px; height: 6px; border-radius: 999px; background: var(--hot); box-shadow: 0 0 6px var(--hot), 0 0 0 2px #0e1011; }
 
-/* Page body */
-.page { flex: 1; overflow: auto; padding: 20px 28px 40px; }
-.page.page-flush {
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-}
+/* Route gutters are owned by PageContainer in the dashboard shell. */
 .page-head { display: flex; align-items: flex-end; justify-content: space-between; padding-bottom: 18px; margin-bottom: 18px; border-bottom: 1px solid var(--border-subtle); }
 .page-title { font-size: 22px; font-weight: 500; letter-spacing: -0.024em; line-height: 1.2; color: var(--text-primary); margin-bottom: 4px; }
 .page-sub { font-size: 13px; color: var(--text-tertiary); letter-spacing: -0.006em; }
@@ -3148,8 +3127,8 @@ footer.site-footer {
    Result state (scrollable column)
    â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .result-page {
-  flex: 1; overflow-y: auto;
-  padding: 18px 28px 60px;
+  flex: 1;
+  min-width: 0;
 }
 
 .score-chat {
@@ -6562,7 +6541,7 @@ button.signal-card.gen-axis.is-selected {
 
 /* â”€â”€ Billing page CSS (ported from IntentIQ Billing.html) â€” unlayered â”€â”€ */
 
-/* page-flush fill + reset landing .section-head leakage */
+/* Billing layout + reset landing .section-head leakage */
 .billing-page {
   flex: 1;
   min-height: 0;
@@ -6599,8 +6578,6 @@ button.signal-card.gen-axis.is-selected {
   flex: 1; min-height: 0;
 }
 .billing-page .bill-content {
-  overflow-y: auto;
-  padding: 24px 28px 60px;
   min-width: 0;
 }
 .billing-page .bill-inner { max-width: 1280px; margin: 0 auto; }
@@ -8825,17 +8802,6 @@ button.signal-card.gen-axis.is-selected {
     font-weight: 650;
   }
 
-  .page,
-  .result-page,
-  .billing-page .bill-content {
-    padding: clamp(18px, 3vw, 36px);
-    scroll-padding-top: 96px;
-  }
-
-  .page.page-flush {
-    padding: 0;
-  }
-
   .page-head,
   .billing-page .bill-head,
   .p-head {
@@ -9146,13 +9112,6 @@ button.signal-card.gen-axis.is-selected {
     border-radius: 20px;
     overflow: hidden;
     background: color-mix(in oklab, var(--surface-raised) 48%, transparent);
-  }
-
-  .page-flush .inbox-shell,
-  .page-flush .billing-page,
-  .page-flush .ap-shell {
-    border-radius: 0;
-    border: 0;
   }
 
   .inbox-cats,
@@ -9598,7 +9557,7 @@ button.signal-card.gen-axis.is-selected {
 }
 
 /* ── Narrow viewports ─────────────────────────── */
-@media (max-width: 900px) {
+@media (max-width: 1100px) {
   .settings-page .set-shell { grid-template-columns: minmax(0, 1fr); gap: 16px; }
   .settings-page .set-rail {
     position: static;
@@ -9611,18 +9570,4 @@ button.signal-card.gen-axis.is-selected {
   .settings-page .set-rail-sub { display: none; }
   .settings-page .set-row { grid-template-columns: minmax(0, 1fr); gap: 10px; }
   .settings-page .set-panel .page-head { flex-direction: column; gap: 12px; }
-}
-
-/* ─── Shadcn Blocks dashboard shell (Pass 1) ─────────────────────────────── */
-[data-slot="sidebar-inset"] > .page {
-  min-height: 0;
-}
-[data-slot="sidebar-inset"] .page .page {
-  padding: 0;
-}
-[data-sidebar="menu-button"][data-active="true"] {
-  box-shadow: inset 2px 0 0 var(--brand);
-}
-[data-sidebar="menu-button"][data-active="true"] svg {
-  color: var(--brand);
 }

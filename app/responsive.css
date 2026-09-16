@@ -218,12 +218,6 @@ button, a, [role="button"] { touch-action: manipulation; }
     padding-inline: 14px;
   }
 
-  .page,
-  .result-page,
-  .billing-page .bill-content {
-    padding: 18px 16px 36px !important;
-  }
-
   .page-title,
   .billing-page .bill-head .title,
   .p-title,

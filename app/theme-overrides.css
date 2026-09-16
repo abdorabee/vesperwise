@@ -353,16 +353,6 @@ html:not(.dark) .cmd-palette .kbd {
   color: var(--text-tertiary);
 }
 
-/* Shared application surfaces */
-.page:not(.page-flush) {
-  padding: clamp(1rem, 2.2vw, 2rem);
-}
-
-.page:not(.page-flush) > * {
-  width: min(100%, 92rem);
-  margin-inline: auto;
-}
-
 .page-head {
   align-items: flex-end;
   gap: 1rem;

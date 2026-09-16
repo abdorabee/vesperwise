@@ -31,7 +31,10 @@ import {
 import { Suggestion, Suggestions } from "@/components/ai-elements/suggestion";
 import { Tool, ToolHeader } from "@/components/ai-elements/tool";
 import { EmptyState, PageHeader, PageSurface } from "@/components/app-ui/page-primitives";
-import { ScoreWorkspaceLayout } from "@/components/score/score-workspace-layout";
+import {
+  ScorePageFrame,
+  ScoreWorkspaceLayout,
+} from "@/components/score/score-workspace-layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -187,7 +190,7 @@ function submitPromptText(text: string, onSubmit: (value: string) => void) {
 
 function ScorePromptStage({ onScore, creditsRemaining, recentScores, busy }: ScorePromptStageProps) {
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 p-4 sm:p-6 lg:p-8">
+    <ScorePageFrame mode="entry">
       <PageHeader
         eyebrow="Account research"
         title="Score a company"
@@ -297,7 +300,7 @@ function ScorePromptStage({ onScore, creditsRemaining, recentScores, busy }: Sco
           </div>
         </PageSurface>
       ) : null}
-    </div>
+    </ScorePageFrame>
   );
 }
 
@@ -659,7 +662,7 @@ export function ScoreView({ creditsRemaining, recentScores }: ScoreViewProps) {
           busy={busy}
         />
       ) : (
-        <div className="mx-auto flex min-h-0 w-full max-w-[96rem] flex-1 flex-col gap-5 p-4 sm:p-6 lg:p-8">
+        <ScorePageFrame mode="workspace">
           <PageHeader
             eyebrow="Account research"
             title="Score workspace"
@@ -681,7 +684,7 @@ export function ScoreView({ creditsRemaining, recentScores }: ScoreViewProps) {
             composer={composer}
             evidence={evidence}
           />
-        </div>
+        </ScorePageFrame>
       )}
     </div>
   );

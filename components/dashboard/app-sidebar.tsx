@@ -8,7 +8,6 @@ import { cn } from "@/lib/utils";
 import { PLAN_CREDITS, type DbUser } from "@/lib/types";
 import { getWorkspaceLabel } from "@/lib/workspace-label";
 import { useDashboardSearch } from "@/components/dashboard/search-provider";
-import VesperWiseLogo from "@/components/vesperwise-logo";
 import {
   HELP_ITEM,
   NAV_LIBRARY,
@@ -18,6 +17,7 @@ import {
   type NavItem,
 } from "@/components/dashboard/nav-config";
 import { NavUser } from "@/components/dashboard/nav-user";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Sidebar,
   SidebarContent,
@@ -72,7 +72,7 @@ function NavRow({
     <SidebarMenuItem>
       <SidebarMenuButton asChild isActive={active} tooltip={item.label}>
         <Link href={item.href}>
-          <Icon className={cn(active && "text-[var(--brand)]")} />
+          <Icon />
           <span>{item.label}</span>
           {item.comingSoon ? (
             <span className="ml-auto text-[9px] font-bold uppercase tracking-wide text-muted-foreground group-data-[collapsible=icon]:hidden">
@@ -124,111 +124,136 @@ export function AppSidebar({
   const HelpIcon = HELP_ITEM.icon;
 
   return (
-    <Sidebar collapsible="icon" variant="inset" {...props}>
+    <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
-              className="data-[slot=sidebar-menu-button]:p-1.5!"
+              size="lg"
+              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
               tooltip="VesperWise"
             >
               <Link href="/dashboard">
-                <VesperWiseLogo className="size-5!" size={20} />
-                <span className="text-base font-semibold">VesperWise</span>
+                <span
+                  aria-hidden="true"
+                  className="flex aspect-square size-8 shrink-0 items-center justify-center rounded-sm bg-primary text-xs font-bold tracking-[-0.04em] text-black"
+                >
+                  W.
+                </span>
+                <span className="grid min-w-0 flex-1 gap-0.5 text-left leading-none">
+                  <span className="truncate font-semibold text-sidebar-accent-foreground">
+                    VesperWise
+                  </span>
+                  <span className="truncate text-xs font-normal text-muted-foreground">
+                    {workspaceLabel} · {plan}
+                  </span>
+                </span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
 
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {NAV_MAIN.map((item) => (
-                <NavRow
-                  key={`${item.href}-${item.label}`}
-                  item={item}
-                  pathname={pathname}
-                  counts={counts}
-                />
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+      <SidebarContent className="overflow-hidden">
+        <ScrollArea className="min-h-0 flex-1">
+          <SidebarGroup>
+            <SidebarGroupLabel>Overview</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {NAV_MAIN.map((item) => (
+                  <NavRow
+                    key={`${item.href}-${item.label}`}
+                    item={item}
+                    pathname={pathname}
+                    counts={counts}
+                  />
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
 
-        <SidebarGroup className="group-data-[collapsible=icon]:hidden">
-          <SidebarGroupLabel>Library</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {NAV_LIBRARY.map((item) => (
-                <NavRow
-                  key={`${item.href}-${item.label}`}
-                  item={item}
-                  pathname={pathname}
-                  counts={counts}
-                />
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+          <SidebarGroup>
+            <SidebarGroupLabel>Library</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {NAV_LIBRARY.map((item) => (
+                  <NavRow
+                    key={`${item.href}-${item.label}`}
+                    item={item}
+                    pathname={pathname}
+                    counts={counts}
+                  />
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
 
-        <SidebarGroup className="mt-auto">
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {NAV_SECONDARY.map((item) => (
-                <NavRow
-                  key={`${item.href}-${item.label}`}
-                  item={item}
-                  pathname={pathname}
-                  counts={counts}
-                />
-              ))}
-              <SidebarMenuItem>
-                <SidebarMenuButton tooltip="Search" onClick={openSearch}>
-                  <Search />
-                  <span>Search</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip={HELP_ITEM.label}>
-                  <Link href={HELP_ITEM.href}>
-                    <HelpIcon />
-                    <span>{HELP_ITEM.label}</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+          <SidebarGroup>
+            <SidebarGroupLabel>Workspace</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {NAV_SECONDARY.map((item) => (
+                  <NavRow
+                    key={`${item.href}-${item.label}`}
+                    item={item}
+                    pathname={pathname}
+                    counts={counts}
+                  />
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+
+          <SidebarGroup>
+            <SidebarGroupLabel>Support</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton tooltip="Search" onClick={openSearch}>
+                    <Search />
+                    <span>Search</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip={HELP_ITEM.label}>
+                    <Link href={HELP_ITEM.href}>
+                      <HelpIcon />
+                      <span>{HELP_ITEM.label}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        </ScrollArea>
       </SidebarContent>
 
       <SidebarFooter>
-        <div className="mx-2 rounded-lg border border-sidebar-border bg-sidebar-accent/40 px-3 py-2 group-data-[collapsible=icon]:hidden">
-          <div className="flex items-center justify-between gap-2 text-[11px]">
+        <div
+          data-slot="sidebar-credits"
+          className="mx-2 px-2 py-1.5 group-data-[collapsible=icon]:hidden"
+        >
+          <div className="flex items-center gap-2 text-xs">
             <span className="text-muted-foreground">Credits</span>
+            <span className="ml-auto font-medium tabular-nums text-sidebar-accent-foreground">
+              {creditsRemaining.toLocaleString()}
+              <span className="font-normal text-muted-foreground">
+                {" "}/ {creditCap.toLocaleString()}
+              </span>
+            </span>
             <Link
               href="/billing"
-              className="font-medium text-sidebar-accent-foreground underline-offset-2 hover:underline"
+              className="font-medium text-sidebar-accent-foreground underline-offset-4 hover:underline"
             >
               Top up
             </Link>
-          </div>
-          <div className="mt-1 text-sm tabular-nums">
-            <span className="font-medium text-sidebar-accent-foreground">
-              {creditsRemaining.toLocaleString()}
-            </span>
-            <span className="text-muted-foreground"> / {creditCap.toLocaleString()}</span>
           </div>
           <div className="mt-2 h-1 overflow-hidden rounded-full bg-sidebar-border">
             <div
               className="h-full rounded-full bg-primary transition-[width]"
               style={{ width: `${creditPct}%` }}
             />
-          </div>
-          <div className="mt-1 truncate text-[10px] text-muted-foreground">
-            {workspaceLabel} · {plan}
           </div>
         </div>
         <NavUser />

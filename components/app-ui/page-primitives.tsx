@@ -10,6 +10,41 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
+export type PageContainerSize = "form" | "default" | "wide" | "workspace";
+
+const PAGE_CONTAINER_WIDTH: Record<PageContainerSize, string> = {
+  form: "max-w-5xl",
+  default: "max-w-7xl",
+  wide: "max-w-[96rem]",
+  workspace: "max-w-none",
+};
+
+interface PageContainerProps extends React.ComponentProps<"div"> {
+  size?: PageContainerSize;
+}
+
+export function PageContainer({
+  size = "default",
+  className,
+  children,
+  ...props
+}: PageContainerProps) {
+  return (
+    <div
+      data-slot="page-container"
+      data-size={size}
+      className={cn(
+        "mx-auto flex min-h-0 w-full flex-1 flex-col gap-4 overflow-y-auto p-4",
+        PAGE_CONTAINER_WIDTH[size],
+        className
+      )}
+      {...props}
+    >
+      {children}
+    </div>
+  );
+}
+
 interface PageHeaderProps extends React.ComponentProps<"header"> {
   eyebrow?: string;
   title: string;

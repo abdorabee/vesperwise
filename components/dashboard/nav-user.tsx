@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useUser, SignOutButton } from "@clerk/nextjs";
-import { CreditCard, EllipsisVertical, LogOut, Moon, Settings, Sun } from "lucide-react";
+import { ChevronsUpDown, CreditCard, LogOut, Moon, Settings, Sun } from "lucide-react";
 import {
   Avatar,
   AvatarFallback,
@@ -55,7 +55,7 @@ export function NavUser() {
                 <span className="truncate font-medium">{displayName}</span>
                 <span className="truncate text-xs text-muted-foreground">{email}</span>
               </div>
-              <EllipsisVertical className="ml-auto size-4" />
+              <ChevronsUpDown className="ml-auto size-4" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent

@@ -7,6 +7,14 @@ import { Plus } from "lucide-react";
 import { CRUMB } from "@/components/dashboard/nav-config";
 import { focusWatchlistAdd } from "@/lib/watchlist-events";
 import { Button } from "@/components/ui/button";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 
@@ -39,20 +47,40 @@ export function SiteHeader() {
     (listId ? fetchedListName : null) ??
     CRUMB[pathname]?.current ??
     "VesperWise";
+  const parent = listId ? "Lists" : CRUMB[pathname]?.parent ?? "Workspace";
+  const parentHref =
+    parent === "Settings" ? "/settings/profile" : parent === "Lists" ? "/lists" : "/dashboard";
 
   function openNewListModal() {
     window.dispatchEvent(new Event("lists-open-modal"));
   }
 
   return (
-    <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
-      <div className="flex w-full items-center gap-1 px-4 lg:gap-2 lg:px-6">
-        <SidebarTrigger className="-ml-1" />
+    <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 transition-[width,height] duration-200 ease-linear motion-reduce:transition-none">
+      <div className="flex min-w-0 w-full items-center gap-2">
+        <SidebarTrigger className="-ml-1 shrink-0" />
         <Separator
           orientation="vertical"
-          className="mx-2 data-[orientation=vertical]:h-4"
+          className="mr-2 hidden data-[orientation=vertical]:h-4 md:block"
         />
-        <h1 className="text-base font-medium">{title}</h1>
+        <Breadcrumb className="hidden min-w-0 md:block">
+          <BreadcrumbList className="flex-nowrap">
+            <BreadcrumbItem className="min-w-0">
+              <BreadcrumbLink asChild>
+                <Link href={parentHref} className="truncate">
+                  {parent}
+                </Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem className="min-w-0">
+              <BreadcrumbPage className="max-w-[min(32rem,45vw)] truncate">
+                {title}
+              </BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+        <span className="min-w-0 truncate text-sm font-semibold md:hidden">{title}</span>
         <div className="ml-auto flex items-center gap-2">
           {isLists ? (
             <Button type="button" size="sm" className="rounded-lg" onClick={openNewListModal}>

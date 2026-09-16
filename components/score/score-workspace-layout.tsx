@@ -13,6 +13,28 @@ interface ScoreWorkspaceLayoutProps {
   className?: string;
 }
 
+interface ScorePageFrameProps {
+  children: ReactNode;
+  mode: "entry" | "workspace";
+  className?: string;
+}
+
+export function ScorePageFrame({ children, mode, className }: ScorePageFrameProps) {
+  return (
+    <div
+      data-slot="score-page-frame"
+      data-mode={mode}
+      className={cn(
+        "mx-auto flex min-h-0 w-full flex-1 flex-col",
+        mode === "entry" ? "max-w-5xl gap-6" : "max-w-[96rem] gap-5",
+        className
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
 function ConversationPane({ conversation, composer }: Pick<ScoreWorkspaceLayoutProps, "conversation" | "composer">) {
   return (
     <section

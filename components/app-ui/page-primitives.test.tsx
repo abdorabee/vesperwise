@@ -1,6 +1,8 @@
 import { renderToStaticMarkup } from "react-dom/server";
+import type { ComponentType, ReactNode } from "react";
 import { describe, expect, it } from "vitest";
 
+import * as pagePrimitives from "./page-primitives";
 import {
   EmptyState,
   InlineError,
@@ -8,6 +10,34 @@ import {
   PageHeader,
   PageSurface,
 } from "./page-primitives";
+
+describe("PageContainer", () => {
+  it.each([
+    ["form", "max-w-5xl"],
+    ["default", "max-w-7xl"],
+    ["wide", "max-w-[96rem]"],
+    ["workspace", "max-w-none"],
+  ] as const)("renders the %s layout inside one shell-owned gutter", (size, widthClass) => {
+    const PageContainer = (pagePrimitives as unknown as {
+      PageContainer?: ComponentType<{ children: ReactNode; size: typeof size }>;
+    }).PageContainer;
+
+    expect(PageContainer).toBeTypeOf("function");
+    if (!PageContainer) return;
+
+    const html = renderToStaticMarkup(
+      <PageContainer size={size}>
+        <p>Page body</p>
+      </PageContainer>
+    );
+
+    expect(html).toContain('data-slot="page-container"');
+    expect(html).toContain(`data-size="${size}"`);
+    expect(html).toContain(widthClass);
+    expect(html).toContain("p-4");
+    expect(html).not.toMatch(/(?:sm|md|lg):p-[678]/);
+  });
+});
 
 describe("PageHeader", () => {
   it("exposes one page heading and keeps supporting actions alongside it", () => {
