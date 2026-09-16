@@ -1,4 +1,4 @@
-import { Polar } from "@polar-sh/sdk";
+import { createPolar, type Polar } from "@polar-sh/sdk/2026-04";
 
 let polarClient: Polar | undefined;
 
@@ -10,9 +10,9 @@ export function getPolar(): Polar {
     throw new Error("POLAR_ACCESS_TOKEN environment variable is not set");
   }
   if (!polarClient) {
-    polarClient = new Polar({
+    polarClient = createPolar({
       accessToken: token,
-      server: (process.env.POLAR_SERVER as "sandbox" | "production") ?? "sandbox",
+      environment: (process.env.POLAR_SERVER as "sandbox" | "production") ?? "sandbox",
     });
   }
   return polarClient;
