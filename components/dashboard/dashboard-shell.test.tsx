@@ -76,4 +76,32 @@ describe("DashboardShell", () => {
     expect(html).toContain('href="/inbox"');
     expect(html).not.toContain("Quick Score");
   });
+
+  it("uses the reference navigation hierarchy with tailored nested library sections", () => {
+    const html = renderShell();
+
+    for (const label of ["Overview", "Accounts", "Library", "Workspace"]) {
+      expect(html).toContain(`>${label}<`);
+    }
+    expect(html).toContain("Saved accounts");
+    expect(html).toContain("Score activity");
+    expect(html).toContain('data-slot="sidebar-menu-sub"');
+  });
+
+  it("keeps the reference user-only footer while preserving credit context for the account menu", () => {
+    const html = renderShell();
+
+    expect(html).not.toContain('data-slot="sidebar-credits"');
+    expect(html).toContain("42 of 2,500 credits remaining");
+    expect(html).toContain('data-slot="sidebar-rail"');
+  });
+
+  it("renders the reference mobile brand treatment instead of a route-title substitute", () => {
+    const html = renderShell();
+
+    expect(html).toContain('data-slot="mobile-brand"');
+    expect(html).toContain('href="/dashboard"');
+    expect(html).toContain(">VesperWise<");
+    expect(html).toContain("text-primary-foreground");
+  });
 });

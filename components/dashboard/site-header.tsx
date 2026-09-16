@@ -80,7 +80,19 @@ export function SiteHeader() {
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
-        <span className="min-w-0 truncate text-sm font-semibold md:hidden">{title}</span>
+        <Link
+          href="/dashboard"
+          data-slot="mobile-brand"
+          className="flex min-w-0 items-center gap-2 md:hidden"
+        >
+          <span
+            aria-hidden="true"
+            className="flex aspect-square size-8 shrink-0 items-center justify-center rounded-sm bg-primary text-xs font-bold text-primary-foreground"
+          >
+            V
+          </span>
+          <span className="truncate font-semibold">VesperWise</span>
+        </Link>
         <div className="ml-auto flex items-center gap-2">
           {isLists ? (
             <Button type="button" size="sm" className="rounded-lg" onClick={openNewListModal}>

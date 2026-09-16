@@ -3,20 +3,26 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
-import { Search } from "lucide-react";
+import { ChevronRight, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PLAN_CREDITS, type DbUser } from "@/lib/types";
 import { getWorkspaceLabel } from "@/lib/workspace-label";
 import { useDashboardSearch } from "@/components/dashboard/search-provider";
 import {
-  HELP_ITEM,
-  NAV_LIBRARY,
+  NAV_ACCOUNTS,
+  NAV_LIBRARY_CLUSTERS,
   NAV_MAIN,
   NAV_SECONDARY,
   isNavActive,
+  type NavCluster,
   type NavItem,
 } from "@/components/dashboard/nav-config";
 import { NavUser } from "@/components/dashboard/nav-user";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Sidebar,
@@ -30,6 +36,9 @@ import {
   SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarRail,
 } from "@/components/ui/sidebar";
 
@@ -100,6 +109,54 @@ function NavRow({
   );
 }
 
+function NavClusterRow({
+  cluster,
+  pathname,
+  counts,
+}: {
+  cluster: NavCluster;
+  pathname: string;
+  counts: { inbox?: number; watchlist?: number; pipelineHot?: number };
+}) {
+  const Icon = cluster.icon;
+  const active = cluster.children.some((item) => isNavActive(pathname, item.href));
+
+  return (
+    <Collapsible asChild defaultOpen className="group/collapsible">
+      <SidebarMenuItem>
+        <CollapsibleTrigger asChild>
+          <SidebarMenuButton isActive={active} tooltip={cluster.label}>
+            <Icon className="size-4" />
+            <span>{cluster.label}</span>
+            <ChevronRight className="ml-auto size-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 motion-reduce:transition-none" />
+          </SidebarMenuButton>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <SidebarMenuSub>
+            {cluster.children.map((item) => {
+              const count = itemCount(item, counts);
+              return (
+                <SidebarMenuSubItem key={item.href}>
+                  <SidebarMenuSubButton asChild isActive={isNavActive(pathname, item.href)}>
+                    <Link href={item.href}>
+                      <span>{item.label}</span>
+                      {count ? (
+                        <span className="ml-auto tabular-nums text-muted-foreground">
+                          {count}
+                        </span>
+                      ) : null}
+                    </Link>
+                  </SidebarMenuSubButton>
+                </SidebarMenuSubItem>
+              );
+            })}
+          </SidebarMenuSub>
+        </CollapsibleContent>
+      </SidebarMenuItem>
+    </Collapsible>
+  );
+}
+
 export function AppSidebar({
   creditsRemaining,
   plan,
@@ -113,15 +170,12 @@ export function AppSidebar({
   const { open: openSearch } = useDashboardSearch();
   const { user } = useUser();
   const creditCap = PLAN_CREDITS[plan] ?? PLAN_CREDITS.free;
-  const creditPct =
-    creditCap > 0 ? Math.min(100, Math.round((creditsRemaining / creditCap) * 100)) : 0;
   const workspaceLabel = getWorkspaceLabel({
     workspaceName,
     fullName: user?.fullName,
     email: user?.primaryEmailAddress?.emailAddress,
   });
   const counts = { inbox: inboxCount, watchlist: watchlistCount, pipelineHot: pipelineHotCount };
-  const HelpIcon = HELP_ITEM.icon;
 
   return (
     <Sidebar collapsible="icon" {...props}>
@@ -131,18 +185,17 @@ export function AppSidebar({
             <SidebarMenuButton
               asChild
               size="lg"
-              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
               tooltip="VesperWise"
             >
               <Link href="/dashboard">
                 <span
                   aria-hidden="true"
-                  className="flex aspect-square size-8 shrink-0 items-center justify-center rounded-sm bg-primary text-xs font-bold tracking-[-0.04em] text-black"
+                  className="flex aspect-square size-8 shrink-0 items-center justify-center rounded-sm bg-primary text-xs font-bold tracking-[-0.04em] text-primary-foreground"
                 >
-                  W.
+                  V
                 </span>
-                <span className="grid min-w-0 flex-1 gap-0.5 text-left leading-none">
-                  <span className="truncate font-semibold text-sidebar-accent-foreground">
+                <span className="flex min-w-0 flex-1 flex-col gap-0.5 text-left leading-none">
+                  <span className="truncate font-medium text-sidebar-accent-foreground">
                     VesperWise
                   </span>
                   <span className="truncate text-xs font-normal text-muted-foreground">
@@ -174,13 +227,29 @@ export function AppSidebar({
           </SidebarGroup>
 
           <SidebarGroup>
-            <SidebarGroupLabel>Library</SidebarGroupLabel>
+            <SidebarGroupLabel>Accounts</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {NAV_LIBRARY.map((item) => (
+                {NAV_ACCOUNTS.map((item) => (
                   <NavRow
                     key={`${item.href}-${item.label}`}
                     item={item}
+                    pathname={pathname}
+                    counts={counts}
+                  />
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+
+          <SidebarGroup>
+            <SidebarGroupLabel>Library</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {NAV_LIBRARY_CLUSTERS.map((cluster) => (
+                  <NavClusterRow
+                    key={cluster.label}
+                    cluster={cluster}
                     pathname={pathname}
                     counts={counts}
                   />
@@ -201,26 +270,10 @@ export function AppSidebar({
                     counts={counts}
                   />
                 ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-
-          <SidebarGroup>
-            <SidebarGroupLabel>Support</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton tooltip="Search" onClick={openSearch}>
                     <Search />
                     <span>Search</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip={HELP_ITEM.label}>
-                    <Link href={HELP_ITEM.href}>
-                      <HelpIcon />
-                      <span>{HELP_ITEM.label}</span>
-                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>
@@ -230,33 +283,7 @@ export function AppSidebar({
       </SidebarContent>
 
       <SidebarFooter>
-        <div
-          data-slot="sidebar-credits"
-          className="mx-2 px-2 py-1.5 group-data-[collapsible=icon]:hidden"
-        >
-          <div className="flex items-center gap-2 text-xs">
-            <span className="text-muted-foreground">Credits</span>
-            <span className="ml-auto font-medium tabular-nums text-sidebar-accent-foreground">
-              {creditsRemaining.toLocaleString()}
-              <span className="font-normal text-muted-foreground">
-                {" "}/ {creditCap.toLocaleString()}
-              </span>
-            </span>
-            <Link
-              href="/billing"
-              className="font-medium text-sidebar-accent-foreground underline-offset-4 hover:underline"
-            >
-              Top up
-            </Link>
-          </div>
-          <div className="mt-2 h-1 overflow-hidden rounded-full bg-sidebar-border">
-            <div
-              className="h-full rounded-full bg-primary transition-[width]"
-              style={{ width: `${creditPct}%` }}
-            />
-          </div>
-        </div>
-        <NavUser />
+        <NavUser creditsRemaining={creditsRemaining} creditCap={creditCap} />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
