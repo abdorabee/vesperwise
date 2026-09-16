@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { createSupabaseAdmin } from "@/lib/supabase";
 import { scoreCompany, domainToCompanyName } from "@/lib/score-service";
+import { BULK_INLINE_MAX_ROWS } from "@/lib/types";
 
-const MAX_ROWS = 50;
+const MAX_ROWS = BULK_INLINE_MAX_ROWS;
 
 export async function POST(req: NextRequest) {
   // ── Auth ──────────────────────────────────────────────────────────────────

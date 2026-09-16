@@ -432,6 +432,19 @@ export const PLAN_WATCHLIST_LIMIT: Record<DbUser["plan"], number | null> = {
   agency: null, // unlimited
 };
 
+/**
+ * Maximum rows accepted by the inline bulk-scoring endpoint
+ * (`POST /api/v1/score/bulk-inline`). Same for every plan.
+ */
+export const BULK_INLINE_MAX_ROWS = 50;
+
+/**
+ * Advertised API rate limits.
+ *
+ * NOTE: nothing in the codebase enforces these today. Do not surface them in
+ * pricing or docs copy until a limiter is wired up, or the product will be
+ * selling a limit it does not apply.
+ */
 export const PLAN_RATE_LIMIT: Record<DbUser["plan"], number> = {
   free: 10,
   starter: 100,

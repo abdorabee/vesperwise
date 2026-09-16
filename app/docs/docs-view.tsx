@@ -53,7 +53,6 @@ const NAV_GROUPS: NavGroup[] = [
       { id: "quickstart",  label: "Quickstart" },
       { id: "auth",        label: "Authentication" },
       { id: "errors",      label: "Errors" },
-      { id: "rate-limits", label: "Rate limits" },
       { id: "pagination",  label: "Pagination" },
       { id: "idempotency", label: "Idempotency" },
     ],
@@ -63,25 +62,15 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { id: "score-account", method: "POST",   label: "Score an account" },
       { id: "get-account",   method: "GET",    label: "Retrieve a score" },
-      { id: "bulk-score",    method: "POST",   label: "Bulk score job" },
-      { id: "score-person",  method: "POST",   label: "Score a person" },
+      { id: "score-person",  method: "GET",    label: "Score a person" },
     ],
   },
   {
     heading: "Watchlists",
     items: [
-      { id: "list-watchlists",   method: "GET",    label: "List watchlists" },
-      { id: "create-watchlist",  method: "POST",   label: "Create watchlist" },
-      { id: "add-to-watchlist",  method: "PUT",    label: "Add accounts" },
-      { id: "remove-watchlist",  method: "DELETE", label: "Remove accounts" },
-    ],
-  },
-  {
-    heading: "Events & webhooks",
-    items: [
-      { id: "webhooks-overview",  method: "DOC", label: "Webhooks overview" },
-      { id: "webhook-events",     method: "EVT", label: "Event types" },
-      { id: "verify-signature",   method: "DOC", label: "Verify signatures" },
+      { id: "list-watchlists",   method: "GET",    label: "List watched accounts" },
+      { id: "add-to-watchlist",  method: "POST",   label: "Add an account" },
+      { id: "remove-watchlist",  method: "DELETE", label: "Remove an account" },
     ],
   },
   {
@@ -93,23 +82,13 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    heading: "SDKs",
+    heading: "Reference",
     items: [
-      { id: "sdks",      method: "PKG", label: "Node" },
       { id: "changelog", method: "LOG", label: "Changelog" },
     ],
   },
 ];
 
-/* ─── Events data ────────────────────────────────────────────── */
-const EVENTS = [
-  { name: "score.computed",       desc: "Fires every time a score is computed — both fresh cold‑cache misses and forced refreshes. The most common event in the system.", freq: "~6/sec p50" },
-  { name: "score.bulk.completed", desc: "Fires when a bulk job finishes. Payload includes the full result array and any unscorable domains separated out.", freq: "on demand" },
-  { name: "account.band_changed", desc: "A watchlist account crossed a band threshold (e.g. WARM → HOT). The flagship \"now is the time\" event for sales workflows.", freq: "~40/day p50" },
-  { name: "signal.spike",         desc: "A single signal (e.g. funding) for a watchlist account jumped >25 points week‑over‑week. Often precedes a band change by 24–48h.", freq: "~12/day p50" },
-  { name: "person.scored",        desc: "A previously unknown person was successfully resolved and scored. Pair with your CRM enrichment flow.", freq: "on demand" },
-  { name: "credits.low",          desc: "Your workspace dropped below 10% of the cycle's credit allocation. Fired once per cycle.", freq: "≤1/month" },
-];
 
 /* ─── Helper components ──────────────────────────────────────── */
 function MethodTag({ method, large }: { method: string; large?: boolean }) {
@@ -264,23 +243,6 @@ function ParamRow({ name, type, badge, children, isLast }: {
   );
 }
 
-function Default({ children }: { children: string }) {
-  return <div style={{ fontFamily: T.mono, fontSize: "11px", color: T.txtQ, marginTop: "6px" }}>Default: <em style={{ fontStyle: "normal", color: T.txtTert }}>{children}</em></div>;
-}
-
-function EnumList({ items }: { items: string[] }) {
-  return (
-    <ul style={{ margin: "6px 0 0", padding: 0, listStyle: "none" }}>
-      {items.map(v => (
-        <li key={v} style={{ fontFamily: T.mono, fontSize: "11.5px", color: T.txtTert, padding: "1px 0 1px 14px", position: "relative" as const }}>
-          <span style={{ position: "absolute" as const, left: "4px", top: "9px", width: "3px", height: "3px", background: T.txtQ, borderRadius: "999px", display: "block" }} />
-          {v}
-        </li>
-      ))}
-    </ul>
-  );
-}
-
 function ErrorCell({ num, code, desc }: { num: string; code: string; desc: React.ReactNode }) {
   return (
     <div style={{ border: `1px solid ${T.border}`, borderRadius: T.r.md, padding: "12px 14px", background: T.bgEl }}>
@@ -368,11 +330,15 @@ const curlPane = (
 
 const nodePane = (
   <>
-    {cm.kw("import")} {"{ VesperWise } "}{cm.kw("from")} {cm.str('"@vesperwise/node"')}{"\n\n"}
-    {cm.kw("const")} iiq {" = "}{cm.kw("new")} {cm.fn("VesperWise")}{"({ apiKey: process.env.IIQ_KEY });"}{"\n\n"}
-    {cm.kw("const")} score {" = "}{cm.kw("await")} iiq.scores.{cm.fn("create")}{"({"}{"\n"}
-    {"  domain: "}{cm.str('"stripe.com"')}{","}{"\n"}
+    {cm.kw("const")} res {" = "}{cm.kw("await")} {cm.fn("fetch")}{"("}{cm.str('"https://www.vesperwise.com/api/v1/score"')}{", {"}{"\n"}
+    {"  method: "}{cm.str('"POST"')}{","}{"\n"}
+    {"  headers: {"}{"\n"}
+    {"    "}{cm.str('"Authorization"')}{": "}{cm.str("`Bearer ${process.env.VESPERWISE_API_KEY}`")}{","}{"\n"}
+    {"    "}{cm.str('"Content-Type"')}{": "}{cm.str('"application/json"')}{","}{"\n"}
+    {"  },"}{"\n"}
+    {"  body: JSON."}{cm.fn("stringify")}{"({ domain: "}{cm.str('"stripe.com"')}{" }),"}{"\n"}
     {"});"}{"\n\n"}
+    {cm.kw("const")} score {" = "}{cm.kw("await")} {"res."}{cm.fn("json")}{"();"}{"\n"}
     console.{cm.fn("log")}{"(score.score_band, score.intent_score);"}
   </>
 );
@@ -402,20 +368,6 @@ const scoreResponse = (
   </>
 );
 
-const webhookEventPayload = (
-  <>
-    {"{"}
-    {"\n  "}{cm.key('"id"')}{":       "}{cm.str('"evt_01HZ9X3FK8M2P"')}{","}
-    {"\n  "}{cm.key('"type"')}{":     "}{cm.str('"score.computed"')}{","}
-    {"\n  "}{cm.key('"created"')}{":  "}{cm.str('"2026-05-28T14:02:11Z"')}{","}
-    {"\n  "}{cm.key('"data"')}{": {"}
-    {"\n    "}{cm.key('"score"')}{": { "}{cm.com("/* Score object */")}{" },"}
-    {"\n    "}{cm.key('"trigger"')}{": "}{cm.str('"watchlist_refresh"')}
-    {"\n  },"}
-    {"\n  "}{cm.key('"delivery_attempt"')}{": "}{cm.num("1")}
-    {"\n}"}
-  </>
-);
 
 /* ─── Main component ─────────────────────────────────────────── */
 export default function DocsView() {
@@ -595,19 +547,18 @@ export default function DocsView() {
             <P>Pick a domain. We&apos;ll fetch four intent triggers (funding, hiring, non-funding news, and dated technology changes), collect Web and GitHub context, compute coverage, and write back an AI summary. A personalized six-hour cache makes repeat scores free.</P>
             <ApiNote><Strong>Use the apex domain.</Strong> Send <IC>stripe.com</IC>. Schemes, paths, and a leading <IC>www.</IC> are normalized, but arbitrary subdomains are not guessed back to an apex.</ApiNote>
             <H3>3. Hook it up</H3>
-            <P>For real‑time pipelines, subscribe to the <IC>score.computed</IC> webhook and let VesperWise push deltas to you. For batch enrichment, queue a <A href="#bulk-score">bulk job</A> and poll its status.</P>
+            <P>For batch enrichment, upload a CSV from the Bulk page in the dashboard — it scores up to 50 accounts per run against the same cache and charging rules. Outbound webhooks and a queued bulk API are not available yet.</P>
           </section>
 
           {/* Authentication */}
           <section id="auth" style={secStyle}>
             <h1 style={h1Style}>Authentication</h1>
-            <Summary>All requests are authenticated with a bearer token in the <IC>Authorization</IC> header. Keys are tied to a workspace, not a user — rotate them when seat holders leave.</Summary>
+            <Summary>All requests are authenticated with a bearer token in the <IC>Authorization</IC> header. A key belongs to the account that created it, and every request is scoped to that account&apos;s data.</Summary>
             <H3>Header format</H3>
-            <P>Pass the key as <IC>Authorization: Bearer {"<key>"}</IC>. Keys never appear in URL parameters; never log them. Workspace ID is inferred from the key.</P>
-            <H3>Test vs live mode</H3>
-            <P>Test keys return synthetic but plausible scores against a fixed set of well‑known domains. They never call upstream vendors, never deduct credits, and never fire webhooks. Test responses include <IC>&quot;mode&quot;: &quot;test&quot;</IC> at the top level.</P>
+            <P>Pass the key as <IC>Authorization: Bearer {"<key>"}</IC>. Keys are shown once at creation and stored only as a SHA‑256 hash, so we cannot recover one for you — create a replacement instead. Keys never appear in URL parameters; never log them.</P>
             <H3>Rotation & revocation</H3>
-            <P>Create the new key, deploy it, then revoke the old one — zero downtime. Revoked keys 401 within ~5 seconds. We also auto‑revoke a key if we detect leakage on GitHub or a public paste.</P>
+            <P>Create the new key, deploy it, then revoke the old one — zero downtime. Revoked keys stop working immediately. There is currently no key expiry, no scoped permission model, and no automated leaked‑key detection.</P>
+            <ApiNote><Strong>Availability.</Strong> Self‑serve API key management is not open yet — the endpoints below are live, but keys are issued manually. Email <A href="mailto:support@vesperwise.com">support@vesperwise.com</A> if you want access.</ApiNote>
           </section>
 
           {/* Errors */}
@@ -622,24 +573,11 @@ export default function DocsView() {
               <ErrorCell num="404" code="not_found"            desc={<>No object with that ID exists in your workspace. IDs are namespaced (<IC>scr_</IC>, <IC>job_</IC>, <IC>wl_</IC>).</>} />
               <ErrorCell num="409" code="idempotency_conflict" desc={<>You reused an <IC>Idempotency-Key</IC> with a different request body, or the same score run is still in progress.</>} />
               <ErrorCell num="422" code="unscorable_domain"    desc={<>Domain resolves but has no usable signal surface — parked, defunct, or no public presence. Returns score <IC>null</IC>.</>} />
-              <ErrorCell num="429" code="rate_limited"         desc={<>Back off and retry. The <IC>Retry-After</IC> header gives you the seconds to wait.</>} />
             </div>
             <H3>Retry policy</H3>
-            <P>Retry idempotent requests with exponential backoff: 1s, 2s, 4s, 8s — five attempts max. <IC>5xx</IC> and <IC>429</IC> should retry; <IC>4xx</IC> (except <IC>429</IC>) should not.</P>
+            <P>Retry idempotent requests with exponential backoff: 1s, 2s, 4s, 8s — five attempts max. <IC>5xx</IC> responses should retry; <IC>4xx</IC> should not. We do not currently enforce per-plan API rate limits, so there is no <IC>429</IC> response to handle.</P>
           </section>
 
-          {/* Rate limits */}
-          <section id="rate-limits" style={secStyle}>
-            <h1 style={h1Style}>Rate limits</h1>
-            <Summary>Limits are per workspace, applied at the edge. If you&apos;re hitting them, you almost certainly want the bulk endpoint instead of a tight loop.</Summary>
-            <ParamTable>
-              <ParamRow name="Scoring · single" type="POST /v1/score">60 req/min on Starter, 300 req/min on Team, 1,200 req/min on Scale. Per‑workspace, sliding window.</ParamRow>
-              <ParamRow name="Scoring · bulk" type="POST /v1/score/bulk">10 concurrent jobs per workspace; up to 1,000 domains per job. Jobs over 100 domains are eligible for our overnight cache window (50% credit discount).</ParamRow>
-              <ParamRow name="Reads" type="GET *">600 req/min on all plans. Cache‑backed; cheap.</ParamRow>
-              <ParamRow name="Webhooks · delivery" type="outgoing" isLast>Up to 10,000 events/hour outbound to your endpoint. We retry failed deliveries 8 times over 24 hours with exponential backoff.</ParamRow>
-            </ParamTable>
-            <P>Every response includes <IC>X-RateLimit-Limit</IC>, <IC>X-RateLimit-Remaining</IC>, and <IC>X-RateLimit-Reset</IC> headers.</P>
-          </section>
 
           {/* Pagination */}
           <section id="pagination" style={secStyle}>
@@ -670,7 +608,6 @@ export default function DocsView() {
               { code: "200 ok", type: "ok" },
               { code: "422 unscorable_domain", type: "warn" },
               { code: "402 insufficient_credits", type: "err" },
-              { code: "429 rate_limited", type: "err" },
             ]} />
             <H3>Body parameters</H3>
             <ParamTable>
@@ -707,122 +644,64 @@ export default function DocsView() {
             </ParamTable>
           </section>
 
-          {/* Bulk score */}
-          <section id="bulk-score" style={secStyle}>
-            <h2 style={h2Style}>
-              <EndpointId method="POST" path="/v1/score/bulk" />
-              Bulk score job
-            </h2>
-            <Summary>Submit up to 1,000 domains per job. Returns a <IC>job_</IC> ID you can poll, or supply a <IC>webhook_url</IC> and we&apos;ll POST <IC>score.bulk.completed</IC> when the run finishes.</Summary>
-            <ResponseChips codes={[{ code: "202 accepted", type: "ok" }, { code: "400 invalid_request", type: "err" }, { code: "402 insufficient_credits", type: "err" }]} />
-            <H3>Body parameters</H3>
-            <ParamTable>
-              <ParamRow name="domains" type="array<string>" badge="required">1–1,000 apex domains. Duplicates are collapsed before billing.</ParamRow>
-              <ParamRow name="deferred" type="boolean" badge="optional">If <IC>true</IC>, runs in our overnight cache window for a 50% credit discount. Results return within 8 hours.<Default>false</Default></ParamRow>
-              <ParamRow name="webhook_url" type="string" badge="optional">POST target for the <IC>score.bulk.completed</IC> event. We sign the payload — see <A href="#verify-signature">verify signatures</A>.</ParamRow>
-              <ParamRow name="tag" type="string" badge="optional" isLast>Free‑form label echoed back in webhook payloads — useful for correlating with your queue.</ParamRow>
-            </ParamTable>
-          </section>
 
           {/* Score a person */}
           <section id="score-person" style={secStyle}>
             <h2 style={h2Style}>
-              <EndpointId method="POST" path="/v1/people/score" />
+              <EndpointId method="GET" path="/v1/score/person" />
               Score a person
             </h2>
-            <Summary>Score the human behind the logo. Provide an email <em>or</em> a LinkedIn URL — we enrich via Apollo with PDL fallback, then layer the underlying account&apos;s intent on top.</Summary>
-            <ResponseChips codes={[{ code: "200 ok", type: "ok" }, { code: "422 unresolvable_person", type: "warn" }, { code: "403 restricted_use", type: "err" }]} />
-            <H3>Body parameters</H3>
-            <ParamTable>
-              <ParamRow name="email" type="string" badge="one of">Work email. Free‑mail providers (Gmail, etc) return <IC>422 unresolvable_person</IC>.</ParamRow>
-              <ParamRow name="linkedin_url" type="string" badge="one of">Canonical LinkedIn profile URL — must include the <IC>/in/</IC> path segment.</ParamRow>
-              <ParamRow name="role_hint" type="string" badge="optional" isLast>Disambiguator when a name resolves to multiple people. Examples: <IC>&quot;RevOps&quot;</IC>, <IC>&quot;Founder&quot;</IC>.</ParamRow>
-            </ParamTable>
-          </section>
-
-          {/* List watchlists */}
-          <section id="list-watchlists" style={secStyle}>
-            <h2 style={h2Style}>
-              <EndpointId method="GET" path="/v1/watchlists" />
-              List watchlists
-            </h2>
-            <Summary>Paginated list of watchlists in your workspace, ordered by most recently updated. Each entry includes a count of accounts and the current band distribution.</Summary>
-            <ResponseChips codes={[{ code: "200 ok", type: "ok" }]} />
+            <Summary><Strong>Beta.</Strong> Scores an individual from the details you supply: career trajectory, seniority fit, the intent score of their company if you have already scored it, public news mentions, and profile completeness. VesperWise does not currently query third‑party people‑data providers, so the result is only as good as the input you give it.</Summary>
+            <ResponseChips codes={[{ code: "200 ok", type: "ok" }, { code: "400 invalid_request", type: "err" }, { code: "402 insufficient_credits", type: "err" }]} />
             <H3>Query parameters</H3>
             <ParamTable>
-              <ParamRow name="limit" type="integer · 1–100" badge="optional">Page size.<Default>20</Default></ParamRow>
-              <ParamRow name="cursor" type="string" badge="optional" isLast>Pagination cursor from the previous response.</ParamRow>
+              <ParamRow name="email" type="string" badge="one of">Work email address.</ParamRow>
+              <ParamRow name="linkedin" type="string" badge="one of">LinkedIn profile URL.</ParamRow>
+              <ParamRow name="name" type="string" badge="one of">Full name. Must be sent together with <IC>company</IC>.</ParamRow>
+              <ParamRow name="company" type="string" badge="optional">Company name. Required when identifying by <IC>name</IC>.</ParamRow>
+              <ParamRow name="title" type="string" badge="optional" isLast>Job title. Improves the seniority‑fit component.</ParamRow>
             </ParamTable>
+            <ApiNote>Supply at least one of <IC>email</IC>, <IC>linkedin</IC>, or <IC>name</IC>&nbsp;+&nbsp;<IC>company</IC>, or the request returns <IC>400</IC>.</ApiNote>
           </section>
 
-          {/* Create watchlist */}
-          <section id="create-watchlist" style={secStyle}>
+          {/* List watchlist */}
+          <section id="list-watchlists" style={secStyle}>
             <h2 style={h2Style}>
-              <EndpointId method="POST" path="/v1/watchlists" />
-              Create a watchlist
+              <EndpointId method="GET" path="/v1/watchlist" />
+              List watched accounts
             </h2>
-            <Summary>Pin up to 250 accounts (Starter), 1,000 (Team), or 10,000 (Scale). The moment any account crosses your band threshold, we fire <IC>account.band_changed</IC>.</Summary>
-            <H3>Body parameters</H3>
-            <ParamTable>
-              <ParamRow name="name" type="string" badge="required">Display name. Max 80 chars.</ParamRow>
-              <ParamRow name="accounts" type="array<string>" badge="optional">Initial set of domains. Same as calling <A href="#add-to-watchlist"><IC>PUT /accounts</IC></A> after create.</ParamRow>
-              <ParamRow name="alert_threshold" type="enum" badge="optional" isLast>When to fire <IC>account.band_changed</IC>.<EnumList items={['"hot_entry" (default)', '"any_band_change"', '"score_delta_10"']} /></ParamRow>
-            </ParamTable>
+            <Summary>Returns every account on your watchlist, most recently added first. Your plan sets the maximum number of accounts you can watch.</Summary>
+            <ResponseChips codes={[{ code: "200 ok", type: "ok" }, { code: "401 unauthorized", type: "err" }]} />
           </section>
 
           {/* Add to watchlist */}
           <section id="add-to-watchlist" style={secStyle}>
             <h2 style={h2Style}>
-              <EndpointId method="PUT" path="/v1/watchlists/{id}/accounts" />
-              Add accounts to a watchlist
+              <EndpointId method="POST" path="/v1/watchlist" />
+              Add an account
             </h2>
-            <Summary>Idempotent — adding a domain that&apos;s already on the list is a no‑op, not an error. Returns the full updated account list.</Summary>
+            <Summary>Adds a single domain to the watchlist. Adding a domain that is already watched is a no‑op rather than an error. Returns <IC>403</IC> when the account would exceed your plan&apos;s watchlist limit.</Summary>
+            <ResponseChips codes={[{ code: "200 ok", type: "ok" }, { code: "403 limit_reached", type: "err" }]} />
+            <H3>Body parameters</H3>
+            <ParamTable>
+              <ParamRow name="domain" type="string" badge="required">Apex domain to watch.</ParamRow>
+              <ParamRow name="company_name" type="string" badge="optional" isLast>Display name. Derived from the domain when omitted.</ParamRow>
+            </ParamTable>
+            <ApiNote>Adding an account does not score it. Score the domain with <A href="#score-account"><IC>POST /v1/score</IC></A> to populate its score and band.</ApiNote>
           </section>
 
           {/* Remove from watchlist */}
           <section id="remove-watchlist" style={secStyle}>
             <h2 style={h2Style}>
-              <EndpointId method="DELETE" path="/v1/watchlists/{id}/accounts" />
-              Remove accounts from a watchlist
+              <EndpointId method="DELETE" path="/v1/watchlist?domain=…" />
+              Remove an account
             </h2>
-            <Summary>Removes the domains in <IC>accounts</IC> from the watchlist. Does not delete the underlying score history.</Summary>
+            <Summary>Removes the domain from your watchlist. Does not delete the underlying score history.</Summary>
+            <ResponseChips codes={[{ code: "200 ok", type: "ok" }, { code: "400 invalid_request", type: "err" }]} />
           </section>
 
-          {/* Webhooks overview */}
-          <section id="webhooks-overview" style={secStyle}>
-            <h1 style={h1Style}>Webhooks</h1>
-            <Summary>We POST events to your endpoint as JSON. Deliveries are signed (HMAC‑SHA256), at‑least‑once, and retried on non‑2xx with exponential backoff for 24 hours. Subscribe in <A href="#">Settings → Webhooks</A>.</Summary>
-            <H3>Delivery contract</H3>
-            <P>Respond <IC>2xx</IC> within 5 seconds — do the work asynchronously. We send <IC>User-Agent: VesperWise-Webhook/1.0</IC> and a <IC>X-IIQ-Signature</IC> header you should verify. Events carry a <IC>delivery_attempt</IC> integer so you can dedupe.</P>
-            <ApiNote><Strong>Local development.</Strong> Point a webhook at the VesperWise CLI (<IC>iiq webhooks listen</IC>) — it tunnels deliveries to <IC>http://localhost:3000/webhooks</IC> without ngrok.</ApiNote>
-          </section>
 
-          {/* Webhook events */}
-          <section id="webhook-events" style={secStyle}>
-            <h2 style={h2Style}>Event types</h2>
-            <div style={{ border: `1px solid ${T.border}`, borderRadius: T.r.md, overflow: "hidden", margin: "14px 0", background: T.bgEl }}>
-              {EVENTS.map((ev, i) => (
-                <div key={ev.name} style={{ display: "grid", gridTemplateColumns: "180px 1fr 90px", gap: "18px", padding: "12px 16px", fontSize: "13px", alignItems: "center", borderBottom: i < EVENTS.length - 1 ? `1px solid ${T.borderSubtle}` : "none" }}>
-                  <div style={{ fontFamily: T.mono, fontSize: "12px", color: "#dfff00", letterSpacing: 0 }}>{ev.name}</div>
-                  <div style={{ color: T.txtSec, letterSpacing: "-0.006em" }}>{ev.desc}</div>
-                  <div style={{ fontFamily: T.mono, fontSize: "11px", color: T.txtTert, textAlign: "right" as const }}>{ev.freq}</div>
-                </div>
-              ))}
-            </div>
-            <CodeBlock
-              label="Webhook"
-              panes={[{ lang: "score.computed", content: webhookEventPayload }]}
-              respStatus="POST → your.app/iiq"
-              respLatency="X-IIQ-Signature: t=…,v1=…"
-            />
-          </section>
 
-          {/* Verify signature */}
-          <section id="verify-signature" style={secStyle}>
-            <h2 style={h2Style}>Verify webhook signatures</h2>
-            <Summary>Every delivery includes <IC>X-IIQ-Signature: t={"<timestamp>"},{" "}v1={"<hmac>"}</IC>. Reject any request where the timestamp is older than 5 minutes (replay protection) and the HMAC does not validate against your signing secret.</Summary>
-            <P>The signing secret is shown once when you create the webhook endpoint, then stored hashed on our side — rotate it from the Webhooks settings page. The signed payload is the <strong style={{ color: T.txt, fontWeight: 500 }}>raw request body</strong>, not the parsed JSON.</P>
-          </section>
 
           {/* Score object */}
           <section id="score-object" style={secStyle}>
@@ -864,7 +743,7 @@ export default function DocsView() {
           {/* Person object */}
           <section id="person-object" style={secStyle}>
             <h1 style={h1Style}>The Person object</h1>
-            <Summary>Returned by <IC>POST /v1/people/score</IC> and in <IC>person.scored</IC> webhook payloads.</Summary>
+            <Summary>Returned by <IC>GET /v1/score/person</IC>.</Summary>
             <ParamTable>
               <ParamRow name="id"           type="string">Stable person ID. Prefixed <IC>prs_</IC>.</ParamRow>
               <ParamRow name="name"         type="string">Full name as resolved from the enrichment provider.</ParamRow>
@@ -877,24 +756,13 @@ export default function DocsView() {
             </ParamTable>
           </section>
 
-          {/* SDKs */}
-          <section id="sdks" style={secStyle}>
-            <h1 style={h1Style}>Node SDK</h1>
-            <Summary>The Node client wraps the REST API with typed responses. Python and Go integrations should call the documented HTTP endpoints directly.</Summary>
-            <ParamTable>
-              <ParamRow name="Node / TypeScript" type="@vesperwise/node" isLast>Node 18+, fully typed. <IC>npm i @vesperwise/node</IC>.</ParamRow>
-            </ParamTable>
-          </section>
 
           {/* Changelog */}
           <section id="changelog" style={secStyle}>
             <h1 style={h1Style}>API changelog</h1>
-            <Summary>We version the API by URL prefix (currently <IC>/v1</IC>). Breaking changes ship under a new version with at least 12 months of overlap. Additive changes ship anytime.</Summary>
+            <Summary>We version the API by URL prefix (currently <IC>/v1</IC>). The <IC>/v1</IC> surface is still evolving — it is not yet frozen, and we do not yet offer a deprecation window or an SLA. Breaking changes will be announced here.</Summary>
             <ParamTable>
-              <ParamRow name="2026‑05‑12" type="additive">Added <IC>include=people</IC> expansion on <IC>POST /v1/score</IC>. Added <IC>signal.spike</IC> webhook event.</ParamRow>
-              <ParamRow name="2026‑03‑04" type="additive"><IC>deferred</IC> option on bulk jobs (50% credit discount, 8h SLA). New <IC>credits.low</IC> webhook.</ParamRow>
-              <ParamRow name="2026‑01‑22" type="behavior">Default cache freshness moved from 14d to 7d across all plans. <IC>X-IIQ-Cache</IC> response header added.</ParamRow>
-              <ParamRow name="2025‑11‑08" type="v1 stable" isLast>API marked stable; SLAs in effect. Frozen surface area for the next 12 months.</ParamRow>
+              <ParamRow name="2026‑07‑15" type="behavior" isLast>Scoring v2. Responses now carry <IC>scoring_version</IC>, <IC>score_status</IC>, <IC>data_coverage</IC>, <IC>contributions</IC>, and <IC>source_status</IC>. Accounts below minimum source coverage return a null score and are not charged.</ParamRow>
             </ParamTable>
 
             {/* Doc footer */}

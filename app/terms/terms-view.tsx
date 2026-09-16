@@ -324,7 +324,7 @@ export default function TermsView() {
               "May contain factual errors or hallucinations — review before relying on it;",
               "Is not sent to the AI provider for training; we enforce zero‑retention modes where available.",
             ]} />
-            <P>You can opt your account out of AI features entirely in Settings → AI. Doing so will replace AI summaries with the underlying signal data.</P>
+            <P>A per-account opt-out for AI features is not available yet. If no model provider is configured for your workspace, VesperWise falls back to a deterministic summary generated from the signal data alone. Email <A href="mailto:support@vesperwise.com">support@vesperwise.com</A> if you need AI summaries disabled on your account.</P>
             <WarnCallout>
               <strong style={{ color: T.txtPrimary, fontWeight: 500 }}>Restricted uses, restated.</strong>{" "}Do not use AI Output (or the underlying scores) for hiring, lending, insurance underwriting, housing decisions, healthcare, or any decision that affects an individual&rsquo;s legal rights. The Service is built for B2B sales prioritization; it is not a regulated decisioning system.
             </WarnCallout>

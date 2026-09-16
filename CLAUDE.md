@@ -78,15 +78,26 @@ Set `MOCK_SIGNALS=true` to skip all external signal API calls during development
 
 ### Signal Weights (`lib/scorer.ts`)
 
-| Signal     | Weight |
-|------------|--------|
-| funding    | 25%    |
-| hiring     | 20%    |
-| news       | 20%    |
-| technology | 20%    |
-| web        | 15%    |
+Active engine is `v2-linear-2026-07`. Four scored triggers only — **web and GitHub carry zero score weight** and are context for the AI summary:
 
-Score decays 15% per month from `latestSignalDate`. Bands: HOT ≥75, WARM ≥50, COLD <50.
+| Signal     | Base weight | Role           |
+|------------|------------:|----------------|
+| funding    | 22          | Scored trigger |
+| hiring     | 19          | Scored trigger |
+| news       | 18          | Scored trigger |
+| technology | 18          | Scored trigger |
+| web        | —           | Context only   |
+| github     | —           | Context only   |
+
+Trigger weights total 77. Each signal decays from **its own** `observed_at`, not a shared
+`latestSignalDate`: `freshness = 0.85 ^ (age_days / 30)`. A positive score with no `observed_at` is
+forcibly downgraded to `unavailable` so undated evidence cannot inflate a score.
+
+`coverage = Σ(base_weight × status_factor) / 77`, where the factor is 1 for `ok`/verified
+`no_signal`, 0.5 for `stale`, and 0 for `not_found`/`unavailable`. Coverage of exactly 1.0 is
+`complete`, ≥0.6 is `partial`, below 0.6 is `unscorable` — null score, no credit charged.
+
+Bands: HOT ≥75, WARM ≥50, COLD <50. See README.md for the full pipeline.
 
 ### Key Libraries
 

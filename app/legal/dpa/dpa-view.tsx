@@ -391,7 +391,7 @@ export default function DpaView() {
 
           {/* ── 10 ── */}
           <Section id="s10" num="10" title="Audits">
-            <P>VesperWise will make available to the Controller all information necessary to demonstrate compliance with this DPA, including a current SOC 2 Type II report and the answers to the CAIQ Lite and SIG Core. The Controller may request an audit once per twelve‑month period, on 30 days notice, conducted during business hours, by a mutually agreed independent auditor bound by confidentiality. The Controller bears the cost unless the audit reveals material non‑compliance.</P>
+            <P>VesperWise will make available to the Controller the information necessary to demonstrate compliance with this DPA, including its current <A href="/legal/security">Security</A> documentation and written responses to reasonable security questionnaires. <Strong>VesperWise does not currently hold a SOC 2, ISO 27001, or equivalent third‑party attestation</Strong>, and does not represent otherwise; the Security page lists the current status of each. The Controller may request an audit once per twelve‑month period, on 30 days notice, conducted during business hours, by a mutually agreed independent auditor bound by confidentiality. The Controller bears the cost unless the audit reveals material non‑compliance.</P>
           </Section>
 
           {/* ── 11 ── */}
@@ -430,18 +430,18 @@ export default function DpaView() {
             <DocTable
               headers={["Control area", "Measure"]}
               rows={[
-                ["Encryption · transit",       "TLS 1.3 on all customer‑facing endpoints; HSTS preloaded."],
-                ["Encryption · at rest",        "AES‑256 for database and object storage (Supabase + Vercel Blob)."],
-                ["Access control",              "SSO + MFA enforced for all internal access. Least‑privilege RBAC; quarterly access review."],
-                ["API authentication",          <span key="api">SHA‑256 hashed bearer tokens; per‑user rate limiting; revocation on suspected compromise.</span>],
-                ["Tenant isolation",            "Postgres Row‑Level Security on every multi‑tenant table; tenant ID required on all queries."],
-                ["Logging & monitoring",        "Audit logs for all admin actions; 12‑month retention; alerts on anomalous read volume."],
-                ["Vulnerability management",    "Dependabot for dependencies; quarterly third‑party pen test; bounties via the Security page."],
-                ["Personnel security",          "Confidentiality agreements; security training on hire and annually."],
-                ["Subprocessor management",     "Public list; 30‑day notice; DPA required from each."],
-                ["Incident response",           "72‑hour Controller notification on breach; runbook tested twice per year."],
-                ["Backups & resilience",        "Daily encrypted backups; 35‑day retention; RPO 24h, RTO 4h."],
-                ["Physical security",           "None operated by VesperWise; all production hosting is with subprocessors with SOC 2 / ISO 27001."],
+                ["Encryption · transit",       "TLS on all customer‑facing endpoints, terminated by the hosting provider (Vercel)."],
+                ["Encryption · at rest",        "AES‑256 at rest for the Postgres database (Supabase) and the cache (Upstash)."],
+                ["Access control",              "Administrative access is limited to the operator's individual provider accounts (Vercel, Supabase, Clerk, Polar), each with multi‑factor authentication enabled."],
+                ["API authentication",          <span key="api">SHA‑256 hashed bearer tokens, displayed once at creation and revocable at any time. Per‑plan API rate limiting is <Strong>not yet enforced</Strong>.</span>],
+                ["Tenant isolation",            <span key="tenant">Tenant ID is required and applied on every query in the application layer. Row‑Level Security is enabled on multi‑tenant tables as a secondary control, but production access uses a service‑role connection that bypasses it — see the <A href="/legal/security">Security</A> page.</span>],
+                ["Logging & monitoring",        "Application and request logs are retained by the hosting provider. Dedicated audit logging, anomaly alerting, and error tracking are not yet implemented."],
+                ["Vulnerability management",    <span key="vuln">Dependencies are reviewed and updated manually. Automated dependency scanning, third‑party penetration testing, and a bug bounty are <Strong>not yet in place</Strong>; current status is published on the <A href="/legal/security">Security</A> page.</span>],
+                ["Personnel security",          "VesperWise is currently operated by a single founder. Written confidentiality obligations will apply to any personnel or contractor with access to Customer Data."],
+                ["Subprocessor management",     <span key="sub">Public list at <A href="/legal/subprocessors">/legal/subprocessors</A>; 30‑day notice before additions; each subprocessor&rsquo;s standard data‑processing terms are in effect.</span>],
+                ["Incident response",           "72‑hour Controller notification on breach, as required by GDPR Art. 33. A formally documented and periodically tested incident runbook is not yet in place."],
+                ["Backups & resilience",        "Automated daily database backups as provided by Supabase under the current plan. VesperWise does not currently commit to a specific RPO or RTO."],
+                ["Physical security",           "None operated by VesperWise; all production hosting is with subprocessors holding SOC 2 / ISO 27001 attestations."],
               ]}
             />
           </Section>

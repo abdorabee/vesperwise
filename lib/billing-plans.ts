@@ -1,5 +1,10 @@
 import type { DbUser } from "@/lib/types";
-import { PLAN_CREDITS, PLAN_RATE_LIMIT, PLAN_WATCHLIST_LIMIT } from "@/lib/types";
+import {
+  BULK_INLINE_MAX_ROWS,
+  PLAN_AUTOPILOT_LIMIT,
+  PLAN_CREDITS,
+  PLAN_WATCHLIST_LIMIT,
+} from "@/lib/types";
 
 export type PlanKey = DbUser["plan"];
 
@@ -26,6 +31,29 @@ function watchlistLabel(limit: number | null): string {
   return `Watchlist · ${limit} accounts`;
 }
 
+/**
+ * Autopilot workflow allowance, derived from the limit the API actually
+ * enforces (`PLAN_AUTOPILOT_LIMIT`) rather than a hand-typed number.
+ *
+ * Autopilot is not yet available to users, so every label is suffixed to say
+ * so. Remove the suffix when the `/autopilot` route ships.
+ */
+function autopilotLabel(limit: number | null): string {
+  const allowance = limit == null ? "Unlimited workflows" : `Autopilot · ${limit} workflows`;
+  return `${allowance} (coming soon)`;
+}
+
+/** Inline CSV bulk scoring, capped identically on every plan today. */
+const BULK_LABEL = `Bulk CSV scoring · ${BULK_INLINE_MAX_ROWS} per run`;
+
+/** Capabilities every plan gets. Listed so tiers differ only where code differs. */
+const CORE_FEATURES = [
+  "Company intent scoring with dated evidence",
+  "Chat copilot & outreach drafts",
+  "Lists, smart lists & pipeline",
+  "CSV export",
+] as const;
+
 export const BILLING_PLANS: BillingPlanDef[] = [
   {
     key: "free",
@@ -36,17 +64,14 @@ export const BILLING_PLANS: BillingPlanDef[] = [
     tier: 0,
     heroFeatures: [
       `${PLAN_CREDITS.free} credits / mo`,
-      "1 seat",
-      "Score & basic dashboard",
-      "Manual lookups only",
-      "7-day history",
-      "API · 10 rpm",
+      "Company intent scoring",
+      watchlistLabel(PLAN_WATCHLIST_LIMIT.free),
+      "Chat copilot & outreach drafts",
+      "CSV export",
     ],
     features: [
-      "1 seat",
-      "Score & basic dashboard",
-      "Manual lookups only",
-      "7-day history",
+      ...CORE_FEATURES,
+      watchlistLabel(PLAN_WATCHLIST_LIMIT.free),
     ],
   },
   {
@@ -58,18 +83,16 @@ export const BILLING_PLANS: BillingPlanDef[] = [
     tier: 1,
     heroFeatures: [
       `${PLAN_CREDITS.starter.toLocaleString()} credits / mo`,
-      "3 seats",
-      "Bulk scoring · 100/job",
+      BULK_LABEL,
       watchlistLabel(PLAN_WATCHLIST_LIMIT.starter),
-      "30-day history",
-      "Slack & webhook alerts",
+      "Person scoring (beta)",
+      "CSV export",
     ],
     features: [
-      "3 seats",
-      "Bulk scoring · 100/job",
+      ...CORE_FEATURES,
+      BULK_LABEL,
       watchlistLabel(PLAN_WATCHLIST_LIMIT.starter),
-      "30-day history",
-      "Slack & webhook alerts",
+      "Person scoring (beta)",
     ],
   },
   {
@@ -81,19 +104,18 @@ export const BILLING_PLANS: BillingPlanDef[] = [
     tier: 2,
     heroFeatures: [
       `${PLAN_CREDITS.growth.toLocaleString()} credits / mo`,
-      "Up to 10 seats",
-      "Bulk & person scoring",
-      "Autopilot · 25 flows",
+      BULK_LABEL,
       watchlistLabel(PLAN_WATCHLIST_LIMIT.growth),
-      `API access · ${PLAN_RATE_LIMIT.growth} rpm`,
+      "Person scoring (beta)",
+      autopilotLabel(PLAN_AUTOPILOT_LIMIT.growth),
     ],
     features: [
-      "10 seats",
-      "Bulk · 1,000/job · 3 concurrent",
+      ...CORE_FEATURES,
+      BULK_LABEL,
       watchlistLabel(PLAN_WATCHLIST_LIMIT.growth),
-      "Autopilot · 25 workflows",
-      `API · ${PLAN_RATE_LIMIT.growth} rpm`,
-      "Priority email support",
+      "Person scoring (beta)",
+      autopilotLabel(PLAN_AUTOPILOT_LIMIT.growth),
+      "Email support",
     ],
   },
   {
@@ -105,20 +127,19 @@ export const BILLING_PLANS: BillingPlanDef[] = [
     tier: 3,
     heroFeatures: [
       `${PLAN_CREDITS.pro.toLocaleString()} credits / mo`,
-      "25 seats",
-      "Bulk · 5,000/job · 8 concurrent",
-      "Autopilot · unlimited flows",
+      BULK_LABEL,
       watchlistLabel(PLAN_WATCHLIST_LIMIT.pro),
-      `API · ${PLAN_RATE_LIMIT.pro} rpm`,
+      "Custom scoring weights",
+      autopilotLabel(PLAN_AUTOPILOT_LIMIT.pro),
     ],
     features: [
-      "25 seats",
-      "Bulk · 5,000/job · 8 concurrent",
+      ...CORE_FEATURES,
+      BULK_LABEL,
       watchlistLabel(PLAN_WATCHLIST_LIMIT.pro),
-      "Autopilot · unlimited flows",
-      `API · ${PLAN_RATE_LIMIT.pro} rpm`,
-      "SSO & SCIM",
+      "Person scoring (beta)",
       "Custom scoring weights",
+      autopilotLabel(PLAN_AUTOPILOT_LIMIT.pro),
+      "Email support",
     ],
   },
   {
@@ -130,20 +151,19 @@ export const BILLING_PLANS: BillingPlanDef[] = [
     tier: 4,
     heroFeatures: [
       `${PLAN_CREDITS.agency.toLocaleString()} credits / mo`,
-      "Unlimited seats",
-      "Multi-workspace",
-      "Bulk · 20k/job · unlimited",
-      "White-label exports",
-      `API · ${PLAN_RATE_LIMIT.agency} rpm`,
+      BULK_LABEL,
+      watchlistLabel(PLAN_WATCHLIST_LIMIT.agency),
+      "Custom scoring weights",
+      autopilotLabel(PLAN_AUTOPILOT_LIMIT.agency),
     ],
     features: [
-      "Unlimited seats",
-      "Multi-workspace",
-      "Bulk · 20k/job · unlimited",
-      "White-label exports",
-      `API · ${PLAN_RATE_LIMIT.agency} rpm`,
-      "Dedicated CSM",
-      "99.9% SLA",
+      ...CORE_FEATURES,
+      BULK_LABEL,
+      watchlistLabel(PLAN_WATCHLIST_LIMIT.agency),
+      "Person scoring (beta)",
+      "Custom scoring weights",
+      autopilotLabel(PLAN_AUTOPILOT_LIMIT.agency),
+      "Priority email support",
     ],
   },
 ];

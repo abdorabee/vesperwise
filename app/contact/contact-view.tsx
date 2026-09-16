@@ -38,7 +38,7 @@ const CHANNELS = [
     type: "sales",
     label: "Sales · Demos",
     name: "Talk to a sales engineer",
-    desc: "Plan sizing, multi‑seat pricing, security questionnaires.",
+    desc: "Plan sizing, scoring methodology, security questions.",
     email: "sales@vesperwise.com",
     color: { bg: "rgba(223,255,0,0.12)", fg: "#dfff00" },
     icon: (
@@ -51,7 +51,7 @@ const CHANNELS = [
     type: "support",
     label: "Product support",
     name: "For paying customers",
-    desc: "Bugs, billing, integrations. Reply within four hours, business days.",
+    desc: "Bugs, billing, API access. We reply on business days.",
     email: "support@vesperwise.com",
     color: { bg: "rgba(223,255,0,0.12)", fg: T.cyan },
     icon: (
@@ -63,8 +63,8 @@ const CHANNELS = [
   {
     type: "security",
     label: "Security · Trust",
-    name: "Vulnerability reports, SOC 2 + DPA",
-    desc: "PGP key on the Security page. Bounties paid in 14 days.",
+    name: "Vulnerability reports & DPA",
+    desc: "See the Security page for current status. No formal bounty programme yet.",
     email: "security@vesperwise.com",
     color: { bg: "rgba(74,222,128,0.10)", fg: T.hot },
     icon: (
@@ -77,7 +77,7 @@ const CHANNELS = [
     type: "press",
     label: "Press · Analyst",
     name: "Briefings, comments, press kit",
-    desc: "Logo files, exec headshots, embargoes — all in the kit.",
+    desc: "Product background, founder bio, and logo files on request.",
     email: "support@vesperwise.com",
     color: { bg: "rgba(245,181,68,0.10)", fg: T.warm },
     icon: (
@@ -118,19 +118,19 @@ const FAQS = [
   },
   {
     q: "Do you have a security questionnaire pre‑filled?",
-    a: "We do. We maintain a pre‑filled CAIQ Lite, SIG Core, and a Vanta trust portal that covers ~90% of incoming questionnaires. Email security@vesperwise.com and we'll send the bundle the same day.",
+    a: "Not a standard one yet — we don't hold a SOC 2, ISO 27001, or a trust-portal subscription. What we do have is a Security page documenting exactly which controls are in place and which are not, plus a GDPR Art. 28 DPA. Email security@vesperwise.com with your questionnaire and we'll answer it directly.",
   },
   {
-    q: "How long does an enterprise rollout typically take?",
-    a: "Most teams are live inside two weeks — usually four working days for a 25–50 seat team, plus a week for SSO + HubSpot/Salesforce mapping. The longest part is usually procurement.",
+    q: "How long does it take to get going?",
+    a: "Minutes. Sign up, describe your ICP, and score your first accounts — there is nothing to install and no CRM to connect. VesperWise is currently a single-user product: seats, SSO, and CRM sync are not available yet.",
   },
   {
-    q: "Can we BYO Anthropic key for AI reasoning?",
-    a: "On Pro and Agency, yes. Drop your Anthropic key into Settings → AI and we'll route all summary + chat copilot calls through your account. Useful for AUP scope, billing consolidation, and model‑choice control.",
+    q: "Which AI models generate the summaries?",
+    a: "Score reasoning runs on Google Gemini and the chat copilot on Anthropic Claude, both routed through OpenRouter. Bring-your-own-key is not supported yet. If no model provider is configured, scores fall back to a deterministic summary built from the signal data alone.",
   },
   {
-    q: "Where is customer data stored, and can I pick a region?",
-    a: "Primary stack on Vercel (us‑east‑1) + Supabase (us‑east‑1) today. EU region (Frankfurt) ships Q3 2026 — Pro and Agency customers can opt in. See the Security page for the full data map.",
+    q: "Where is customer data stored?",
+    a: "The primary Postgres database is hosted by Supabase in AWS eu-central-1 (Frankfurt). Application hosting is on Vercel and authentication on Clerk, both US-based. Region selection is not offered today. See the Subprocessors page for the full list.",
   },
 ];
 

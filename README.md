@@ -13,12 +13,12 @@ Score bands: **HOT** (≥75) · **WARM** (50–74) · **COLD** (<50)
 - **Framework**: Next.js 16 (App Router, React 19)
 - **Auth**: Clerk
 - **Database**: Supabase (PostgreSQL + RLS)
-- **Cache / Rate limiting**: Upstash Redis
+- **Cache**: Upstash Redis
 - **Billing**: Polar.sh
 - **AI**: OpenRouter (Gemini score reasoning; Claude chat copilot and onboarding)
-- **Signal APIs**: Explorium (funding and hiring), GNews, BuiltWith, OpenPageRank, GitHub, Apollo.io (people)
+- **Signal APIs**: Explorium (funding and hiring), GNews, BuiltWith, OpenPageRank, GitHub
 - **Hiring fallback**: BullMQ + Scrapling crawler for promoted first-party careers evidence
-- **UI**: Tailwind CSS 4, shadcn/ui, Recharts, GSAP
+- **UI**: Tailwind CSS 4, shadcn/ui
 
 ## Getting started
 
@@ -45,7 +45,7 @@ CLERK_SECRET_KEY=
 # OpenRouter (bounded score reasoning; deterministic fallback if unset)
 OPENROUTER_API_KEY=
 
-# Upstash Redis (cache/rate-limit skipped if unset)
+# Upstash Redis (cache skipped if unset)
 UPSTASH_REDIS_REST_URL=
 UPSTASH_REDIS_REST_TOKEN=
 
@@ -175,12 +175,12 @@ Important response fields include `scoring_version`, `scoring_policy_id`, `score
 | `(dashboard)` | `/score`, `/people`, `/bulk`, `/watchlist`, `/pipeline`, `/history`, `/autopilot`, `/settings`, `/billing`, `/api-keys` | Authenticated layout |
 | `api/v1/` | `/score`, `/score/bulk`, `/score/person`, `/watchlist`, `/prioritize` | Public REST API |
 | `api/billing/` | `/checkout`, `/topup`, `/webhook` | Polar.sh integration |
-| `api/user/` | `/keys` | API key management |
+| `api/user/` | `/api-keys`, `/profile`, `/account`, `/scoring-policy` | Account and API key management |
 
 ### Key modules
 
 - `lib/types.ts` — shared types, `PLAN_CREDITS`, `PLAN_WATCHLIST_LIMIT`, `PLAN_RATE_LIMIT`
-- `lib/supabase.ts` — `createSupabaseServerClient()` (cookie-based) and `createSupabaseAdmin()` (service role)
+- `lib/supabase.ts` — `createSupabaseAdmin()` (service role, bypasses RLS). There is no cookie-based Supabase auth client; identity is Clerk.
 - `lib/redis.ts` — Upstash wrapper; no-ops if env vars not set
 - `lib/score-service.ts` — evidence reuse, personalized caching, idempotent runs, persistence, and charging
 - `lib/scorer.ts` — versioned linear intent model, freshness, coverage, and bands
@@ -209,11 +209,13 @@ Workflow engine with conditional triggers (score thresholds, band changes, signa
 
 ### Person scoring (`/people`)
 
-Scores individuals by email, LinkedIn URL, or name. Signals: career trajectory (30 pts), seniority fit (20 pts), company intent (20 pts), news mentions (15 pts), social presence (15 pts). Enriched via Apollo.io with PDL as fallback.
+Scores individuals by email, LinkedIn URL, or name. Signals: career trajectory (30 pts), seniority fit (20 pts), company intent (20 pts), news mentions (15 pts), social presence (15 pts).
+
+**Status: beta, and thinner than it looks.** `lib/pdl.ts` builds the person record from the details the caller supplies — it makes no external enrichment call. The real Apollo.io client in `lib/apollo.ts` is not wired into the scoring path, so `career_change` scores an empty employment history and `social_presence` measures field completeness. Only `news_mentions` hits a live provider (GNews). Treat the composite as indicative until enrichment is connected.
 
 ### Bulk scoring
 
-The dashboard CSV flow scores up to 50 companies inline and relies on the same per-company cache and atomic charging behavior. The public queued bulk endpoint accepts up to 1,000 companies and allows three concurrent `bulk_jobs`; it still requires a separate bulk processor. The hiring-refresh worker below does not process bulk scoring jobs.
+The dashboard CSV flow scores up to 50 companies inline and relies on the same per-company cache and atomic charging behavior. The public queued bulk endpoint (`POST /api/v1/score/bulk`) is **not implemented**: it records a `queued` `bulk_jobs` row, discards the submitted company list, and no worker consumes the queue. It is undocumented on the public API docs page for that reason. Use the inline CSV flow until a processor exists. The hiring-refresh worker below does not process bulk scoring jobs.
 
 ### Hiring refresh worker (Scrapling Phase 2)
 

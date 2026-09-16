@@ -314,8 +314,8 @@ export default function PrivacyView() {
             ]} />
             <H3>Product telemetry</H3>
             <UL items={[
-              "Page views, button clicks, and feature-usage events (via PostHog, self-hosted in EU)",
-              "API request metadata: endpoint, latency, status code — payloads are never logged",
+              "API request metadata: endpoint, latency, status code — recorded in our hosting provider's logs. Request payloads are not logged.",
+              "We do not currently run any third-party product-analytics or behavioural-tracking service. If we add one, we will update this page and the Subprocessors page before it goes live.",
             ]} />
             <H3>Communications</H3>
             <UL items={[
@@ -344,11 +344,9 @@ export default function PrivacyView() {
               rows={[
                 [<Code key="c1">__clerk_session</Code>, "Auth session token", "7 days"],
                 [<Code key="c2">__clerk_csrf</Code>, "CSRF protection", "Session"],
-                [<Code key="c3">iq_prefs</Code>, "UI preferences (theme, collapsed panels)", "1 year"],
-                [<Code key="c4">_iq_anon</Code>, "Anonymous usage analytics", "30 days"],
               ]}
             />
-            <P>Analytics are powered by <Strong>PostHog</Strong>, self-hosted in the EU. Event data never leaves EU infrastructure. You can opt out of product analytics in Settings → Privacy.</P>
+            <P>These are strictly necessary cookies set by our authentication provider to keep you signed in and to protect against cross-site request forgery. <Strong>We set no advertising, analytics, or behavioural-tracking cookies</Strong>, which is why VesperWise does not show a cookie consent banner.</P>
           </Section>
 
           {/* ── 05 ── */}
@@ -359,32 +357,32 @@ export default function PrivacyView() {
 
           {/* ── 06 ── */}
           <Section id="s6" num="06" title="AI processing">
-            <P>When you request a score, the company domain and signal data are sent to <Strong>Anthropic</Strong> to generate a human-readable summary and recommended action. We:</P>
+            <P>When you request a score, the company domain and the signal evidence gathered for it are sent to <Strong>OpenRouter</Strong>, which routes the request to an underlying model provider. Today that is <Strong>Google</Strong> (Gemini) for score reasoning and <Strong>Anthropic</Strong> (Claude) for the chat copilot. OpenRouter and the model provider act as onward subprocessors; all three are listed on our <A href="/legal/subprocessors">Subprocessors page</A>.</P>
             <OL items={[
-              <span key="a">Use Anthropic&rsquo;s <Strong>zero-data-retention</Strong> API configuration — prompts and completions are not stored or used for training by Anthropic</span>,
-              "Never include API keys, billing information, or user PII in prompts sent to Anthropic",
-              <span key="c">Allow you to disable AI summaries entirely in <Strong>Settings → AI</Strong>; doing so replaces summaries with the raw signal data</span>,
+              <span key="a">We do <Strong>not</Strong> currently have a zero-data-retention agreement in place with OpenRouter or the underlying model providers. Their retention and training practices are governed by their own terms, linked from our Subprocessors page.</span>,
+              "We never include API keys, billing information, or account credentials in prompts. Prompts contain the company domain, the signal evidence, and — where you have configured one — your business profile.",
+              <span key="c">If no model provider is configured, VesperWise falls back to a deterministic, non-AI summary generated from the signal data alone.</span>,
             ]} />
-            <P>Anthropic&rsquo;s handling of any data that passes through their API is governed by their <A href="https://www.anthropic.com/legal/privacy">Privacy Policy</A> and our DPA addendum with them.</P>
+            <P>We are working toward a zero-retention configuration and will update this section when one is in place. The current status of this and other security commitments is published on our <A href="/legal/security">Security page</A>.</P>
           </Section>
 
           {/* ── 07 ── */}
           <Section id="s7" num="07" title="International transfers">
-            <P>VesperWise is operated from Egypt and the United States. Our production infrastructure runs on AWS <Code>us-east-1</Code>. If you are in the EEA or UK, your data is transferred to the US under the <Strong>Standard Contractual Clauses (EU 2021/914)</Strong> incorporated into our <A href="/legal/dpa">DPA</A>.</P>
-            <P>We are targeting an EU-region deployment (Frankfurt, <Code>eu-central-1</Code>) in Q3 2026 to allow EEA customers to keep data on-continent. We will announce this in the product when available.</P>
+            <P>VesperWise is operated from Egypt. Our production Postgres database is hosted by Supabase on AWS <Code>eu-central-1</Code> (Frankfurt). Application hosting, serverless functions, and the edge CDN are provided by Vercel, and authentication by Clerk, both of which operate globally distributed infrastructure with US-based control planes.</P>
+            <P>Where personal data is transferred outside the EEA or UK — including to our US-based subprocessors listed on the <A href="/legal/subprocessors">Subprocessors page</A> — that transfer is made under the <Strong>Standard Contractual Clauses (EU 2021/914)</Strong> incorporated into our <A href="/legal/dpa">DPA</A>, supplemented for UK transfers by the ICO&rsquo;s International Data Transfer Addendum.</P>
           </Section>
 
           {/* ── 08 ── */}
           <Section id="s8" num="08" title="Your rights">
             <GoodCallout>
-              <strong style={{ color: T.txtPrimary, fontWeight: 500 }}>One-click delete.</strong>{" "}Settings → Account → Delete account triggers a full purge of your Customer Data within 30 days. No email required.
+              <strong style={{ color: T.txtPrimary, fontWeight: 500 }}>Account deletion.</strong>{" "}Email <A href="mailto:privacy@vesperwise.com">privacy@vesperwise.com</A> from your account address and we will purge your Customer Data within 30 days. Self-serve deletion from Settings is on our roadmap and is not available yet.
             </GoodCallout>
             <P>Depending on your location, you may have the right to:</P>
             <UL items={[
               <span key="a"><Strong>Access</Strong> — receive a copy of the personal data we hold about you</span>,
               <span key="b"><Strong>Correct</Strong> — update inaccurate or incomplete data</span>,
               <span key="c"><Strong>Delete</Strong> — request deletion; we&rsquo;ll purge Customer Data within 30 days and retain only what law requires</span>,
-              <span key="d"><Strong>Export</Strong> — download your account data in JSON format from Settings → Account → Export</span>,
+              <span key="d"><Strong>Export</Strong> — request a machine-readable copy of your account data by email; self-serve export from Settings is not available yet</span>,
               <span key="e"><Strong>Object</Strong> — object to processing based on legitimate interest</span>,
               <span key="f"><Strong>Withdraw consent</Strong> — where processing is based on consent (e.g. marketing emails), withdraw at any time</span>,
               <span key="g"><Strong>Lodge a complaint</Strong> — with your local data protection authority if you believe we have mishandled your data</span>,

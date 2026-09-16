@@ -206,8 +206,8 @@ export default function SubprocessorsView() {
                 ],
                 [
                   <Strong key="name">Supabase</Strong>,
-                  "Postgres database, object storage",
-                  "United States"
+                  "Postgres database (primary data store)",
+                  "Germany (EU) · eu-central-1"
                 ],
                 [
                   <Strong key="name">Vercel</Strong>,
@@ -216,17 +216,63 @@ export default function SubprocessorsView() {
                 ],
                 [
                   <Strong key="name">Upstash</Strong>,
-                  "Redis cache, rate limiting",
+                  "Redis cache for score results and signal evidence",
                   "United States"
                 ],
                 [
                   <Strong key="name">OpenRouter</Strong>,
-                  "AI model routing",
+                  "AI model routing for score reasoning and the chat copilot",
+                  "United States"
+                ],
+                [
+                  <Strong key="name">Google</Strong>,
+                  "Gemini models for score reasoning, reached via OpenRouter",
+                  "United States"
+                ],
+                [
+                  <Strong key="name">Anthropic</Strong>,
+                  "Claude models for the chat copilot, reached via OpenRouter",
+                  "United States"
+                ],
+                [
+                  <Strong key="name">Explorium</Strong>,
+                  "Company funding and hiring signal enrichment (company domain only)",
+                  "United States"
+                ],
+                [
+                  <Strong key="name">GNews</Strong>,
+                  "News search for company signals and, in person scoring, for mentions of a named individual",
+                  "United States"
+                ],
+                [
+                  <Strong key="name">BuiltWith</Strong>,
+                  "Website technology detection (company domain only)",
+                  "United States"
+                ],
+                [
+                  <Strong key="name">Open PageRank</Strong>,
+                  "Domain authority lookup (company domain only)",
+                  "United States"
+                ],
+                [
+                  <Strong key="name">GitHub</Strong>,
+                  "Public repository activity as supporting context (company domain only)",
+                  "United States"
+                ],
+                [
+                  <Strong key="name">Resend</Strong>,
+                  "Transactional email delivery for the contact form",
+                  "United States"
+                ],
+                [
+                  <Strong key="name">Firecrawl</Strong>,
+                  "Public web page extraction, used only when the optional enrichment worker is enabled",
                   "United States"
                 ],
               ]}
             />
-            <P><Strong>Card data:</Strong> VesperWise never receives or stores raw card data. Polar.sh collects payment details and stores them with Stripe. We receive only metadata (last 4 digits, brand, expiry) via webhook.</P>
+            <P><Strong>Card data:</Strong> VesperWise never receives or stores card data of any kind. Polar.sh collects and stores payment details with its own payment processor. Our billing webhook receives only a subscription or order identifier, the plan, and the associated account — no card number, expiry, brand, or last four digits.</P>
+            <P><Strong>Person scoring:</Strong> when you score an individual, the name, title, and company you supply are used to compute a score locally. The name is sent to GNews to search for public news mentions, and a summary prompt containing those details is sent to OpenRouter. VesperWise does not currently purchase or query third-party people-data providers.</P>
             <P><Strong>AI processing:</Strong> OpenRouter proxies requests to AI providers. See our <A href="/privacy#s6">Privacy Policy § 06 AI processing</A> for details.</P>
           </Section>
 

@@ -681,7 +681,7 @@ export default function LandingPage() {
                       <div className="label">Recommended next action</div>
                       <div className="text">Send AE‑authored email referencing the Series H — anchor on RevOps tooling pain at $90B+ scale.</div>
                       <div className="row">
-                        <button className="sd-action-btn primary">Draft in Gmail</button>
+                        <button className="sd-action-btn primary">Copy draft</button>
                         <button className="sd-action-btn">Save play</button>
                       </div>
                     </div>
@@ -1086,7 +1086,7 @@ export default function LandingPage() {
           <div className="section-head">
             <div className="label"><span className="accent"></span>Developers + People</div>
             <h2 className="h1">Built for sales ops<br />that actually ship.</h2>
-            <p>One REST endpoint. Bulk CSV. People scoring. Watchlists. Webhooks for the systems your team already lives in.</p>
+            <p>One REST endpoint. Bulk CSV. People scoring. Watchlists. CSV export into whatever your team already uses.</p>
           </div>
 
           <div className="two-col">
@@ -1235,42 +1235,26 @@ export default function LandingPage() {
 
             <div className="feat-card" style={{ minHeight: 'auto' }}>
               <div className="feat-head">
-                <h3>Lives where your team lives.</h3>
-                <p>Webhooks, Slack, HubSpot, Salesforce, Gmail, Outreach, Apollo. Score events flow out. Pipeline updates flow back in.</p>
+                <h3>Get the data out.</h3>
+                <p>Export any list, watchlist, or score history to CSV, or pull scores directly from the REST API. Slack and outbound webhooks are next.</p>
               </div>
               <div className="feat-visual" style={{ padding: '24px 32px 32px' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '8px', width: '100%' }}>
                   <div className="integration-tile" style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: '14px 10px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--text-secondary)' }}>
-                    <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: '#4A154B', display: 'grid', placeItems: 'center', color: '#fff', fontWeight: 800, fontSize: '14px' }}>#</div>
-                    Slack
+                    <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: 'var(--accent)', display: 'grid', placeItems: 'center', color: '#0A0A0A', fontWeight: 800, fontSize: '12px' }}>CSV</div>
+                    CSV export
                   </div>
                   <div className="integration-tile" style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: '14px 10px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--text-secondary)' }}>
-                    <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: '#FF7A59', display: 'grid', placeItems: 'center', color: '#fff', fontWeight: 800, fontSize: '11px' }}>Hub</div>
-                    HubSpot
+                    <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: 'rgba(255,255,255,0.06)', display: 'grid', placeItems: 'center', color: 'var(--text-secondary)', fontWeight: 800, fontSize: '11px' }}>API</div>
+                    REST API
                   </div>
                   <div className="integration-tile" style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: '14px 10px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--text-secondary)' }}>
-                    <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: '#00A1E0', display: 'grid', placeItems: 'center', color: '#fff', fontWeight: 800, fontSize: '11px' }}>SF</div>
-                    Salesforce
+                    <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: 'rgba(255,255,255,0.04)', display: 'grid', placeItems: 'center', color: 'var(--text-tertiary)', fontWeight: 800, fontSize: '14px' }}>#</div>
+                    Slack · soon
                   </div>
                   <div className="integration-tile" style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: '14px 10px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--text-secondary)' }}>
-                    <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: '#EA4335', display: 'grid', placeItems: 'center', color: '#fff', fontWeight: 800, fontSize: '13px' }}>G</div>
-                    Gmail
-                  </div>
-                  <div className="integration-tile" style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: '14px 10px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--text-secondary)' }}>
-                    <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: '#5849BE', display: 'grid', placeItems: 'center', color: '#fff', fontWeight: 800, fontSize: '11px' }}>Ot</div>
-                    Outreach
-                  </div>
-                  <div className="integration-tile" style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: '14px 10px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--text-secondary)' }}>
-                    <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: '#1B68F1', display: 'grid', placeItems: 'center', color: '#fff', fontWeight: 800, fontSize: '11px' }}>Ap</div>
-                    Apollo
-                  </div>
-                  <div className="integration-tile" style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: '14px 10px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--text-secondary)' }}>
-                    <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: '#0070E0', display: 'grid', placeItems: 'center', color: '#fff', fontWeight: 800, fontSize: '11px' }}>Zp</div>
-                    Zapier
-                  </div>
-                  <div className="integration-tile" style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: '14px 10px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--text-secondary)' }}>
-                    <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: 'rgba(255,255,255,0.06)', border: '1px dashed var(--border-strong)', display: 'grid', placeItems: 'center', color: 'var(--text-tertiary)', fontWeight: 700, fontSize: '14px' }}>+</div>
-                    Webhook
+                    <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: 'rgba(255,255,255,0.04)', display: 'grid', placeItems: 'center', color: 'var(--text-tertiary)', fontWeight: 800, fontSize: '14px' }}>+</div>
+                    Webhooks · soon
                   </div>
                 </div>
               </div>
@@ -1320,7 +1304,7 @@ export default function LandingPage() {
                 <div className="price-feat"><svg className="chk" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 7l3 3 5-7"/></svg>Everything in Free</div>
                 <div className="price-feat"><svg className="chk" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 7l3 3 5-7"/></svg>50 watchlist accounts</div>
                 <div className="price-feat"><svg className="chk" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 7l3 3 5-7"/></svg>API + CSV exports</div>
-                <div className="price-feat"><svg className="chk" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 7l3 3 5-7"/></svg>Slack integration</div>
+                <div className="price-feat"><svg className="chk" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 7l3 3 5-7"/></svg>Bulk CSV scoring · 50 per run</div>
               </div>
               <a href="/signup" className="btn btn-secondary">Get Starter</a>
             </div>
@@ -1332,9 +1316,9 @@ export default function LandingPage() {
               <div className="price-feats">
                 <div className="price-feat"><svg className="chk" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 7l3 3 5-7"/></svg>Everything in Starter</div>
                 <div className="price-feat"><svg className="chk" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 7l3 3 5-7"/></svg>250 watchlist accounts</div>
-                <div className="price-feat"><svg className="chk" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 7l3 3 5-7"/></svg>20 Autopilot workflows</div>
-                <div className="price-feat"><svg className="chk" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 7l3 3 5-7"/></svg>Bulk scoring (1,000 / job)</div>
-                <div className="price-feat"><svg className="chk" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 7l3 3 5-7"/></svg>HubSpot + Salesforce</div>
+                <div className="price-feat"><svg className="chk" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 7l3 3 5-7"/></svg>Autopilot · 20 workflows (coming soon)</div>
+                <div className="price-feat"><svg className="chk" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 7l3 3 5-7"/></svg>Person scoring (beta)</div>
+                <div className="price-feat"><svg className="chk" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 7l3 3 5-7"/></svg>Email support</div>
               </div>
               <a href="/signup" className="btn btn-accent">Get Growth →</a>
             </div>
@@ -1346,9 +1330,9 @@ export default function LandingPage() {
               <div className="price-feats">
                 <div className="price-feat"><svg className="chk" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 7l3 3 5-7"/></svg>Everything in Growth</div>
                 <div className="price-feat"><svg className="chk" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 7l3 3 5-7"/></svg>1,000 watchlist accounts</div>
-                <div className="price-feat"><svg className="chk" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 7l3 3 5-7"/></svg>People scoring</div>
-                <div className="price-feat"><svg className="chk" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 7l3 3 5-7"/></svg>50 Autopilot workflows</div>
-                <div className="price-feat"><svg className="chk" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 7l3 3 5-7"/></svg>Priority support</div>
+                <div className="price-feat"><svg className="chk" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 7l3 3 5-7"/></svg>Custom scoring weights</div>
+                <div className="price-feat"><svg className="chk" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 7l3 3 5-7"/></svg>Autopilot · 50 workflows (coming soon)</div>
+                <div className="price-feat"><svg className="chk" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 7l3 3 5-7"/></svg>Priority email support</div>
               </div>
               <a href="/signup" className="btn btn-secondary">Get Pro</a>
             </div>

@@ -69,7 +69,7 @@ const CURRENT_CONTROLS = [
     items: [
       "Explorium (funding enrichment)",
       "GNews, BuiltWith, OpenPageRank, GitHub",
-      "Apollo (person enrichment)",
+      "Person scoring uses only the details you supply, plus a GNews mention search",
       "All signal vendor API calls use HTTPS",
     ],
   },
