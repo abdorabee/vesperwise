@@ -70,6 +70,7 @@ export const CRUMB: Record<string, { parent: string; current: string }> = {
   "/settings": { parent: "Workspace", current: "Settings" },
   "/inbox": { parent: "Workspace", current: "Inbox" },
   "/dev/shell": { parent: "Workspace", current: "Shell preview" },
+  "/dev/shell-dark": { parent: "Workspace", current: "Shell preview" },
 };
 
 export function isNavActive(pathname: string, href: string): boolean {

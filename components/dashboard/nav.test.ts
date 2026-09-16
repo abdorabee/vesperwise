@@ -7,10 +7,6 @@ const shellSource = readFileSync(
   new URL("./dashboard-shell.tsx", import.meta.url),
   "utf8"
 );
-const appSidebarSource = readFileSync(
-  new URL("./app-sidebar.tsx", import.meta.url),
-  "utf8"
-);
 const dashboardLayoutSource = readFileSync(
   new URL("../../app/(dashboard)/layout.tsx", import.meta.url),
   "utf8"
@@ -26,12 +22,11 @@ describe("dashboard profile navigation cleanup", () => {
     expect(navConfigSource).not.toMatch(/label:\s*["']Profile["']/);
   });
 
-  it("uses SidebarProvider chrome for expanded, collapsed, and mobile drawer modes", () => {
-    expect(shellSource).toContain("SidebarProvider");
-    expect(shellSource).toContain("AppSidebar");
-    expect(shellSource).toContain("SidebarInset");
-    expect(shellSource).toContain("SiteHeader");
-    expect(appSidebarSource).toContain('collapsible="icon"');
+  it("uses application-shell1 chrome for authenticated dashboard routes", () => {
+    expect(shellSource).toContain("ApplicationShell1");
+    expect(shellSource).toContain("SearchProvider");
+    expect(shellSource).not.toContain("AppSidebar");
+    expect(shellSource).not.toContain("SiteHeader");
   });
 
   it("deletes the Memory page rather than leaving it reachable", () => {
@@ -64,7 +59,7 @@ describe("dashboard profile navigation cleanup", () => {
   it("feeds the sidebar the stored workspace name from the server", () => {
     expect(dashboardLayoutSource).toContain("workspace_name");
     expect(dashboardLayoutSource).toContain("storedWorkspaceName");
-    expect(shellSource).toContain("workspaceName={workspaceName}");
-    expect(appSidebarSource).toContain("workspaceName");
+    expect(shellSource).toContain("workspaceName");
+    expect(shellSource).toContain("getWorkspaceLabel");
   });
 });
