@@ -274,7 +274,7 @@ const AppSidebar = ({
   credits?: ShellCredits;
 }) => {
   return (
-    <Sidebar {...props}>
+    <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
         <SidebarLogo logo={data.logo} />
       </SidebarHeader>
@@ -292,18 +292,19 @@ const AppSidebar = ({
               </SidebarGroupContent>
             </SidebarGroup>
           ))}
+          <SidebarGroup>
+            <SidebarGroupLabel>{data.footerGroup.title}</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {data.footerGroup.items.map((item) => (
+                  <NavMenuItem key={`${item.href}-${item.label}`} item={item} />
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
         </ScrollArea>
       </SidebarContent>
       <SidebarFooter>
-        <SidebarGroup className="p-0">
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {data.footerGroup.items.map((item) => (
-                <NavMenuItem key={`${item.href}-${item.label}`} item={item} />
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
         {credits ? <CreditsStrip credits={credits} /> : null}
         {data.user ? <ShellNavUser user={data.user} /> : null}
       </SidebarFooter>
