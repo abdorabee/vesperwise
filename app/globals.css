@@ -7695,6 +7695,147 @@ button.signal-card.gen-axis.is-selected {
   .billing-page .split-row, .billing-page .bot-row { grid-template-columns: 1fr; }
 }
 
+/* Minimal generative Score workspace */
+.score-chat {
+  display: flex;
+  min-height: 0;
+  height: 100%;
+  flex: 1;
+  flex-direction: column;
+}
+
+.score-chat-thread {
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.score-chat-col {
+  width: 100%;
+  max-width: 50rem;
+  margin-inline: auto;
+  padding: clamp(1.5rem, 4vw, 3.5rem) 0 2rem;
+  gap: 2rem;
+}
+
+.score-message {
+  animation: score-message-in 200ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.score-message-user[data-motion="submitted"] {
+  animation-name: score-prompt-in;
+}
+
+.score-elements-input {
+  border: 1px solid var(--input);
+  border-radius: 0.875rem;
+  background: var(--background);
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.06), 0 1px 3px rgb(0 0 0 / 0.08);
+  transition: border-color 150ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 150ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.score-elements-input:focus-within {
+  border-color: var(--ring);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 18%, transparent), 0 12px 34px rgb(0 0 0 / 0.08);
+}
+
+.score-elements-input [data-slot="input-group"],
+.score-elements-input [data-slot="input-group-control"] {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.score-elements-input textarea {
+  min-height: 2.75rem;
+  resize: none;
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  font-size: 0.9375rem;
+}
+
+.score-elements-submit {
+  border-color: var(--primary) !important;
+  background: var(--primary) !important;
+  color: var(--primary-foreground) !important;
+}
+
+.score-research-dot {
+  animation: score-attention 1.6s ease-in-out infinite;
+}
+
+.score-artifact[data-slot="score-artifact"] {
+  animation: score-artifact-in 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+[data-motion="generated"] .score-artifact-row {
+  opacity: 0;
+  animation: score-row-in 200ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+[data-motion="generated"] .score-artifact-row:nth-child(1) { animation-delay: 60ms; }
+[data-motion="generated"] .score-artifact-row:nth-child(2) { animation-delay: 130ms; }
+[data-motion="generated"] .score-artifact-row:nth-child(3) { animation-delay: 200ms; }
+[data-motion="generated"] .score-artifact-row:nth-child(4) { animation-delay: 270ms; }
+[data-motion="generated"] .score-artifact-copy { opacity: 0; animation: score-message-in 200ms cubic-bezier(0.22, 1, 0.36, 1) 340ms forwards; }
+[data-motion="generated"] .score-artifact-action,
+[data-motion="generated"] .score-artifact-actions { opacity: 0; animation: score-message-in 200ms cubic-bezier(0.22, 1, 0.36, 1) 420ms forwards; }
+
+.score-artifact-archive > summary::-webkit-details-marker { display: none; }
+.score-artifact-archive[open] > div { animation: score-artifact-in 220ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+.score-bloub {
+  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1), opacity 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes score-prompt-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes score-message-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes score-artifact-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes score-row-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes score-attention {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 1; }
+}
+
+@media (max-width: 640px) {
+  .score-chat-col { padding-top: 1.25rem; gap: 1.5rem; }
+  .score-artifact [data-slot="table"] { min-width: 42rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .score-message,
+  .score-message-user,
+  .score-artifact[data-slot="score-artifact"],
+  [data-motion="generated"] .score-artifact-row,
+  [data-motion="generated"] .score-artifact-copy,
+  [data-motion="generated"] .score-artifact-action,
+  [data-motion="generated"] .score-artifact-actions,
+  .score-artifact-archive[open] > div,
+  .score-research-dot,
+  .score-research [data-slot="skeleton"] {
+    opacity: 1;
+    transform: none;
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
 /* form reset for plan/topup CTAs */
 .billing-page form { margin: 0; }
 .billing-page button.pc-cta,

@@ -1,64 +1,33 @@
 import { renderToStaticMarkup } from "react-dom/server";
-import type { ComponentType, ReactNode } from "react";
 import { describe, expect, it } from "vitest";
 
-import * as scoreLayout from "./score-workspace-layout";
-import { ScoreWorkspaceLayout } from "./score-workspace-layout";
+import { ScorePageFrame, ScoreWorkspaceLayout } from "./score-workspace-layout";
 
 describe("ScorePageFrame", () => {
-  it.each([
-    ["entry", "max-w-5xl"],
-    ["workspace", "max-w-[96rem]"],
-  ] as const)("keeps the %s frame aligned inside the shell gutter", (mode, widthClass) => {
-    const ScorePageFrame = (scoreLayout as unknown as {
-      ScorePageFrame?: ComponentType<{ children: ReactNode; mode: typeof mode }>;
-    }).ScorePageFrame;
-
-    expect(ScorePageFrame).toBeTypeOf("function");
-    if (!ScorePageFrame) return;
-
+  it("uses one shell-owned gutter and a restrained response width", () => {
     const html = renderToStaticMarkup(
-      <ScorePageFrame mode={mode}>
-        <p>Score content</p>
-      </ScorePageFrame>
+      <ScorePageFrame mode="workspace"><p>Score content</p></ScorePageFrame>
     );
 
-    expect(html).toContain(`data-mode="${mode}"`);
-    expect(html).toContain(widthClass);
+    expect(html).toContain('data-mode="workspace"');
+    expect(html).toContain("max-w-[50rem]");
     expect(html).not.toMatch(/(?:^|\s)(?:p-4|sm:p-6|lg:p-8)(?:\s|$)/);
   });
 });
 
 describe("ScoreWorkspaceLayout", () => {
-  it("renders bounded desktop conversation and evidence panes", () => {
+  it("renders one conversation canvas with an anchored composer", () => {
     const html = renderToStaticMarkup(
-      <ScoreWorkspaceLayout
-        conversation={<p>Conversation history</p>}
-        composer={<form>Composer</form>}
-        evidence={<p>Verified evidence</p>}
-      />
+      <ScoreWorkspaceLayout thread={<p>Conversation history</p>} composer={<form>Composer</form>} />
     );
 
     expect(html).toContain('aria-label="Score conversation"');
-    expect(html).toContain('aria-label="Score evidence"');
+    expect(html).toContain('data-slot="score-thread"');
+    expect(html).toContain('data-slot="score-composer"');
     expect(html).toContain("Conversation history");
-    expect(html).toContain("Verified evidence");
     expect(html).toContain("Composer");
-    expect(html).toContain("lg:grid-cols");
-  });
-
-  it("exposes keyboard-operable Conversation and Evidence tabs on smaller screens", () => {
-    const html = renderToStaticMarkup(
-      <ScoreWorkspaceLayout
-        conversation={<p>Conversation</p>}
-        composer={<form>Composer</form>}
-        evidence={<p>Evidence</p>}
-      />
-    );
-
-    expect(html).toContain('role="tablist"');
-    expect(html).toContain('role="tab"');
-    expect(html).toContain("Conversation");
-    expect(html).toContain("Evidence");
+    expect(html).not.toContain('aria-label="Score evidence"');
+    expect(html).not.toContain('role="tablist"');
+    expect(html).not.toContain("lg:grid-cols");
   });
 });

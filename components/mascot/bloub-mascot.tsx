@@ -62,7 +62,7 @@ export default function BloubMascot({
 
   useEffect(() => {
     const reduced = prefersReducedMotion();
-    if (reduced) {
+    if (reduced || (!playing && !follow)) {
       engine.reset("idle", 0);
       return;
     }

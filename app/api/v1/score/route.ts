@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { z } from "zod";
 import { createSupabaseAdmin } from "@/lib/supabase";
+import { isDevCreditBypassEnabled } from "@/lib/dev-credit-bypass";
 import {
   IdempotencyConflictError,
   InsufficientCreditsError,
@@ -111,7 +112,7 @@ async function executeScore(req: NextRequest, input: ScoreInput): Promise<NextRe
       companyName: input.company,
       productCategory: authenticated.productCategory,
       businessProfile: authenticated.businessProfile,
-      skipCredits: process.env.DISABLE_CREDIT_CHECK === "true",
+      skipCredits: isDevCreditBypassEnabled(),
       idempotencyKey,
     });
 

@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { Plus } from "lucide-react";
+import { History, Plus } from "lucide-react";
 import { CRUMB } from "@/components/dashboard/nav-config";
 import { focusWatchlistAdd } from "@/lib/watchlist-events";
+import { openScoreThreads, startNewScore } from "@/lib/score-workspace-events";
 import { Button } from "@/components/ui/button";
 import {
   Breadcrumb,
@@ -18,11 +19,12 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 
-export function SiteHeader() {
+export function SiteHeader({ creditsRemaining }: { creditsRemaining?: number }) {
   const pathname = usePathname();
   const isLists = pathname === "/lists" || pathname.startsWith("/lists/");
   const isBilling = pathname === "/billing";
   const isWatchlist = pathname === "/watchlist";
+  const isScore = pathname === "/score";
   const listIdMatch = pathname.match(/^\/lists\/([^/]+)$/);
   const listId = listIdMatch?.[1] ?? null;
   const [fetchedListName, setFetchedListName] = useState<string | null>(null);
@@ -94,6 +96,21 @@ export function SiteHeader() {
           <span className="truncate font-semibold">VesperWise</span>
         </Link>
         <div className="ml-auto flex items-center gap-2">
+          {isScore ? (
+            <>
+              <Button type="button" variant="ghost" size="sm" className="rounded-lg" aria-label="Open score threads" onClick={() => openScoreThreads()}>
+                <History className="size-4" />
+                <span className="hidden sm:inline">Threads</span>
+              </Button>
+              <span className="hidden text-xs text-muted-foreground md:inline">
+                <strong className="font-semibold tabular-nums text-foreground">{creditsRemaining ?? 0}</strong> credits left
+              </span>
+              <Button type="button" size="sm" className="rounded-lg" aria-label="Start a new score" onClick={() => startNewScore()}>
+                <Plus className="size-4" />
+                <span className="hidden sm:inline">New score</span>
+              </Button>
+            </>
+          ) : null}
           {isLists ? (
             <Button type="button" size="sm" className="rounded-lg" onClick={openNewListModal}>
               <Plus className="size-4" />

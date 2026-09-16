@@ -19,6 +19,7 @@ const settingsSource = readFileSync(
   new URL("../../app/(dashboard)/settings/page.tsx", import.meta.url),
   "utf8"
 );
+const siteHeaderSource = readFileSync(new URL("./site-header.tsx", import.meta.url), "utf8");
 
 describe("dashboard profile navigation cleanup", () => {
   it("omits the retired Memory page from the shared dashboard navigation", () => {
@@ -39,6 +40,14 @@ describe("dashboard profile navigation cleanup", () => {
     expect(navConfigSource).toContain('{ href: "/inbox", label: "Inbox"');
     expect(appSidebarSource).not.toContain("Quick Score");
     expect(appSidebarSource).not.toContain('aria-label="Inbox"');
+  });
+
+  it("keeps Score workspace actions in the approved shell header", () => {
+    expect(siteHeaderSource).toContain("Threads");
+    expect(siteHeaderSource).toContain("credits left");
+    expect(siteHeaderSource).toContain("New score");
+    expect(siteHeaderSource).toContain("openScoreThreads");
+    expect(siteHeaderSource).toContain("startNewScore");
   });
 
   it("deletes the Memory page rather than leaving it reachable", () => {

@@ -79,7 +79,7 @@ export default function DashboardShell({
           pipelineHotCount={pipelineHotCount}
         />
         <SidebarInset className="min-h-svh overflow-hidden">
-          <SiteHeader />
+          <SiteHeader creditsRemaining={creditsRemaining} />
           <PageContainer size={containerSize}>{children}</PageContainer>
         </SidebarInset>
       </SidebarProvider>

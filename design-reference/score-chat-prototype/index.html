@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>VesperWise Score — generative chat prototype</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #08090a;
+      --bg-elevated: #0e1011;
+      --sidebar: #0a0b0d;
+      --surface: #131517;
+      --brand: #dfff00;
+      --brand-2: #e8ff40;
+      --hot: #4ade80;
+      --warm: #f5b544;
+      --cold: #8a8f98;
+      --text: #f7f8f8;
+      --text-2: #c4c8ce;
+      --text-3: #8a8f98;
+      --text-4: #62666d;
+      --border: rgba(255,255,255,0.08);
+      --border-strong: rgba(255,255,255,0.13);
+      --border-subtle: rgba(255,255,255,0.04);
+      --r-sm: 4px;
+      --r-md: 6px;
+      --r-lg: 8px;
+      --font: Inter, ui-sans-serif, system-ui, sans-serif;
+      --mono: "JetBrains Mono", ui-monospace, monospace;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font-family: var(--font); }
+    button, input { font: inherit; color: inherit; }
+    button { cursor: pointer; background: none; border: none; }
+    .app { display: grid; grid-template-columns: 220px 1fr; min-height: 100%; }
+    .sb {
+      background: var(--sidebar);
+      border-right: 1px solid var(--border-subtle);
+      padding: 18px 12px 16px;
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .mark {
+      font-size: 13px; font-weight: 600; letter-spacing: -0.03em;
+      padding: 4px 10px 16px; color: var(--text);
+    }
+    .mark span { color: var(--brand); }
+    .sb-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 10px; border-radius: var(--r-md);
+      color: var(--text-3); font-size: 13px; letter-spacing: -0.01em;
+      text-align: left;
+    }
+    .sb-item.active { background: rgba(255,255,255,0.06); color: var(--text); }
+    .sb-item.active .dot { background: var(--brand); }
+    .dot { width: 6px; height: 6px; border-radius: 99px; background: var(--text-4); }
+    .sb-foot { margin-top: auto; padding: 10px; font-size: 11px; color: var(--text-4); font-family: var(--mono); }
+
+    .main { display: flex; flex-direction: column; min-width: 0; min-height: 100vh; }
+    .top {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 24px; border-bottom: 1px solid var(--border-subtle);
+      gap: 16px;
+    }
+    .top h1 { margin: 0; font-size: 16px; font-weight: 500; letter-spacing: -0.03em; }
+    .top .sub { color: var(--text-3); font-size: 12px; margin-top: 2px; }
+    .states { display: flex; gap: 4px; background: rgba(255,255,255,0.03); padding: 3px; border-radius: 999px; border: 1px solid var(--border); }
+    .states button {
+      padding: 5px 10px; border-radius: 999px; font-size: 11px;
+      color: var(--text-3); letter-spacing: 0.02em; font-family: var(--mono);
+    }
+    .states button[aria-pressed="true"] { background: rgba(223,255,0,0.14); color: var(--brand); }
+
+    .stage { flex: 1; display: none; min-height: 0; }
+    .stage.is-on { display: flex; flex-direction: column; }
+
+    /* Empty */
+    .empty {
+      flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 40px 24px 72px; text-align: center; position: relative;
+    }
+    .empty::before {
+      content: ""; position: absolute; inset: 0;
+      background-image: radial-gradient(rgba(255,255,255,0.035) 1px, transparent 1px);
+      background-size: 22px 22px; mask-image: radial-gradient(ellipse at center, #000 30%, transparent 75%);
+      pointer-events: none;
+    }
+    .face { width: 88px; height: 88px; border-radius: 50%; object-fit: cover; display: block; }
+    .face-32 { width: 32px; height: 32px; }
+    .face-24 { width: 24px; height: 24px; }
+    .face-wrap { position: relative; margin-bottom: 18px; }
+    .face-wrap.thinking .face { filter: brightness(1.05); }
+    .face-wrap.thinking::after {
+      content: ""; position: absolute; inset: -6px; border-radius: 50%;
+      border: 1px solid rgba(223,255,0,0.45);
+      animation: pulse 1.4s ease-in-out infinite;
+    }
+    .eyebrow { font-size: 12px; color: var(--text-3); margin-bottom: 10px; }
+    .eyebrow .badge {
+      display: inline-block; padding: 2px 7px; margin-right: 8px;
+      border: 1px solid var(--border); border-radius: 999px; font-family: var(--mono); font-size: 10px; color: var(--brand);
+    }
+    .empty h2 {
+      margin: 0 0 10px; font-size: clamp(28px, 4vw, 40px); font-weight: 500;
+      letter-spacing: -0.038em; line-height: 1.05;
+    }
+    .empty h2 em { font-style: normal; color: var(--brand); }
+    .empty p { margin: 0 0 28px; max-width: 480px; color: var(--text-3); font-size: 15px; line-height: 1.55; }
+
+    .prompt {
+      width: min(560px, 100%);
+      background: rgba(14,16,17,0.85);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--r-lg);
+      padding: 8px 8px 8px 14px;
+      display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center;
+      box-shadow: 0 0 0 1px rgba(223,255,0,0.18), 0 24px 48px -16px rgba(0,0,0,0.6);
+    }
+    .prompt:focus-within { border-color: rgba(223,255,0,0.5); }
+    .prompt input {
+      background: none; border: none; outline: none; width: 100%;
+      font-family: var(--mono); font-size: 15px; padding: 8px 0; color: var(--text);
+    }
+    .prompt input::placeholder { color: var(--text-4); }
+    .go {
+      padding: 7px 14px; background: var(--brand); color: #000; font-size: 13px; font-weight: 500;
+      border-radius: var(--r-sm);
+    }
+    .meta {
+      width: min(560px, 100%); margin-top: 12px;
+      display: flex; justify-content: space-between; gap: 12px;
+      font-size: 11px; color: var(--text-4); font-family: var(--mono);
+    }
+    .meta strong { color: var(--text-3); font-weight: 500; }
+    .label {
+      width: min(560px, 100%); margin: 28px 0 10px;
+      display: flex; align-items: center; gap: 10px;
+      font-size: 11px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.06em; font-family: var(--mono);
+    }
+    .label .line { flex: 1; height: 1px; background: var(--border-subtle); }
+    .picks { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; width: min(560px, 100%); }
+    .sugg {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 6px 12px 6px 8px; border: 1px solid var(--border); border-radius: var(--r-md);
+      background: rgba(255,255,255,0.03); font-size: 12px; color: var(--text-2);
+    }
+    .sugg:hover { border-color: var(--border-strong); color: var(--text); }
+    .av {
+      width: 16px; height: 16px; border-radius: 4px; display: grid; place-items: center;
+      font-size: 9px; font-weight: 700; color: #0a0b0f;
+    }
+    .credits {
+      margin-top: 36px; font-size: 12px; color: var(--brand);
+      border: 1px solid rgba(223,255,0,0.25); border-radius: 999px; padding: 5px 12px;
+      font-family: var(--mono);
+    }
+
+    /* Thread */
+    .thread { flex: 1; overflow: auto; padding: 20px 24px 12px; }
+    .col { max-width: 840px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; width: 100%; }
+    .user {
+      align-self: flex-start; padding: 6px 12px; border-radius: 999px;
+      background: rgba(255,255,255,0.06); border: 1px solid var(--border);
+      color: var(--text-2); font-size: 13px;
+    }
+    .turn { display: grid; grid-template-columns: 32px 1fr; gap: 12px; align-items: start; }
+    .turn .body { min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+    .tools { display: flex; flex-wrap: wrap; gap: 6px; }
+    .tool {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 10px; border-radius: 999px; border: 1px solid var(--border);
+      background: rgba(255,255,255,0.03); font-size: 11px; font-family: var(--mono); color: var(--text-3);
+    }
+    .tool.run { color: var(--brand); border-color: rgba(223,255,0,0.35); }
+    .tool .d { width: 6px; height: 6px; border-radius: 99px; background: currentColor; }
+    .md { font-size: 14px; line-height: 1.65; color: var(--text-2); }
+
+    .hero {
+      display: flex; gap: 16px; align-items: center;
+      padding: 4px 0 8px;
+    }
+    .ring {
+      width: 72px; height: 72px; border-radius: 50%;
+      background: conic-gradient(var(--hot) 0 82%, rgba(255,255,255,0.08) 82% 100%);
+      display: grid; place-items: center; flex-shrink: 0;
+    }
+    .ring span {
+      width: 56px; height: 56px; border-radius: 50%; background: var(--bg);
+      display: grid; place-items: center; font-family: var(--mono); font-size: 18px; font-weight: 500;
+    }
+    .band { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-family: var(--mono); color: var(--hot); text-transform: uppercase; letter-spacing: 0.06em; }
+    .band i { width: 6px; height: 6px; border-radius: 99px; background: currentColor; }
+    .co { font-size: 18px; font-weight: 500; letter-spacing: -0.03em; }
+    .meta-row { display: flex; flex-wrap: wrap; gap: 8px; font-size: 12px; color: var(--text-3); }
+    .pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 3px 8px; border-radius: 999px; border: 1px solid var(--border);
+      font-family: var(--mono); font-size: 11px; color: var(--text-2);
+    }
+    .bill { color: var(--brand); border-color: rgba(223,255,0,0.3); }
+
+    .sec { font-size: 11px; color: var(--text-3); display: flex; align-items: center; gap: 10px; font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.06em; }
+    .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+    .axis {
+      text-align: left; padding: 12px; border: 1px solid var(--border); border-radius: var(--r-md);
+      background: rgba(255,255,255,0.03); display: flex; flex-direction: column; gap: 6px;
+    }
+    .axis:hover, .axis.is-on { border-color: rgba(223,255,0,0.45); }
+    .axis .n { font-size: 12px; color: var(--text-2); display: flex; align-items: center; gap: 6px; }
+    .sw { width: 8px; height: 8px; border-radius: 2px; }
+    .axis .num { font-size: 20px; font-family: var(--mono); }
+    .bar { height: 3px; background: rgba(255,255,255,0.06); border-radius: 99px; overflow: hidden; }
+    .bar b { display: block; height: 100%; }
+    .ev { padding: 14px 16px; border: 1px solid var(--border); border-radius: var(--r-md); background: rgba(255,255,255,0.03); }
+    .ev kbd { font-family: var(--mono); font-size: 11px; color: var(--text-3); letter-spacing: 0.06em; text-transform: uppercase; }
+    .ev p { margin: 6px 0 0; font-size: 14px; line-height: 1.55; color: var(--text-2); }
+    .ver { display: inline-flex; gap: 6px; }
+    .ver button {
+      padding: 3px 8px; border: 1px solid var(--border); border-radius: 999px;
+      font-size: 11px; font-family: var(--mono); color: var(--text-3);
+    }
+    .ver button[aria-pressed="true"] { color: var(--brand); border-color: rgba(223,255,0,0.35); }
+
+    .composer {
+      flex-shrink: 0; padding: 12px 24px 20px; border-top: 1px solid var(--border-subtle);
+    }
+    .chips { max-width: 840px; margin: 0 auto 10px; display: flex; gap: 6px; flex-wrap: wrap; width: 100%; }
+    .chip {
+      padding: 5px 10px; border: 1px solid var(--border); border-radius: 999px;
+      font-size: 12px; color: var(--text-2); background: rgba(255,255,255,0.03);
+    }
+    .comp-row { max-width: 840px; margin: 0 auto; display: grid; grid-template-columns: 24px 1fr auto; gap: 10px; align-items: center; width: 100%; }
+    .comp-row .prompt { width: 100%; }
+
+    .enter { animation: enter 180ms ease-out both; }
+    .expand { animation: expand 300ms ease-out both; }
+    @keyframes enter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+    @keyframes expand { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes pulse { 0%,100% { opacity: .35; transform: scale(1); } 50% { opacity: 1; transform: scale(1.04); } }
+    @media (prefers-reduced-motion: reduce) {
+      .enter, .expand, .face-wrap.thinking::after { animation: none !important; }
+    }
+    @media (max-width: 860px) {
+      .app { grid-template-columns: 1fr; }
+      .sb { display: none; }
+      .grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sb">
+      <div class="mark">Vesper<span>Wise</span></div>
+      <button class="sb-item" type="button">Dashboard</button>
+      <button class="sb-item" type="button">Intent Hub</button>
+      <button class="sb-item active" type="button"><i class="dot"></i> Score</button>
+      <button class="sb-item" type="button">History</button>
+      <button class="sb-item" type="button">People</button>
+      <button class="sb-item" type="button">Watchlist</button>
+      <button class="sb-item" type="button">Lists</button>
+      <button class="sb-item" type="button">Bulk Score</button>
+      <div class="sb-foot">Prototype · inline artifacts</div>
+    </aside>
+
+    <main class="main">
+      <header class="top">
+        <div>
+          <h1>Score</h1>
+          <div class="sub">Inline generative thread · state-only motion · chat companion</div>
+        </div>
+        <div class="states" role="tablist" aria-label="Prototype state">
+          <button type="button" data-go="empty" aria-pressed="true">Empty</button>
+          <button type="button" data-go="thinking" aria-pressed="false">Thinking</button>
+          <button type="button" data-go="artifact" aria-pressed="false">Artifact</button>
+          <button type="button" data-go="followup" aria-pressed="false">Follow-up</button>
+        </div>
+      </header>
+
+      <!-- EMPTY -->
+      <section class="stage is-on" id="empty" data-stage="empty">
+        <div class="empty">
+          <div class="face-wrap">
+            <img class="face" src="companion.png" alt="Score companion, idle" />
+          </div>
+          <div class="eyebrow"><span class="badge">Score</span> Drop in a domain — we'll verify coverage and you can ask follow-ups</div>
+          <h2>What account do you want to <em>score</em>?</h2>
+          <p>Paste any company domain. Four dated purchase triggers drive the score; then keep chatting about the account.</p>
+          <form class="prompt" id="empty-form">
+            <input name="domain" placeholder="stripe.com" aria-label="Company domain" />
+            <button class="go" type="submit">Score</button>
+          </form>
+          <div class="meta">
+            <span><strong>1</strong> credit on a fresh scorable result · follow-ups 0.25</span>
+            <span>Cached for <strong>6h</strong></span>
+          </div>
+          <div class="label"><span>Try a hot pick</span><span class="line"></span></div>
+          <div class="picks">
+            <button class="sugg" type="button" data-domain="stripe.com"><span class="av" style="background:#635bff">S</span> stripe.com <span style="font-family:var(--mono);color:var(--text-3);font-size:11px">▲ funding</span></button>
+            <button class="sugg" type="button" data-domain="anthropic.com"><span class="av" style="background:#d4a574">A</span> anthropic.com <span style="font-family:var(--mono);color:var(--text-3);font-size:11px">▲ news</span></button>
+            <button class="sugg" type="button" data-domain="linear.app"><span class="av" style="background:#5e6ad2">L</span> linear.app <span style="font-family:var(--mono);color:var(--text-3);font-size:11px">▲ hiring</span></button>
+            <button class="sugg" type="button" data-domain="notion.so"><span class="av" style="background:#e8e8e8">N</span> notion.so <span style="font-family:var(--mono);color:var(--text-3);font-size:11px">▲ news</span></button>
+          </div>
+          <div class="credits">48 credits left</div>
+        </div>
+      </section>
+
+      <!-- THINKING -->
+      <section class="stage" id="thinking" data-stage="thinking">
+        <div class="thread">
+          <div class="col">
+            <div class="user enter">score stripe.com</div>
+            <div class="turn enter">
+              <div class="face-wrap thinking"><img class="face face-32" src="companion.png" alt="Companion thinking" /></div>
+              <div class="body">
+                <div class="tools">
+                  <span class="tool"><i class="d"></i> resolveDomain · done</span>
+                  <span class="tool run"><i class="d"></i> scoreAccount · running</span>
+                </div>
+                <div class="md">Pulling funding, hiring, news, and technology for stripe.com…</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="composer">
+          <div class="comp-row">
+            <img class="face face-24" src="companion.png" alt="" />
+            <div class="prompt"><input placeholder="Ask a follow-up or score another domain" disabled /><button class="go" disabled>Send</button></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ARTIFACT -->
+      <section class="stage" id="artifact" data-stage="artifact">
+        <div class="thread">
+          <div class="col">
+            <div class="user">score stripe.com</div>
+            <div class="turn">
+              <img class="face face-32" src="companion.png" alt="Companion" />
+              <div class="body expand">
+                <div class="tools">
+                  <span class="tool"><i class="d"></i> resolveDomain</span>
+                  <span class="tool"><i class="d"></i> scoreAccount</span>
+                  <span class="tool"><i class="d"></i> getSignalBreakdown</span>
+                </div>
+                <div class="pill">stripe.com · verified</div>
+                <div class="hero">
+                  <div class="ring"><span>82</span></div>
+                  <div>
+                    <div class="band"><i></i> HOT</div>
+                    <div class="co">Stripe</div>
+                    <div class="meta-row">
+                      <span>stripe.com</span>
+                      <span>· evaluating</span>
+                      <span>· urgency high</span>
+                      <span class="pill bill">1 credit</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="sec">Signal explorer · click an axis for evidence</div>
+                <div class="grid">
+                  <button class="axis" type="button" data-axis="funding"><span class="n"><i class="sw" style="background:#dfff00"></i> Funding</span><span class="num">22</span><span class="bar"><b style="width:88%;background:#dfff00"></b></span></button>
+                  <button class="axis" type="button" data-axis="hiring"><span class="n"><i class="sw" style="background:#4ade80"></i> Hiring</span><span class="num">18</span><span class="bar"><b style="width:72%;background:#4ade80"></b></span></button>
+                  <button class="axis" type="button" data-axis="news"><span class="n"><i class="sw" style="background:#f5b544"></i> News</span><span class="num">14</span><span class="bar"><b style="width:70%;background:#f5b544"></b></span></button>
+                  <button class="axis" type="button" data-axis="tech"><span class="n"><i class="sw" style="background:#e8ff40"></i> Technology</span><span class="num">12</span><span class="bar"><b style="width:80%;background:#e8ff40"></b></span></button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="composer">
+          <div class="chips">
+            <button class="chip" type="button" data-go="followup">Show hiring evidence</button>
+            <button class="chip" type="button">Draft outreach now</button>
+            <button class="chip" type="button">Who should I loop in?</button>
+          </div>
+          <div class="comp-row">
+            <img class="face face-24" src="companion.png" alt="" />
+            <div class="prompt"><input placeholder="Ask a follow-up or score another domain" /><button class="go" type="button" data-go="followup">Send</button></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- FOLLOW-UP -->
+      <section class="stage" id="followup" data-stage="followup">
+        <div class="thread">
+          <div class="col">
+            <div class="user">score stripe.com</div>
+            <div class="turn">
+              <img class="face face-32" src="companion.png" alt="Companion" />
+              <div class="body">
+                <div class="ver">
+                  <button type="button" aria-pressed="true">v2 · now</button>
+                  <button type="button">see previous</button>
+                </div>
+                <div class="hero">
+                  <div class="ring"><span>82</span></div>
+                  <div>
+                    <div class="band"><i></i> HOT</div>
+                    <div class="co">Stripe</div>
+                    <div class="meta-row"><span>stripe.com</span><span class="pill bill">cache hit · free</span></div>
+                  </div>
+                </div>
+                <div class="user" style="margin-top:4px">Show hiring evidence</div>
+                <div class="ev expand">
+                  <kbd>Hiring evidence</kbd>
+                  <p>18 / 25. Stripe opened 47 Eng &amp; Growth roles in 14 days, including two AE pods and a solutions-architect bench for Atlas. That is a dated buying trigger, not a headcount rumor.</p>
+                </div>
+                <div class="ev">
+                  <kbd>Thesis</kbd>
+                  <p>Stripe is in an evaluating window: fresh funding coverage plus a hiring spike on GTM-adjacent engineering. Reach the VP Sales Ops owner this week with an Atlas expansion talk track, not a generic demo ask.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="composer">
+          <div class="chips">
+            <button class="chip" type="button">Draft outreach now</button>
+            <button class="chip" type="button">Set a re-engage alert</button>
+          </div>
+          <div class="comp-row">
+            <img class="face face-24" src="companion.png" alt="Companion watching composer" />
+            <div class="prompt"><input placeholder="Ask a follow-up or score another domain" /><button class="go" type="button">Send</button></div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script>
+    const stages = ["empty", "thinking", "artifact", "followup"];
+    function show(id) {
+      document.querySelectorAll(".stage").forEach((el) => el.classList.toggle("is-on", el.id === id));
+      document.querySelectorAll(".states button").forEach((btn) => {
+        btn.setAttribute("aria-pressed", String(btn.dataset.go === id));
+      });
+    }
+    document.querySelectorAll("[data-go]").forEach((btn) => {
+      btn.addEventListener("click", () => show(btn.dataset.go));
+    });
+    function score(domain) {
+      const input = document.querySelector("#empty-form input");
+      if (input) input.value = domain;
+      show("thinking");
+      window.setTimeout(() => show("artifact"), 900);
+    }
+    document.querySelectorAll(".sugg[data-domain]").forEach((btn) => {
+      btn.addEventListener("click", () => score(btn.dataset.domain));
+    });
+    document.querySelector("#empty-form").addEventListener("submit", (e) => {
+      e.preventDefault();
+      score(new FormData(e.target).get("domain") || "stripe.com");
+    });
+    document.querySelectorAll(".axis[data-axis='hiring']").forEach((btn) => {
+      btn.addEventListener("click", () => show("followup"));
+    });
+  </script>
+</body>
+</html>
