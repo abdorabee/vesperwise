@@ -889,12 +889,11 @@ export default function DocsView() {
           {/* Changelog */}
           <section id="changelog" style={secStyle}>
             <h1 style={h1Style}>API changelog</h1>
-            <Summary>We version the API by URL prefix (currently <IC>/v1</IC>). Breaking changes ship under a new version with at least 12 months of overlap. Additive changes ship anytime.</Summary>
+            <Summary>We version the API by URL prefix (currently <IC>/v1</IC>). Additive changes ship anytime; breaking changes ship under a new version. Product updates are on the <Link href="/changelog" style={{ color: T.txt, textDecoration: "underline", textDecorationColor: T.borderStrong, textUnderlineOffset: "3px" }}>full changelog</Link>.</Summary>
             <ParamTable>
-              <ParamRow name="2026‑05‑12" type="additive">Added <IC>include=people</IC> expansion on <IC>POST /v1/score</IC>. Added <IC>signal.spike</IC> webhook event.</ParamRow>
-              <ParamRow name="2026‑03‑04" type="additive"><IC>deferred</IC> option on bulk jobs (50% credit discount, 8h SLA). New <IC>credits.low</IC> webhook.</ParamRow>
-              <ParamRow name="2026‑01‑22" type="behavior">Default cache freshness moved from 14d to 7d across all plans. <IC>X-IIQ-Cache</IC> response header added.</ParamRow>
-              <ParamRow name="2025‑11‑08" type="v1 stable" isLast>API marked stable; SLAs in effect. Frozen surface area for the next 12 months.</ParamRow>
+              <ParamRow name="2026‑08‑21" type="security"><IC>GET /v1/score/bulk?job_id=</IC> now requires authentication and only returns jobs owned by the caller; other jobs return <IC>404</IC>.</ParamRow>
+              <ParamRow name="2026‑07‑16" type="additive">Scoring v2. <IC>POST /v1/score</IC> responses add <IC>scoring_version</IC>, <IC>score_status</IC> (<IC>complete</IC> · <IC>partial</IC> · <IC>unscorable</IC>), <IC>data_coverage</IC>, <IC>contributions</IC> with evidence, <IC>cached</IC> and <IC>charged</IC>. Unscorable and failed runs are not charged.</ParamRow>
+              <ParamRow name="2026‑04‑11" type="v1" isLast>Earliest release of the <IC>/v1</IC> API: single score, bulk score, watchlist and prioritize.</ParamRow>
             </ParamTable>
 
             {/* Doc footer */}

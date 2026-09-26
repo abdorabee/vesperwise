@@ -25,6 +25,7 @@ const FOOTER_COLUMNS: { title: string; links: FooterLink[] }[] = [
     title: "Company",
     links: [
       { label: "About", href: "/about" },
+      { label: "Changelog", href: "/changelog" },
       { label: "Pricing", href: "/#pricing" },
       { label: "Contact", href: "/contact" },
     ],

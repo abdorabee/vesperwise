@@ -9737,6 +9737,68 @@ button.signal-card.gen-axis.is-selected {
 .status-page-check { font-family: var(--font-sans); }
 .status-page-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 8px; }
 
+/* ── Changelog ───────────────────────────────────────────── */
+.changelog-page { max-width: 880px; margin: 0 auto; padding: 72px 24px 96px; }
+.changelog-hero { padding-bottom: 40px; margin-bottom: 8px; border-bottom: 1px solid var(--border); }
+.changelog-eyebrow {
+  font-size: 12px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--text-tertiary); margin-bottom: 14px;
+}
+.changelog-eyebrow span { color: var(--brand); margin-right: 6px; }
+.changelog-hero h1 {
+  font-size: clamp(32px, 5vw, 48px); font-weight: 500; letter-spacing: -0.03em; line-height: 1.1;
+  color: var(--text-primary); margin-bottom: 14px; text-wrap: balance;
+}
+.changelog-hero .lead { font-size: 17px; line-height: 1.6; color: var(--text-secondary); max-width: 560px; }
+.changelog-month { padding-top: 40px; }
+.changelog-month-label {
+  font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--text-tertiary); margin-bottom: 8px;
+}
+.changelog-list { list-style: none; margin: 0; padding: 0; }
+.changelog-entry {
+  display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 24px;
+  padding: 24px 0; border-bottom: 1px solid var(--border);
+  scroll-margin-top: 96px;
+}
+.changelog-month:last-of-type .changelog-entry:last-child { border-bottom: none; }
+.changelog-date {
+  position: relative; padding-left: 18px;
+  font-size: 13px; color: var(--text-tertiary); line-height: 26px; white-space: nowrap;
+}
+.changelog-date::before {
+  content: ""; position: absolute; left: 0; top: 9px;
+  width: 8px; height: 8px; border-radius: 999px;
+  background: var(--brand); box-shadow: 0 0 0 3px var(--brand-soft);
+}
+.changelog-title-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 6px; }
+.changelog-title-row h3 {
+  font-size: 18px; font-weight: 500; letter-spacing: -0.015em; line-height: 26px; color: var(--text-primary);
+}
+.changelog-tag {
+  display: inline-flex; align-items: center; height: 22px; padding: 0 9px; border-radius: 999px;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
+  border: 1px solid var(--border); color: var(--text-secondary); background: transparent;
+}
+.changelog-tag-new { background: var(--brand-soft); border-color: transparent; color: var(--text-primary); }
+.changelog-tag-security { border-color: color-mix(in srgb, #f59e0b 45%, transparent); color: var(--text-primary); }
+.changelog-summary { font-size: 15px; line-height: 1.6; color: var(--text-secondary); margin-bottom: 12px; }
+.changelog-items { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.changelog-items li {
+  position: relative; padding-left: 18px;
+  font-size: 14px; line-height: 1.6; color: var(--text-secondary);
+}
+.changelog-items li::before {
+  content: ""; position: absolute; left: 2px; top: 10px;
+  width: 5px; height: 5px; border-radius: 999px; background: var(--text-tertiary);
+}
+.changelog-cta { margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--border); font-size: 14px; color: var(--text-tertiary); }
+.changelog-cta a { color: var(--text-primary); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--border); }
+@media (max-width: 640px) {
+  .changelog-page { padding: 48px 16px 80px; }
+  .changelog-entry { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+}
+
 /* ── Route loading fallback ──────────────────────────────── */
 .route-loading { min-height: 60vh; display: flex; align-items: center; justify-content: center; }
 .route-loading-spinner {
