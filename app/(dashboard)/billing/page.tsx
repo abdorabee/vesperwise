@@ -3,6 +3,8 @@ import { buildBillingStats } from "@/lib/billing-stats";
 import { getWorkspaceLabel } from "@/lib/workspace-label";
 import { BillingView } from "./billing-view";
 
+export const metadata = { title: "Billing" };
+
 export default async function BillingPage() {
   const { userId } = await auth();
   if (!userId) return null;

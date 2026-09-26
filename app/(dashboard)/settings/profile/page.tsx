@@ -6,7 +6,10 @@ import { createSupabaseAdmin } from "@/lib/supabase";
 import type { BusinessProfile } from "@/lib/types";
 import { ProfileForm } from "@/components/settings/profile-form";
 
-export const metadata = { title: "Business profile · Settings" };
+export const metadata = {
+  title: "Business profile · Settings",
+  description: "Edit the business profile VesperWise uses to personalize intent scores.",
+};
 
 export default async function SettingsProfilePage() {
   const { userId } = await auth();

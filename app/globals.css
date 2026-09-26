@@ -9712,3 +9712,89 @@ button.signal-card.gen-axis.is-selected {
   .settings-page .set-row { grid-template-columns: minmax(0, 1fr); gap: 10px; }
   .settings-page .set-panel .page-head { flex-direction: column; gap: 12px; }
 }
+
+/* ── Status pages (404, thank-you) ───────────────────────── */
+.status-page {
+  min-height: 60vh;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center;
+  padding: 96px 16px 120px;
+  gap: 16px;
+}
+.status-page h1 {
+  font-size: clamp(28px, 5vw, 44px);
+  font-weight: 600; letter-spacing: -0.03em; line-height: 1.1;
+  color: var(--text-primary);
+  text-wrap: balance;
+}
+.status-page .lead { max-width: 520px; }
+.status-page-code {
+  font-family: var(--font-mono);
+  font-size: clamp(64px, 14vw, 120px);
+  font-weight: 600; line-height: 1; letter-spacing: -0.04em;
+  color: var(--brand);
+}
+.status-page-check { font-family: var(--font-sans); }
+.status-page-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 8px; }
+
+/* ── Route loading fallback ──────────────────────────────── */
+.route-loading { min-height: 60vh; display: flex; align-items: center; justify-content: center; }
+.route-loading-spinner {
+  width: 28px; height: 28px; border-radius: 999px;
+  border: 2px solid var(--border);
+  border-top-color: var(--brand);
+  animation: route-spin 0.7s linear infinite;
+}
+@keyframes route-spin { to { transform: rotate(360deg); } }
+
+/* ── Sticky mobile CTA ───────────────────────────────────── */
+.sticky-mobile-cta { display: none; }
+@media (max-width: 768px) {
+  .sticky-mobile-cta {
+    display: flex; align-items: center; gap: 12px;
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 60;
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+    background: color-mix(in srgb, var(--background) 92%, transparent);
+    backdrop-filter: blur(12px);
+    border-top: 1px solid var(--border);
+    transform: translateY(110%);
+    transition: transform 0.25s ease;
+  }
+  .sticky-mobile-cta[data-visible="true"] { transform: translateY(0); }
+  .sticky-mobile-cta-text { flex: 1; font-size: 13px; color: var(--text-secondary); line-height: 1.3; }
+  .sticky-mobile-cta-text strong { color: var(--text-primary); font-weight: 500; }
+  .sticky-mobile-cta .btn { flex-shrink: 0; }
+  body:has(.sticky-mobile-cta) .site-footer { padding-bottom: 88px; }
+}
+
+/* ── Cookie banner ───────────────────────────────────────── */
+.cookie-banner {
+  position: fixed; left: 16px; bottom: 16px; z-index: 70;
+  width: min(380px, calc(100vw - 32px));
+  padding: 16px;
+  background: var(--card);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+  font-size: 13px; line-height: 1.5;
+}
+.cookie-banner p { color: var(--text-secondary); margin: 4px 0 12px; }
+.cookie-banner a { color: var(--text-primary); text-decoration: underline; text-underline-offset: 2px; }
+.cookie-banner-title { font-size: 14px; font-weight: 500; }
+.cookie-banner-actions { display: flex; gap: 8px; justify-content: flex-end; }
+@media (max-width: 768px) {
+  .cookie-banner {
+    left: 12px; right: 12px; bottom: 12px; width: auto;
+    padding: 10px 12px;
+    display: flex; align-items: center; gap: 12px;
+    font-size: 12px; line-height: 1.4;
+  }
+  .cookie-banner-title { display: none; }
+  .cookie-banner p { margin: 0; flex: 1; }
+  .cookie-banner-actions { flex-direction: column; gap: 6px; }
+  .cookie-banner-actions .btn { height: 30px; padding: 0 12px; }
+}
+.footer-link-button {
+  background: none; border: 0; padding: 0; font: inherit; color: inherit; cursor: pointer;
+}

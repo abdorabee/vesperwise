@@ -3,6 +3,8 @@ import { createSupabaseAdmin } from "@/lib/supabase";
 import { PLAN_CREDITS } from "@/lib/types";
 import DashboardHomeView from "@/components/dashboard/home/dashboard-home";
 
+export const metadata = { title: "Intent Hub" };
+
 export default async function DashboardPage() {
   const { userId } = await auth();
   if (!userId) return null;

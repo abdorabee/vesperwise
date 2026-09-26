@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { Key } from "lucide-react";
 
+export const metadata = { title: "API keys" };
+
 export default function ApiKeysPage() {
   return (
     <div className="ap-coming-soon">

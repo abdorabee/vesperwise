@@ -411,7 +411,7 @@ export default function DpaView() {
 
           {/* ── Annex I ── */}
           <Section id="a1" num="A1" title="Annex I · Details of Processing">
-            <P><Strong>A. List of Parties.</Strong> Controller: the Customer as identified in the account record. Processor: VesperWise Labs, Inc., 340 Brannan St., 4th fl., San Francisco, CA 94107.</P>
+            <P><Strong>A. List of Parties.</Strong> Controller: the Customer as identified in the account record. Processor: VesperWise Labs, Inc., 5 Sherif Pasha St., Downtown Cairo 11511, Egypt.</P>
             <AnnexGrid cards={[
               { key: "Subject matter",                val: "Provision of B2B intent scoring, workflows, and chat copilot via the VesperWise Service." },
               { key: "Duration",                      val: "Term of the Service plus the 90‑day deletion window in Section 11." },

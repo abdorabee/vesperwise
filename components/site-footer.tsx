@@ -1,5 +1,6 @@
 import Link from "next/link";
 import VesperWiseLogo from "@/components/vesperwise-logo";
+import { CookieSettingsButton } from "@/components/cookie-settings-button";
 
 type FooterLink = { label: string; href: string };
 
@@ -70,8 +71,7 @@ export default function SiteFooter() {
               <VesperWiseLogo className="logo" size={42} variant="wordmark" />
             </Link>
             <p>
-              B2B intent scoring for sales teams that close. From $29/mo. Built in Cairo, San Francisco, and on the
-              train.
+              B2B intent scoring for sales teams that close. From $29/mo. Built in Cairo.
             </p>
           </div>
           {FOOTER_COLUMNS.map((col) => (
@@ -97,6 +97,7 @@ export default function SiteFooter() {
                 {label}
               </a>
             ))}
+            <CookieSettingsButton />
           </div>
         </div>
       </div>

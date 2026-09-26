@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { buildListDetailForId } from "@/lib/lists-data";
 import { ListDetailClient } from "./list-detail-client";
 
+export const metadata = { title: "List" };
+
 type PageProps = { params: Promise<{ id: string }> };
 
 export default async function ListDetailPage({ params }: PageProps) {
