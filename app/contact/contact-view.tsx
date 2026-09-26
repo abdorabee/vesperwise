@@ -256,16 +256,14 @@ export default function ContactView() {
         .reason-chip { transition: border-color 0.15s, background 0.15s, color 0.15s; }
         .reason-chip:hover:not(.active) { border-color: var(--border-strong) !important; }
         .faq-item:hover { border-color: var(--border-strong) !important; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-        .pulse-dot { animation: pulse 2s infinite; }
       `}</style>
 
       {/* ── Sticky banner ── */}
       <div style={{ position: "sticky", top: 0, zIndex: 100, height: "36px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "13px", color: T.txtSecondary, background: "var(--bg-translucent)", backdropFilter: "saturate(180%) blur(20px)", WebkitBackdropFilter: "saturate(180%) blur(20px)", borderBottom: `1px solid ${T.border}`, letterSpacing: "-0.011em", gap: 0 } as React.CSSProperties}>
         <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", marginRight: "10px", fontSize: "11px", fontWeight: 600, color: T.cyan, background: T.cyanSoft, padding: "1px 8px", borderRadius: "999px" }}>Sales</span>
-        <strong style={{ color: T.txtPrimary, fontWeight: 500 }}>Median response time</strong>
+        <strong style={{ color: T.txtPrimary, fontWeight: 500 }}>Every message gets a human reply</strong>
         <span style={{ margin: "0 6px", color: T.txtQuaternary }}>·</span>
-        47 minutes during business hours
+        within one business day
         <span style={{ margin: "0 10px", color: T.txtQuaternary }}>·</span>
         <a href="#contact-form" style={{ display: "inline-flex", alignItems: "center", gap: "4px", color: T.txtSecondary, textDecoration: "none" }}>
           Book a demo
@@ -350,11 +348,6 @@ export default function ContactView() {
             </a>
           ))}
 
-          {/* Response strip */}
-          <div style={{ marginTop: "16px", padding: "14px 16px", background: "rgba(74,222,128,0.04)", border: "1px solid rgba(74,222,128,0.18)", borderRadius: "8px", fontSize: "13px", color: T.txtSecondary, display: "flex", alignItems: "center", gap: "10px", letterSpacing: "-0.006em" }}>
-            <span className="pulse-dot" style={{ width: "8px", height: "8px", borderRadius: "999px", background: T.hot, boxShadow: "0 0 8px #4ade80", flexShrink: 0, display: "block" }} />
-            <span>Sales and support are online now. <strong style={{ color: T.txtPrimary, fontWeight: 500 }}>Median first reply: 47 minutes</strong> · Last 30 days.</span>
-          </div>
 
           {/* Offices */}
           <div style={{ marginTop: "32px", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "12px" }}>
