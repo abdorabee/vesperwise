@@ -1,37 +1,11 @@
-import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { clerkMiddleware } from "@clerk/nextjs/server";
 import type { NextFetchEvent, NextRequest } from "next/server";
+import { requiresAuth } from "@/lib/route-access";
 
-const basePublicRoutes = [
-  "/",
-  "/login(.*)",
-  "/signup(.*)",
-  "/pricing(.*)",
-  "/docs(.*)",
-  "/terms(.*)",
-  "/privacy(.*)",
-  "/contact(.*)",
-  "/about(.*)",
-  "/legal/(.*)",
-  "/thank-you",
-  "/opengraph-image(.*)",
-  "/api/v1/(.*)",
-  "/api/chat(.*)",
-  "/api/billing/webhook",
-  "/api/contact",
-];
-
-const previewPublicRoutes = [
-  ...basePublicRoutes,
-  "/onboarding(.*)",
-  "/dev(.*)",
-];
-
-const isPublicRoute = createRouteMatcher(
-  process.env.VERCEL_ENV === "production" ? basePublicRoutes : previewPublicRoutes
-);
+const production = process.env.VERCEL_ENV === "production";
 
 const clerk = clerkMiddleware(async (auth, req) => {
-  if (!isPublicRoute(req)) {
+  if (requiresAuth(req.nextUrl.pathname, { production })) {
     await auth.protect();
   }
 });
