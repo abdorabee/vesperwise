@@ -53,7 +53,7 @@ const CHANNELS = [
     type: "support",
     label: "Product support",
     name: "For paying customers",
-    desc: "Bugs, billing, integrations. Reply within four hours, business days.",
+    desc: "Bugs, billing, integrations. Reply within one business day.",
     email: "support@vesperwise.com",
     color: { bg: "rgba(223,255,0,0.12)", fg: T.cyan },
     icon: (
@@ -309,7 +309,7 @@ export default function ContactView() {
             The fastest way<br />to reach us.
           </h1>
           <p style={{ maxWidth: "560px", color: T.txtSecondary, fontSize: "clamp(16px, 1.25vw, 19px)", lineHeight: 1.55, letterSpacing: "-0.011em" }}>
-            Five channels. The right one is whichever gets a human to your problem fastest. Sales conversations book within the day; everything else gets answered in under four hours during business hours.
+            Five channels. The right one is whichever gets a human to your problem fastest. Every message gets a reply from a real person within one business day.
           </p>
         </div>
       </section>
@@ -372,7 +372,7 @@ export default function ContactView() {
 
           <h3 style={{ fontSize: "20px", fontWeight: 500, letterSpacing: "-0.022em", color: T.txtPrimary, marginBottom: "4px", position: "relative" }}>Or send a note.</h3>
           <p style={{ fontSize: "14px", color: T.txtTertiary, letterSpacing: "-0.006em", marginBottom: "24px", position: "relative" }}>
-            We route to whoever can answer fastest — usually inside an hour.
+            We read every message and reply within one business day.
           </p>
 
           {/* Reason chips */}
@@ -525,7 +525,7 @@ export default function ContactView() {
                 The five questions we get most.
               </h3>
               <p style={{ fontSize: "14px", color: T.txtTertiary, lineHeight: 1.55, letterSpacing: "-0.006em", maxWidth: "280px" }}>
-                If your question is here, you&rsquo;ll have an answer in 30 seconds instead of an hour.
+                If your question is here, you&rsquo;ll have an answer in 30 seconds.
               </p>
             </div>
             <div>
