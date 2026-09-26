@@ -4,20 +4,25 @@ const STORAGE_KEY = "vw-cookie-consent";
 const CHANGE_EVENT = "vw:cookie-consent-change";
 const OPEN_EVENT = "vw:cookie-settings-open";
 
+// Fallback for when storage is blocked (private mode), so the choice still applies for this page view.
+let sessionConsent: CookieConsent | null = null;
+
 export function readCookieConsent(): CookieConsent | null {
   try {
     const value = window.localStorage.getItem(STORAGE_KEY);
-    return value === "granted" || value === "denied" ? value : null;
+    if (value === "granted" || value === "denied") return value;
   } catch {
-    return null;
+    // Storage blocked — fall through to the in-memory choice.
   }
+  return sessionConsent;
 }
 
 export function writeCookieConsent(consent: CookieConsent) {
+  sessionConsent = consent;
   try {
     window.localStorage.setItem(STORAGE_KEY, consent);
   } catch {
-    // Storage blocked (private mode) — the choice still applies for this page view.
+    // Storage blocked — `sessionConsent` carries the choice.
   }
   if (consent === "denied") clearAnalyticsCookies();
   window.dispatchEvent(new CustomEvent<CookieConsent>(CHANGE_EVENT, { detail: consent }));
