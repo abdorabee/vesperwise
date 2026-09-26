@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { CONTACT_REASON_IDS, escapeHtml, toHeaderSafe } from "@/lib/contact";
 
 const schema = z.object({
-  reason:   z.string().min(1),
+  reason:   z.enum(CONTACT_REASON_IDS),
   name:     z.string().min(1).max(120),
   email:    z.string().email(),
   company:  z.string().max(120).optional(),
@@ -24,6 +25,15 @@ export async function POST(req: NextRequest) {
   }
 
   const { reason, name, email, company, teamSize, message } = parsed.data;
+  const safe = {
+    reason:   escapeHtml(reason),
+    name:     escapeHtml(name),
+    email:    escapeHtml(email),
+    company:  escapeHtml(company || "—"),
+    teamSize: escapeHtml(teamSize || "—"),
+    message:  message ? escapeHtml(message) : "",
+  };
+  const subject = toHeaderSafe(`[Contact] ${reason} — ${name}${company ? ` · ${company}` : ""}`);
 
   if (process.env.RESEND_API_KEY) {
     try {
@@ -33,19 +43,19 @@ export async function POST(req: NextRequest) {
         from:    "VesperWise Contact <onboarding@resend.dev>",
         to:      ["abdorabee1134@gmail.com"],
         replyTo: email,
-        subject: `[Contact] ${reason} — ${name}${company ? ` · ${company}` : ""}`,
+        subject,
         html: `
           <div style="font-family:sans-serif;max-width:600px;margin:0 auto;color:#1a1a1a;">
             <h2 style="margin-bottom:4px">New contact form submission</h2>
             <p style="color:#666;margin-top:0">via VesperWise contact page</p>
             <table style="width:100%;border-collapse:collapse;margin:16px 0;">
-              <tr><td style="padding:8px 0;border-bottom:1px solid #eee;color:#888;width:120px">Name</td><td style="padding:8px 0;border-bottom:1px solid #eee">${name}</td></tr>
-              <tr><td style="padding:8px 0;border-bottom:1px solid #eee;color:#888">Email</td><td style="padding:8px 0;border-bottom:1px solid #eee"><a href="mailto:${email}">${email}</a></td></tr>
-              <tr><td style="padding:8px 0;border-bottom:1px solid #eee;color:#888">Company</td><td style="padding:8px 0;border-bottom:1px solid #eee">${company || "—"}</td></tr>
-              <tr><td style="padding:8px 0;border-bottom:1px solid #eee;color:#888">Team size</td><td style="padding:8px 0;border-bottom:1px solid #eee">${teamSize || "—"}</td></tr>
-              <tr><td style="padding:8px 0;color:#888">Reason</td><td style="padding:8px 0">${reason}</td></tr>
+              <tr><td style="padding:8px 0;border-bottom:1px solid #eee;color:#888;width:120px">Name</td><td style="padding:8px 0;border-bottom:1px solid #eee">${safe.name}</td></tr>
+              <tr><td style="padding:8px 0;border-bottom:1px solid #eee;color:#888">Email</td><td style="padding:8px 0;border-bottom:1px solid #eee"><a href="mailto:${safe.email}">${safe.email}</a></td></tr>
+              <tr><td style="padding:8px 0;border-bottom:1px solid #eee;color:#888">Company</td><td style="padding:8px 0;border-bottom:1px solid #eee">${safe.company}</td></tr>
+              <tr><td style="padding:8px 0;border-bottom:1px solid #eee;color:#888">Team size</td><td style="padding:8px 0;border-bottom:1px solid #eee">${safe.teamSize}</td></tr>
+              <tr><td style="padding:8px 0;color:#888">Reason</td><td style="padding:8px 0">${safe.reason}</td></tr>
             </table>
-            ${message ? `<h3 style="margin-bottom:8px">Message</h3><p style="white-space:pre-wrap;background:#f9f9f9;padding:16px;border-radius:6px;color:#333">${message.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>` : ""}
+            ${safe.message ? `<h3 style="margin-bottom:8px">Message</h3><p style="white-space:pre-wrap;background:#f9f9f9;padding:16px;border-radius:6px;color:#333">${safe.message}</p>` : ""}
           </div>
         `,
       });
