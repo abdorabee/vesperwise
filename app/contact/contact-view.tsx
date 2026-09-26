@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { validateContactForm, type ContactFormErrors } from "@/lib/contact-form";
 import SiteFooter from "@/components/site-footer";
+import { CONTACT_REASONS as REASONS, type ContactReasonId } from "@/lib/contact";
 import VesperWiseLogo from "@/components/vesperwise-logo";
 
 /* ── Design tokens ───────────────────────────────────────────── */
@@ -103,14 +104,6 @@ const CHANNELS = [
   },
 ];
 
-const REASONS = [
-  { id: "demo",       label: "Book a demo"       },
-  { id: "pricing",    label: "Pricing question"  },
-  { id: "trial",      label: "Help on trial"     },
-  { id: "enterprise", label: "Enterprise / Agency" },
-  { id: "other",      label: "Something else"    },
-];
-
 const TEAM_SIZES = ["1 – 10", "10 – 50", "50 – 200", "200 – 1,000", "1,000+"];
 
 const FAQS = [
@@ -164,7 +157,7 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 
 /* ── Main component ──────────────────────────────────────────── */
 export default function ContactView() {
-  const [reason, setReason]   = useState("demo");
+  const [reason, setReason]   = useState<ContactReasonId>("demo");
   const [name, setName]       = useState("");
   const [email, setEmail]     = useState("");
   const [company, setCompany] = useState("");
