@@ -224,6 +224,16 @@ export default function SubprocessorsView() {
                   "AI model routing",
                   "United States"
                 ],
+                [
+                  <Strong key="name">Resend</Strong>,
+                  "Transactional email (contact form, notifications)",
+                  "United States"
+                ],
+                [
+                  <Strong key="name">Google Analytics</Strong>,
+                  "Website usage analytics — only after cookie consent",
+                  "United States"
+                ],
               ]}
             />
             <P><Strong>Card data:</Strong> VesperWise never receives or stores raw card data. Polar.sh collects payment details and stores them with Stripe. We receive only metadata (last 4 digits, brand, expiry) via webhook.</P>

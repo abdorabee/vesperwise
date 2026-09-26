@@ -1,35 +1,11 @@
-import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { clerkMiddleware } from "@clerk/nextjs/server";
 import type { NextFetchEvent, NextRequest } from "next/server";
+import { requiresAuth } from "@/lib/route-access";
 
-const basePublicRoutes = [
-  "/",
-  "/login(.*)",
-  "/signup(.*)",
-  "/pricing(.*)",
-  "/docs(.*)",
-  "/terms(.*)",
-  "/privacy(.*)",
-  "/contact(.*)",
-  "/about(.*)",
-  "/legal/(.*)",
-  "/api/v1/(.*)",
-  "/api/chat(.*)",
-  "/api/billing/webhook",
-  "/api/contact",
-];
-
-const previewPublicRoutes = [
-  ...basePublicRoutes,
-  "/onboarding(.*)",
-  "/dev(.*)",
-];
-
-const isPublicRoute = createRouteMatcher(
-  process.env.VERCEL_ENV === "production" ? basePublicRoutes : previewPublicRoutes
-);
+const production = process.env.VERCEL_ENV === "production";
 
 const clerk = clerkMiddleware(async (auth, req) => {
-  if (!isPublicRoute(req)) {
+  if (requiresAuth(req.nextUrl.pathname, { production })) {
     await auth.protect();
   }
 });
@@ -39,5 +15,10 @@ export async function proxy(req: NextRequest, ev: NextFetchEvent) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  // Skip Next internals and static files (favicons, OG image, robots.txt, sitemap.xml, manifest)
+  // so signed-out visitors and crawlers can fetch them; API routes always run.
+  matcher: [
+    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest|txt|xml)).*)",
+    "/(api|trpc)(.*)",
+  ],
 };

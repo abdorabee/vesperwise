@@ -12,6 +12,7 @@ import { ensureUserRecord } from "@/lib/user-provisioning";
 
 export const metadata: Metadata = {
   title: "Set Up Your Profile",
+  description: "Tell VesperWise what you sell so intent scores match your ideal customer.",
   robots: { index: false, follow: false },
 };
 

@@ -5,7 +5,7 @@ import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const source = readFileSync(join(root, "public/vesperwise-favicon-source.png"));
+const source = readFileSync(join(root, "scripts/assets/vesperwise-favicon-source.png"));
 
 const { data, info } = await sharp(source)
   .ensureAlpha()
@@ -35,7 +35,7 @@ for (let y = 0; y < info.height; y++) {
 }
 
 if (maxX < minX || maxY < minY) {
-  throw new Error("Unable to find the VesperWise lime mark in public/vesperwise-favicon-source.png");
+  throw new Error("Unable to find the VesperWise lime mark in scripts/assets/vesperwise-favicon-source.png");
 }
 
 const mark = await sharp(source)

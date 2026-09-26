@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { validateContactForm, type ContactFormErrors } from "@/lib/contact-form";
 import SiteFooter from "@/components/site-footer";
 import { CONTACT_REASONS as REASONS, type ContactReasonId } from "@/lib/contact";
 import VesperWiseLogo from "@/components/vesperwise-logo";
@@ -52,7 +54,7 @@ const CHANNELS = [
     type: "support",
     label: "Product support",
     name: "For paying customers",
-    desc: "Bugs, billing, integrations. Reply within four hours, business days.",
+    desc: "Bugs, billing, integrations. Reply within one business day.",
     email: "support@vesperwise.com",
     color: { bg: "rgba(223,255,0,0.12)", fg: T.cyan },
     icon: (
@@ -162,22 +164,62 @@ export default function ContactView() {
   const [teamSize, setTeamSize] = useState("10 – 50");
   const [message, setMessage] = useState("");
   const [status, setStatus]   = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [errors, setErrors]   = useState<ContactFormErrors>({});
+  const [serverError, setServerError] = useState("");
+  const router = useRouter();
 
-  async function handleSubmit(e: React.FormEvent) {
+  function clearError(field: keyof ContactFormErrors) {
+    if (errors[field]) setErrors((prev) => ({ ...prev, [field]: undefined }));
+  }
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (status === "loading" || status === "success") return;
+
+    const nextErrors = validateContactForm({ name, email, message });
+    setErrors(nextErrors);
+    const firstInvalid = (["name", "email", "message"] as const).find((f) => nextErrors[f]);
+    if (firstInvalid) {
+      e.currentTarget.querySelector<HTMLElement>(`#contact-${firstInvalid}`)?.focus();
+      return;
+    }
+
     setStatus("loading");
+    setServerError("");
     try {
       const res = await fetch("/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reason, name, email, company, teamSize, message }),
+        body: JSON.stringify({ reason, name: name.trim(), email: email.trim(), company, teamSize, message }),
       });
-      setStatus(res.ok ? "success" : "error");
+      if (!res.ok) {
+        const data = (await res.json().catch(() => null)) as { error?: string } | null;
+        setServerError(
+          res.status === 400
+            ? "Some details look off — please check the form and try again."
+            : data?.error ?? "Something went wrong on our side."
+        );
+        setStatus("error");
+        return;
+      }
+      setStatus("success");
+      window.gtag?.("event", "generate_lead", { form: "contact", reason });
+      router.push("/thank-you");
     } catch {
+      setServerError("We couldn't reach the server. Check your connection and try again.");
       setStatus("error");
     }
   }
+
+  const fieldError = (field: keyof ContactFormErrors) =>
+    errors[field] ? (
+      <p id={`contact-${field}-error`} role="alert" style={{ marginTop: "6px", fontSize: "12px", color: "#f87171", letterSpacing: "-0.006em" }}>
+        {errors[field]}
+      </p>
+    ) : null;
+
+  const errorBorder = (field: keyof ContactFormErrors): React.CSSProperties =>
+    errors[field] ? { borderColor: "#f87171" } : {};
 
   const inputStyle: React.CSSProperties = {
     width: "100%",
@@ -207,16 +249,14 @@ export default function ContactView() {
         .reason-chip { transition: border-color 0.15s, background 0.15s, color 0.15s; }
         .reason-chip:hover:not(.active) { border-color: var(--border-strong) !important; }
         .faq-item:hover { border-color: var(--border-strong) !important; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-        .pulse-dot { animation: pulse 2s infinite; }
       `}</style>
 
       {/* ── Sticky banner ── */}
       <div style={{ position: "sticky", top: 0, zIndex: 100, height: "36px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "13px", color: T.txtSecondary, background: "var(--bg-translucent)", backdropFilter: "saturate(180%) blur(20px)", WebkitBackdropFilter: "saturate(180%) blur(20px)", borderBottom: `1px solid ${T.border}`, letterSpacing: "-0.011em", gap: 0 } as React.CSSProperties}>
         <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", marginRight: "10px", fontSize: "11px", fontWeight: 600, color: T.cyan, background: T.cyanSoft, padding: "1px 8px", borderRadius: "999px" }}>Sales</span>
-        <strong style={{ color: T.txtPrimary, fontWeight: 500 }}>Median response time</strong>
+        <strong style={{ color: T.txtPrimary, fontWeight: 500 }}>Every message gets a human reply</strong>
         <span style={{ margin: "0 6px", color: T.txtQuaternary }}>·</span>
-        47 minutes during business hours
+        within one business day
         <span style={{ margin: "0 10px", color: T.txtQuaternary }}>·</span>
         <a href="#contact-form" style={{ display: "inline-flex", alignItems: "center", gap: "4px", color: T.txtSecondary, textDecoration: "none" }}>
           Book a demo
@@ -262,7 +302,7 @@ export default function ContactView() {
             The fastest way<br />to reach us.
           </h1>
           <p style={{ maxWidth: "560px", color: T.txtSecondary, fontSize: "clamp(16px, 1.25vw, 19px)", lineHeight: 1.55, letterSpacing: "-0.011em" }}>
-            Five channels. The right one is whichever gets a human to your problem fastest. Sales conversations book within the day; everything else gets answered in under four hours during business hours.
+            Five channels. The right one is whichever gets a human to your problem fastest. Every message gets a reply from a real person within one business day.
           </p>
         </div>
       </section>
@@ -301,17 +341,11 @@ export default function ContactView() {
             </a>
           ))}
 
-          {/* Response strip */}
-          <div style={{ marginTop: "16px", padding: "14px 16px", background: "rgba(74,222,128,0.04)", border: "1px solid rgba(74,222,128,0.18)", borderRadius: "8px", fontSize: "13px", color: T.txtSecondary, display: "flex", alignItems: "center", gap: "10px", letterSpacing: "-0.006em" }}>
-            <span className="pulse-dot" style={{ width: "8px", height: "8px", borderRadius: "999px", background: T.hot, boxShadow: "0 0 8px #4ade80", flexShrink: 0, display: "block" }} />
-            <span>Sales and support are online now. <strong style={{ color: T.txtPrimary, fontWeight: 500 }}>Median first reply: 47 minutes</strong> · Last 30 days.</span>
-          </div>
 
           {/* Offices */}
           <div style={{ marginTop: "32px", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "12px" }}>
             {[
               { city: "Cairo · HQ", flag: "EG", addr: "5 Sherif Pasha St.\nDowntown Cairo, 11511" },
-              { city: "San Francisco", flag: "US", addr: "340 Brannan St., 4th fl.\nSan Francisco, CA 94107" },
             ].map((o) => (
               <div key={o.flag} style={{ border: `1px solid ${T.border}`, background: T.bgEl, borderRadius: "8px", padding: "14px 16px" }}>
                 <div style={{ fontSize: "14px", fontWeight: 500, color: T.txtPrimary, letterSpacing: "-0.011em", display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
@@ -331,7 +365,7 @@ export default function ContactView() {
 
           <h3 style={{ fontSize: "20px", fontWeight: 500, letterSpacing: "-0.022em", color: T.txtPrimary, marginBottom: "4px", position: "relative" }}>Or send a note.</h3>
           <p style={{ fontSize: "14px", color: T.txtTertiary, letterSpacing: "-0.006em", marginBottom: "24px", position: "relative" }}>
-            We route to whoever can answer fastest — usually inside an hour.
+            We read every message and reply within one business day.
           </p>
 
           {/* Reason chips */}
@@ -352,36 +386,46 @@ export default function ContactView() {
             })}
           </div>
 
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} noValidate>
             {/* Row 1: name + email */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "12px" }}>
               <div style={{ marginBottom: "16px" }}>
-                <label style={{ display: "block", fontSize: "12px", fontWeight: 500, color: T.txtTertiary, letterSpacing: "-0.006em", marginBottom: "6px" }}>
+                <label htmlFor="contact-name" style={{ display: "block", fontSize: "12px", fontWeight: 500, color: T.txtTertiary, letterSpacing: "-0.006em", marginBottom: "6px" }}>
                   Full name <span style={{ color: "#f87171" }}>*</span>
                 </label>
                 <input
+                  id="contact-name"
                   type="text"
                   required
+                  autoComplete="name"
                   placeholder="Jane Doe"
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={(e) => { setName(e.target.value); clearError("name"); }}
+                  aria-invalid={!!errors.name}
+                  aria-describedby={errors.name ? "contact-name-error" : undefined}
                   className="field-input"
-                  style={inputStyle}
+                  style={{ ...inputStyle, ...errorBorder("name") }}
                 />
+                {fieldError("name")}
               </div>
               <div style={{ marginBottom: "16px" }}>
-                <label style={{ display: "block", fontSize: "12px", fontWeight: 500, color: T.txtTertiary, letterSpacing: "-0.006em", marginBottom: "6px" }}>
+                <label htmlFor="contact-email" style={{ display: "block", fontSize: "12px", fontWeight: 500, color: T.txtTertiary, letterSpacing: "-0.006em", marginBottom: "6px" }}>
                   Work email <span style={{ color: "#f87171" }}>*</span>
                 </label>
                 <input
+                  id="contact-email"
                   type="email"
                   required
+                  autoComplete="email"
                   placeholder="jane@example.com"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => { setEmail(e.target.value); clearError("email"); }}
+                  aria-invalid={!!errors.email}
+                  aria-describedby={errors.email ? "contact-email-error" : undefined}
                   className="field-input"
-                  style={inputStyle}
+                  style={{ ...inputStyle, ...errorBorder("email") }}
                 />
+                {fieldError("email")}
               </div>
             </div>
 
@@ -413,18 +457,23 @@ export default function ContactView() {
 
             {/* Message */}
             <div style={{ marginBottom: "16px" }}>
-              <label style={{ display: "block", fontSize: "12px", fontWeight: 500, color: T.txtTertiary, letterSpacing: "-0.006em", marginBottom: "6px" }}>
+              <label htmlFor="contact-message" style={{ display: "block", fontSize: "12px", fontWeight: 500, color: T.txtTertiary, letterSpacing: "-0.006em", marginBottom: "6px" }}>
                 What can we help with? <span style={{ color: "#f87171" }}>*</span>
               </label>
               <textarea
+                id="contact-message"
                 required
+                aria-invalid={!!errors.message}
+                aria-describedby={errors.message ? "contact-message-error" : undefined}
                 placeholder="We're evaluating VesperWise vs 6sense. Looking for a 20‑min walkthrough of Autopilot routing logic…"
                 value={message}
-                onChange={(e) => setMessage(e.target.value)}
+                onChange={(e) => { setMessage(e.target.value); clearError("message"); }}
                 className="field-input"
-                style={{ ...inputStyle, height: "120px", padding: "12px 14px", resize: "vertical", lineHeight: 1.55 }}
+                style={{ ...inputStyle, height: "120px", padding: "12px 14px", resize: "vertical", lineHeight: 1.55, ...errorBorder("message") }}
               />
-              <div style={{ fontSize: "11px", color: T.txtQuaternary, marginTop: "6px", fontFamily: T.fontMono, letterSpacing: "0.02em" }}>Optional · we read every line</div>
+              {fieldError("message") ?? (
+                <div style={{ fontSize: "11px", color: T.txtQuaternary, marginTop: "6px", fontFamily: T.fontMono, letterSpacing: "0.02em" }}>We read every line</div>
+              )}
             </div>
 
             {/* Submit row */}
@@ -450,7 +499,10 @@ export default function ContactView() {
               </p>
             </div>
             {status === "error" && (
-              <p style={{ marginTop: "10px", fontSize: "13px", color: "#f87171" }}>Something went wrong — please try again or email us directly.</p>
+              <p role="alert" style={{ marginTop: "10px", fontSize: "13px", color: "#f87171" }}>
+                {serverError} Or email us directly at{" "}
+                <a href="mailto:sales@vesperwise.com" style={{ textDecoration: "underline" }}>sales@vesperwise.com</a>.
+              </p>
             )}
           </form>
         </div>
@@ -466,7 +518,7 @@ export default function ContactView() {
                 The five questions we get most.
               </h3>
               <p style={{ fontSize: "14px", color: T.txtTertiary, lineHeight: 1.55, letterSpacing: "-0.006em", maxWidth: "280px" }}>
-                If your question is here, you&rsquo;ll have an answer in 30 seconds instead of an hour.
+                If your question is here, you&rsquo;ll have an answer in 30 seconds.
               </p>
             </div>
             <div>

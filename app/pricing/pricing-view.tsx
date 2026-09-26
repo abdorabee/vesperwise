@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import SiteFooter from "@/components/site-footer";
+import StickyMobileCta from "@/components/landing/sticky-mobile-cta";
 import VesperWiseLogo from "@/components/vesperwise-logo";
 import { PLAN_CREDITS, PLAN_WATCHLIST_LIMIT, PLAN_AUTOPILOT_LIMIT } from "@/lib/types";
 
@@ -256,6 +257,7 @@ export default function PricingView() {
       </section>
 
       <SiteFooter />
+      <StickyMobileCta />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import LandingNav from "@/components/landing/LandingNav";
 import BloubMascot from "@/components/mascot/bloub-mascot";
 import SiteFooter from "@/components/site-footer";
+import StickyMobileCta from "@/components/landing/sticky-mobile-cta";
 import VesperWiseLogo from "@/components/vesperwise-logo";
 
 export default function LandingPage() {
@@ -1381,6 +1382,7 @@ export default function LandingPage() {
       </section>
 
       <SiteFooter />
+      <StickyMobileCta />
     </>
   );
 }

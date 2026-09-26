@@ -3,6 +3,8 @@ import { createSupabaseAdmin } from "@/lib/supabase";
 import { PeopleView } from "./people-view";
 import type { DbPersonScore } from "@/lib/types";
 
+export const metadata = { title: "People scoring" };
+
 export default async function PeoplePage() {
   const { userId } = await auth();
   if (!userId) return null;

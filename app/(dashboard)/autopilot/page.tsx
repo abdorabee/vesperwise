@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { Zap } from "lucide-react";
 
+export const metadata = { title: "Autopilot" };
+
 export default function AutopilotPage() {
   return (
     <div className="ap-coming-soon">

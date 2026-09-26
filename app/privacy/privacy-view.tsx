@@ -338,17 +338,19 @@ export default function PrivacyView() {
 
           {/* ── 04 ── */}
           <Section id="s4" num="04" title="Cookies & analytics">
-            <P>We use a small number of first-party cookies. We do not use Google Analytics, Meta Pixel, or any third-party ad-tracking scripts.</P>
+            <div id="cookies" style={{ scrollMarginTop: "100px" }} />
+            <P>We use a small number of essential cookies and browser-storage entries to run the Service. We also use <Strong>Google Analytics 4</Strong> to understand how the marketing site and product are used, but <Strong>only after you click &ldquo;Accept&rdquo;</Strong> in the cookie banner. If you reject or ignore the banner, the Google Analytics script is never loaded. We do not use Meta Pixel or any ad-tracking scripts, and advertising features in Google Analytics are disabled.</P>
             <DocTable
               headers={["Cookie / storage", "Purpose", "Lifetime"]}
               rows={[
-                [<Code key="c1">__clerk_session</Code>, "Auth session token", "7 days"],
-                [<Code key="c2">__clerk_csrf</Code>, "CSRF protection", "Session"],
-                [<Code key="c3">iq_prefs</Code>, "UI preferences (theme, collapsed panels)", "1 year"],
-                [<Code key="c4">_iq_anon</Code>, "Anonymous usage analytics", "30 days"],
+                [<Code key="c1">__session</Code>, "Clerk authentication session (essential)", "Session / up to 7 days"],
+                [<Code key="c2">__client_uat</Code>, "Clerk sign-in state (essential)", "1 year"],
+                [<Code key="c3">vw-cookie-consent</Code>, "Remembers your cookie choice (local storage, essential)", "Until cleared"],
+                [<Code key="c4">intentiq-theme</Code>, "UI theme preference (local storage)", "Until cleared"],
+                [<Code key="c5">_ga, _ga_*</Code>, "Google Analytics visitor and session IDs — only with consent", "Up to 2 years"],
               ]}
             />
-            <P>Analytics are powered by <Strong>PostHog</Strong>, self-hosted in the EU. Event data never leaves EU infrastructure. You can opt out of product analytics in Settings → Privacy.</P>
+            <P>Google Analytics receives your truncated IP address, browser and device information, and the pages you visit. You can change your choice at any time via <Strong>Cookie settings</Strong> in the site footer; rejecting deletes the Google Analytics cookies from your browser.</P>
           </Section>
 
           {/* ── 05 ── */}
@@ -425,7 +427,7 @@ export default function PrivacyView() {
           <Section id="s12" num="12" title="Changes & contact">
             <P>We may update this Privacy Policy from time to time. Material changes will be announced at least <Strong>30 days in advance</Strong> by email to your account owner and notice in the product. The &ldquo;last updated&rdquo; date in the banner reflects the most recent revision.</P>
             <H3>Data controller</H3>
-            <P>VesperWise Labs, Inc. · 340 Brannan St., 4th fl., San Francisco, CA 94107</P>
+            <P>VesperWise Labs, Inc. · 5 Sherif Pasha St., Downtown Cairo 11511, Egypt</P>
             <H3>Data Protection contact</H3>
             <P>
               <A href="mailto:privacy@vesperwise.com">privacy@vesperwise.com</A>
