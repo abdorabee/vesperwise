@@ -29,11 +29,13 @@ export function extractDomain(input: string): string | null {
 export async function streamChat(
   body: { message: string; session_id?: string },
   onEvent: (event: ChatSseEvent) => void,
+  signal?: AbortSignal,
 ): Promise<string | undefined> {
   const response = await fetch("/api/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
+    signal,
   });
 
   if (!response.ok) {

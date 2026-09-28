@@ -13,6 +13,7 @@ const PRIVATE_PAGE_SECTIONS = [
   "autopilot",
   "billing",
   "bulk",
+  "chat",
   "dashboard",
   "history",
   "inbox",

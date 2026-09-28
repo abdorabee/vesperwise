@@ -17,7 +17,7 @@ export default function AutopilotPage() {
       <p className="ap-coming-soon-note">
         We&apos;re finishing the workflow builder and execution engine. Score, watchlist, and history are ready today.
       </p>
-      <Link href="/dashboard" className="tb-btn outlined" style={{ marginTop: 8 }}>
+      <Link href="/score" className="tb-btn outlined" style={{ marginTop: 8 }}>
         Back to dashboard
       </Link>
     </div>

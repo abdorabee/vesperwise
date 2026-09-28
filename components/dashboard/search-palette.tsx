@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Gauge, Search } from "lucide-react";
 import {
   filterNavItems,
+  SEARCH_ACTIONS,
   type SearchNavItem,
   type SearchResultItem,
 } from "@/lib/dashboard-search";
@@ -73,6 +74,16 @@ export function SearchPalette({ open, onOpenChange }: SearchPaletteProps) {
 
   const sections = useMemo((): PaletteSection[] => {
     const out: PaletteSection[] = [];
+
+    if (!trimmedQuery) {
+      out.push({
+        title: "Actions",
+        rows: SEARCH_ACTIONS.map((item) => ({
+          type: "result" as const,
+          item: { id: item.id, kind: "action" as const, label: item.label, href: item.href },
+        })),
+      });
+    }
 
     if (pages.length) {
       out.push({

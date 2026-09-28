@@ -3,11 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
-import { ChevronRight, Search } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PLAN_CREDITS, type DbUser } from "@/lib/types";
 import { getWorkspaceLabel } from "@/lib/workspace-label";
-import { useDashboardSearch } from "@/components/dashboard/search-provider";
 import {
   NAV_ACCOUNTS,
   NAV_LIBRARY_CLUSTERS,
@@ -167,7 +166,6 @@ export function AppSidebar({
   ...props
 }: AppSidebarProps) {
   const pathname = usePathname();
-  const { open: openSearch } = useDashboardSearch();
   const { user } = useUser();
   const creditCap = PLAN_CREDITS[plan] ?? PLAN_CREDITS.free;
   const workspaceLabel = getWorkspaceLabel({
@@ -187,7 +185,7 @@ export function AppSidebar({
               size="lg"
               tooltip="VesperWise"
             >
-              <Link href="/dashboard">
+              <Link href="/score">
                 <span
                   aria-hidden="true"
                   className="flex aspect-square size-8 shrink-0 items-center justify-center rounded-sm bg-primary text-xs font-bold tracking-[-0.04em] text-primary-foreground"
@@ -258,27 +256,23 @@ export function AppSidebar({
             </SidebarGroupContent>
           </SidebarGroup>
 
-          <SidebarGroup>
-            <SidebarGroupLabel>Workspace</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {NAV_SECONDARY.filter((item) => !item.comingSoon).map((item) => (
-                  <NavRow
-                    key={`${item.href}-${item.label}`}
-                    item={item}
-                    pathname={pathname}
-                    counts={counts}
-                  />
-                ))}
-                <SidebarMenuItem>
-                  <SidebarMenuButton tooltip="Search" onClick={openSearch}>
-                    <Search />
-                    <span>Search</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
+          {NAV_SECONDARY.some((item) => !item.comingSoon) ? (
+            <SidebarGroup>
+              <SidebarGroupLabel>Workspace</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {NAV_SECONDARY.filter((item) => !item.comingSoon).map((item) => (
+                    <NavRow
+                      key={`${item.href}-${item.label}`}
+                      item={item}
+                      pathname={pathname}
+                      counts={counts}
+                    />
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          ) : null}
         </ScrollArea>
       </SidebarContent>
 

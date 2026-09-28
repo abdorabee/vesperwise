@@ -1,8 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import {
-  LayoutGrid,
-  Crosshair,
   Gauge,
+  MessageSquare,
   History,
   UserSearch,
   Eye,
@@ -35,10 +34,15 @@ export interface SearchResultItem {
   band?: "HOT" | "WARM" | "COLD" | null;
 }
 
+export const SEARCH_ACTIONS = [
+  { id: "score-domain", label: "Score domain…", href: "/score" },
+  { id: "score-person", label: "Score person…", href: "/score" },
+  { id: "new-chat", label: "New chat", href: "/chat" },
+] as const;
+
 export const SEARCH_NAV_ITEMS: SearchNavItem[] = [
-  { id: "dashboard", kind: "page", label: "Dashboard", href: "/dashboard", keywords: "home overview", icon: LayoutGrid },
-  { id: "pipeline", kind: "page", label: "Intent Hub", href: "/pipeline", keywords: "pipeline intent hub deals", icon: Crosshair },
   { id: "score", kind: "page", label: "Score", href: "/score", keywords: "score company domain lookup", icon: Gauge },
+  { id: "chat", kind: "page", label: "Chat", href: "/chat", keywords: "chat copilot ask explain", icon: MessageSquare },
   { id: "history", kind: "page", label: "History", href: "/history", keywords: "history runs past scores", icon: History },
   { id: "people", kind: "page", label: "People", href: "/people", keywords: "people contacts person scoring", icon: UserSearch },
   { id: "watchlist", kind: "page", label: "Watchlist", href: "/watchlist", keywords: "watchlist monitor accounts", icon: Eye },
