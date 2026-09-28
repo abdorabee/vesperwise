@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import SiteFooter from "@/components/site-footer";
-import VesperWiseLogo from "@/components/vesperwise-logo";
+import MarketingNav from "@/components/landing/marketing-nav";
 
 /* ─── Design tokens ──────────────────────────────────────────── */
 const T = {
@@ -368,12 +368,12 @@ const curlPane = (
 
 const nodePane = (
   <>
-    {cm.kw("import")} {"{ VesperWise } "}{cm.kw("from")} {cm.str('"@vesperwise/node"')}{"\n\n"}
-    {cm.kw("const")} iiq {" = "}{cm.kw("new")} {cm.fn("VesperWise")}{"({ apiKey: process.env.IIQ_KEY });"}{"\n\n"}
-    {cm.kw("const")} score {" = "}{cm.kw("await")} iiq.scores.{cm.fn("create")}{"({"}{"\n"}
-    {"  domain: "}{cm.str('"stripe.com"')}{","}{"\n"}
-    {"});"}{"\n\n"}
-    console.{cm.fn("log")}{"(score.score_band, score.intent_score);"}
+    {cm.kw("const")} res {" = "}{cm.kw("await")} {cm.fn("fetch")}{"("}{cm.str('"https://www.vesperwise.com/api/v1/score"')}{", {"}{"\n"}
+    {"  method: "}{cm.str('"POST"')}{","}{"\n"}
+    {"  headers: { Authorization: "}{cm.str('`Bearer ${process.env.VESPERWISE_KEY}`')}{" },"}{"\n"}
+    {"  body: JSON.stringify({ domain: "}{cm.str('"stripe.com"')}{" }),"}{"\n"}
+    {"});"}{"\n"}
+    {cm.kw("const")} score {" = "}{cm.kw("await")} res.{cm.fn("json")}{"();"}
   </>
 );
 
@@ -464,44 +464,7 @@ export default function DocsView() {
   return (
     <div style={{ background: T.bg, color: T.txt, minHeight: "100vh" }}>
 
-      {/* ── Sticky banner ── */}
-      <div style={{
-        position: "sticky", top: 0, zIndex: 50, height: "36px",
-        background: T.bgEl, borderBottom: `1px solid ${T.borderSubtle}`,
-        display: "flex", alignItems: "center", justifyContent: "center",
-        gap: "10px", fontSize: "12px", color: T.txtTert, letterSpacing: "-0.006em",
-      }}>
-        <span style={{ background: T.accentBg, color: T.accent, border: `1px solid rgba(223,255,0,0.25)`, borderRadius: "999px", padding: "1px 8px", fontSize: "10px", fontWeight: 600, fontFamily: T.mono }}>v1</span>
-        <span><strong style={{ color: T.txtSec, fontWeight: 500 }}>API Reference</strong> · base URL{" "}
-          <code style={{ fontFamily: T.mono, fontSize: "12px", color: T.cyan }}>https://www.vesperwise.com/api/v1</code>
-          {" · "}99.97% uptime over 90d
-        </span>
-      </div>
-
-      {/* ── Sticky nav ── */}
-      <nav style={{
-        position: "sticky", top: "36px", zIndex: 40, height: "56px",
-        background: "var(--bg-translucent)", backdropFilter: "blur(12px)",
-        borderBottom: `1px solid ${T.borderSubtle}`,
-        display: "flex", alignItems: "center",
-      }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", maxWidth: "1200px", margin: "0 auto", padding: "0 24px", gap: "24px" }}>
-          <Link href="/" aria-label="VesperWise home" style={{ display: "inline-flex", alignItems: "center", gap: "8px", textDecoration: "none" }}>
-            <VesperWiseLogo size={42} variant="wordmark" />
-          </Link>
-          <div className="mkt-navlinks" style={{ display: "flex", gap: "4px" }}>
-            {["Product", "Autopilot", "Developers", "Pricing", "Customers", "Company"].map(label => (
-              <a key={label} href={label === "Developers" ? "#quickstart" : "#"} style={{ fontSize: "13px", padding: "5px 10px", borderRadius: T.r.md, color: label === "Developers" ? T.txt : T.txtTert, background: label === "Developers" ? "var(--muted)" : "transparent", letterSpacing: "-0.006em", textDecoration: "none" }}>
-                {label}
-              </a>
-            ))}
-          </div>
-          <div style={{ display: "flex", gap: "8px", marginLeft: "auto" }}>
-            <Link href="/login" style={{ fontSize: "13px", padding: "6px 12px", borderRadius: T.r.md, color: T.txtSec, border: `1px solid ${T.border}`, background: "var(--background)", textDecoration: "none" }}>Sign in</Link>
-            <Link href="/signup" style={{ fontSize: "13px", padding: "6px 14px", borderRadius: T.r.md, color: "#000000", background: T.accent, textDecoration: "none", fontWeight: 500 }}>Get API key</Link>
-          </div>
-        </div>
-      </nav>
+      <MarketingNav current="Developers" />
 
       {/* ── Hero ── */}
       <section style={{ position: "relative", padding: "72px 24px 56px", borderBottom: `1px solid ${T.borderSubtle}`, overflow: "hidden" }}>
@@ -517,22 +480,6 @@ export default function DocsView() {
           <p style={{ fontSize: "17px", lineHeight: 1.6, color: T.txtSec, maxWidth: "600px", marginBottom: "32px", letterSpacing: "-0.006em" }}>
             POST a domain — get back a coverage-aware 0–100 score, four dated intent triggers, account context, an action, and an AI summary. Scores below 60% reliable trigger coverage return 422 with a null score.
           </p>
-          {/* Stats strip */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: "1px", background: T.borderSubtle, border: `1px solid ${T.border}`, borderRadius: T.r.md, overflow: "hidden", maxWidth: "640px" }}>
-            {[
-              { k: "P50 latency",    v: "412", unit: "ms" },
-              { k: "P99 latency",    v: "2.84", unit: "s" },
-              { k: "Uptime · 90d",   v: "99.97", unit: "%" },
-              { k: "Cache hit",      v: "71", unit: "%" },
-            ].map(({ k, v, unit }) => (
-              <div key={k} style={{ background: T.bgEl, padding: "14px 18px" }}>
-                <div style={{ fontSize: "10.5px", color: T.txtQ, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "4px", fontWeight: 500 }}>{k}</div>
-                <div style={{ fontSize: "18px", fontWeight: 500, color: T.txt, letterSpacing: "-0.018em", fontFamily: T.mono }}>
-                  {v}<span style={{ fontSize: "12px", color: T.txtTert, marginLeft: "2px" }}>{unit}</span>
-                </div>
-              </div>
-            ))}
-          </div>
         </div>
       </section>
 
@@ -590,7 +537,7 @@ export default function DocsView() {
             <h1 style={h1Style}>Quickstart</h1>
             <Summary>Get a real score back in under a minute. You&apos;ll need an API key (Settings → Developers) and a domain you want to score. Everything else is a single <IC>POST</IC>.</Summary>
             <H3>1. Get an API key</H3>
-            <P>Open <A href="#">Settings → Developers</A> and click <Strong>Create key</Strong>. Keys are shown once on creation, then stored as SHA‑256 hashes on our side — copy it into your secret manager. Test‑mode and live keys are separate: test keys are prefixed <IC>iiq_test_</IC> and don&apos;t deduct credits.</P>
+            <P>Keys are prefixed <IC>vesperwise_</IC>, shown once, and stored as SHA-256 hashes. The dashboard control is not in the nav yet — email <A href="mailto:support@vesperwise.com">support@vesperwise.com</A> and we&apos;ll create one.</P>
             <H3>2. Score your first account</H3>
             <P>Pick a domain. We&apos;ll fetch four intent triggers (funding, hiring, non-funding news, and dated technology changes), collect Web and GitHub context, compute coverage, and write back an AI summary. A personalized six-hour cache makes repeat scores free.</P>
             <ApiNote><Strong>Use the apex domain.</Strong> Send <IC>stripe.com</IC>. Schemes, paths, and a leading <IC>www.</IC> are normalized, but arbitrary subdomains are not guessed back to an apex.</ApiNote>
@@ -791,7 +738,7 @@ export default function DocsView() {
           {/* Webhooks overview */}
           <section id="webhooks-overview" style={secStyle}>
             <h1 style={h1Style}>Webhooks</h1>
-            <Summary>We POST events to your endpoint as JSON. Deliveries are signed (HMAC‑SHA256), at‑least‑once, and retried on non‑2xx with exponential backoff for 24 hours. Subscribe in <A href="#">Settings → Webhooks</A>.</Summary>
+            <Summary>We POST events to your endpoint as JSON. Deliveries are signed (HMAC‑SHA256), at‑least‑once, and retried on non‑2xx with exponential backoff for 24 hours. Email support@vesperwise.com to turn a destination on.</Summary>
             <H3>Delivery contract</H3>
             <P>Respond <IC>2xx</IC> within 5 seconds — do the work asynchronously. We send <IC>User-Agent: VesperWise-Webhook/1.0</IC> and a <IC>X-IIQ-Signature</IC> header you should verify. Events carry a <IC>delivery_attempt</IC> integer so you can dedupe.</P>
             <ApiNote><Strong>Local development.</Strong> Point a webhook at the VesperWise CLI (<IC>iiq webhooks listen</IC>) — it tunnels deliveries to <IC>http://localhost:3000/webhooks</IC> without ngrok.</ApiNote>
@@ -882,7 +829,7 @@ export default function DocsView() {
             <h1 style={h1Style}>Node SDK</h1>
             <Summary>The Node client wraps the REST API with typed responses. Python and Go integrations should call the documented HTTP endpoints directly.</Summary>
             <ParamTable>
-              <ParamRow name="Node / TypeScript" type="@vesperwise/node" isLast>Node 18+, fully typed. <IC>npm i @vesperwise/node</IC>.</ParamRow>
+              <ParamRow name="HTTP" type="REST" isLast>There is no published SDK yet. Call the endpoints on this page directly.</ParamRow>
             </ParamTable>
           </section>
 
@@ -894,15 +841,14 @@ export default function DocsView() {
               <ParamRow name="2026‑05‑12" type="additive">Added <IC>include=people</IC> expansion on <IC>POST /v1/score</IC>. Added <IC>signal.spike</IC> webhook event.</ParamRow>
               <ParamRow name="2026‑03‑04" type="additive"><IC>deferred</IC> option on bulk jobs (50% credit discount, 8h SLA). New <IC>credits.low</IC> webhook.</ParamRow>
               <ParamRow name="2026‑01‑22" type="behavior">Default cache freshness moved from 14d to 7d across all plans. <IC>X-IIQ-Cache</IC> response header added.</ParamRow>
-              <ParamRow name="2025‑11‑08" type="v1 stable" isLast>API marked stable; SLAs in effect. Frozen surface area for the next 12 months.</ParamRow>
+              <ParamRow name="2025‑11‑08" type="v1" isLast>The /v1 prefix is the current surface. There is no uptime SLA.</ParamRow>
             </ParamTable>
 
             {/* Doc footer */}
             <div style={{ marginTop: "48px", paddingTop: "24px", borderTop: `1px solid ${T.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "13px", color: T.txtTert }}>
               <span>Questions? <a href="mailto:developers@vesperwise.com" style={{ color: T.txt, textDecoration: "underline", textDecorationColor: T.borderStrong, textUnderlineOffset: "3px" }}>developers@vesperwise.com</a></span>
               <div style={{ display: "flex", gap: "18px" }}>
-                <a href="#" style={{ color: T.txt, textDecoration: "none" }}>Status →</a>
-                <Link href="/legal/security" style={{ color: T.txt, textDecoration: "none" }}>Security →</Link>
+                <Link href="/legal/security" style={{ color: T.txt, textDecoration: "none" }}>Security</Link>
               </div>
             </div>
           </section>
