@@ -15,8 +15,8 @@ export function BrandMark({ className, title }: { className?: string; title?: st
       aria-label={title}
       focusable="false"
     >
-      <rect width="64" height="64" rx="14" fill="var(--brand, #DFFF00)" />
-      <path d="M13.5 19H24l7.9 25.4L39.9 19h10.6L37.2 48H26.8L13.5 19Z" fill="var(--on-brand, #0A0B0C)" />
+      <rect width="64" height="64" rx="14" style={{ fill: "var(--brand, #DFFF00)" }} />
+      <path d="M13.5 19H24l7.9 25.4L39.9 19h10.6L37.2 48H26.8L13.5 19Z" style={{ fill: "var(--on-brand, #0A0B0C)" }} />
     </svg>
   );
 }

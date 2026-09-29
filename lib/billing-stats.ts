@@ -11,7 +11,7 @@ export const COST_DISPLAY_BUCKETS: {
   label: string;
   color: string;
 }[] = [
-  { bucket: "Score", label: "Score", color: "#dfff00" },
+  { bucket: "Score", label: "Score", color: "var(--foreground)" },
   { bucket: "Bulk", label: "Bulk jobs", color: "#a0a0a0" },
   { bucket: "People", label: "People scoring", color: "#4ade80" },
   { bucket: "Autopilot", label: "Autopilot", color: "#f5b544" },
@@ -82,7 +82,7 @@ export interface BillingStats {
 }
 
 const BUCKET_COLORS: Record<CreditBucket, string> = {
-  Score: "#dfff00",
+  Score: "var(--foreground)",
   Bulk: "#a0a0a0",
   People: "#4ade80",
   Autopilot: "#f5b544",

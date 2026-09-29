@@ -32,24 +32,13 @@ export function BillingDangerZone({
     <div className="danger">
       <div className="danger-row">
         <div>
-          <div className="l">Pause billing &amp; usage</div>
-          <div className="h">
-            Freeze charges and disable scoring for up to 90 days. Watchlist alerts continue to land in your inbox.
-          </div>
-        </div>
-        <a href="/api/billing/portal" className="tb-btn outlined">
-          Pause workspace
-        </a>
-      </div>
-      <div className="danger-row">
-        <div>
           <div className="l">Cancel subscription</div>
           <div className="h">
             {cancelScheduled
               ? "Cancellation scheduled — you'll keep access until the period ends."
               : renewDate
-                ? `Workspace downgrades to Free on ${renewDate} · all data preserved · re-subscribe any time.`
-                : "Workspace downgrades to Free at period end · all data preserved · re-subscribe any time."}
+                ? `Cancel in the Polar portal. You keep your plan until ${renewDate}, then move to Free. Your scores and lists stay.`
+                : "Cancel in the Polar portal. You keep your plan until the period ends, then move to Free. Your scores and lists stay."}
           </div>
         </div>
         {cancelScheduled ? (
