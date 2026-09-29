@@ -108,7 +108,7 @@
   --popover: #131517;
   --popover-foreground: #f7f8f8;
   --primary: #dfff00;
-  --primary-foreground: #ffffff;
+  --primary-foreground: #0a0b0c;
   --secondary: rgba(255, 255, 255, 0.06);
   --secondary-foreground: #f7f8f8;
   --muted: rgba(255, 255, 255, 0.06);
@@ -4235,13 +4235,13 @@ button.signal-card.gen-axis.is-selected {
   align-items: baseline;
 }
 .sg-col.win .list .it::before {
-  content: 'â–²';
+  content: '\25B2';
   color: var(--hot);
   font-size: 9px;
   font-family: var(--font-mono);
 }
 .sg-col.gap .list .it::before {
-  content: 'â–¼';
+  content: '\25BC';
   color: var(--warm);
   font-size: 9px;
   font-family: var(--font-mono);
