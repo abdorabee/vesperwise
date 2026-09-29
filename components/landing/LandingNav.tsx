@@ -6,7 +6,6 @@ import VesperWiseLogo from "@/components/vesperwise-logo";
 
 const NAV_ITEMS = [
   { label: "Product",    href: "/#product" },
-  { label: "Autopilot",  href: "/#autopilot" },
   { label: "Developers", href: "/docs" },
   { label: "Pricing",    href: "/pricing" },
   { label: "About",      href: "/about" },

@@ -528,6 +528,8 @@ button, a, [role="button"] { touch-action: manipulation; }
   .feature-screen {
     display: none;
   }
+  /* ...and their "Illustrative data" caption, which would otherwise caption nothing */
+  .landing-mockup-caption { display: none; }
 
   /* Two-col feature card visuals (API code block, Watchlist, People) */
   .feat-visual {

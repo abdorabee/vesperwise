@@ -8,14 +8,14 @@ const STEPS = [
   { title: "Collect dated signals", desc: "Funding, hiring, news and tech-stack changes for the company, each with a date and a source. Website and GitHub activity add context." },
   { title: "Score what the evidence supports", desc: "Signals are weighted and older ones count for less. When coverage is too thin, the API returns no score rather than a guess." },
   { title: "Explain it in a sentence", desc: "Each score comes with why the account matters now and a suggested next step a rep can act on." },
-  { title: "Act while the window is open", desc: "Watchlists and Autopilot move pipeline stages, draft emails and post to Slack or a webhook when an account turns HOT." },
+  { title: "Act while the window is open", desc: "HOT accounts rise to the top of the pipeline and the watchlist flags new ones. One click drafts a first email from the evidence." },
 ];
 
 const PRINCIPLES = [
   { title: "Reasoning ships with the number", desc: "A score without an explanation is a dashboard tile, and dashboard tiles get ignored. Every score shows the evidence behind it." },
   { title: "Honest coverage", desc: "Missing data lowers coverage instead of quietly becoming zero intent. A thin score never passes for a strong one." },
   { title: "Built for the rep", desc: "Managers buy the tool; reps decide whether it gets used. Every feature has to help someone decide who to call today." },
-  { title: "A human stays in the loop", desc: "Autopilot drafts and notifies. It does not send outreach on its own." },
+  { title: "A human stays in the loop", desc: "VesperWise drafts the first email. A rep reads it and decides whether to send it." },
 ];
 
 const LINKS = [

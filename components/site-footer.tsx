@@ -9,7 +9,6 @@ const FOOTER_COLUMNS: { title: string; links: FooterLink[] }[] = [
     title: "Product",
     links: [
       { label: "How scoring works", href: "/#product" },
-      { label: "Autopilot", href: "/#autopilot" },
       { label: "Pricing", href: "/pricing" },
       { label: "Start free", href: "/signup" },
     ],

@@ -5,9 +5,7 @@ import HeroVideo from "@/components/landing/hero-video";
 import SiteFooter from "@/components/site-footer";
 import {
   DEMO_ACCOUNTS,
-  DEMO_PEOPLE,
   bandFor,
-  demoAccount,
   type DemoAccount,
   type DemoBand,
 } from "@/components/landing/demo-accounts";
@@ -82,14 +80,6 @@ export default function LandingPage() {
 
   return (
     <>
-      {/* Top banner */}
-      <div className="top-banner">
-        <a href="#autopilot" style={{ display: "inline-flex", alignItems: "center" }}>
-          <span className="pill">New</span>
-          <span><strong>Autopilot</strong>: alert the right rep when an account turns HOT</span>
-        </a>
-      </div>
-
       <LandingNav />
 
       {/* Hero */}
@@ -141,8 +131,8 @@ export default function LandingPage() {
           </div>
           <div className="pillar">
             <div className="pillar-num">3. Act</div>
-            <h3>Alerts while the window is open.</h3>
-            <p>When an account crosses 75 it can move pipeline stage, draft an email and post to Slack or your webhook.</p>
+            <h3>Act while the window is open.</h3>
+            <p>HOT accounts rise to the top of your pipeline, and one click drafts a first email that cites the signals behind the score.</p>
           </div>
         </div>
       </section>
@@ -308,84 +298,12 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Feature 3: Autopilot */}
-      <section className="section section-tight" id="autopilot">
-        <div className="container">
-          <div className="section-head">
-            <h2 className="h1">Workflows that fire while<br />the buying window is open.</h2>
-            <p>Trigger on a score crossing, a band change or a signal spike, then act: move the pipeline stage, draft an email, post to Slack or call a webhook.</p>
-          </div>
-
-          <Mockup>
-            <div className="feature-screen">
-              <div className="autopilot-canvas">
-                <div className="ap-toolbar">
-                  <span className="ap-name">When an account turns HOT</span>
-                  <span className="ap-status"><span className="dot"></span>Active</span>
-                </div>
-
-                <div className="ap-canvas">
-                  <div className="ap-bg"></div>
-                  <div className="ap-flow">
-                    <div className="ap-node ap-trigger">
-                      <div className="ap-node-head">
-                        <span className="ic"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" width="10" height="10"><path d="M7 2v5l3 2" /></svg></span>
-                        Trigger
-                      </div>
-                      <h4>Score crosses 75</h4>
-                      <p>Account moves from WARM into HOT</p>
-                      <div className="kbd-list">
-                        <span className="kbd">band_change → HOT</span>
-                      </div>
-                    </div>
-
-                    <div className="ap-edge">
-                      <div className="arrow"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" width="11" height="11"><path d="M3 7h7M8 4l3 3-3 3" /></svg></div>
-                    </div>
-
-                    <div className="ap-node ap-condition">
-                      <div className="ap-node-head">
-                        <span className="ic"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" width="10" height="10"><path d="M2 4h10M2 7h10M2 10h10" /></svg></span>
-                        Condition
-                      </div>
-                      <h4>Score jumped this week</h4>
-                      <p>Up at least 10 points since the last score</p>
-                      <div className="kbd-list">
-                        <span className="kbd">score_change ≥ +10</span>
-                      </div>
-                    </div>
-
-                    <div className="ap-edge">
-                      <div className="arrow"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" width="11" height="11"><path d="M3 7h7M8 4l3 3-3 3" /></svg></div>
-                    </div>
-
-                    <div className="ap-node ap-action">
-                      <div className="ap-node-head">
-                        <span className="ic"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" width="10" height="10"><path d="M2 7l3 3 7-7" /></svg></span>
-                        Actions
-                      </div>
-                      <h4>Stage, draft, notify</h4>
-                      <p>Move to Qualified · Draft an email · Post to #pipeline</p>
-                      <div className="kbd-list">
-                        <span className="kbd">pipeline_stage</span>
-                        <span className="kbd">email_draft</span>
-                        <span className="kbd">slack</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </Mockup>
-        </div>
-      </section>
-
-      {/* Developers + people + watchlist + integrations */}
+      {/* Developers + watchlist */}
       <section className="section section-tight" id="api">
         <div className="container">
           <div className="section-head">
             <h2 className="h1">Built for sales ops<br />that actually ship.</h2>
-            <p>A REST API with key auth, CSV upload and export, people scoring and watchlists.</p>
+            <p>A REST API with key auth, CSV upload and export, and watchlists.</p>
           </div>
 
           <div className="two-col">
@@ -418,42 +336,13 @@ export default function LandingPage() {
 
             <div className="feat-card">
               <div className="feat-head">
-                <h3>Score the person, not just the logo.</h3>
-                <p>Give an email or LinkedIn URL. Get back seniority fit, recent job changes and how strongly their company is showing intent.</p>
-              </div>
-              <div className="feat-visual">
-                <Mockup caption={false}>
-                  <div className="person-list">
-                    {DEMO_PEOPLE.map((p) => {
-                      const band = bandFor(p.score);
-                      return (
-                        <div key={p.name} className="person-row">
-                          <div className={`av ${avatarClass(p.domain)}`}>{p.initials}</div>
-                          <div className="info">
-                            <div className="name">{p.name}</div>
-                            <div className="role">{p.role} · {demoAccount(p.domain).name}</div>
-                          </div>
-                          <div className={`badge ${BAND_CLASS[band]}`}>{band}</div>
-                          <div className="score">{p.score}</div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </Mockup>
-              </div>
-            </div>
-          </div>
-
-          <div className="two-col landing-two-col-gap">
-            <div className="feat-card" style={{ minHeight: "auto" }}>
-              <div className="feat-head">
                 <h3>A watchlist that tells you when to call.</h3>
-                <p>Pin the accounts that matter and get alerted when one crosses your band threshold.</p>
+                <p>Pin the accounts that matter and see which ones crossed into HOT since you last looked.</p>
               </div>
-              <div className="feat-visual">
+              <div className="feat-visual landing-watch-visual">
                 <Mockup caption={false}>
                   <div className="watch-list">
-                    {DEMO_ACCOUNTS.slice(0, 4).map((a) => (
+                    {DEMO_ACCOUNTS.slice(0, 7).map((a) => (
                       <div key={a.domain} className="watch-row">
                         <div className="co">
                           <div className={`co-avatar av ${avatarClass(a.domain)}`} style={{ width: "18px", height: "18px", borderRadius: "4px", fontSize: "9px" }}>{a.name[0]}</div>
@@ -471,21 +360,6 @@ export default function LandingPage() {
                 </Mockup>
               </div>
             </div>
-
-            <div className="feat-card" style={{ minHeight: "auto" }}>
-              <div className="feat-head">
-                <h3>Sends alerts where your team works.</h3>
-                <p>Autopilot posts to Slack or any webhook. Everything else goes through the REST API or a CSV export.</p>
-              </div>
-              <div className="feat-visual landing-integrations">
-                <ul className="landing-integration-list">
-                  <li><span className="landing-integration-mark" aria-hidden="true">#</span>Slack</li>
-                  <li><span className="landing-integration-mark" aria-hidden="true">{"{}"}</span>Webhook</li>
-                  <li><span className="landing-integration-mark" aria-hidden="true">/</span>REST API</li>
-                  <li><span className="landing-integration-mark" aria-hidden="true">,</span>CSV</li>
-                </ul>
-              </div>
-            </div>
           </div>
         </div>
       </section>
@@ -494,7 +368,7 @@ export default function LandingPage() {
       <section className="section" id="pricing">
         <div className="container">
           <div className="section-head center">
-            <h2 className="h1">Start free.<br />Pay for the accounts you score.</h2>
+            <h2 className="h1">Start free.<br />Pay for what you score.</h2>
             <p>One credit scores one company. Re-checking the same company within 6 hours is free. Month-to-month, cancel anytime.</p>
           </div>
 

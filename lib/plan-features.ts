@@ -7,7 +7,6 @@
  * product today; if a feature isn't enforced or shipped, it doesn't go here.
  */
 import {
-  PLAN_AUTOPILOT_LIMIT,
   PLAN_CREDITS,
   PLAN_RATE_LIMIT,
   PLAN_WATCHLIST_LIMIT,
@@ -54,11 +53,6 @@ function watchlistFeature(limit: number | null): string {
   return limit == null ? "Unlimited watchlist" : `Watchlist of ${formatCount(limit)} accounts`;
 }
 
-function autopilotFeature(limit: number | null): string {
-  if (limit == null) return "Unlimited Autopilot workflows";
-  return limit === 1 ? "1 Autopilot workflow" : `${formatCount(limit)} Autopilot workflows`;
-}
-
 /** "N account scores / month" */
 export function planCreditsFeature(key: PlanKey): string {
   return `${formatCount(PLAN_CREDITS[key])} account scores / month`;
@@ -68,11 +62,10 @@ export function planCreditsFeature(key: PlanKey): string {
 export function planFeatures(key: PlanKey): string[] {
   const list = [
     watchlistFeature(PLAN_WATCHLIST_LIMIT[key]),
-    autopilotFeature(PLAN_AUTOPILOT_LIMIT[key]),
     `REST API · ${formatCount(PLAN_RATE_LIMIT[key])} requests/min`,
+    "Evidence and next step on every score",
   ];
-  if (key === "free") return [...list, "Evidence and next step on every score"];
-  return [...list, "Slack and webhook alerts", "CSV upload and export"];
+  return key === "free" ? list : [...list, "CSV upload and export"];
 }
 
 /** Credits line followed by the plan's features. */
