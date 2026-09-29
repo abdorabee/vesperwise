@@ -3213,10 +3213,6 @@ footer.site-footer {
   width: 6px; height: 6px; border-radius: 999px;
   background: currentColor;
 }
-.score-result-card {
-  width: 100%;
-  padding: 4px 0 8px;
-}
 .score-chat-composer {
   flex-shrink: 0;
   padding: 12px;
@@ -7777,6 +7773,8 @@ button.signal-card.gen-axis.is-selected {
 [data-motion="generated"] .score-artifact-row:nth-child(2) { animation-delay: 130ms; }
 [data-motion="generated"] .score-artifact-row:nth-child(3) { animation-delay: 200ms; }
 [data-motion="generated"] .score-artifact-row:nth-child(4) { animation-delay: 270ms; }
+/* Band lands once the 600ms count-up settles; fresh scores only, never restores. */
+[data-motion="generated"] .score-band-land { opacity: 0; filter: blur(4px); animation: score-band-land 150ms cubic-bezier(0.22, 1, 0.36, 1) 600ms forwards; }
 [data-motion="generated"] .score-artifact-copy { opacity: 0; animation: score-message-in 200ms cubic-bezier(0.22, 1, 0.36, 1) 340ms forwards; }
 [data-motion="generated"] .score-artifact-action,
 [data-motion="generated"] .score-artifact-actions { opacity: 0; animation: score-message-in 200ms cubic-bezier(0.22, 1, 0.36, 1) 420ms forwards; }
@@ -7808,6 +7806,10 @@ button.signal-card.gen-axis.is-selected {
   to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes score-band-land {
+  to { opacity: 1; filter: blur(0); }
+}
+
 @keyframes score-attention {
   0%, 100% { opacity: 0.45; }
   50% { opacity: 1; }
@@ -7815,7 +7817,8 @@ button.signal-card.gen-axis.is-selected {
 
 @media (max-width: 640px) {
   .score-chat-col { padding-top: 1.25rem; gap: 1.5rem; }
-  .score-artifact [data-slot="table"] { min-width: 42rem; }
+  /* Evidence rows stack below sm; only the comparison table scrolls. */
+  .score-artifact [data-slot="table"] { min-width: 36rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -7826,11 +7829,13 @@ button.signal-card.gen-axis.is-selected {
   [data-motion="generated"] .score-artifact-copy,
   [data-motion="generated"] .score-artifact-action,
   [data-motion="generated"] .score-artifact-actions,
+  [data-motion="generated"] .score-band-land,
   .score-artifact-archive[open] > div,
   .score-research-dot,
   .score-research [data-slot="skeleton"] {
     opacity: 1;
     transform: none;
+    filter: none;
     animation: none !important;
     transition: none !important;
   }

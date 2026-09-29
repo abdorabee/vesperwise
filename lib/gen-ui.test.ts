@@ -108,4 +108,35 @@ describe("workspaceFromScore", () => {
     expect(explorer.axes.find((axis) => axis.key === "funding")?.detail).toBe("No qualifying funding event.");
     expect(explorer.axes.find((axis) => axis.key === "news")?.detail).toBe("Unavailable");
   });
+
+  it("carries source URL, age and point contribution into trigger axes", () => {
+    const fixture = signals();
+    fixture.hiring = {
+      ...fixture.hiring,
+      evidence: [
+        { label: "bad", observed_at: null, source: "scrapling", fetched_at: "2026-08-01T00:00:00.000Z", source_url: "javascript:alert(1)" },
+        { label: "Jobs", observed_at: null, source: "scrapling", fetched_at: "2026-08-01T00:00:00.000Z", source_url: "https://acme.com/careers" },
+      ],
+    };
+    const blocks = workspaceFromScore({
+      company: "Acme",
+      domain: "acme.com",
+      intent_score: 40,
+      score_band: "COLD",
+      last_updated: "2026-08-02T00:00:00.000Z",
+      signals: fixture,
+      contributions: [
+        { type: "hiring", status: "ok", rawScore: 1, decayedScore: 1, freshness: 0.8, daysAgo: 12.4, summary: "", baseWeight: 20, effectiveWeight: 20, contribution: 17.66, observedAt: null },
+        { type: "funding", status: "ok", rawScore: 1, decayedScore: 1, freshness: 1, daysAgo: 3, summary: "", baseWeight: 25, effectiveWeight: 25, contribution: 20, observedAt: null, sourceUrls: ["https://news.example/a"] },
+      ],
+    });
+    const hero = blocks.find((block) => block.type === "intent_hero");
+    expect(hero).toMatchObject({ last_updated: "2026-08-02T00:00:00.000Z" });
+    const explorer = blocks.find((block) => block.type === "signal_explorer");
+    if (explorer?.type !== "signal_explorer") throw new Error("missing explorer");
+    expect(explorer.axes.find((axis) => axis.key === "hiring")).toMatchObject({ source_url: "https://acme.com/careers", contribution: 17.7, days_ago: 12.4 });
+    expect(explorer.axes.find((axis) => axis.key === "funding")).toMatchObject({ source_url: "https://news.example/a", contribution: 20 });
+    expect(explorer.axes.find((axis) => axis.key === "web")?.contribution).toBeUndefined();
+    expect(sanitizeUiBlocks(blocks)).toHaveLength(blocks.length);
+  });
 });
