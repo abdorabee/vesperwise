@@ -30,6 +30,7 @@ export function ChatView({ creditsRemaining }: { creditsRemaining: number }) {
   const [turns, setTurns] = useState<Turn[]>([]);
   const [busy, setBusy] = useState(false);
   const [railOpen, setRailOpen] = useState(false);
+  const [openTurnId, setOpenTurnId] = useState<string | null>(null);
   const [orb, setOrb] = useState<"S1" | "S4" | "S3">("S1");
   const [orbLabel, setOrbLabel] = useState("Thinking…");
   const abortRef = useRef<AbortController | null>(null);
@@ -53,6 +54,7 @@ export function ChatView({ creditsRemaining }: { creditsRemaining: number }) {
   }, [busy]);
 
   const groups = useMemo(() => groupSessions(sessions.filter((session) => session.title.toLowerCase().includes(query.trim().toLowerCase()))), [sessions, query]);
+  const openTurn = openTurnFrom(turns, openTurnId);
 
   function fill(text: string) {
     setDraft(text);
@@ -99,6 +101,7 @@ export function ChatView({ creditsRemaining }: { creditsRemaining: number }) {
           const record = recordFromTool(event.name, event.result);
           if (record) {
             records.push(record);
+            setOpenTurnId(assistantId);
             setTurns((current) => current.map((turn) => turn.id === assistantId && turn.role === "assistant" ? { ...turn, records: [...records] } : turn));
           }
         }
@@ -122,7 +125,7 @@ export function ChatView({ creditsRemaining }: { creditsRemaining: number }) {
         {railOpen ? "Hide threads" : "Threads"}
       </button>
       <aside className="chat-rail">
-        <button type="button" className="chat-new" onClick={() => { setSessionId(undefined); setTurns([]); }}>New chat</button>
+        <button type="button" className="chat-new" onClick={() => { setSessionId(undefined); setTurns([]); setOpenTurnId(null); }}>New chat</button>
         <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search threads" aria-label="Search threads" />
         {groups.map((group) => (
           <div key={group.label}>
@@ -135,6 +138,7 @@ export function ChatView({ creditsRemaining }: { creditsRemaining: number }) {
           </div>
         ))}
       </aside>
+      <div className={`chat-stage${openTurn ? " has-artifact" : ""}`}>
       <section className="chat-main">
         <div className="chat-log" ref={logRef}>
           {turns.length === 0 ? (
@@ -148,12 +152,10 @@ export function ChatView({ creditsRemaining }: { creditsRemaining: number }) {
               <div className={turn.role === "user" ? "chat-user" : "chat-assistant"}>
                 {turn.role === "assistant" && turn.streaming && !turn.content ? <Orb variant={orb} size={18} pill label={orbLabel} /> : null}
                 {turn.content ? <p className="chat-copy">{turn.content}</p> : null}
-                {turn.role === "assistant" && turn.records.length === 1 ? <ScoreRecord record={turn.records[0]} /> : null}
-                {turn.role === "assistant" && turn.records.length > 1 ? (
-                  <>
-                    <ScoreResultsTable rows={turn.records} />
-                    <p className="chat-hint">{summarize(turn.records)}</p>
-                  </>
+                {turn.role === "assistant" && turn.records.length > 0 ? (
+                  <button type="button" className="chat-artifact-chip" onClick={() => setOpenTurnId(turn.id)}>
+                    {turn.records.length === 1 ? `${turn.records[0].target}  ${turn.records[0].score} ${turn.records[0].band}` : `${turn.records.length} scores`}
+                  </button>
                 ) : null}
                 {turn.role === "assistant" && turn.confirm ? (
                   <div className="chat-confirm">
@@ -194,19 +196,28 @@ export function ChatView({ creditsRemaining }: { creditsRemaining: number }) {
           </form>
         </div>
       </section>
+      {openTurn && openTurn.role === "assistant" ? (
+        <aside className="chat-artifact" aria-label="Score">
+          <button type="button" className="chat-artifact-close" onClick={() => setOpenTurnId(null)}>
+            <span className="chat-artifact-back">Back</span>
+            <span className="chat-artifact-dismiss">Close</span>
+          </button>
+          {openTurn.records.length === 1 ? <ScoreRecord record={openTurn.records[0]} /> : <ScoreResultsTable rows={openTurn.records} />}
+        </aside>
+      ) : null}
+      </div>
     </div>
   );
 }
 
-function needsAutopilotConfirm(message: string) {
-  return /\b(autopilot|ping me|notify me|watch this)\b/i.test(message) && !message.startsWith("Confirm watch:");
+function openTurnFrom(turns: Turn[], id: string | null): Extract<Turn, { role: "assistant" }> | null {
+  if (!id) return null;
+  const turn = turns.find((item) => item.id === id);
+  return turn && turn.role === "assistant" && turn.records.length > 0 ? turn : null;
 }
 
-function summarize(records: ScoreRecordData[]) {
-  const hot = records.filter((row) => row.band === "HOT").length;
-  const warm = records.filter((row) => row.band === "WARM").length;
-  const people = records.filter((row) => row.kind === "person").length;
-  return `${hot} HOT · ${warm} WARM · ${people} person${people === 1 ? "" : "s"}.`;
+function needsAutopilotConfirm(message: string) {
+  return /\b(autopilot|ping me|notify me|watch this)\b/i.test(message) && !message.startsWith("Confirm watch:");
 }
 
 function recordFromTool(name: string, result: unknown): ScoreRecordData | null {
