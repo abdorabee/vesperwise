@@ -6,13 +6,20 @@ const scoreCompany = vi.fn();
 
 vi.mock("@clerk/nextjs/server", () => ({ auth: vi.fn(async () => ({ userId: "user_test" })) }));
 vi.mock("@/lib/dev-credit-bypass", () => ({ isDevCreditBypassEnabled: () => false }));
+const keyUpdate = vi.fn();
+
 vi.mock("@/lib/supabase", () => ({
   createSupabaseAdmin: () => ({
-    from: () => ({
+    from: (table: string) => ({
       select: () => ({
         eq: () => ({
-          maybeSingle: async () => ({ data: { product_category: "B2B SaaS", business_profile: null }, error: null }),
+          maybeSingle: async () => table === "api_keys"
+            ? { data: { user_id: "user_test", is_active: true }, error: null }
+            : { data: { product_category: "B2B SaaS", business_profile: null }, error: null },
         }),
+      }),
+      update: (values: Record<string, unknown>) => ({
+        eq: (column: string, value: string) => keyUpdate(table, values, column, value),
       }),
     }),
   }),
@@ -111,6 +118,26 @@ describe("POST /api/v1/score", () => {
     scoreCompany.mockRejectedValue(new ScoreInProgressError("run_1"));
     const events = await readEvents(await POST(request("text/event-stream")));
     expect(events[0]).toMatchObject({ event: "error", data: { status: 409, retry_after_seconds: 2, score_run_id: "run_1" } });
+  });
+
+  it("stamps last_used for API-key requests without blocking on failure", async () => {
+    scoreCompany.mockResolvedValue(RESULT);
+    keyUpdate.mockReset();
+    keyUpdate.mockResolvedValue({ error: { message: "db down" } });
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { POST } = await import("./route");
+    const response = await POST(new NextRequest("http://localhost/api/v1/score", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer vw_test_key" },
+      body: JSON.stringify({ domain: "acme.io" }),
+    }));
+    expect(response.status).toBe(200);
+    expect(keyUpdate).toHaveBeenCalledTimes(1);
+    const [table, values, column] = keyUpdate.mock.calls[0];
+    expect(table).toBe("api_keys");
+    expect(column).toBe("key_hash");
+    expect(typeof values.last_used).toBe("string");
+    warn.mockRestore();
   });
 
   it("still returns JSON 402 on the default path", async () => {

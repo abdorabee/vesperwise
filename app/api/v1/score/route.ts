@@ -71,6 +71,14 @@ async function authenticate(req: NextRequest): Promise<AuthenticatedUser | NextR
       return errorResponse(401, "unauthorized", "Invalid or inactive API key");
     }
     userId = keyRow.user_id;
+    // Best-effort usage stamp for the API Keys page; never blocks or fails scoring.
+    void Promise.resolve(
+      supabase.from("api_keys").update({ last_used: new Date().toISOString() }).eq("key_hash", keyHash)
+    ).then(({ error }) => {
+      if (error) console.warn("[score] api key last_used update failed", error.message);
+    }, (error: unknown) => {
+      console.warn("[score] api key last_used update failed", error);
+    });
   } else {
     const session = await auth();
     userId = session.userId;
