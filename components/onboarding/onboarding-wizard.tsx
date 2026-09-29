@@ -214,7 +214,7 @@ export default function OnboardingWizard({
     );
     footer = (
       <OnboardingFooter
-        caption="Step 1 of 3 · about 40 seconds"
+        caption="Step 1 of 4 · about 40 seconds"
         primary={<PrimaryButton onClick={() => goNext(0)}>Define your ICP</PrimaryButton>}
       />
     );
@@ -240,7 +240,7 @@ export default function OnboardingWizard({
     );
     footer = (
       <OnboardingFooter
-        caption="Step 2 of 3"
+        caption="Step 2 of 4"
         back={{ label: "Back", onClick: () => dispatch({ type: "previous_step" }) }}
         primary={<PrimaryButton onClick={() => goNext(1)}>Choose signals</PrimaryButton>}
       />
@@ -250,7 +250,7 @@ export default function OnboardingWizard({
     content = <SignalSourcesScreen seedCount={seedCount} />;
     footer = (
       <OnboardingFooter
-        caption={`Step 3 of 3 · first run included in your ${creditsRemaining} credits`}
+        caption={`Step 3 of 4 · first run included in your ${creditsRemaining} credits`}
         back={{ label: "Back", onClick: () => dispatch({ type: "previous_step" }) }}
         primary={
           <PrimaryButton

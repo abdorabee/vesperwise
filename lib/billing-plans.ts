@@ -1,7 +1,15 @@
-import type { DbUser } from "@/lib/types";
-import { PLAN_CREDITS, PLAN_RATE_LIMIT, PLAN_WATCHLIST_LIMIT } from "@/lib/types";
+import {
+  PLAN_LABEL,
+  PLAN_ORDER,
+  PLAN_PRICE,
+  TOPUP_PACKS,
+  planFeatures,
+  planFeaturesWithCredits,
+  type PlanKey,
+} from "@/lib/plan-features";
+import { PLAN_CREDITS } from "@/lib/types";
 
-export type PlanKey = DbUser["plan"];
+export type { PlanKey };
 
 export interface BillingPlanDef {
   key: PlanKey;
@@ -21,138 +29,31 @@ export interface TopupDef {
   bestValue?: boolean;
 }
 
-function watchlistLabel(limit: number | null): string {
-  if (limit == null) return "Unlimited watchlist";
-  return `Watchlist · ${limit} accounts`;
-}
+const PLAN_COLOR: Record<PlanKey, string> = {
+  free: "var(--text-quaternary)",
+  starter: "var(--cyan)",
+  growth: "var(--accent-2)",
+  pro: "var(--brand)",
+  agency: "var(--warm)",
+};
 
-export const BILLING_PLANS: BillingPlanDef[] = [
-  {
-    key: "free",
-    label: "Free",
-    price: 0,
-    credits: PLAN_CREDITS.free,
-    color: "var(--text-quaternary)",
-    tier: 0,
-    heroFeatures: [
-      `${PLAN_CREDITS.free} credits / mo`,
-      "1 seat",
-      "Score & basic dashboard",
-      "Manual lookups only",
-      "7-day history",
-      "API · 10 rpm",
-    ],
-    features: [
-      "1 seat",
-      "Score & basic dashboard",
-      "Manual lookups only",
-      "7-day history",
-    ],
-  },
-  {
-    key: "starter",
-    label: "Starter",
-    price: 29,
-    credits: PLAN_CREDITS.starter,
-    color: "var(--cyan)",
-    tier: 1,
-    heroFeatures: [
-      `${PLAN_CREDITS.starter.toLocaleString()} credits / mo`,
-      "3 seats",
-      "Bulk scoring · 100/job",
-      watchlistLabel(PLAN_WATCHLIST_LIMIT.starter),
-      "30-day history",
-      "Slack & webhook alerts",
-    ],
-    features: [
-      "3 seats",
-      "Bulk scoring · 100/job",
-      watchlistLabel(PLAN_WATCHLIST_LIMIT.starter),
-      "30-day history",
-      "Slack & webhook alerts",
-    ],
-  },
-  {
-    key: "growth",
-    label: "Growth",
-    price: 79,
-    credits: PLAN_CREDITS.growth,
-    color: "var(--accent-2)",
-    tier: 2,
-    heroFeatures: [
-      `${PLAN_CREDITS.growth.toLocaleString()} credits / mo`,
-      "Up to 10 seats",
-      "Bulk & person scoring",
-      "Autopilot · 25 flows",
-      watchlistLabel(PLAN_WATCHLIST_LIMIT.growth),
-      `API access · ${PLAN_RATE_LIMIT.growth} rpm`,
-    ],
-    features: [
-      "10 seats",
-      "Bulk · 1,000/job · 3 concurrent",
-      watchlistLabel(PLAN_WATCHLIST_LIMIT.growth),
-      "Autopilot · 25 workflows",
-      `API · ${PLAN_RATE_LIMIT.growth} rpm`,
-      "Priority email support",
-    ],
-  },
-  {
-    key: "pro",
-    label: "Pro",
-    price: 199,
-    credits: PLAN_CREDITS.pro,
-    color: "var(--brand)",
-    tier: 3,
-    heroFeatures: [
-      `${PLAN_CREDITS.pro.toLocaleString()} credits / mo`,
-      "25 seats",
-      "Bulk · 5,000/job · 8 concurrent",
-      "Autopilot · unlimited flows",
-      watchlistLabel(PLAN_WATCHLIST_LIMIT.pro),
-      `API · ${PLAN_RATE_LIMIT.pro} rpm`,
-    ],
-    features: [
-      "25 seats",
-      "Bulk · 5,000/job · 8 concurrent",
-      watchlistLabel(PLAN_WATCHLIST_LIMIT.pro),
-      "Autopilot · unlimited flows",
-      `API · ${PLAN_RATE_LIMIT.pro} rpm`,
-      "SSO & SCIM",
-      "Custom scoring weights",
-    ],
-  },
-  {
-    key: "agency",
-    label: "Agency",
-    price: 499,
-    credits: PLAN_CREDITS.agency,
-    color: "var(--warm)",
-    tier: 4,
-    heroFeatures: [
-      `${PLAN_CREDITS.agency.toLocaleString()} credits / mo`,
-      "Unlimited seats",
-      "Multi-workspace",
-      "Bulk · 20k/job · unlimited",
-      "White-label exports",
-      `API · ${PLAN_RATE_LIMIT.agency} rpm`,
-    ],
-    features: [
-      "Unlimited seats",
-      "Multi-workspace",
-      "Bulk · 20k/job · unlimited",
-      "White-label exports",
-      `API · ${PLAN_RATE_LIMIT.agency} rpm`,
-      "Dedicated CSM",
-      "99.9% SLA",
-    ],
-  },
-];
+/**
+ * Plan definitions for the in-app billing page. Labels, prices and features
+ * come from lib/plan-features.ts so billing, /pricing and the landing page
+ * always describe the same plans.
+ */
+export const BILLING_PLANS: BillingPlanDef[] = PLAN_ORDER.map((key, tier) => ({
+  key,
+  label: PLAN_LABEL[key],
+  price: PLAN_PRICE[key],
+  credits: PLAN_CREDITS[key],
+  color: PLAN_COLOR[key],
+  tier,
+  features: planFeatures(key),
+  heroFeatures: planFeaturesWithCredits(key),
+}));
 
-export const BILLING_TOPUPS: TopupDef[] = [
-  { amount: "100", credits: 100, price: 10 },
-  { amount: "500", credits: 500, price: 36, bestValue: true },
-  { amount: "1000", credits: 1000, price: 65 },
-];
+export const BILLING_TOPUPS: TopupDef[] = TOPUP_PACKS.map((t) => ({ ...t }));
 
 export function getPlanDef(key: PlanKey): BillingPlanDef {
   return BILLING_PLANS.find((p) => p.key === key) ?? BILLING_PLANS[0];

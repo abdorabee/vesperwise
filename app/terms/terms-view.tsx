@@ -43,9 +43,8 @@ const NAV_LINKS = [
   { label: "Product",    href: "/#product"   },
   { label: "Autopilot",  href: "/#autopilot" },
   { label: "Developers", href: "/docs"       },
-  { label: "Pricing",    href: "/#pricing"   },
-  { label: "Customers",  href: "/#"          },
-  { label: "Company",    href: "/#"          },
+  { label: "Pricing",    href: "/pricing"    },
+  { label: "About",      href: "/about"      },
 ];
 
 /* ── Primitives matching doc.css exactly ───────────────────── */
@@ -170,8 +169,6 @@ export default function TermsView() {
         <strong style={{ color: T.txtPrimary, fontWeight: 500 }}>Terms of Service</strong>
         <span style={{ margin: "0 6px", color: T.txtQuaternary }}>·</span>
         last updated May 12, 2026
-        <span style={{ margin: "0 6px", color: T.txtQuaternary }}>·</span>
-        <a href="#" style={{ color: T.txtQuaternary, textDecoration: "underline", textDecorationColor: T.borderStrong }}>view diff</a>
       </div>
 
       {/* ── Nav — sticky below banner ── */}
@@ -318,7 +315,7 @@ export default function TermsView() {
 
           {/* ── 06 ── */}
           <Section id="s6" num="06" title="AI features">
-            <P>The Service uses third&#8209;party AI providers (currently Anthropic) to generate score summaries, recommended actions, and chat copilot responses (collectively, <Strong>&ldquo;AI Output&rdquo;</Strong>). AI Output:</P>
+            <P>The Service uses third&#8209;party AI providers (currently models accessed through OpenRouter) to generate score summaries, recommended actions, and chat copilot responses (collectively, <Strong>&ldquo;AI Output&rdquo;</Strong>). AI Output:</P>
             <OL items={[
               "Is not warranted to be accurate, complete, or fit for any decision with legal or similarly significant effects;",
               "May contain factual errors or hallucinations — review before relying on it;",

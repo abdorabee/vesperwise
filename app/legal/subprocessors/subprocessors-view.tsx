@@ -202,7 +202,7 @@ export default function SubprocessorsView() {
                 [
                   <Strong key="name">Polar.sh</Strong>,
                   "Payment processing (billing, subscription management, card data storage)",
-                  "Norway (EU)"
+                  "Norway (EEA)"
                 ],
                 [
                   <Strong key="name">Supabase</Strong>,

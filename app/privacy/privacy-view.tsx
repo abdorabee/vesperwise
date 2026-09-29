@@ -43,9 +43,8 @@ const NAV_LINKS = [
   { label: "Product",    href: "/#product"   },
   { label: "Autopilot",  href: "/#autopilot" },
   { label: "Developers", href: "/docs"       },
-  { label: "Pricing",    href: "/#pricing"   },
-  { label: "Customers",  href: "/#"          },
-  { label: "Company",    href: "/#"          },
+  { label: "Pricing",    href: "/pricing"    },
+  { label: "About",      href: "/about"      },
 ];
 
 /* ── Primitives ─────────────────────────────────────────────── */
@@ -195,8 +194,6 @@ export default function PrivacyView() {
         <strong style={{ color: T.txtPrimary, fontWeight: 500 }}>Privacy Policy</strong>
         <span style={{ margin: "0 6px", color: T.txtQuaternary }}>·</span>
         last updated May 12, 2026
-        <span style={{ margin: "0 6px", color: T.txtQuaternary }}>·</span>
-        <a href="#" style={{ color: T.txtQuaternary, textDecoration: "underline", textDecorationColor: T.borderStrong }}>view diff</a>
       </div>
 
       {/* ── Nav — sticky below banner ── */}
@@ -361,13 +358,12 @@ export default function PrivacyView() {
 
           {/* ── 06 ── */}
           <Section id="s6" num="06" title="AI processing">
-            <P>When you request a score, the company domain and signal data are sent to <Strong>Anthropic</Strong> to generate a human-readable summary and recommended action. We:</P>
+            <P>When you request a score, the company domain, the signal data we collected and your workspace&rsquo;s product description are sent to a large language model through <Strong>OpenRouter</Strong> to write a summary and recommended action. We:</P>
             <OL items={[
-              <span key="a">Use Anthropic&rsquo;s <Strong>zero-data-retention</Strong> API configuration — prompts and completions are not stored or used for training by Anthropic</span>,
-              "Never include API keys, billing information, or user PII in prompts sent to Anthropic",
-              <span key="c">Allow you to disable AI summaries entirely in <Strong>Settings → AI</Strong>; doing so replaces summaries with the raw signal data</span>,
+              "Never include API keys, passwords or billing information in these requests",
+              <span key="b">List OpenRouter and the other providers we use on the <A href="/legal/subprocessors">Subprocessors</A> page</span>,
             ]} />
-            <P>Anthropic&rsquo;s handling of any data that passes through their API is governed by their <A href="https://www.anthropic.com/legal/privacy">Privacy Policy</A> and our DPA addendum with them.</P>
+            <P>OpenRouter&rsquo;s handling of data that passes through its API is governed by its own privacy policy and terms.</P>
           </Section>
 
           {/* ── 07 ── */}
@@ -412,9 +408,9 @@ export default function PrivacyView() {
               <span key="b"><Strong>At rest</Strong> — AES-256 encryption via Supabase</span>,
               <span key="c"><Strong>API keys</Strong> — SHA-256 hashed; we never store plaintext keys</span>,
               <span key="d"><Strong>Passwords</Strong> — Argon2id hashed by Clerk; we never see your password</span>,
-              <span key="e"><Strong>Access control</Strong> — Row-Level Security in Postgres; employees access data only to resolve support issues</span>,
+              <span key="e"><Strong>Access control</Strong> — database access restricted to our backend services; team members access data only to resolve support issues</span>,
             ]} />
-            <P>See our <A href="/legal/security">Security page</A> for full details including penetration testing, incident response, and bug bounty information.</P>
+            <P>See our <A href="/legal/security">Security page</A> for the full list of current controls and what is still on our roadmap.</P>
             <P>In the event of a data breach affecting your personal data, we will notify you and the relevant supervisory authority within <Strong>72 hours</Strong> as required by GDPR Art.&nbsp;33.</P>
           </Section>
 
