@@ -1,257 +1,165 @@
-"use client";
-
 import Link from "next/link";
+import LandingNav from "@/components/landing/LandingNav";
 import SiteFooter from "@/components/site-footer";
-import VesperWiseLogo from "@/components/vesperwise-logo";
-import { PLAN_CREDITS, PLAN_WATCHLIST_LIMIT, PLAN_AUTOPILOT_LIMIT } from "@/lib/types";
+import {
+  BULK_MAX_CONCURRENT,
+  BULK_MAX_PER_JOB,
+  MARKETING_PLANS,
+  MARKETING_TOPUPS,
+  formatCount,
+  planCreditsFeature,
+} from "@/lib/plan-features";
 
-const T = {
-  bg:           "var(--background)",
-  bgEl:         "var(--card)",
-  surface:      "var(--popover)",
-  txtPrimary:   "var(--foreground)",
-  txtSecondary: "var(--text-secondary)",
-  txtTertiary:  "var(--muted-foreground)",
-  txtQuaternary:"var(--text-quaternary)",
-  border:       "var(--border)",
-  borderStrong: "var(--border-strong)",
-  accent:       "var(--brand)",
-  accent2:      "var(--brand-hover)",
-  cyan:         "var(--brand)",
-  cyanSoft:     "var(--brand-soft)",
-  fontSans:     "var(--font-sans)",
-  fontMono:     "var(--font-sans)",
-};
-
-const NAV_LINKS = [
-  { label: "Product",    href: "/#product"   },
-  { label: "Autopilot",  href: "/#autopilot" },
-  { label: "Developers", href: "/docs"       },
-  { label: "Pricing",    href: "/pricing"    },
+const FAQ: { q: string; a: string }[] = [
+  {
+    q: "What is a credit?",
+    a: "One credit scores one company. Results are cached for 6 hours, so asking for the same company again inside that window costs nothing. Bulk jobs reserve one credit per company when the job is created.",
+  },
+  {
+    q: "What happens when I run out?",
+    a: "New scoring requests return HTTP 402. Your existing scores, watchlist and history stay available. Buy a top-up pack or move to a larger plan to keep scoring.",
+  },
+  {
+    q: "How do top-up packs work?",
+    a: "Top-ups are one-time purchases that add credits to your current balance without changing your plan. You buy them from Billing once you are signed in.",
+  },
+  {
+    q: "Can I cancel anytime?",
+    a: "Yes. Plans are month-to-month and you can cancel from Billing. You keep access until the end of the billing period. Monthly plan credits reset when the plan renews or changes.",
+  },
+  {
+    q: "Do you offer annual plans?",
+    a: "Not yet. Every plan is billed monthly with no contract.",
+  },
 ];
 
 export default function PricingView() {
   return (
-    <div style={{ background: T.bg, color: T.txtPrimary, fontFamily: T.fontSans, WebkitFontSmoothing: "antialiased", MozOsxFontSmoothing: "grayscale" } as React.CSSProperties}>
+    <div className="pricing-page">
       <style>{`
-        .price-card { transition: border-color 0.2s, box-shadow 0.2s; }
-        .price-card:hover { border-color: rgba(255,255,255,0.13); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
-        .price-card.featured { border-color: rgba(223,255,0,0.3); background: linear-gradient(180deg, rgba(223,255,0,0.03), var(--surface)); }
-        .price-card.featured:hover { border-color: rgba(223,255,0,0.4); box-shadow: 0 4px 16px rgba(223,255,0,0.12); }
+        .pricing-page { background: var(--background); color: var(--foreground); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
+        .pp-hero { padding: 88px 16px 56px; text-align: center; border-bottom: 1px solid var(--border); }
+        .pp-hero h1 { font-weight: 500; letter-spacing: -0.042em; line-height: 1; font-size: clamp(40px, 6.4vw, 72px); margin: 0 0 20px; text-wrap: balance; }
+        .pp-hero p { max-width: 600px; margin: 0 auto; color: var(--text-secondary); font-size: clamp(16px, 1.25vw, 18px); line-height: 1.55; text-wrap: pretty; }
+        .pp-wrap { max-width: 1320px; margin: 0 auto; padding: 64px 16px 80px; }
+        .pp-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
+        @media (min-width: 720px) { .pp-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (min-width: 1180px) { .pp-grid { grid-template-columns: repeat(5, 1fr); } }
+        .pp-card { border: 1px solid var(--border); border-radius: 12px; padding: 24px 20px; background: var(--card); display: flex; flex-direction: column; }
+        .pp-card.featured { border-color: var(--brand-border); box-shadow: 0 0 0 1px var(--brand-border); }
+        .pp-name { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 600; letter-spacing: -0.011em; margin-bottom: 4px; }
+        .pp-pill { font-size: 11px; font-weight: 600; color: var(--on-brand, #000); background: var(--brand); padding: 2px 8px; border-radius: 999px; }
+        .pp-blurb { font-size: 13px; color: var(--muted-foreground); line-height: 1.45; min-height: 38px; margin-bottom: 16px; }
+        .pp-amt { margin-bottom: 4px; font-variant-numeric: tabular-nums; }
+        .pp-amt .num { font-size: 40px; font-weight: 600; letter-spacing: -0.032em; }
+        .pp-amt .per { font-size: 15px; color: var(--muted-foreground); }
+        .pp-unit { font-size: 13px; color: var(--muted-foreground); margin-bottom: 20px; font-variant-numeric: tabular-nums; min-height: 20px; }
+        .pp-feats { list-style: none; padding: 0; margin: 0 0 24px; flex: 1; display: flex; flex-direction: column; gap: 10px; }
+        .pp-feats li { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+        .pp-feats svg { width: 14px; height: 14px; flex-shrink: 0; margin-top: 3px; color: var(--foreground); opacity: 0.7; }
+        .pp-btn { display: inline-flex; align-items: center; justify-content: center; height: 40px; padding: 0 16px; border-radius: 8px; font-size: 14px; font-weight: 500; text-decoration: none; border: 1px solid var(--border); color: var(--foreground); background: transparent; transition: background-color 150ms ease, transform 160ms ease-out; }
+        .pp-btn:hover { background: var(--surface-wash, rgba(127,127,127,0.08)); }
+        .pp-btn:active { transform: scale(0.97); }
+        .pp-btn.primary { background: var(--brand); border-color: transparent; color: var(--on-brand, #000); }
+        .pp-btn.primary:hover { background: var(--brand-hover); }
+        .pp-note { text-align: center; margin: 20px auto 0; max-width: 640px; font-size: 13px; color: var(--muted-foreground); line-height: 1.55; }
+        .pp-section-title { font-size: 20px; font-weight: 600; letter-spacing: -0.02em; margin: 0 0 6px; }
+        .pp-section-sub { font-size: 14px; color: var(--muted-foreground); margin: 0 0 20px; }
+        .pp-topups { margin-top: 72px; }
+        .pp-topup-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+        @media (min-width: 720px) { .pp-topup-grid { grid-template-columns: repeat(3, 1fr); } }
+        .pp-topup { border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; background: var(--card); display: flex; align-items: baseline; justify-content: space-between; gap: 12px; font-variant-numeric: tabular-nums; }
+        .pp-topup strong { font-size: 18px; font-weight: 600; letter-spacing: -0.02em; }
+        .pp-topup .price { font-size: 18px; font-weight: 600; }
+        .pp-topup .rate { display: block; font-size: 12px; color: var(--muted-foreground); margin-top: 2px; }
+        .pp-faq { margin: 72px auto 0; max-width: 780px; }
+        .pp-faq dl { margin: 0; border-top: 1px solid var(--border); }
+        .pp-faq dt { font-size: 15px; font-weight: 500; padding-top: 18px; }
+        .pp-faq dd { margin: 6px 0 0; padding-bottom: 18px; border-bottom: 1px solid var(--border); font-size: 14px; color: var(--text-secondary); line-height: 1.6; }
+        .pp-cta { padding: 72px 16px; text-align: center; border-top: 1px solid var(--border); background: var(--card); }
+        .pp-cta h2 { font-size: clamp(28px, 4vw, 40px); font-weight: 500; letter-spacing: -0.03em; margin: 0 0 12px; }
+        .pp-cta p { color: var(--text-secondary); margin: 0 0 24px; }
+        .pp-cta .row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
       `}</style>
 
-      <div style={{ position: "sticky", top: 0, zIndex: 100, height: "36px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "13px", color: T.txtSecondary, background: "var(--bg-translucent)", backdropFilter: "saturate(180%) blur(20px)", WebkitBackdropFilter: "saturate(180%) blur(20px)", borderBottom: `1px solid ${T.border}`, letterSpacing: "-0.011em" } as React.CSSProperties}>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", marginRight: "10px", fontSize: "11px", fontWeight: 600, color: T.cyan, background: T.cyanSoft, padding: "1px 8px", borderRadius: "999px" }}>NEW</span>
-        <span><strong style={{ color: T.txtPrimary, fontWeight: 500 }}>Autopilot</strong> — workflows that fire when intent crosses your threshold</span>
-        <Link href="/#autopilot" style={{ marginLeft: "8px", color: T.txtSecondary }}>→</Link>
-      </div>
+      <LandingNav />
 
-      <nav style={{ position: "sticky", top: "36px", zIndex: 50, background: "var(--bg-translucent)", backdropFilter: "saturate(180%) blur(20px)", WebkitBackdropFilter: "saturate(180%) blur(20px)", borderBottom: `1px solid ${T.border}` } as React.CSSProperties}>
-        <div style={{ display: "flex", alignItems: "center", height: "56px", padding: "0 24px", maxWidth: "1320px", margin: "0 auto", gap: "28px" }}>
-          <Link href="/" aria-label="VesperWise home" style={{ display: "inline-flex", alignItems: "center", gap: "8px", fontWeight: 600, letterSpacing: "-0.022em", fontSize: "15px", color: T.txtPrimary, textDecoration: "none" }}>
-            <VesperWiseLogo size={42} variant="wordmark" />
-          </Link>
-          <div className="mkt-navlinks" style={{ display: "flex", gap: "4px", alignItems: "center" }}>
-            {NAV_LINKS.map(({ label, href }) => (
-              <Link key={label} href={href} style={{ display: "inline-flex", alignItems: "center", fontSize: "14px", color: label === "Pricing" ? T.txtPrimary : T.txtSecondary, padding: "6px 10px", borderRadius: "6px", letterSpacing: "-0.011em", textDecoration: "none", background: label === "Pricing" ? "rgba(255,255,255,0.04)" : "transparent" }}>
-                {label}
-              </Link>
-            ))}
-          </div>
-          <div style={{ flex: 1 }} />
-          <Link href="/login" style={{ fontSize: "14px", fontWeight: 500, letterSpacing: "-0.006em", color: T.txtSecondary, padding: "6px 10px", borderRadius: "6px", textDecoration: "none" }}>Sign in</Link>
-          <Link href="/signup" style={{ display: "inline-flex", alignItems: "center", fontSize: "14px", fontWeight: 500, letterSpacing: "-0.006em", color: T.txtPrimary, padding: "0 14px", height: "32px", borderRadius: "6px", border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.05)", textDecoration: "none" }}>Start free</Link>
-          <Link href="/contact#contact-form" style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "14px", fontWeight: 500, letterSpacing: "-0.006em", color: "#000000", padding: "0 14px", height: "32px", borderRadius: "6px", background: T.accent, boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.12), 0 1px 2px rgba(0,0,0,0.3)", textDecoration: "none" }}>
-            Talk to us
-            <svg style={{ width: "12px", height: "12px" }} viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 6h6M7 4l2 2-2 2"/></svg>
-          </Link>
-        </div>
-      </nav>
-
-      <section style={{ position: "relative", padding: "88px 0 64px", overflow: "hidden", borderBottom: `1px solid ${T.border}` }}>
-        <div style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden" }} aria-hidden="true">
-          <div style={{ position: "absolute", left: "50%", top: "-200px", width: "1100px", height: "560px", transform: "translateX(-50%)", background: "radial-gradient(ellipse 60% 60% at 50% 50%, rgba(223,255,0,0.20), transparent 60%), radial-gradient(ellipse 40% 70% at 30% 30%, rgba(223,255,0,0.13), transparent 70%)", filter: "blur(40px)" }} />
-          <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(rgba(255,255,255,0.022) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.022) 1px, transparent 1px)", backgroundSize: "64px 64px", maskImage: "radial-gradient(ellipse 80% 60% at 50% 30%, #000 30%, transparent 80%)", WebkitMaskImage: "radial-gradient(ellipse 80% 60% at 50% 30%, #000 30%, transparent 80%)" } as React.CSSProperties} />
-        </div>
-        <div style={{ position: "relative", zIndex: 2, maxWidth: "1200px", margin: "0 auto", padding: "0 24px", textAlign: "center" }}>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", fontSize: "13px", fontWeight: 500, color: T.txtSecondary, letterSpacing: "-0.011em", marginBottom: "22px" }}>
-            <span style={{ width: "5px", height: "5px", borderRadius: "999px", background: T.cyan, boxShadow: "0 0 8px #dfff00", display: "block" }} />
-            Pricing
-          </div>
-          <h1 style={{ fontWeight: 500, letterSpacing: "-0.042em", lineHeight: 1, fontSize: "clamp(40px, 6.4vw, 76px)", marginBottom: "22px", color: T.txtPrimary }}>
-            Start free.<br />Pay when you close.
-          </h1>
-          <p style={{ maxWidth: "620px", color: T.txtSecondary, fontSize: "clamp(16px, 1.25vw, 19px)", lineHeight: 1.55, letterSpacing: "-0.011em", margin: "0 auto" }}>
-            One credit = one account scored. Bulk and re‑scores included. Cancel anytime — no annual contracts, no setup calls.
-          </p>
-        </div>
+      <section className="pp-hero">
+        <h1>Start free. Pay for the accounts you score.</h1>
+        <p>
+          One credit scores one company. Every plan includes the full score, the evidence behind it and a suggested next step.
+          Month-to-month, cancel anytime.
+        </p>
       </section>
 
-      <section style={{ padding: "80px 24px", maxWidth: "1280px", margin: "0 auto" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "20px", maxWidth: "1100px", margin: "0 auto" }}>
-
-          <div className="price-card" style={{ border: `1px solid ${T.border}`, borderRadius: "8px", padding: "28px 24px", background: T.surface, display: "flex", flexDirection: "column" }}>
-            <div style={{ fontSize: "16px", fontWeight: 600, color: T.txtPrimary, marginBottom: "8px", letterSpacing: "-0.011em" }}>Free</div>
-            <div style={{ marginBottom: "16px" }}>
-              <span style={{ fontSize: "40px", fontWeight: 600, color: T.txtPrimary, letterSpacing: "-0.032em" }}>$0</span>
-              <span style={{ fontSize: "15px", color: T.txtTertiary }}> / mo</span>
+      <div className="pp-wrap">
+        <div className="pp-grid">
+          {MARKETING_PLANS.map((plan) => (
+            <div key={plan.key} className={`pp-card${plan.featured ? " featured" : ""}`}>
+              <div className="pp-name">
+                {plan.label}
+                {plan.featured ? <span className="pp-pill">Most popular</span> : null}
+              </div>
+              <div className="pp-blurb">{plan.blurb}</div>
+              <div className="pp-amt">
+                <span className="num">${formatCount(plan.price)}</span>
+                <span className="per"> / mo</span>
+              </div>
+              <div className="pp-unit">{plan.perScore ?? "No card required"}</div>
+              <ul className="pp-feats">
+                {[planCreditsFeature(plan.key), ...plan.features].map((feat) => (
+                  <li key={feat}>
+                    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M3 7l3 3 5-7" /></svg>
+                    {feat}
+                  </li>
+                ))}
+              </ul>
+              <Link href="/signup" className={`pp-btn${plan.featured ? " primary" : ""}`}>
+                {plan.cta}
+              </Link>
             </div>
-            <div style={{ fontSize: "14px", color: T.txtSecondary, marginBottom: "20px", letterSpacing: "-0.006em" }}>
-              <strong style={{ color: T.txtPrimary }}>{PLAN_CREDITS.free}</strong> account scores
-            </div>
-            <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "10px", marginBottom: "20px" }}>
-              {[
-                "Dashboard access",
-                `${PLAN_WATCHLIST_LIMIT.free} watchlist accounts`,
-                "AI summary on every score",
-              ].map((feat) => (
-                <div key={feat} style={{ display: "flex", alignItems: "flex-start", gap: "8px", fontSize: "13px", color: T.txtSecondary, lineHeight: 1.5 }}>
-                  <svg style={{ width: "14px", height: "14px", flexShrink: 0, color: T.cyan, marginTop: "2px" }} viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 7l3 3 5-7"/></svg>
-                  {feat}
-                </div>
-              ))}
-            </div>
-            <Link href="/signup" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: "14px", fontWeight: 500, letterSpacing: "-0.006em", color: T.txtPrimary, padding: "0 16px", height: "36px", borderRadius: "6px", border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.05)", textDecoration: "none" }}>
-              Start free
-            </Link>
-          </div>
-
-          <div className="price-card" style={{ border: `1px solid ${T.border}`, borderRadius: "8px", padding: "28px 24px", background: T.surface, display: "flex", flexDirection: "column" }}>
-            <div style={{ fontSize: "16px", fontWeight: 600, color: T.txtPrimary, marginBottom: "8px", letterSpacing: "-0.011em" }}>Starter</div>
-            <div style={{ marginBottom: "16px" }}>
-              <span style={{ fontSize: "40px", fontWeight: 600, color: T.txtPrimary, letterSpacing: "-0.032em" }}>$29</span>
-              <span style={{ fontSize: "15px", color: T.txtTertiary }}> / mo</span>
-            </div>
-            <div style={{ fontSize: "14px", color: T.txtSecondary, marginBottom: "20px", letterSpacing: "-0.006em" }}>
-              <strong style={{ color: T.txtPrimary }}>{PLAN_CREDITS.starter}</strong> account scores · <span style={{ fontFamily: T.fontMono, fontSize: "12px", color: T.txtTertiary }}>$0.058 each</span>
-            </div>
-            <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "10px", marginBottom: "20px" }}>
-              {[
-                "Everything in Free",
-                `${PLAN_WATCHLIST_LIMIT.starter} watchlist accounts`,
-                "API + CSV exports",
-                `${PLAN_AUTOPILOT_LIMIT.starter} Autopilot workflow${PLAN_AUTOPILOT_LIMIT.starter === 1 ? '' : 's'}`,
-              ].map((feat) => (
-                <div key={feat} style={{ display: "flex", alignItems: "flex-start", gap: "8px", fontSize: "13px", color: T.txtSecondary, lineHeight: 1.5 }}>
-                  <svg style={{ width: "14px", height: "14px", flexShrink: 0, color: T.cyan, marginTop: "2px" }} viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 7l3 3 5-7"/></svg>
-                  {feat}
-                </div>
-              ))}
-            </div>
-            <Link href="/signup" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: "14px", fontWeight: 500, letterSpacing: "-0.006em", color: T.txtPrimary, padding: "0 16px", height: "36px", borderRadius: "6px", border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.05)", textDecoration: "none" }}>
-              Get Starter
-            </Link>
-          </div>
-
-          <div className="price-card featured" style={{ border: `1px solid rgba(223,255,0,0.3)`, borderRadius: "8px", padding: "28px 24px", background: "linear-gradient(180deg, rgba(223,255,0,0.03), var(--surface))", display: "flex", flexDirection: "column" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
-              <div style={{ fontSize: "16px", fontWeight: 600, color: T.txtPrimary, letterSpacing: "-0.011em" }}>Growth</div>
-              <span style={{ fontSize: "11px", fontWeight: 600, color: "#000", background: T.accent, padding: "2px 8px", borderRadius: "999px", letterSpacing: "0.02em" }}>Most popular</span>
-            </div>
-            <div style={{ marginBottom: "16px" }}>
-              <span style={{ fontSize: "40px", fontWeight: 600, color: T.txtPrimary, letterSpacing: "-0.032em" }}>$79</span>
-              <span style={{ fontSize: "15px", color: T.txtTertiary }}> / mo</span>
-            </div>
-            <div style={{ fontSize: "14px", color: T.txtSecondary, marginBottom: "20px", letterSpacing: "-0.006em" }}>
-              <strong style={{ color: T.txtPrimary }}>{PLAN_CREDITS.growth}</strong> account scores · <span style={{ fontFamily: T.fontMono, fontSize: "12px", color: T.txtTertiary }}>$0.032 each</span>
-            </div>
-            <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "10px", marginBottom: "20px" }}>
-              {[
-                "Everything in Starter",
-                `${PLAN_WATCHLIST_LIMIT.growth} watchlist accounts`,
-                `${PLAN_AUTOPILOT_LIMIT.growth} Autopilot workflows`,
-                "Bulk scoring (1,000 / job)",
-              ].map((feat) => (
-                <div key={feat} style={{ display: "flex", alignItems: "flex-start", gap: "8px", fontSize: "13px", color: T.txtSecondary, lineHeight: 1.5 }}>
-                  <svg style={{ width: "14px", height: "14px", flexShrink: 0, color: T.cyan, marginTop: "2px" }} viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 7l3 3 5-7"/></svg>
-                  {feat}
-                </div>
-              ))}
-            </div>
-            <Link href="/signup" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "6px", fontSize: "14px", fontWeight: 500, letterSpacing: "-0.006em", color: "#000000", padding: "0 16px", height: "36px", borderRadius: "6px", background: T.accent, boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.12), 0 1px 2px rgba(0,0,0,0.3)", textDecoration: "none" }}>
-              Get Growth
-              <svg style={{ width: "12px", height: "12px" }} viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 6h6M7 4l2 2-2 2"/></svg>
-            </Link>
-          </div>
-
-          <div className="price-card" style={{ border: `1px solid ${T.border}`, borderRadius: "8px", padding: "28px 24px", background: T.surface, display: "flex", flexDirection: "column" }}>
-            <div style={{ fontSize: "16px", fontWeight: 600, color: T.txtPrimary, marginBottom: "8px", letterSpacing: "-0.011em" }}>Pro</div>
-            <div style={{ marginBottom: "16px" }}>
-              <span style={{ fontSize: "40px", fontWeight: 600, color: T.txtPrimary, letterSpacing: "-0.032em" }}>$199</span>
-              <span style={{ fontSize: "15px", color: T.txtTertiary }}> / mo</span>
-            </div>
-            <div style={{ fontSize: "14px", color: T.txtSecondary, marginBottom: "20px", letterSpacing: "-0.006em" }}>
-              <strong style={{ color: T.txtPrimary }}>{PLAN_CREDITS.pro}</strong> account scores · <span style={{ fontFamily: T.fontMono, fontSize: "12px", color: T.txtTertiary }}>$0.025 each</span>
-            </div>
-            <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "10px", marginBottom: "20px" }}>
-              {[
-                "Everything in Growth",
-                `${PLAN_WATCHLIST_LIMIT.pro} watchlist accounts`,
-                "People scoring",
-                `${PLAN_AUTOPILOT_LIMIT.pro} Autopilot workflows`,
-                "Priority support",
-              ].map((feat) => (
-                <div key={feat} style={{ display: "flex", alignItems: "flex-start", gap: "8px", fontSize: "13px", color: T.txtSecondary, lineHeight: 1.5 }}>
-                  <svg style={{ width: "14px", height: "14px", flexShrink: 0, color: T.cyan, marginTop: "2px" }} viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 7l3 3 5-7"/></svg>
-                  {feat}
-                </div>
-              ))}
-            </div>
-            <Link href="/signup" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: "14px", fontWeight: 500, letterSpacing: "-0.006em", color: T.txtPrimary, padding: "0 16px", height: "36px", borderRadius: "6px", border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.05)", textDecoration: "none" }}>
-              Get Pro
-            </Link>
-          </div>
-
+          ))}
         </div>
 
-        <p style={{ textAlign: "center", marginTop: "32px", fontSize: "12px", color: T.txtQuaternary, fontFamily: T.fontMono, letterSpacing: "0.04em" }}>
-          Need 25,000+ scores? <Link href="/contact#contact-form" style={{ color: T.txtSecondary, textDecoration: "underline", textDecorationColor: T.borderStrong }}>Contact us for Agency pricing ($499/mo) →</Link>
+        <p className="pp-note">
+          Bulk jobs take up to {formatCount(BULK_MAX_PER_JOB)} companies each, with {BULK_MAX_CONCURRENT} jobs running at once on any plan.
         </p>
 
-        <div style={{ marginTop: "64px", padding: "32px", border: `1px solid ${T.border}`, borderRadius: "8px", background: T.bgEl, maxWidth: "780px", margin: "64px auto 0" }}>
-          <h3 style={{ fontSize: "18px", fontWeight: 600, color: T.txtPrimary, marginBottom: "16px", letterSpacing: "-0.011em" }}>Frequently asked questions</h3>
-          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-            <div>
-              <div style={{ fontSize: "14px", fontWeight: 500, color: T.txtPrimary, marginBottom: "6px" }}>What is a &quot;credit&quot;?</div>
-              <div style={{ fontSize: "13px", color: T.txtSecondary, lineHeight: 1.6 }}>One credit = one company scored. Scores are cached for 6 hours, so re-requests within that window cost 0 credits. Bulk jobs deduct credits upfront (one per company).</div>
-            </div>
-            <div>
-              <div style={{ fontSize: "14px", fontWeight: 500, color: T.txtPrimary, marginBottom: "6px" }}>What happens when I run out of credits?</div>
-              <div style={{ fontSize: "13px", color: T.txtSecondary, lineHeight: 1.6 }}>API calls return a 402 status. Your dashboard still works (you can view existing scores), but you cannot score new companies until you upgrade or buy a top-up.</div>
-            </div>
-            <div>
-              <div style={{ fontSize: "14px", fontWeight: 500, color: T.txtPrimary, marginBottom: "6px" }}>Can I cancel anytime?</div>
-              <div style={{ fontSize: "13px", color: T.txtSecondary, lineHeight: 1.6 }}>Yes. All plans are month-to-month. Cancel from Settings → Billing. You keep access until the end of your billing period, and unused credits expire at the end of the month.</div>
-            </div>
-            <div>
-              <div style={{ fontSize: "14px", fontWeight: 500, color: T.txtPrimary, marginBottom: "6px" }}>Do you offer annual plans or discounts?</div>
-              <div style={{ fontSize: "13px", color: T.txtSecondary, lineHeight: 1.6 }}>Not yet. We prioritize fast iteration and month-to-month flexibility over long-term lock-in. Agency customers can discuss volume discounts via the contact form.</div>
-            </div>
+        <section className="pp-topups" aria-labelledby="topups-title">
+          <h2 id="topups-title" className="pp-section-title">Top-up packs</h2>
+          <p className="pp-section-sub">One-time credits on top of any plan. They don&apos;t change your subscription.</p>
+          <div className="pp-topup-grid">
+            {MARKETING_TOPUPS.map((t) => (
+              <div key={t.credits} className="pp-topup">
+                <div>
+                  <strong>{formatCount(t.credits)} credits</strong>
+                  <span className="rate">{t.perCredit}</span>
+                </div>
+                <span className="price">${t.price}</span>
+              </div>
+            ))}
           </div>
-        </div>
+        </section>
 
-      </section>
+        <section className="pp-faq" aria-labelledby="faq-title">
+          <h2 id="faq-title" className="pp-section-title" style={{ marginBottom: 16 }}>Questions</h2>
+          <dl>
+            {FAQ.map(({ q, a }) => (
+              <div key={q}>
+                <dt>{q}</dt>
+                <dd>{a}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      </div>
 
-      <section style={{ padding: "80px 24px", background: T.bgEl, borderTop: `1px solid ${T.border}`, borderBottom: `1px solid ${T.border}` }}>
-        <div style={{ maxWidth: "720px", margin: "0 auto", textAlign: "center" }}>
-          <h2 style={{ fontSize: "clamp(32px, 4.8vw, 48px)", fontWeight: 500, letterSpacing: "-0.032em", lineHeight: 1.1, color: T.txtPrimary, marginBottom: "20px" }}>
-            <span style={{ background: "linear-gradient(135deg, #4ade80, #dfff00, #e8ff40)", WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent" }}>Set the pace<br />of your pipeline.</span>
-          </h2>
-          <p style={{ fontSize: "16px", color: T.txtSecondary, lineHeight: 1.6, marginBottom: "32px" }}>
-            Every day you wait, a competitor scores your best prospects and books the meeting first.
-          </p>
-          <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>
-            <Link href="/signup" style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "15px", fontWeight: 500, letterSpacing: "-0.006em", color: "#000000", padding: "0 20px", height: "44px", borderRadius: "6px", background: T.accent, boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.12), 0 2px 4px rgba(0,0,0,0.3)", textDecoration: "none" }}>
-              Start scoring free
-              <svg style={{ width: "12px", height: "12px" }} viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 6h6M7 4l2 2-2 2"/></svg>
-            </Link>
-            <Link href="/contact#contact-form" style={{ display: "inline-flex", alignItems: "center", fontSize: "15px", fontWeight: 500, letterSpacing: "-0.006em", color: T.txtPrimary, padding: "0 20px", height: "44px", borderRadius: "6px", border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.05)", textDecoration: "none" }}>
-              Contact us
-            </Link>
-          </div>
-          <p style={{ marginTop: "24px", fontSize: "12px", color: T.txtQuaternary, fontFamily: T.fontMono, letterSpacing: "0.04em" }}>
-            20 FREE CREDITS · NO CARD · COVERAGE-AWARE SCORES
-          </p>
+      <section className="pp-cta">
+        <h2>Score your first 20 accounts free.</h2>
+        <p>No card required. Upgrade when the scores start booking meetings.</p>
+        <div className="row">
+          <Link href="/signup" className="pp-btn primary">Start scoring free</Link>
+          <Link href="/contact#contact-form" className="pp-btn">Contact us</Link>
         </div>
       </section>
 
