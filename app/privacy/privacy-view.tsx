@@ -18,6 +18,7 @@ const T = {
   borderStrong: "var(--border-strong)",
   accent:       "var(--brand)",
   accent2:      "var(--brand-hover)",
+  ink:           "var(--brand-ink)",
   cyan:         "var(--brand)",
   cyanSoft:     "var(--brand-soft)",
   fontSans:     "var(--font-sans)",
@@ -41,7 +42,6 @@ const TOC = [
 
 const NAV_LINKS = [
   { label: "Product",    href: "/#product"   },
-  { label: "Autopilot",  href: "/#autopilot" },
   { label: "Developers", href: "/docs"       },
   { label: "Pricing",    href: "/pricing"    },
   { label: "About",      href: "/about"      },
@@ -52,7 +52,7 @@ const NAV_LINKS = [
 function InfoCallout({ children }: { children: React.ReactNode }) {
   return (
     <div style={{ margin: "20px 0", padding: "14px 16px", borderRadius: "6px", background: "rgba(223,255,0,0.06)", border: "1px solid rgba(223,255,0,0.18)", fontSize: "14px", lineHeight: 1.55, color: T.txtSecondary, display: "flex", gap: "12px" }}>
-      <svg style={{ width: "18px", height: "18px", flexShrink: 0, color: "#dfff00", marginTop: "1px" }} viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <svg style={{ width: "18px", height: "18px", flexShrink: 0, color: T.ink, marginTop: "1px" }} viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5">
         <circle cx="9" cy="9" r="7" /><path d="M9 6v4M9 12h.01" />
       </svg>
       <div>{children}</div>
@@ -190,7 +190,7 @@ export default function PrivacyView() {
 
       {/* ── Top banner — sticky ── */}
       <div style={{ position: "sticky", top: 0, zIndex: 100, height: "36px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "13px", color: T.txtSecondary, background: "var(--bg-translucent)", backdropFilter: "saturate(180%) blur(20px)", WebkitBackdropFilter: "saturate(180%) blur(20px)", borderBottom: `1px solid ${T.border}`, letterSpacing: "-0.011em", gap: 0 } as React.CSSProperties}>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", marginRight: "10px", fontSize: "11px", fontWeight: 600, color: T.cyan, background: T.cyanSoft, padding: "1px 8px", borderRadius: "999px" }}>v2.4</span>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", marginRight: "10px", fontSize: "11px", fontWeight: 600, color: T.ink, background: T.cyanSoft, padding: "1px 8px", borderRadius: "999px" }}>v2.4</span>
         <strong style={{ color: T.txtPrimary, fontWeight: 500 }}>Privacy Policy</strong>
         <span style={{ margin: "0 6px", color: T.txtQuaternary }}>·</span>
         last updated May 12, 2026
@@ -252,7 +252,7 @@ export default function PrivacyView() {
               return (
                 <li key={id}>
                   <a href={`#${id}`} className="toc-link" onClick={() => setActiveId(id)} style={{ display: "flex", gap: "10px", padding: "5px 12px", borderRadius: "4px", color: active ? T.txtPrimary : T.txtTertiary, letterSpacing: "-0.006em", fontSize: "13px", lineHeight: 1.4, textDecoration: "none", background: active ? "rgba(255,255,255,0.04)" : "transparent" }}>
-                    <span style={{ fontFamily: T.fontMono, fontSize: "10px", color: active ? T.accent2 : T.txtQuaternary, letterSpacing: "0.04em", flexShrink: 0, paddingTop: "2px" }}>{num}</span>
+                    <span style={{ fontFamily: T.fontMono, fontSize: "10px", color: active ? T.ink : T.txtQuaternary, letterSpacing: "0.04em", flexShrink: 0, paddingTop: "2px" }}>{num}</span>
                     {label}
                   </a>
                 </li>

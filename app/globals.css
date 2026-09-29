@@ -1317,7 +1317,7 @@ nav.primary .row {
   border-radius: var(--r-md);
 }
 .sd-action .label {
-  font-size: 11px; color: #dfff00;
+  font-size: 11px; color: var(--brand-ink);
   text-transform: uppercase; letter-spacing: 0.06em;
   margin-bottom: 6px; font-weight: 600;
 }
@@ -1889,7 +1889,7 @@ nav.primary .row {
   font-family: var(--font-mono); font-size: 10px;
   padding: 1px 6px; border-radius: 999px;
   background: rgba(223,255,0,0.18);
-  color: #dfff00;
+  color: var(--brand-ink);
   border: 1px solid rgba(223,255,0,0.3);
   font-weight: 600;
   text-transform: uppercase; letter-spacing: 0.04em;
@@ -1922,7 +1922,7 @@ nav.primary .row {
   flex-shrink: 0; margin-top: 2px;
   color: var(--text-tertiary);
 }
-.price-card.featured .price-feat .chk { color: var(--accent-2); }
+.price-card.featured .price-feat .chk { color: var(--brand-ink); }
 .price-card .btn { margin-top: auto; width: 100%; }
 
 /* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

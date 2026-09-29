@@ -17,6 +17,7 @@ const T = {
   borderStrong: "var(--border-strong)",
   accent:       "var(--brand)",
   accent2:      "var(--brand-hover)",
+  ink:           "var(--brand-ink)",
   cyan:         "var(--brand)",
   cyanSoft:     "var(--brand-soft)",
   fontSans:     "var(--font-sans)",
@@ -32,7 +33,6 @@ const TOC = [
 
 const NAV_LINKS = [
   { label: "Product",    href: "/#product"   },
-  { label: "Autopilot",  href: "/#autopilot" },
   { label: "Developers", href: "/docs"       },
   { label: "Pricing",    href: "/pricing"    },
 ];
@@ -173,7 +173,7 @@ export default function SubprocessorsView() {
               return (
                 <li key={id}>
                   <a href={`#${id}`} className="toc-link" onClick={() => setActiveId(id)} style={{ display: "flex", gap: "10px", padding: "5px 12px", borderRadius: "4px", color: active ? T.txtPrimary : T.txtTertiary, letterSpacing: "-0.006em", fontSize: "13px", lineHeight: 1.4, textDecoration: "none", background: active ? "rgba(255,255,255,0.04)" : "transparent" }}>
-                    <span style={{ fontFamily: T.fontMono, fontSize: "10px", color: active ? T.accent2 : T.txtQuaternary, letterSpacing: "0.04em", flexShrink: 0, paddingTop: "2px" }}>{num}</span>
+                    <span style={{ fontFamily: T.fontMono, fontSize: "10px", color: active ? T.ink : T.txtQuaternary, letterSpacing: "0.04em", flexShrink: 0, paddingTop: "2px" }}>{num}</span>
                     {label}
                   </a>
                 </li>
