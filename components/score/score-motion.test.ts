@@ -9,7 +9,7 @@ describe("Score motion contract", () => {
   it("ties progress to real request or tool state instead of fake provider steps", () => {
     expect(view).not.toContain("STEPS");
     expect(view).not.toContain("setInterval");
-    expect(view).toContain("tool.status === \"running\"");
+    expect(view).toContain("AbortController");
     expect(research).toContain("Verifying current signals");
   });
 

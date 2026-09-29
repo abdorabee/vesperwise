@@ -6,7 +6,6 @@ import {
   ChevronsUpDown,
   CircleHelp,
   CreditCard,
-  Key,
   LogOut,
   Moon,
   Search,
@@ -140,12 +139,6 @@ export function NavUser({ creditsRemaining, creditCap }: NavUserProps) {
                 <Link href="/billing">
                   <CreditCard />
                   Billing
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/api-keys">
-                  <Key />
-                  API Keys
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>

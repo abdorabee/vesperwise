@@ -6,6 +6,16 @@ export const AUTH_FORM_CSS = `
     flex-direction: column;
     align-items: center;
   }
+  .auth-mark {
+    margin: 0 auto 16px;
+  }
+  .auth-submit {
+    background: var(--brand);
+    color: #000000;
+  }
+  .auth-submit:hover {
+    background: var(--brand-hover);
+  }
   .auth-avatar-wrap {
     width: 200px;
     height: 200px;

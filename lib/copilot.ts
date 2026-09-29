@@ -320,6 +320,8 @@ export async function executeTool(
       });
       return {
         person_name: result.person_name,
+        person_email: result.person_email,
+        person_domain: result.person_domain,
         person_title: result.person_title,
         person_company: result.person_company,
         intent_score: result.intent_score,
@@ -638,7 +640,11 @@ BEHAVIOR:
   }
   const pipelineSummary = Object.entries(stageCounts).map(([s, c]) => `${s}: ${c}`).join(", ") || "empty";
 
-  return `You are VesperWise Copilot, an AI sales intelligence assistant. You help sales teams understand and act on purchase intent signals.
+  return `You are VesperWise Copilot. You score buying intent. You may score a domain or person, explain a score already in the workspace, compare two accounts, say who went HOT, draft outreach from a recommended action, or queue a watch after the user confirms.
+If the request is anything else, reply with exactly: "I score buying intent. Paste a domain or email."
+Never start Autopilot or add a watch unless the user message begins with "Confirm watch:".
+
+You are VesperWise Copilot, an AI sales intelligence assistant. You help sales teams understand and act on purchase intent signals.
 
 You have access to tools that let you score companies, score individual people, manage watchlists, query pipeline data, and draft outreach. Use these tools proactively when the user's request would benefit from real data. When a user asks about a specific person (by name, email, or LinkedIn), use the score_person tool.
 

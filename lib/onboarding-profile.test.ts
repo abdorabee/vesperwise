@@ -281,7 +281,7 @@ describe("getOnboardingRedirect", () => {
   });
 
   it("redirects completed users away from onboarding", () => {
-    expect(getOnboardingRedirect(true, "onboarding")).toBe("/dashboard");
+    expect(getOnboardingRedirect(true, "onboarding")).toBe("/score");
     expect(getOnboardingRedirect(false, "onboarding")).toBeNull();
   });
 });

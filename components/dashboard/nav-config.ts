@@ -1,7 +1,5 @@
 import type { ComponentType } from "react";
 import {
-  LayoutGrid,
-  Crosshair,
   Gauge,
   History,
   UserSearch,
@@ -10,6 +8,7 @@ import {
   Upload,
   Zap,
   Inbox,
+  MessageSquare,
   CreditCard,
   Key,
   Settings,
@@ -33,13 +32,12 @@ export interface NavCluster {
 
 /** Primary work — dashboard-01 NavMain */
 export const NAV_MAIN: NavItem[] = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutGrid },
-  { href: "/pipeline", label: "Intent Hub", icon: Crosshair, hotCount: true },
   { href: "/score", label: "Score", icon: Gauge },
+  { href: "/chat", label: "Chat", icon: MessageSquare },
 ];
 
 export const NAV_ACCOUNTS: NavItem[] = [
-  { href: "/people", label: "People", icon: UserSearch, beta: true },
+  { href: "/people", label: "People", icon: UserSearch },
   { href: "/inbox", label: "Inbox", icon: Inbox },
 ];
 

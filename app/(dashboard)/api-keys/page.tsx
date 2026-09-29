@@ -25,7 +25,7 @@ export default function ApiKeysPage() {
         <Link href="/docs" className="btn-primary">
           API reference
         </Link>
-        <Link href="/dashboard" className="tb-btn outlined">
+        <Link href="/score" className="tb-btn outlined">
           Back to dashboard
         </Link>
       </div>

@@ -507,7 +507,13 @@ button, a, [role="button"] { touch-action: manipulation; }
   /* Section vertical spacing */
   .section       { padding: 64px 0; }
   .section-tight { padding: 48px 0; }
-  .hero          { padding-top: 80px; padding-bottom: 40px; }
+  .hero          { padding-top: 20px; padding-bottom: 28px; }
+  .hero h1       { margin-bottom: 10px; }
+  .hero p.lead   { margin-bottom: 14px; font-size: 16px; }
+  .hero-actions  { margin-bottom: 8px; }
+  .hero-list-wrap { margin-top: 14px; padding: 0 16px; }
+  .score-list-head,
+  .score-list-row { padding: 7px 12px; }
 
   /* Hero text left-aligns — more natural scan on portrait */
   .hero-inner               { text-align: left; }
@@ -543,12 +549,8 @@ button, a, [role="button"] { touch-action: manipulation; }
    screens and look broken at < 768px.
    ============================================================ */
 @media (max-width: 768px) {
-  /* Full-width feature screens (Score, Pipeline/Hub, Autopilot) */
-  .feature-screen {
-    display: none;
-  }
+  /* Two-col feature card visuals stay in the section copy on a phone. */
 
-  /* Two-col feature card visuals (API code block, Watchlist, People) */
   .feat-visual {
     display: none;
   }
@@ -560,6 +562,40 @@ button, a, [role="button"] { touch-action: manipulation; }
   /* Two-col becomes single col already via globals.css → just ensure gap */
   .two-col { gap: 24px; }
   .feat-card { min-height: auto !important; }
+
+  /* Cookie bar sits above the sticky nav so it does not cover the score list or CTAs. */
+  .cookie-banner {
+    top: 0;
+    bottom: auto;
+    left: 0;
+    right: 0;
+    width: auto;
+    height: 48px;
+    border-radius: 0;
+    border-left: 0;
+    border-right: 0;
+    border-top: 0;
+    padding: 6px 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    line-height: 1.3;
+    z-index: 80;
+    box-shadow: none;
+  }
+  .cookie-banner .cookie-banner-title,
+  .cookie-banner .cookie-long { display: none; }
+  .cookie-banner .cookie-short { display: block; }
+  .cookie-banner p { margin: 0; flex: 1; min-width: 0; }
+  .cookie-banner-actions { flex-direction: row; gap: 6px; flex-shrink: 0; }
+  .cookie-banner-actions .btn { height: 32px; padding: 0 10px; font-size: 13px; }
+  body:has(.cookie-banner) { padding-top: 48px; }
+}
+
+/* Desktop cookie stays left of the centered score list. */
+@media (min-width: 769px) {
+  .cookie-banner { width: min(320px, calc(100vw - 32px)); }
 }
 
 /* ============================================================

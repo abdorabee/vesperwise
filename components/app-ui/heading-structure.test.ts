@@ -6,7 +6,6 @@ const read = (path: string) => readFileSync(new URL(path, import.meta.url), "utf
 describe("dashboard heading structure", () => {
   it("uses semantic page headings across primary workspaces", () => {
     const routes = [
-      "../dashboard/home/dashboard-home.tsx",
       "../../app/(dashboard)/history/history-view.tsx",
       "../../app/(dashboard)/people/people-view.tsx",
       "../watchlist/watchlist-page-head.tsx",

@@ -51,7 +51,7 @@ export function SiteHeader({ creditsRemaining }: { creditsRemaining?: number }) 
     "VesperWise";
   const parent = listId ? "Lists" : CRUMB[pathname]?.parent ?? "Workspace";
   const parentHref =
-    parent === "Settings" ? "/settings/profile" : parent === "Lists" ? "/lists" : "/dashboard";
+    parent === "Settings" ? "/settings/profile" : parent === "Lists" ? "/lists" : "/score";
 
   function openNewListModal() {
     window.dispatchEvent(new Event("lists-open-modal"));
@@ -83,7 +83,7 @@ export function SiteHeader({ creditsRemaining }: { creditsRemaining?: number }) 
           </BreadcrumbList>
         </Breadcrumb>
         <Link
-          href="/dashboard"
+          href="/score"
           data-slot="mobile-brand"
           className="flex min-w-0 items-center gap-2 md:hidden"
         >

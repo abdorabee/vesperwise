@@ -252,12 +252,12 @@ export const STEP_LABELS = ["Workspace", "ICP", "Signals"] as const;
 export function getOnboardingRedirect(
   onboardingCompleted: boolean,
   destination: "dashboard" | "onboarding"
-): "/dashboard" | "/onboarding" | null {
+): "/score" | "/onboarding" | null {
   if (destination === "dashboard" && !onboardingCompleted) {
     return "/onboarding";
   }
   if (destination === "onboarding" && onboardingCompleted) {
-    return "/dashboard";
+    return "/score";
   }
   return null;
 }

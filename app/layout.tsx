@@ -106,8 +106,8 @@ export default function RootLayout({
     ? {
         signInUrl: "/login",
         signUpUrl: "/signup",
-        afterSignInUrl: "/dashboard",
-        afterSignUpUrl: "/dashboard",
+        afterSignInUrl: "/score",
+        afterSignUpUrl: "/score",
         allowedRedirectOrigins: [
           `https://${vercelUrl}`,
           "https://www.vesperwise.com",
@@ -116,8 +116,8 @@ export default function RootLayout({
     : {
         signInUrl: "/login",
         signUpUrl: "/signup",
-        afterSignInUrl: "/dashboard",
-        afterSignUpUrl: "/dashboard",
+        afterSignInUrl: "/score",
+        afterSignUpUrl: "/score",
       };
 
   return (

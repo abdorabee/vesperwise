@@ -2,18 +2,15 @@
 
 import type { ReactNode } from "react";
 
-import { AuthAvatar } from "./auth-avatar";
-import type { AuthAvatarTarget } from "./resolve-auth-avatar-target";
+import VesperWiseLogo from "@/components/vesperwise-logo";
 
 export function AuthCard({
-  target,
   title,
   subtitle,
   children,
   footer,
   caption,
 }: {
-  target: AuthAvatarTarget;
   title: string;
   subtitle?: string;
   children: ReactNode;
@@ -22,7 +19,9 @@ export function AuthCard({
 }) {
   return (
     <div className="auth-form-shell">
-      <AuthAvatar target={target} />
+      <div className="auth-mark">
+        <VesperWiseLogo size={36} />
+      </div>
       <div className="auth-form-card">
         <div className="auth-form-header">
           <h1>{title}</h1>

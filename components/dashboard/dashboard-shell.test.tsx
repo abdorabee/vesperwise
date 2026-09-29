@@ -80,7 +80,7 @@ describe("DashboardShell", () => {
   it("uses the reference navigation hierarchy with tailored nested library sections", () => {
     const html = renderShell();
 
-    for (const label of ["Overview", "Accounts", "Library", "Workspace"]) {
+    for (const label of ["Overview", "Accounts", "Library"]) {
       expect(html).toContain(`>${label}<`);
     }
     expect(html).toContain("Saved accounts");
@@ -100,7 +100,7 @@ describe("DashboardShell", () => {
     const html = renderShell();
 
     expect(html).toContain('data-slot="mobile-brand"');
-    expect(html).toContain('href="/dashboard"');
+    expect(html).toContain('href="/score"');
     expect(html).toContain(">VesperWise<");
     expect(html).toContain("text-primary-foreground");
   });

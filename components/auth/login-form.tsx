@@ -176,7 +176,6 @@ function LoginFormInner() {
 
   return (
     <AuthCard
-      target={avatar.target}
       title={title}
       subtitle={subtitle}
       footer={
@@ -263,7 +262,7 @@ function LoginFormInner() {
           <Button
             type="submit"
             disabled={busy}
-            className="h-[42px] w-full rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
+            className="auth-submit h-[42px] w-full rounded-md"
           >
             {busy ? "Signing in…" : "Continue"}
           </Button>
@@ -293,7 +292,7 @@ function LoginFormInner() {
           <Button
             type="submit"
             disabled={busy}
-            className="h-[42px] w-full rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
+            className="auth-submit h-[42px] w-full rounded-md"
           >
             {busy ? "Checking…" : "Verify code"}
           </Button>
@@ -336,7 +335,7 @@ function LoginFormInner() {
           <Button
             type="submit"
             disabled={busy}
-            className="h-[42px] w-full rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
+            className="auth-submit h-[42px] w-full rounded-md"
           >
             {busy ? "Saving…" : "Update password"}
           </Button>
@@ -366,7 +365,7 @@ function LoginFormInner() {
           <Button
             type="submit"
             disabled={busy}
-            className="h-[42px] w-full rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
+            className="auth-submit h-[42px] w-full rounded-md"
           >
             {busy ? "Verifying…" : "Verify"}
           </Button>
