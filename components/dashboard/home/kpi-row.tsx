@@ -27,7 +27,7 @@ export function KpiRow({
   const renewal = renewalLabel(renewsAt);
 
   return (
-    <section aria-label="Key metrics" className="grid gap-3 @xl/home:grid-cols-2 @5xl/home:grid-cols-4">
+    <section aria-label="Key metrics" className="grid grid-cols-2 gap-3 @5xl/home:grid-cols-4">
       <MetricCard
         label="HOT now"
         value={numberFormat.format(kpis.hotNow)}
@@ -82,7 +82,7 @@ export function KpiRow({
                 style={{ width: `${credits.remainingPct}%` }}
               />
             </div>
-            <span className="flex items-center justify-between gap-2">
+            <span className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
               <span className="tabular-nums">
                 {credits.remainingPct}% left{renewal ? ` · ${renewal}` : ""}
               </span>

@@ -65,7 +65,12 @@ export function ScoreNumber({ value, animate = false, className }: { value: numb
       if (t < 1) frame = requestAnimationFrame(tick);
     };
     frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
+    return () => {
+      // An interrupted run (StrictMode remount, new target) must not freeze a partial value.
+      cancelAnimationFrame(frame);
+      started.current = false;
+      setFrameValue(null);
+    };
   }, [animate, target]);
 
   const shown = frameValue ?? target;
@@ -107,6 +112,8 @@ export function ScoreMeter({ value, band, className }: { value: number; band?: S
   );
 }
 
+const FAVICON_PX = 64;
+
 /** Small favicon with an initial fallback, for company rows. */
 export function CompanyMark({ domain, name, size = 20, className }: { domain: string; name?: string; size?: number; className?: string }) {
   const [failed, setFailed] = useState(false);
@@ -125,12 +132,14 @@ export function CompanyMark({ domain, name, size = 20, className }: { domain: st
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src={`https://icons.duckduckgo.com/ip3/${encodeURIComponent(domain)}.ico`}
+      src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=${FAVICON_PX}`}
       alt=""
       width={size}
       height={size}
       loading="lazy"
       onError={() => setFailed(true)}
+      // Unknown domains get a 16px generic globe instead of an error; show the initial instead.
+      onLoad={(e) => e.currentTarget.naturalWidth < FAVICON_PX / 2 && setFailed(true)}
       className={cn("shrink-0 rounded-md bg-muted object-contain", className)}
     />
   );

@@ -34,7 +34,7 @@ export function RangeToggle({ value }: { value: RangeKey }) {
             className={cn(
               "inline-flex h-full min-w-11 items-center justify-center rounded-md px-2.5 text-xs font-medium uppercase tabular-nums transition-[background-color,color] duration-150 motion-reduce:transition-none",
               "outline-none focus-visible:ring-[3px] focus-visible:ring-ring/25",
-              active ? "bg-card text-foreground shadow-xs" : "text-muted-foreground hover:text-foreground",
+              active ? "bg-card text-foreground shadow-xs ring-1 ring-border dark:bg-white/10" : "text-muted-foreground hover:text-foreground",
             )}
           >
             {key}

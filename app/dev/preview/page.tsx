@@ -10,6 +10,7 @@ import { GenUiWorkspace } from "@/components/score/gen-ui/workspace";
 import { ScoreResearchStatus } from "@/components/score/score-research-status";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import type { UiBlock } from "@/lib/gen-ui";
+import { PLAN_CREDITS } from "@/lib/types";
 import {
   computeKpis,
   creditUsage,
@@ -155,7 +156,7 @@ export default function DevPreviewPage({ searchParams }: { searchParams: Promise
         now={NOW}
         range="30d"
         kpis={computeKpis(rows, NOW)}
-        credits={creditUsage(1240, 2000)}
+        credits={creditUsage(1240, PLAN_CREDITS.growth)}
         renewsAt="2026-10-12T00:00:00Z"
         trend={dailyBandTrend(rows, 30, NOW)}
         activity={recentActivity(rows, 8)}

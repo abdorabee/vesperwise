@@ -56,7 +56,7 @@ export function HotAccounts({ rows }: { rows: HotAccountRow[] }) {
                     <span className="hidden truncate text-xs text-muted-foreground sm:inline">{row.domain}</span>
                   </div>
                   {row.reason ? (
-                    <p className="mt-0.5 line-clamp-1 text-[13px] leading-5 text-muted-foreground">{row.reason}</p>
+                    <p className="mt-0.5 line-clamp-2 text-[13px] leading-5 text-muted-foreground sm:line-clamp-1">{row.reason}</p>
                   ) : null}
                   {row.chips.length > 0 ? (
                     <div className="mt-1.5 flex flex-wrap gap-1.5">
