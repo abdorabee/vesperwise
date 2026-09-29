@@ -49,9 +49,12 @@ export function ScoreRecord({
           <span key={item.key} style={{ flexGrow: item.weight }} title={`${item.label} ${item.weight}`} />
         ))}
       </div>
-      <p className="score-mix-legend">
-        {WEIGHTS.map((item) => `${item.label} ${item.weight}`).join(" · ")} · weights, not the 0–100
-      </p>
+      <div className="score-mix-legend">
+        {WEIGHTS.map((item) => (
+          <span key={item.key}>{item.label} {item.weight}</span>
+        ))}
+      </div>
+      <p className="score-mix-note">These are weights, not the 0–100.</p>
       {record.whyNow ? <p className="score-record-why">{record.whyNow}</p> : null}
       {record.action ? <p className="score-record-action">{record.action}</p> : null}
       {record.thinCoverage ? <p className="score-record-note">Thin coverage · treat as directional</p> : null}

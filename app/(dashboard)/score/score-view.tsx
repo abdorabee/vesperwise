@@ -168,11 +168,10 @@ export function ScoreView({
     <div className="score-stage">
       {showEmpty ? (
         <div className="score-empty">
-          <p className="score-kicker">Score an account or a person</p>
           <h1>Paste a domain or email</h1>
-          <p>acme.com or alex@acme.com — one credit per score. Cache hits free.</p>
+          <p>acme.com or alex@acme.com. One credit per score. Cache hits are free.</p>
           <ScoreComposer inputRef={inputRef} autoFocus value={draft} onValueChange={setDraft} busy={busy} creditsRemaining={credits} creditLabel={creditLabel} watchAfter={watchAfter} onWatchAfterChange={setWatchAfter} scoreCompanyToo={scoreCompanyToo} onScoreCompanyTooChange={setScoreCompanyToo} onSubmit={(value) => void submit(value)} />
-          <p>{credits} credits left · cache hits free</p>
+          <p>{credits} credits left. Cache hits are free.</p>
         </div>
       ) : (
         <>

@@ -29,6 +29,7 @@ export function ChatView({ creditsRemaining }: { creditsRemaining: number }) {
   const [draft, setDraft] = useState("");
   const [turns, setTurns] = useState<Turn[]>([]);
   const [busy, setBusy] = useState(false);
+  const [railOpen, setRailOpen] = useState(false);
   const [orb, setOrb] = useState<"S1" | "S4" | "S3">("S1");
   const [orbLabel, setOrbLabel] = useState("Thinking…");
   const abortRef = useRef<AbortController | null>(null);
@@ -116,7 +117,10 @@ export function ChatView({ creditsRemaining }: { creditsRemaining: number }) {
   }
 
   return (
-    <div className="chat-shell">
+    <div className={`chat-shell${railOpen ? " is-rail-open" : ""}`}>
+      <button type="button" className="chat-rail-toggle" aria-expanded={railOpen} onClick={() => setRailOpen((open) => !open)}>
+        {railOpen ? "Hide threads" : "Threads"}
+      </button>
       <aside className="chat-rail">
         <button type="button" className="chat-new" onClick={() => { setSessionId(undefined); setTurns([]); }}>New chat</button>
         <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search threads" aria-label="Search threads" />
@@ -136,7 +140,7 @@ export function ChatView({ creditsRemaining }: { creditsRemaining: number }) {
           {turns.length === 0 ? (
             <div className="chat-starters">
               {STARTERS.map((starter) => <button key={starter} type="button" onClick={() => fill(starter)}>{starter}</button>)}
-              <p className="chat-hint">{credits} credits left · cache hits free</p>
+              <p className="chat-hint">{credits} credits left. Cache hits are free.</p>
             </div>
           ) : turns.map((turn) => (
             <div key={turn.id} className={`chat-turn${turn.role === "user" ? " is-user" : ""}`}>
@@ -164,7 +168,7 @@ export function ChatView({ creditsRemaining }: { creditsRemaining: number }) {
         </div>
         <div className="chat-composer-wrap">
           <form className="chat-composer" onSubmit={(event) => { event.preventDefault(); void send(draft); }}>
-            {target.mode !== "unknown" ? <p className="chat-chip">Will score {target.mode === "person" ? target.email : target.domain} · 1 credit</p> : null}
+            {target.mode !== "unknown" ? <p className="chat-chip">Will score {target.mode === "person" ? target.email : target.domain}. 1 credit.</p> : null}
             <textarea
               rows={1}
               value={draft}
@@ -184,7 +188,7 @@ export function ChatView({ creditsRemaining }: { creditsRemaining: number }) {
               }}
             />
             <div className="chat-composer-row">
-              <span className="chat-hint">Enter send · Shift+Enter newline · ⌘K commands</span>
+              <span className="chat-hint">Enter sends. Shift+Enter adds a line.</span>
               <button type="button" className="chat-send" onClick={() => busy ? abortRef.current?.abort() : void send(draft)}>{busy ? "Stop" : "Send"}</button>
             </div>
           </form>

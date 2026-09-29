@@ -51,14 +51,15 @@ export function ScoreComposer({
   }, []);
 
   return (
+    <div className="score-composer-wrap">
     <form
-      className={`score-bar${compact ? " is-compact" : ""}`}
+      className={`score-composer${compact ? " is-compact" : ""}`}
       onSubmit={(event) => {
         event.preventDefault();
         if (!disabled) onSubmit(text.trim());
       }}
     >
-      <span className="score-bar-glyph" aria-hidden="true">
+      <span className="score-composer-glyph" aria-hidden="true">
         {target.mode === "person" ? <UserRound /> : <Building2 />}
       </span>
       <input
@@ -70,20 +71,21 @@ export function ScoreComposer({
         aria-label="Domain or email"
         onChange={(event) => setText(event.target.value)}
       />
-      {target.mode === "unknown" && text.trim() ? <span className="score-bar-hint">Enter a domain or email</span> : null}
-      <span className="score-bar-credit">{outOfCredits ? "0 credits left" : creditLabel}</span>
-      <button type="button" className="score-bar-more" aria-expanded={menuOpen} aria-controls={menuId} onClick={() => setMenuOpen((open) => !open)}>
+      <span className="score-composer-credit">{outOfCredits ? "0 credits left" : creditLabel}</span>
+      <button type="button" className="score-composer-more" aria-label="More score options" aria-expanded={menuOpen} aria-controls={menuId} onClick={() => setMenuOpen((open) => !open)}>
         <MoreHorizontal />
       </button>
       {menuOpen ? (
-        <div id={menuId} className="score-bar-menu" role="menu">
+        <div id={menuId} className="score-composer-menu" role="menu">
           <label><input type="checkbox" checked={watchAfter} onChange={(event) => onWatchAfterChange?.(event.target.checked)} /> Add to watchlist after score</label>
           {target.mode === "person" ? (
             <label><input type="checkbox" checked={scoreCompanyToo} onChange={(event) => onScoreCompanyTooChange?.(event.target.checked)} /> Also score company</label>
           ) : null}
         </div>
       ) : null}
-      <button type="submit" className="score-bar-submit" disabled={disabled}>Score</button>
+      <button type="submit" className="score-composer-submit" disabled={disabled}>Score</button>
     </form>
+    {target.mode === "unknown" && text.trim() ? <p className="score-composer-hint">Enter a domain or email</p> : null}
+    </div>
   );
 }
