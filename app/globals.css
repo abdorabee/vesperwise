@@ -8028,6 +8028,24 @@ button.signal-card.gen-axis.is-selected {
   background: var(--text-primary);
 }
 
+/* Signal-mix categorical palette: validated slots 1-5 (scripts/validate_palette.js,
+   adjacent CVD dE >= 8.4, normal-vision >= 19.3 in both modes). Light steps sit
+   under 3:1 on white, so every segment carries a title tooltip and the table a legend. */
+:root {
+  --viz-mix-funding: #2a78d6;
+  --viz-mix-hiring: #eb6834;
+  --viz-mix-news: #1baf7a;
+  --viz-mix-technology: #eda100;
+  --viz-mix-web: #e87ba4;
+}
+.dark {
+  --viz-mix-funding: #3987e5;
+  --viz-mix-hiring: #d95926;
+  --viz-mix-news: #199e70;
+  --viz-mix-technology: #c98500;
+  --viz-mix-web: #d55181;
+}
+
 .watchlist-page .wl-mix {
   display: flex; gap: 3px;
   height: 22px;

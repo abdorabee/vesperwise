@@ -7,8 +7,12 @@ export type WatchlistRange = "24H" | "7D" | "30D" | "90D";
 
 export interface SignalMixSegment {
   key: string;
+  label: string;
   heightPct: number;
   color: string;
+  /** Null when the account has no stored signals yet. */
+  score: number | null;
+  max: number | null;
 }
 
 export interface WatchlistEnrichedEntry extends WatchlistEntry {
@@ -49,13 +53,30 @@ export interface WatchlistStats {
   alertItems: WatchlistAlertItem[];
 }
 
+// Categorical slots 1-5 of the validated data-viz palette (light and dark
+// steps live in app/globals.css as --viz-mix-*). Funding and technology used
+// to be two near-identical limes (normal-vision dE 2.3).
 const MIX_COLORS: Record<string, string> = {
-  funding: "#dfff00",
-  hiring: "#4ade80",
-  news: "#f5b544",
-  technology: "#e8ff40",
-  web: "#8a8f98",
+  funding: "var(--viz-mix-funding)",
+  hiring: "var(--viz-mix-hiring)",
+  news: "var(--viz-mix-news)",
+  technology: "var(--viz-mix-technology)",
+  web: "var(--viz-mix-web)",
 };
+
+const MIX_LABELS: Record<string, string> = {
+  funding: "Funding",
+  hiring: "Hiring",
+  news: "News",
+  technology: "Tech",
+  web: "Web",
+};
+
+export const SIGNAL_MIX_LEGEND = (["funding", "hiring", "news", "technology", "web"] as const).map((key) => ({
+  key,
+  label: MIX_LABELS[key],
+  color: MIX_COLORS[key],
+}));
 
 function parseSignals(raw: unknown): SignalSet | null {
   if (!raw || typeof raw !== "object") return null;
@@ -127,15 +148,18 @@ function buildLastMoveLabel(delta: number | null, lastScored: string | null): {
 function buildSignalMix(signals: SignalSet | null): SignalMixSegment[] {
   const keys = ["funding", "hiring", "news", "technology", "web"] as const;
   if (!signals) {
-    return keys.map((key) => ({ key, heightPct: 20, color: MIX_COLORS[key] }));
+    return keys.map((key) => ({ key, label: MIX_LABELS[key], heightPct: 20, color: MIX_COLORS[key], score: null, max: null }));
   }
   return keys.map((key) => {
     const sig = signals[key];
     const ratio = sig?.max ? sig.score / sig.max : 0;
     return {
       key,
+      label: MIX_LABELS[key],
       heightPct: Math.max(12, Math.round(ratio * 100)),
       color: MIX_COLORS[key],
+      score: sig ? sig.score : null,
+      max: sig ? sig.max : null,
     };
   });
 }
