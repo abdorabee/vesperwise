@@ -31,11 +31,17 @@ export function ScoreRecord({
   onNew?: () => void;
   onScoreCompany?: () => void;
 }) {
+  const reduce = useReducedMotion();
   return (
-    <article className="score-record" aria-label={`${record.target} score`}>
+    <motion.article
+      className="score-record"
+      aria-label={`${record.target} score`}
+      initial={reduce ? false : { opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+    >
       <header className="score-record-head">
         <div>
-          <p className="score-record-kicker">{record.kind === "person" ? "Person" : "Domain"}</p>
           <h2 className="score-record-title">{record.target}</h2>
           <p className="score-record-id">{record.kind === "person" ? record.email || record.company : record.domain}</p>
         </div>
@@ -54,16 +60,15 @@ export function ScoreRecord({
           <span key={item.key}>{item.label} {item.weight}</span>
         ))}
       </div>
-      <p className="score-mix-note">These are weights, not the 0–100.</p>
       {record.whyNow ? <p className="score-record-why">{record.whyNow}</p> : null}
       {record.action ? <p className="score-record-action">{record.action}</p> : null}
-      {record.thinCoverage ? <p className="score-record-note">Thin coverage · treat as directional</p> : null}
+      {record.thinCoverage ? <p className="score-record-note">Thin coverage. Treat this as directional.</p> : null}
       {record.kind === "person" ? (
         <div className="score-record-company">
           {record.companyScore ? (
-            <span>Company · {record.companyScore.company} · {record.companyScore.score} {record.companyScore.band}</span>
+            <span>Company {record.companyScore.company}, {record.companyScore.score} {record.companyScore.band}</span>
           ) : (
-            <span>Company · {record.company || "Unknown"}</span>
+            <span>Company {record.company || "Unknown"}</span>
           )}
           {!record.companyScore && record.domain && onScoreCompany ? (
             <button type="button" className="score-record-textbtn" onClick={onScoreCompany}>Score company</button>
@@ -78,7 +83,7 @@ export function ScoreRecord({
         <button type="button" onClick={onNew}>New score</button>
       </div>
       <span className="sr-only">Signal weights total {TOTAL}</span>
-    </article>
+    </motion.article>
   );
 }
 

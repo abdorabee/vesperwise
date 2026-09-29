@@ -1,3 +1,9 @@
+.score-stage,
+.chat-shell {
+  --desk-shadow-sm: 0 0 0 1px oklch(1 0 0 / 0.10), 0 1px 2px rgba(0, 0, 0, 0.45), 0 2px 4px rgba(0, 0, 0, 0.28);
+  --desk-shadow-md: 0 0 0 1px oklch(1 0 0 / 0.10), 0 1px 2px rgba(0, 0, 0, 0.45), 0 2px 4px rgba(0, 0, 0, 0.28), 0 8px 16px -8px rgba(0, 0, 0, 0.55);
+  --desk-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
 .score-stage {
   width: 100%;
   max-width: 720px;
@@ -34,12 +40,13 @@
   border: 0;
   border-radius: 16px;
   background: var(--bg-elevated, var(--card));
-  box-shadow: 0 0 0 1px oklch(1 0 0 / 0.08);
+  box-shadow: var(--desk-shadow-sm);
+  outline: none;
 }
 .score-composer.is-compact { height: 48px; border-radius: 14px; padding: 6px; }
 .score-composer-wrap:has(.is-compact) { margin-top: 0; }
 .score-composer:focus-within {
-  outline: 2px solid color-mix(in srgb, var(--brand) 40%, transparent);
+  outline: 1px solid oklch(1 0 0 / 0.28);
   outline-offset: 2px;
 }
 .score-composer-glyph { display: grid; place-items: center; width: 18px; flex-shrink: 0; color: var(--text-tertiary); }
@@ -85,9 +92,10 @@
   display: grid;
   gap: 8px;
   padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
+  border: 0;
+  border-radius: 12px;
   background: var(--card);
+  box-shadow: var(--desk-shadow-sm);
   font-size: 13px;
 }
 .score-activity { display: flex; align-items: center; min-height: 56px; }
@@ -97,13 +105,13 @@
   border: 0;
   border-radius: 16px;
   background: var(--card);
-  box-shadow: 0 0 0 1px oklch(1 0 0 / 0.08);
+  box-shadow: var(--desk-shadow-md, 0 0 0 1px oklch(1 0 0 / 0.10), 0 8px 16px -8px rgba(0, 0, 0, 0.55));
 }
-.score-record-head, .score-record-actions, .score-record-company { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-.score-record-kicker, .score-record-id, .score-mix-legend, .score-record-note { color: var(--text-tertiary); font-size: 12px; }
-.score-record-title { margin: 2px 0; font-size: 18px; letter-spacing: -0.02em; }
-.score-record-figure { display: grid; justify-items: end; gap: 6px; }
-.score-record-num { font-family: var(--font-mono), ui-monospace, monospace; font-size: 40px; font-variant-numeric: tabular-nums; line-height: 1; }
+.score-record-head, .score-record-company { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.score-record-id, .score-mix-legend, .score-record-note { color: var(--text-tertiary); font-size: 12px; }
+.score-record-title { margin: 0; font-size: 20px; letter-spacing: -0.03em; font-weight: 560; }
+.score-record-figure { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+.score-record-num { font-family: var(--font-mono), ui-monospace, monospace; font-size: 56px; font-weight: 560; font-variant-numeric: tabular-nums; line-height: 0.9; letter-spacing: -0.04em; }
 .score-record-band {
   display: inline-flex;
   align-items: center;
@@ -117,23 +125,29 @@
 }
 .score-mix { display: flex; height: 6px; margin-top: 14px; overflow: hidden; border-radius: 999px; background: var(--border); gap: 2px; }
 .score-mix-legend { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 8px; }
-.score-mix-note { margin: 6px 0 0; color: var(--text-tertiary); font-size: 12px; }
 .score-mix span:nth-child(1) { background: var(--brand); }
 .score-mix span:nth-child(2) { background: var(--hot); }
 .score-mix span:nth-child(3) { background: var(--warm); }
 .score-mix span:nth-child(4) { background: var(--cold, var(--text-tertiary)); }
 .score-record-why, .score-record-action { margin: 10px 0 0; font-size: 14px; line-height: 1.45; }
 .score-record-action { color: var(--text-secondary); }
-.score-record-actions { margin-top: 14px; }
+.score-record-actions {
+  display: flex;
+  align-items: center;
+  margin-top: 16px;
+  border-top: 1px solid var(--border);
+}
 .score-record-actions button, .score-record-textbtn {
-  height: 32px;
-  padding: 0 10px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  height: 40px;
+  padding: 0 14px;
+  border: 0;
+  border-left: 1px solid var(--border);
+  border-radius: 0;
   background: transparent;
   color: var(--text-primary);
   font-size: 13px;
 }
+.score-record-actions button:first-child { border-left: 0; padding-left: 0; }
 .score-table-wrap { margin-top: 20px; }
 .score-table-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
 .score-table-pills button {
@@ -188,10 +202,11 @@
   border-radius: 16px;
   background: var(--bg-elevated, var(--card));
   padding: 8px;
-  box-shadow: 0 0 0 1px oklch(1 0 0 / 0.08);
+  box-shadow: var(--desk-shadow-sm);
+  outline: none;
 }
 .chat-composer:focus-within {
-  outline: 2px solid color-mix(in srgb, var(--brand) 40%, transparent);
+  outline: 1px solid oklch(1 0 0 / 0.28);
   outline-offset: 2px;
 }
 .chat-composer textarea {
@@ -224,7 +239,7 @@
   margin: 0;
   padding: 12px 0;
   border: 0;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid oklch(1 0 0 / 0.12);
   border-radius: 0;
   background: transparent;
   color: var(--text-primary);
@@ -242,7 +257,7 @@
 .chat-send:focus-visible,
 .chat-starters button:focus-visible,
 .score-record-actions button:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--brand) 55%, transparent);
+  outline: 1px solid oklch(1 0 0 / 0.28);
   outline-offset: 2px;
 }
 @media (max-width: 800px) {

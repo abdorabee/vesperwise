@@ -28,6 +28,7 @@ describe("ScoreRecord", () => {
     expect(html).toContain("HOT");
     expect(html).toContain("Funding 22");
     expect(html).toContain("Hiring 19");
-    expect(html).toContain("weights, not the 0–100");
+    expect(html).not.toContain("Domain");
+    expect(html).not.toContain("weights, not the 0–100");
   });
 });
