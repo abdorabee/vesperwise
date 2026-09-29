@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import SiteFooter from "@/components/site-footer";
-import VesperWiseLogo from "@/components/vesperwise-logo";
+import MarketingNav from "@/components/landing/marketing-nav";
 
 /* ─── Design tokens ──────────────────────────────────────────── */
 const T = {
@@ -31,7 +31,7 @@ const NUMBERS = [
   { num: "1",        label: "Person on payroll (in a manner of speaking)" },
   { num: "$0",       label: "Outside funding raised", grad: true },
   { num: "1",        unit: " room", label: "Where it all gets made" },
-  { num: "v0.1",     label: "Stage · just getting started" },
+  { num: "0–100",    label: "One score per account" },
 ];
 
 const TIMELINE = [
@@ -46,13 +46,13 @@ const PRINCIPLES = [
   { n: "02", title: "Bounded latency, honest coverage",    desc: "Provider calls have explicit timeouts, neutral evidence is reused safely, and missing data lowers coverage instead of silently becoming zero intent." },
   { n: "03", title: "Reps are the customer, not buyers",    desc: "Sales VPs sign the contract; AEs decide whether the tool gets used. Every feature has to pass the \"would a busy rep click this on a Tuesday at 4 PM\" test. Most ideas don't." },
   { n: "04", title: "One score, not seven",                 desc: "Composite scores beat per‑signal scores for the only metric that matters: whether a human acts on them. I'll resist the urge to add a second number until I'm forced to." },
-  { n: "05", title: "Sales is a craft, not a queue",        desc: "Autopilot routes, drafts, and notifies — never sends without a human in the loop. I won't ship \"send 1,000 emails in one click.\" Plenty of vendors do; I won't be one of them." },
+  { n: "05", title: "Sales is a craft, not a queue",        desc: "VesperWise writes the next action. A person sends the email. I won't ship \"send 1,000 emails in one click.\"" },
   { n: "06", title: "If I'm the only person who works here, I'm the only person you email", desc: "Support, sales, security, billing — every reply you get from @vesperwise.com comes from me. When that breaks, it'll be because VesperWise grew. Until then, that's the promise." },
 ];
 
 const SCOPE = [
   { cls: "now",  color: T.hot,    label: "Now · This month",         title: "Score quality + caching",      desc: "Tightening the funding and tech signals. Bringing p95 first‑score under 1.5 seconds." },
-  { cls: "next", color: "#dfff00", label: "Next · This quarter",      title: "Watchlist + Autopilot v2",     desc: "Per‑account alerts in Slack. Conditional branches with AND/OR. Webhook destinations." },
+  { cls: "next", color: "#dfff00", label: "Next · This quarter",      title: "Watchlist alerts",             desc: "A note when an account you pinned crosses a band. Webhooks for the score event." },
   { cls: "later",color: T.txtQ,   label: "Later · When it makes sense", title: "Hire help",                 desc: "Probably an engineer first. Maybe an AE. Definitely not until the product earns it." },
 ];
 
@@ -81,32 +81,7 @@ export default function AboutView() {
   return (
     <div style={{ background: T.bg, color: T.txt, minHeight: "100vh" }}>
 
-      {/* ── Sticky banner ── */}
-      <div style={{ position: "sticky", top: 0, zIndex: 50, height: "36px", background: T.bgEl, borderBottom: `1px solid ${T.borderSubtle}`, display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", fontSize: "12px", color: T.txtTert }}>
-        <span style={{ background: T.accentBg, color: T.accent, border: `1px solid rgba(223,255,0,0.25)`, borderRadius: "999px", padding: "1px 8px", fontSize: "10px", fontWeight: 600, fontFamily: T.mono }}>v0.1</span>
-        <span><strong style={{ color: T.txtSec, fontWeight: 500 }}>Solo founder.</strong> Building VesperWise from a single room — and writing about it as I go.</span>
-        <Link href="#" style={{ color: T.txtTert, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "4px", marginLeft: "6px" }}>Read the build log <span>→</span></Link>
-      </div>
-
-      {/* ── Sticky nav ── */}
-      <nav style={{ position: "sticky", top: "36px", zIndex: 40, height: "56px", background: "var(--bg-translucent)", backdropFilter: "blur(12px)", borderBottom: `1px solid ${T.borderSubtle}`, display: "flex", alignItems: "center" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", maxWidth: "1200px", margin: "0 auto", padding: "0 24px", gap: "24px" }}>
-          <Link href="/" aria-label="VesperWise home" style={{ display: "inline-flex", alignItems: "center", gap: "8px", textDecoration: "none" }}>
-            <VesperWiseLogo size={42} variant="wordmark" />
-          </Link>
-          <div className="mkt-navlinks" style={{ display: "flex", gap: "4px" }}>
-            {(["Product","Autopilot","Developers","Pricing","Customers","Company"] as const).map(label => (
-              <a key={label} href={label === "Company" ? "/about" : label === "Developers" ? "/docs" : "#"} style={{ fontSize: "13px", padding: "5px 10px", borderRadius: T.r.md, color: label === "Company" ? T.txt : T.txtTert, background: label === "Company" ? "var(--muted)" : "transparent", letterSpacing: "-0.006em", textDecoration: "none" }}>
-                {label}
-              </a>
-            ))}
-          </div>
-          <div style={{ display: "flex", gap: "8px", marginLeft: "auto" }}>
-            <Link href="/login"   style={{ fontSize: "13px", padding: "6px 12px", borderRadius: T.r.md, color: T.txtSec, background: "var(--background)", border: `1px solid ${T.border}`, textDecoration: "none" }}>Sign in</Link>
-            <Link href="/contact" style={{ fontSize: "13px", padding: "6px 14px", borderRadius: T.r.md, color: "#000000", background: T.accent, textDecoration: "none", fontWeight: 500 }}>Talk to us →</Link>
-          </div>
-        </div>
-      </nav>
+      <MarketingNav current="Company" />
 
       {/* ── Hero ── */}
       <section style={{ position: "relative", padding: "72px 24px 64px", borderBottom: `1px solid ${T.borderSubtle}`, overflow: "hidden" }}>

@@ -194,7 +194,7 @@ export default function OnboardingWizard({
         return;
       }
     }
-    router.replace("/dashboard");
+    router.replace("/score");
     router.refresh();
   }
 
@@ -298,7 +298,7 @@ export default function OnboardingWizard({
           finishAttempted ? (
             <SecondaryButton
               onClick={() => {
-                router.replace("/dashboard");
+                router.replace("/score");
                 router.refresh();
               }}
             >

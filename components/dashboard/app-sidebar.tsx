@@ -262,7 +262,7 @@ export function AppSidebar({
             <SidebarGroupLabel>Workspace</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {NAV_SECONDARY.map((item) => (
+                {NAV_SECONDARY.filter((item) => !item.comingSoon).map((item) => (
                   <NavRow
                     key={`${item.href}-${item.label}`}
                     item={item}

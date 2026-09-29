@@ -3,7 +3,7 @@
 import Link from "next/link";
 import SiteFooter from "@/components/site-footer";
 import StickyMobileCta from "@/components/landing/sticky-mobile-cta";
-import VesperWiseLogo from "@/components/vesperwise-logo";
+import MarketingNav from "@/components/landing/marketing-nav";
 import { PLAN_CREDITS, PLAN_WATCHLIST_LIMIT, PLAN_AUTOPILOT_LIMIT } from "@/lib/types";
 
 const T = {
@@ -24,13 +24,6 @@ const T = {
   fontMono:     "var(--font-sans)",
 };
 
-const NAV_LINKS = [
-  { label: "Product",    href: "/#product"   },
-  { label: "Autopilot",  href: "/#autopilot" },
-  { label: "Developers", href: "/docs"       },
-  { label: "Pricing",    href: "/pricing"    },
-];
-
 export default function PricingView() {
   return (
     <div style={{ background: T.bg, color: T.txtPrimary, fontFamily: T.fontSans, WebkitFontSmoothing: "antialiased", MozOsxFontSmoothing: "grayscale" } as React.CSSProperties}>
@@ -41,33 +34,7 @@ export default function PricingView() {
         .price-card.featured:hover { border-color: rgba(223,255,0,0.4); box-shadow: 0 4px 16px rgba(223,255,0,0.12); }
       `}</style>
 
-      <div style={{ position: "sticky", top: 0, zIndex: 100, height: "36px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "13px", color: T.txtSecondary, background: "var(--bg-translucent)", backdropFilter: "saturate(180%) blur(20px)", WebkitBackdropFilter: "saturate(180%) blur(20px)", borderBottom: `1px solid ${T.border}`, letterSpacing: "-0.011em" } as React.CSSProperties}>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", marginRight: "10px", fontSize: "11px", fontWeight: 600, color: T.cyan, background: T.cyanSoft, padding: "1px 8px", borderRadius: "999px" }}>NEW</span>
-        <span><strong style={{ color: T.txtPrimary, fontWeight: 500 }}>Autopilot</strong> — workflows that fire when intent crosses your threshold</span>
-        <Link href="/#autopilot" style={{ marginLeft: "8px", color: T.txtSecondary }}>→</Link>
-      </div>
-
-      <nav style={{ position: "sticky", top: "36px", zIndex: 50, background: "var(--bg-translucent)", backdropFilter: "saturate(180%) blur(20px)", WebkitBackdropFilter: "saturate(180%) blur(20px)", borderBottom: `1px solid ${T.border}` } as React.CSSProperties}>
-        <div style={{ display: "flex", alignItems: "center", height: "56px", padding: "0 24px", maxWidth: "1320px", margin: "0 auto", gap: "28px" }}>
-          <Link href="/" aria-label="VesperWise home" style={{ display: "inline-flex", alignItems: "center", gap: "8px", fontWeight: 600, letterSpacing: "-0.022em", fontSize: "15px", color: T.txtPrimary, textDecoration: "none" }}>
-            <VesperWiseLogo size={42} variant="wordmark" />
-          </Link>
-          <div className="mkt-navlinks" style={{ display: "flex", gap: "4px", alignItems: "center" }}>
-            {NAV_LINKS.map(({ label, href }) => (
-              <Link key={label} href={href} style={{ display: "inline-flex", alignItems: "center", fontSize: "14px", color: label === "Pricing" ? T.txtPrimary : T.txtSecondary, padding: "6px 10px", borderRadius: "6px", letterSpacing: "-0.011em", textDecoration: "none", background: label === "Pricing" ? "rgba(255,255,255,0.04)" : "transparent" }}>
-                {label}
-              </Link>
-            ))}
-          </div>
-          <div style={{ flex: 1 }} />
-          <Link href="/login" style={{ fontSize: "14px", fontWeight: 500, letterSpacing: "-0.006em", color: T.txtSecondary, padding: "6px 10px", borderRadius: "6px", textDecoration: "none" }}>Sign in</Link>
-          <Link href="/signup" style={{ display: "inline-flex", alignItems: "center", fontSize: "14px", fontWeight: 500, letterSpacing: "-0.006em", color: T.txtPrimary, padding: "0 14px", height: "32px", borderRadius: "6px", border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.05)", textDecoration: "none" }}>Start free</Link>
-          <Link href="/contact#contact-form" style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "14px", fontWeight: 500, letterSpacing: "-0.006em", color: "#000000", padding: "0 14px", height: "32px", borderRadius: "6px", background: T.accent, boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.12), 0 1px 2px rgba(0,0,0,0.3)", textDecoration: "none" }}>
-            Talk to us
-            <svg style={{ width: "12px", height: "12px" }} viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 6h6M7 4l2 2-2 2"/></svg>
-          </Link>
-        </div>
-      </nav>
+      <MarketingNav current="Pricing" />
 
       <section style={{ position: "relative", padding: "88px 0 64px", overflow: "hidden", borderBottom: `1px solid ${T.border}` }}>
         <div style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden" }} aria-hidden="true">
@@ -83,7 +50,7 @@ export default function PricingView() {
             Start free.<br />Pay when you close.
           </h1>
           <p style={{ maxWidth: "620px", color: T.txtSecondary, fontSize: "clamp(16px, 1.25vw, 19px)", lineHeight: 1.55, letterSpacing: "-0.011em", margin: "0 auto" }}>
-            One credit = one account scored. Bulk and re‑scores included. Cancel anytime — no annual contracts, no setup calls.
+            One credit = one account scored. Bulk jobs spend one credit per company. A re-score within 6 hours is free.
           </p>
         </div>
       </section>

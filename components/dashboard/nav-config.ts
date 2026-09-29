@@ -39,7 +39,7 @@ export const NAV_MAIN: NavItem[] = [
 ];
 
 export const NAV_ACCOUNTS: NavItem[] = [
-  { href: "/people", label: "People", icon: UserSearch, beta: true },
+  { href: "/people", label: "People", icon: UserSearch },
   { href: "/inbox", label: "Inbox", icon: Inbox },
 ];
 

@@ -130,7 +130,6 @@ export function SignupForm() {
 
   return (
     <AuthCard
-      target={avatar.target}
       title={pendingVerification ? "Check your email" : "Create your account"}
       subtitle={
         pendingVerification
@@ -170,7 +169,7 @@ export function SignupForm() {
           <Button
             type="submit"
             disabled={busy}
-            className="h-[42px] w-full rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
+            className="auth-submit h-[42px] w-full rounded-md"
           >
             {busy ? "Verifying…" : "Verify email"}
           </Button>
@@ -292,7 +291,7 @@ export function SignupForm() {
           <Button
             type="submit"
             disabled={busy}
-            className="h-[42px] w-full rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
+            className="auth-submit h-[42px] w-full rounded-md"
           >
             {busy ? "Creating account…" : "Create account"}
           </Button>

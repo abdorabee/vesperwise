@@ -32,7 +32,7 @@ const TOC = [
 
 const NAV_LINKS = [
   { label: "Product",    href: "/#product"   },
-  { label: "Autopilot",  href: "/#autopilot" },
+  { label: "Score",      href: "/#score-section" },
   { label: "Developers", href: "/docs"       },
   { label: "Pricing",    href: "/pricing"    },
 ];

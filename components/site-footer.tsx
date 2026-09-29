@@ -8,10 +8,8 @@ const FOOTER_COLUMNS: { title: string; links: FooterLink[] }[] = [
   {
     title: "Product",
     links: [
-      { label: "Score", href: "/score" },
-      { label: "Intent Hub", href: "/dashboard" },
-      { label: "Autopilot", href: "/#autopilot" },
-      { label: "People scoring", href: "/people" },
+      { label: "How scoring works", href: "/#product" },
+      { label: "Sample score", href: "/#score-section" },
       { label: "Watchlist", href: "/watchlist" },
     ],
   },
@@ -25,7 +23,7 @@ const FOOTER_COLUMNS: { title: string; links: FooterLink[] }[] = [
     title: "Company",
     links: [
       { label: "About", href: "/about" },
-      { label: "Pricing", href: "/#pricing" },
+      { label: "Pricing", href: "/pricing" },
       { label: "Contact", href: "/contact" },
     ],
   },
