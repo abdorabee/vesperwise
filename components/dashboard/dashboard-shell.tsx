@@ -16,7 +16,6 @@ interface DashboardShellProps {
   creditsRemaining: number;
   plan: DbUser["plan"];
   workspaceName?: string | null;
-  inboxCount?: number;
   watchlistCount?: number;
   pipelineHotCount?: number;
 }
@@ -52,7 +51,6 @@ export default function DashboardShell({
   creditsRemaining,
   plan,
   workspaceName,
-  inboxCount,
   watchlistCount,
   pipelineHotCount,
 }: DashboardShellProps) {
@@ -74,7 +72,6 @@ export default function DashboardShell({
           creditsRemaining={creditsRemaining}
           plan={plan}
           workspaceName={workspaceName}
-          inboxCount={inboxCount}
           watchlistCount={watchlistCount}
           pipelineHotCount={pipelineHotCount}
         />

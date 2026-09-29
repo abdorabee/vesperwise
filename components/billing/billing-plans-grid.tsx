@@ -52,8 +52,6 @@ export function BillingPlansGrid({ currentPlan }: BillingPlansGridProps) {
                 <span className="pc-per">{p.price === 0 ? "/ forever" : "/ mo"}</span>
               </div>
 
-              <div className="pc-strike">&nbsp;</div>
-
               <div className="pc-credits">
                 <span className="num">{p.credits.toLocaleString()}</span>
                 <span className="lab">credits / mo</span>
@@ -79,7 +77,7 @@ export function BillingPlansGrid({ currentPlan }: BillingPlansGridProps) {
                   <form action="/api/billing/checkout" method="POST">
                     <input type="hidden" name="plan" value={p.key} />
                     <button type="submit" className={`pc-cta${isRecommended ? " solid" : " outline"}`}>
-                      {isRecommended ? "Upgrade — save 4 days/mo" : `Upgrade to ${p.label}`}
+                      {`Upgrade to ${p.label}`}
                     </button>
                   </form>
                 )

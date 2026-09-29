@@ -101,7 +101,7 @@ export const BILLING_PLANS: BillingPlanDef[] = [
     label: "Pro",
     price: 199,
     credits: PLAN_CREDITS.pro,
-    color: "var(--accent)",
+    color: "var(--brand)",
     tier: 3,
     heroFeatures: [
       `${PLAN_CREDITS.pro.toLocaleString()} credits / mo`,

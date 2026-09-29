@@ -27,7 +27,6 @@ export default function DevShellDarkPage() {
           creditsRemaining={42}
           plan="growth"
           workspaceName="Preview Workspace"
-          inboxCount={3}
           watchlistCount={8}
           pipelineHotCount={2}
         />
