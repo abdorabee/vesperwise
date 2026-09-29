@@ -1606,7 +1606,7 @@ nav.primary .row {
 .hub-col-head .count {
   font-family: var(--font-mono); font-size: 11px;
   color: var(--text-tertiary);
-  background: rgba(255,255,255,0.04);
+  background: var(--muted);
   padding: 1px 6px; border-radius: 999px;
 }
 .hub-col-head .add {
@@ -2621,40 +2621,6 @@ footer.site-footer {
 .hub-tab.active { background: rgba(255,255,255,0.06); color: var(--text-primary); }
 .hub-tab .ic { width: 12px; height: 12px; opacity: 0.85; }
 
-.filter-bar {
-  display: flex; align-items: center; gap: 6px;
-  padding: 10px 20px;
-  border-bottom: 1px solid var(--border);
-  background: rgba(255,255,255,0.01);
-  flex-shrink: 0;
-}
-.f-chip {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 3px 8px;
-  border: 1px solid var(--border);
-  border-radius: var(--r-md);
-  font-size: 12px; color: var(--text-secondary);
-  background: rgba(255,255,255,0.02);
-  cursor: pointer;
-}
-.f-chip:hover { background: rgba(255,255,255,0.05); color: var(--text-primary); }
-.f-chip.active {
-  background: rgba(223,255,0,0.12);
-  border-color: rgba(223,255,0,0.3);
-  color: #dfff00;
-}
-.f-chip .ic { width: 10px; height: 10px; opacity: 0.75; }
-.f-chip .swatch { width: 7px; height: 7px; border-radius: 999px; }
-.f-chip .x {
-  color: var(--text-tertiary); cursor: pointer;
-  display: grid; place-items: center; width: 10px; height: 10px;
-}
-.f-chip .x:hover { color: var(--text-primary); }
-.f-chip .label-key {
-  color: var(--text-quaternary);
-  font-family: var(--font-mono); font-size: 11px;
-}
-
 /* Kanban */
 .kanban-wrap {
   flex: 1; overflow: auto;
@@ -2667,7 +2633,7 @@ footer.site-footer {
   min-height: 100%;
 }
 .kcol {
-  background: rgba(255,255,255,0.014);
+  background: color-mix(in oklab, var(--muted) 35%, transparent);
   border: 1px solid var(--border);
   border-radius: var(--r-md);
   display: flex; flex-direction: column;
@@ -2760,7 +2726,7 @@ footer.site-footer {
   display: inline-flex; align-items: center; gap: 3px;
   padding: 1px 5px; font-size: 10px;
   font-family: var(--font-mono);
-  background: rgba(255,255,255,0.04);
+  background: var(--muted);
   color: var(--text-tertiary);
   border-radius: 3px;
 }
@@ -2800,32 +2766,7 @@ footer.site-footer {
 .pri-med { color: var(--text-tertiary); }
 .pri-low { color: var(--text-quaternary); }
 
-.kcard.hot {
-  border-color: rgba(74,222,128,0.2);
-  background: linear-gradient(180deg, rgba(74,222,128,0.04), var(--surface));
-}
-.kcard.engaged {
-  border-color: rgba(223,255,0,0.22);
-  background: linear-gradient(180deg, rgba(223,255,0,0.05), var(--surface));
-}
 
-/* Group toggle */
-.group-toggle {
-  display: inline-flex;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid var(--border);
-  border-radius: var(--r-md);
-  padding: 2px;
-}
-.group-toggle .gt {
-  padding: 3px 9px;
-  font-size: 12px; color: var(--text-tertiary);
-  border-radius: 4px; cursor: pointer;
-  font-family: var(--font-mono);
-}
-.group-toggle .gt.active {
-  background: rgba(255,255,255,0.06); color: var(--text-primary);
-}
 
 /* â”€â”€ Score CSS â”€â”€ */
 /* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
