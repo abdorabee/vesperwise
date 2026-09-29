@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import LandingNav from "@/components/landing/LandingNav";
 import SiteFooter from "@/components/site-footer";
-import VesperWiseLogo from "@/components/vesperwise-logo";
 
 const T = {
   bg:            "var(--background)",
@@ -14,7 +14,7 @@ const T = {
   txtQuaternary: "var(--text-quaternary)",
   border:        "var(--border)",
   borderStrong:  "var(--border-strong)",
-  borderSubtle:  "rgba(255,255,255,0.05)",
+  borderSubtle:  "var(--border)",
   accent:        "var(--brand)",
   cyan:          "var(--brand)",
   cyanSoft:      "var(--brand-soft)",
@@ -24,15 +24,6 @@ const T = {
   fontMono:      "var(--font-sans)",
 };
 
-const NAV_LINKS = [
-  { label: "Product",    href: "/#product"   },
-  { label: "Autopilot",  href: "/#autopilot" },
-  { label: "Developers", href: "/docs"       },
-  { label: "Pricing",    href: "/#pricing"   },
-  { label: "Customers",  href: "/#"          },
-  { label: "Company",    href: "/#"          },
-];
-
 const CURRENT_CONTROLS = [
   {
     icon: <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" width="18" height="18"><path d="M9 2L3 4v5c0 4 6 7 6 7s6-3 6-7V4z"/><path d="M6.5 9l2 2 3-4"/></svg>,
@@ -40,7 +31,7 @@ const CURRENT_CONTROLS = [
     items: [
       "Clerk for user authentication",
       "Dashboard access requires active session",
-      "API keys hashed SHA-256, shown once, revocable, scoped to user_id",
+      "API keys are stored as SHA-256 hashes, shown once and revocable",
     ],
   },
   {
@@ -49,18 +40,18 @@ const CURRENT_CONTROLS = [
     items: [
       "TLS encryption in transit (Vercel)",
       "Postgres at Supabase with AES-256 at rest",
-      "Redis cache at Upstash for 24h TTL",
-      "All hosting on SOC 2 certified providers",
+      "Cached score results in Upstash Redis expire after 6 hours",
+      "Hosting providers maintain their own SOC 2 reports",
     ],
   },
   {
     icon: <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" width="18" height="18"><circle cx="9" cy="9" r="6.5"/><path d="M9 5v4l3 1.5"/></svg>,
     title: "Data handling",
     items: [
-      "Score API requires session or hashed API key",
-      "Credits reserved per scoring run",
-      "Polar billing webhooks: signature verification + idempotency",
-      "AI summaries via OpenRouter (not Anthropic; no zero-retention guarantee)",
+      "Every API request requires a signed-in session or an API key",
+      "Database access is restricted to VesperWise backend services, and queries are scoped to the requesting account",
+      "Billing webhooks are signature-verified and idempotent",
+      "AI summaries are generated through OpenRouter (see Subprocessors)",
     ],
   },
   {
@@ -76,10 +67,9 @@ const CURRENT_CONTROLS = [
 ];
 
 const PLANNED_WORK = [
-  "Tighten tenant isolation (current RLS policies exist but service role bypasses them)",
-  "Implement automated dependency scanning",
-  "Add audit logging for admin actions",
-  "Move to row-level isolation enforcement in application layer",
+  "Database-level tenant isolation hardening",
+  "Automated dependency scanning",
+  "Audit logging for administrative actions",
 ];
 
 const NOT_YET = [
@@ -87,7 +77,7 @@ const NOT_YET = [
   { item: "ISO 27001 certification", eta: "Not scheduled" },
   { item: "Third-party penetration test", eta: "Not scheduled" },
   { item: "Public status page or SLA", eta: "Not scheduled" },
-  { item: "Bug bounty program", eta: "Not scheduled" },
+  { item: "Paid bug bounty program", eta: "Not offered" },
 ];
 
 export default function SecurityView() {
@@ -97,25 +87,7 @@ export default function SecurityView() {
         html { scroll-behavior: smooth; }
       `}</style>
 
-      <nav style={{ position: "sticky", top: 0, zIndex: 50, background: "var(--bg-translucent)", backdropFilter: "saturate(180%) blur(20px)", WebkitBackdropFilter: "saturate(180%) blur(20px)", borderBottom: `1px solid ${T.border}` } as React.CSSProperties}>
-        <div style={{ display: "flex", alignItems: "center", height: "56px", padding: "0 24px", maxWidth: "1320px", margin: "0 auto", gap: "28px" }}>
-          <Link href="/" aria-label="VesperWise home" style={{ display: "inline-flex", alignItems: "center", gap: "8px", fontWeight: 600, letterSpacing: "-0.022em", fontSize: "15px", color: T.txtPrimary, textDecoration: "none" }}>
-            <VesperWiseLogo size={42} variant="wordmark" />
-          </Link>
-          <div className="mkt-navlinks" style={{ display: "flex", gap: "4px" }}>
-            {NAV_LINKS.map(({ label, href }) => (
-              <Link key={label} href={href} style={{ display: "inline-flex", alignItems: "center", fontSize: "14px", color: T.txtSecondary, padding: "6px 10px", borderRadius: "6px", letterSpacing: "-0.011em", textDecoration: "none" }}>{label}</Link>
-            ))}
-          </div>
-          <div style={{ flex: 1 }} />
-          <Link href="/login" style={{ fontSize: "14px", fontWeight: 500, color: T.txtSecondary, padding: "6px 10px", borderRadius: "6px", textDecoration: "none" }}>Sign in</Link>
-          <Link href="/signup" style={{ display: "inline-flex", alignItems: "center", fontSize: "14px", fontWeight: 500, color: T.txtPrimary, padding: "0 14px", height: "32px", borderRadius: "6px", border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.05)", textDecoration: "none" }}>Start free</Link>
-          <Link href="/contact" style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "14px", fontWeight: 500, color: "#000000", padding: "0 14px", height: "32px", borderRadius: "6px", background: T.accent, boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.12), 0 1px 2px rgba(0,0,0,0.3)", textDecoration: "none" }}>
-            Talk to us
-            <svg style={{ width: "12px", height: "12px" }} viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 6h6M7 4l2 2-2 2"/></svg>
-          </Link>
-        </div>
-      </nav>
+      <LandingNav />
 
       <section style={{ position: "relative", padding: "88px 0 64px", overflow: "hidden", borderBottom: `1px solid ${T.border}` }}>
         <div style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden" }} aria-hidden="true">
@@ -123,19 +95,14 @@ export default function SecurityView() {
           <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(rgba(255,255,255,0.022) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.022) 1px, transparent 1px)", backgroundSize: "64px 64px", maskImage: "radial-gradient(ellipse 80% 60% at 50% 30%, #000 30%, transparent 80%)", WebkitMaskImage: "radial-gradient(ellipse 80% 60% at 50% 30%, #000 30%, transparent 80%)" } as React.CSSProperties} />
         </div>
         <div style={{ position: "relative", zIndex: 2, maxWidth: "1200px", margin: "0 auto", padding: "0 24px" }}>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", fontSize: "13px", fontWeight: 500, color: T.txtSecondary, letterSpacing: "-0.011em", marginBottom: "22px" }}>
-            <span style={{ width: "5px", height: "5px", borderRadius: "999px", background: T.warm, boxShadow: "0 0 8px #f5b544", display: "block" }} />
-            Trust · Security
-          </div>
           <h1 style={{ fontWeight: 500, letterSpacing: "-0.042em", lineHeight: 1, fontSize: "clamp(40px, 6.4vw, 76px)", marginBottom: "22px", color: T.txtPrimary }}>
-            Security at{" "}
-            <span style={{ background: "linear-gradient(135deg, #dfff00 0%, #dfff00 50%, #e8ff40 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" } as React.CSSProperties}>VesperWise.</span>
+            Security at VesperWise
           </h1>
           <p style={{ maxWidth: "620px", color: T.txtSecondary, fontSize: "clamp(16px, 1.25vw, 19px)", lineHeight: 1.55, letterSpacing: "-0.011em", marginBottom: "28px" }}>
-            VesperWise is an early-stage (v0.1) product built by a solo founder. This page describes the security controls we have today, what we&apos;re working toward, and what we don&apos;t yet have.
+            This page lists the security controls in place today, what we are working on next, and the formal programs we have not started yet.
           </p>
           <p style={{ maxWidth: "620px", color: T.txtTertiary, fontSize: "15px", lineHeight: 1.55, letterSpacing: "-0.011em" }}>
-            We&apos;re committed to transparency: if we don&apos;t have a control yet, we&apos;ll say so. We&apos;ll update this page as our security posture matures.
+            If we don&apos;t have a control yet, this page says so. We update it as our security program grows.
           </p>
         </div>
       </section>
@@ -210,10 +177,10 @@ export default function SecurityView() {
               Not yet available
             </div>
             <h2 style={{ fontSize: "clamp(28px, 4vw, 48px)", fontWeight: 500, letterSpacing: "-0.03em", lineHeight: 1.1, color: T.txtPrimary, marginBottom: "16px" }}>
-              What we don&apos;t have yet.
+              Formal audits and programs.
             </h2>
             <p style={{ fontSize: "16px", color: T.txtTertiary, lineHeight: 1.55, letterSpacing: "-0.006em", maxWidth: "560px" }}>
-              We&apos;re honest about what we haven&apos;t built. This page will be updated as these become available.
+              None of these are in place today. Security questions and questionnaires are answered directly by email.
             </p>
           </div>
 
@@ -244,10 +211,10 @@ export default function SecurityView() {
               Report a problem.
             </h2>
             <p style={{ fontSize: "16px", color: T.txtTertiary, lineHeight: 1.55, letterSpacing: "-0.006em", maxWidth: "560px", marginBottom: "24px" }}>
-              If you find a security issue, please email <a href="mailto:support@vesperwise.com" style={{ color: T.txtPrimary, textDecoration: "underline", textDecorationColor: T.borderStrong }}>support@vesperwise.com</a>. We don&apos;t have a formal bug bounty program yet, but we take security reports seriously and will respond promptly.
+              If you find a security issue, please email <a href="mailto:security@vesperwise.com" style={{ color: T.txtPrimary, textDecoration: "underline", textDecorationColor: T.borderStrong }}>security@vesperwise.com</a> with steps to reproduce. We don&apos;t offer paid bounties, but every report is read and answered.
             </p>
             <p style={{ fontSize: "14px", color: T.txtTertiary, lineHeight: 1.55, letterSpacing: "-0.006em", maxWidth: "560px" }}>
-              For other legal documents, see <Link href="/privacy" style={{ color: T.txtPrimary, textDecoration: "underline", textDecorationColor: T.borderStrong }}>Privacy</Link>, <Link href="/terms" style={{ color: T.txtPrimary, textDecoration: "underline", textDecorationColor: T.borderStrong }}>Terms</Link>, and <Link href="/legal/dpa" style={{ color: T.txtPrimary, textDecoration: "underline", textDecorationColor: T.borderStrong }}>DPA</Link>.
+              For other legal documents, see <Link href="/privacy" style={{ color: T.txtPrimary, textDecoration: "underline", textDecorationColor: T.borderStrong }}>Privacy</Link>, <Link href="/terms" style={{ color: T.txtPrimary, textDecoration: "underline", textDecorationColor: T.borderStrong }}>Terms</Link>, and <Link href="/legal/dpa" style={{ color: T.txtPrimary, textDecoration: "underline", textDecorationColor: T.borderStrong }}>DPA</Link> and <Link href="/legal/subprocessors" style={{ color: T.txtPrimary, textDecoration: "underline", textDecorationColor: T.borderStrong }}>Subprocessors</Link>.
             </p>
           </div>
         </div>

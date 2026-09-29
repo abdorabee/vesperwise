@@ -6,14 +6,14 @@ const CANONICAL = "https://www.vesperwise.com/contact";
 export const metadata: Metadata = {
   title: "Contact",
   description:
-    "Talk to VesperWise. Sales, support, security, press, and partnerships — pick the channel that gets a human to your problem fastest.",
+    "Contact VesperWise about demos, pricing, support, security or partnerships.",
   alternates: { canonical: CANONICAL },
   openGraph: {
     siteName: "VesperWise",
     url: CANONICAL,
     title: "Contact — VesperWise",
     description:
-      "Five channels. The right one is whichever gets a human to your problem fastest.",
+      "Book a demo or ask the VesperWise team a question.",
   },
 };
 

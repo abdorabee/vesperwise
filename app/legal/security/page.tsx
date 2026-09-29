@@ -6,14 +6,14 @@ const CANONICAL = "https://www.vesperwise.com/legal/security";
 export const metadata: Metadata = {
   title: "Security",
   description:
-    "VesperWise security practices: authentication, encryption, data handling, and how we're building toward enterprise readiness.",
+    "VesperWise security controls: authentication, encryption, data handling, and what is on the roadmap.",
   alternates: { canonical: CANONICAL },
   openGraph: {
     siteName: "VesperWise",
     url: CANONICAL,
     title: "Security at VesperWise",
     description:
-      "Early-stage security practices, current controls, and what we're working toward as we scale.",
+      "Current security controls at VesperWise and what we are working on next.",
   },
 };
 

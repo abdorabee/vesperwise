@@ -9,8 +9,8 @@ export const metadata: Metadata = {
   title: "VesperWise — B2B Buyer Intent Signals for SMB Sales Teams",
   description:
     "VesperWise tracks hiring spikes, funding rounds, tech stack changes, news mentions, " +
-    "with web authority and GitHub activity as supporting context — before your competitors know. " +
-    "Affordable intent data from $29/mo. 100x cheaper than 6sense or Bombora.",
+    "with web authority and GitHub activity as supporting context, and scores every company 0–100 " +
+    "with the evidence and a next step. Free to start; paid plans from $29/mo.",
   alternates: {
     canonical: CANONICAL,
   },
@@ -52,7 +52,7 @@ const jsonLd = {
       name: "VesperWise",
       url: CANONICAL,
       description:
-        "First affordable B2B intent data platform for MENA. 100x cheaper than 6sense, Bombora, and ZoomInfo.",
+        "Buying-intent scores for B2B sales teams, with the evidence behind every number. Built in Cairo.",
       logo: {
         "@type": "ImageObject",
         url: `${CANONICAL}/vesperwise-logo.png`,

@@ -45,9 +45,8 @@ const NAV_LINKS = [
   { label: "Product",    href: "/#product"   },
   { label: "Autopilot",  href: "/#autopilot" },
   { label: "Developers", href: "/docs"       },
-  { label: "Pricing",    href: "/#pricing"   },
-  { label: "Customers",  href: "/#"          },
-  { label: "Company",    href: "/#"          },
+  { label: "Pricing",    href: "/pricing"    },
+  { label: "About",      href: "/about"      },
 ];
 
 /* ── Shared primitives ───────────────────────────────────────── */
@@ -132,18 +131,10 @@ function Code({ children }: { children: React.ReactNode }) {
 function DpaActions() {
   return (
     <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "24px" }}>
-      <button style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "6px 12px", fontSize: "12px", background: "rgba(223,255,0,0.12)", border: "1px solid rgba(223,255,0,0.3)", borderRadius: "999px", color: "#dfff00", fontWeight: 500, letterSpacing: "-0.006em", cursor: "pointer", fontFamily: T.fontSans }}>
-        <svg style={{ width: "12px", height: "12px" }} viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 7h8M8 4l3 3-3 3"/></svg>
-        Download signed PDF
-      </button>
-      <button style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "6px 12px", fontSize: "12px", background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, borderRadius: "999px", color: T.txtSecondary, fontWeight: 500, letterSpacing: "-0.006em", cursor: "pointer", fontFamily: T.fontSans }}>
-        <svg style={{ width: "12px", height: "12px" }} viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 5h8v6H3zM3 5l4 3 4-3"/></svg>
+      <a href="mailto:legal@vesperwise.com?subject=Counter-signed%20DPA" className="pill-btn-hover" style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "6px 12px", fontSize: "12px", background: "transparent", border: `1px solid ${T.border}`, borderRadius: "999px", color: T.txtSecondary, fontWeight: 500, letterSpacing: "-0.006em", textDecoration: "none", fontFamily: T.fontSans }}>
+        <svg style={{ width: "12px", height: "12px" }} viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="M3 5h8v6H3zM3 5l4 3 4-3"/></svg>
         Request a counter‑signed copy
-      </button>
-      <button style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "6px 12px", fontSize: "12px", background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, borderRadius: "999px", color: T.txtSecondary, fontWeight: 500, letterSpacing: "-0.006em", cursor: "pointer", fontFamily: T.fontSans }}>
-        <svg style={{ width: "12px", height: "12px" }} viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="7" cy="7" r="5"/><path d="M5 7l2 2 3-4"/></svg>
-        Already accepted at signup
-      </button>
+      </a>
     </div>
   );
 }
@@ -306,7 +297,7 @@ export default function DpaView() {
 
           {/* Info callout */}
           <InfoCallout>
-            <strong style={{ color: T.txtPrimary, fontWeight: 500 }}>You don&rsquo;t need to sign anything.</strong>{" "}This DPA is automatically incorporated into the Terms of Service when you create an account. If your procurement team requires a counter‑signed copy, email <Code>legal@vesperwise.com</Code> and you&rsquo;ll have a DocuSign within one business day.
+            <strong style={{ color: T.txtPrimary, fontWeight: 500 }}>You don&rsquo;t need to sign anything.</strong>{" "}This DPA is automatically incorporated into the Terms of Service when you create an account. If your procurement team requires a counter‑signed copy, email <Code>legal@vesperwise.com</Code> and we&rsquo;ll send one.
           </InfoCallout>
 
           {/* ── 01 ── */}
@@ -391,7 +382,7 @@ export default function DpaView() {
 
           {/* ── 10 ── */}
           <Section id="s10" num="10" title="Audits">
-            <P>VesperWise will make available to the Controller all information necessary to demonstrate compliance with this DPA, including a current SOC 2 Type II report and the answers to the CAIQ Lite and SIG Core. The Controller may request an audit once per twelve‑month period, on 30 days notice, conducted during business hours, by a mutually agreed independent auditor bound by confidentiality. The Controller bears the cost unless the audit reveals material non‑compliance.</P>
+            <P>VesperWise will make available to the Controller all information necessary to demonstrate compliance with this DPA, including written answers to reasonable security questionnaires and the controls described on the Security page. VesperWise does not currently hold a SOC 2 report or ISO 27001 certification. The Controller may request an audit once per twelve‑month period, on 30 days notice, conducted during business hours, by a mutually agreed independent auditor bound by confidentiality. The Controller bears the cost unless the audit reveals material non‑compliance.</P>
           </Section>
 
           {/* ── 11 ── */}
@@ -411,7 +402,7 @@ export default function DpaView() {
 
           {/* ── Annex I ── */}
           <Section id="a1" num="A1" title="Annex I · Details of Processing">
-            <P><Strong>A. List of Parties.</Strong> Controller: the Customer as identified in the account record. Processor: VesperWise Labs, Inc., 340 Brannan St., 4th fl., San Francisco, CA 94107.</P>
+            <P><Strong>A. List of Parties.</Strong> Controller: the Customer as identified in the account record. Processor: VesperWise, reachable at legal@vesperwise.com.</P>
             <AnnexGrid cards={[
               { key: "Subject matter",                val: "Provision of B2B intent scoring, workflows, and chat copilot via the VesperWise Service." },
               { key: "Duration",                      val: "Term of the Service plus the 90‑day deletion window in Section 11." },
@@ -426,22 +417,22 @@ export default function DpaView() {
 
           {/* ── Annex II ── */}
           <Section id="a2" num="A2" title="Annex II · Technical & organizational measures">
-            <P>VesperWise implements the following measures. The full Security page, including diagrams and control mappings, is at <A href="/legal/security">vesperwise.com/security</A>.</P>
+            <P>VesperWise implements the following measures. The current list of controls, including what is not yet in place, is on the <A href="/legal/security">Security page</A>.</P>
             <DocTable
               headers={["Control area", "Measure"]}
               rows={[
-                ["Encryption · transit",       "TLS 1.3 on all customer‑facing endpoints; HSTS preloaded."],
-                ["Encryption · at rest",        "AES‑256 for database and object storage (Supabase + Vercel Blob)."],
-                ["Access control",              "SSO + MFA enforced for all internal access. Least‑privilege RBAC; quarterly access review."],
-                ["API authentication",          <span key="api">SHA‑256 hashed bearer tokens; per‑user rate limiting; revocation on suspected compromise.</span>],
-                ["Tenant isolation",            "Postgres Row‑Level Security on every multi‑tenant table; tenant ID required on all queries."],
-                ["Logging & monitoring",        "Audit logs for all admin actions; 12‑month retention; alerts on anomalous read volume."],
-                ["Vulnerability management",    "Dependabot for dependencies; quarterly third‑party pen test; bounties via the Security page."],
-                ["Personnel security",          "Confidentiality agreements; security training on hire and annually."],
+                ["Encryption · transit",       "TLS on all customer‑facing endpoints."],
+                ["Encryption · at rest",        "AES‑256 encryption at rest for the production database (Supabase)."],
+                ["Access control",              "Production access limited to authorized team members; backend services use least‑privilege credentials."],
+                ["API authentication",          "API keys stored as SHA‑256 hashes, shown once, revocable at any time."],
+                ["Tenant isolation",            "Database access is restricted to VesperWise backend services, and every query is scoped to the requesting account. Database‑level isolation hardening is on the roadmap."],
+                ["Logging & monitoring",        "Application and hosting logs retained by our infrastructure providers. Audit logging for administrative actions is on the roadmap."],
+                ["Vulnerability management",    "Dependencies updated regularly. No third‑party penetration test or paid bug bounty yet; see the Security page."],
+                ["Personnel security",          "Confidentiality obligations for everyone with production access."],
                 ["Subprocessor management",     "Public list; 30‑day notice; DPA required from each."],
-                ["Incident response",           "72‑hour Controller notification on breach; runbook tested twice per year."],
-                ["Backups & resilience",        "Daily encrypted backups; 35‑day retention; RPO 24h, RTO 4h."],
-                ["Physical security",           "None operated by VesperWise; all production hosting is with subprocessors with SOC 2 / ISO 27001."],
+                ["Incident response",           "Controller notified without undue delay, and within 72 hours of VesperWise becoming aware of a personal data breach."],
+                ["Backups & resilience",        "Automated backups managed by the database provider."],
+                ["Physical security",           "None operated by VesperWise; production hosting is with subprocessors that hold their own SOC 2 reports."],
               ]}
             />
           </Section>

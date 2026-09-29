@@ -6,14 +6,14 @@ const CANONICAL = "https://www.vesperwise.com/about";
 export const metadata: Metadata = {
   title: "About",
   description:
-    "VesperWise is built by one person — Abdel‑Rahaman Rabee — from a single room. The story, the principles, and the stack behind the product.",
+    "Why VesperWise exists, how a score comes together, and who builds it.",
   alternates: { canonical: CANONICAL },
   openGraph: {
     siteName: "VesperWise",
     url: CANONICAL,
     title: "About — VesperWise",
     description:
-      "One founder, one room, zero outside funding. Here's how VesperWise gets built.",
+      "Buying-intent scores for B2B sales teams, with the evidence behind every number. Built in Cairo.",
   },
 };
 
