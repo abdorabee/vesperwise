@@ -23,7 +23,8 @@ export default function LandingNav() {
             <VesperWiseLogo className="logo" size={42} variant="wordmark" />
           </Link>
 
-          {/* Desktop nav links */}
+          {/* Desktop nav links. Homepage sections use plain <a href="/#…">: next/link does not scroll
+              to the hash when arriving from another page (404, thank-you), a full navigation does. */}
           <div className="nav-links">
             {NAV_ITEMS.map((item) => (
               <a key={item.href} className="nav-link" href={item.href}>

@@ -30,13 +30,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const onboardingRedirect = getOnboardingRedirect(onboardingCompleted, "dashboard");
   if (onboardingRedirect) redirect(onboardingRedirect);
 
-  const { count: inboxCount } = await admin
-    .from("inbox_notifications")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", userId)
-    .eq("is_read", false)
-    .eq("is_archived", false);
-
   const [{ count: watchlistCount }, { count: pipelineHotCount }] = await Promise.all([
     admin
       .from("watchlist")
@@ -56,7 +49,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
       creditsRemaining={creditsRemaining}
       plan={plan}
       workspaceName={storedWorkspaceName(profile)}
-      inboxCount={inboxCount ?? 0}
       watchlistCount={watchlistCount ?? 0}
       pipelineHotCount={pipelineHotCount ?? 0}
     >

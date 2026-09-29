@@ -1,5 +1,6 @@
 import Link from "next/link";
 import LandingNav from "@/components/landing/LandingNav";
+import StickyMobileCta from "@/components/landing/sticky-mobile-cta";
 import SiteFooter from "@/components/site-footer";
 import {
   BULK_MAX_CONCURRENT,
@@ -164,6 +165,7 @@ export default function PricingView() {
       </section>
 
       <SiteFooter />
+      <StickyMobileCta />
     </div>
   );
 }

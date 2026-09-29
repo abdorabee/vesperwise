@@ -33,7 +33,7 @@ const PLAN_COLOR: Record<PlanKey, string> = {
   free: "var(--text-quaternary)",
   starter: "var(--cyan)",
   growth: "var(--accent-2)",
-  pro: "var(--accent)",
+  pro: "var(--brand)",
   agency: "var(--warm)",
 };
 

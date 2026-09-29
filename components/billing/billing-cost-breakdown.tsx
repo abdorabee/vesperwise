@@ -1,6 +1,3 @@
-"use client";
-
-import { useState } from "react";
 import type { BillingStats } from "@/lib/billing-stats";
 
 interface BillingCostBreakdownProps {
@@ -20,76 +17,50 @@ function daysElapsed(cycleStart: string): number {
 }
 
 export function BillingCostBreakdown({ stats }: BillingCostBreakdownProps) {
-  const [tab, setTab] = useState<"this" | "last">("this");
   const cycleRange = formatCycleRange(stats.cycleStart);
   const days = daysElapsed(stats.cycleStart);
+  // Only list features that actually spent credits (Score always shows as the baseline).
+  const visibleBuckets = stats.costBuckets.filter((row) => row.credits > 0 || row.bucket === "Score");
 
   return (
     <div className="panel">
       <div className="panel-head">
         <div>
           <div className="t">Where credits went</div>
-          <div className="s">{tab === "this" ? cycleRange : "Previous billing cycle"}</div>
-        </div>
-        <div className="right">
-          <div className="range-tabs">
-            <button
-              type="button"
-              className={`range-tab${tab === "this" ? " active" : ""}`}
-              onClick={() => setTab("this")}
-            >
-              This cycle
-            </button>
-            <button
-              type="button"
-              className={`range-tab${tab === "last" ? " active" : ""}`}
-              onClick={() => setTab("last")}
-            >
-              Last cycle
-            </button>
-          </div>
+          <div className="s">This cycle · {cycleRange}</div>
         </div>
       </div>
 
-      {tab === "last" ? (
-        <div className="panel-body" style={{ color: "var(--text-tertiary)", fontSize: 13, padding: "20px 18px" }}>
-          Last cycle data not available — historical breakdowns coming soon.
-        </div>
-      ) : (
-        <>
-          {stats.costBuckets.map((row) => (
-            <div key={row.bucket} className="cost-row">
-              <span className="lbl">
-                <span className="sw" style={{ background: row.color }} />
-                {row.label}
-              </span>
-              <div className="bar-wrap">
-                <div
-                  className="bar"
-                  style={{
-                    width: `${row.pct}%`,
-                    minWidth: row.credits > 0 && row.pct === 0 ? 2 : undefined,
-                    background: row.color,
-                  }}
-                />
-              </div>
-              <span className="v">
-                {row.bucket === "Chat" && row.credits > 0 && row.credits < 1
-                  ? `${row.credits} ea`
-                  : row.credits.toLocaleString()}
-              </span>
-              <span className="pct">
-                {row.pct > 0 ? `${row.pct}%` : row.credits > 0 ? "<1%" : "0%"}
-              </span>
-            </div>
-          ))}
-          <div className="cost-foot">
-            <span className="tot-label">Total used · {days} days</span>
-            <span className="tot">{stats.totalCycleDebits.toLocaleString()} credits</span>
-            <span className="delta">▲ —</span>
+      {visibleBuckets.map((row) => (
+        <div key={row.bucket} className="cost-row">
+          <span className="lbl">
+            <span className="sw" style={{ background: row.color }} />
+            {row.label}
+          </span>
+          <div className="bar-wrap">
+            <div
+              className="bar"
+              style={{
+                width: `${row.pct}%`,
+                minWidth: row.credits > 0 && row.pct === 0 ? 2 : undefined,
+                background: row.color,
+              }}
+            />
           </div>
-        </>
-      )}
+          <span className="v">
+            {row.bucket === "Chat" && row.credits > 0 && row.credits < 1
+              ? `${row.credits} ea`
+              : row.credits.toLocaleString()}
+          </span>
+          <span className="pct">
+            {row.pct > 0 ? `${row.pct}%` : row.credits > 0 ? "<1%" : "0%"}
+          </span>
+        </div>
+      ))}
+      <div className="cost-foot">
+        <span className="tot-label">Total used · {days} days</span>
+        <span className="tot">{stats.totalCycleDebits.toLocaleString()} credits</span>
+      </div>
     </div>
   );
 }

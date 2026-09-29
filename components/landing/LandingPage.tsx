@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import LandingNav from "@/components/landing/LandingNav";
+import StickyMobileCta from "@/components/landing/sticky-mobile-cta";
 import HeroVideo from "@/components/landing/hero-video";
 import SiteFooter from "@/components/site-footer";
 import {
@@ -544,6 +545,7 @@ export default function LandingPage() {
       </section>
 
       <SiteFooter />
+      <StickyMobileCta />
     </>
   );
 }

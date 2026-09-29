@@ -4,8 +4,11 @@ import { useState } from "react";
 import { STARTING_PRICE } from "@/lib/plan-features";
 import { PLAN_CREDITS } from "@/lib/types";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { validateContactForm, type ContactFormErrors } from "@/lib/contact-form";
 import LandingNav from "@/components/landing/LandingNav";
 import SiteFooter from "@/components/site-footer";
+import { CONTACT_REASONS as REASONS, type ContactReasonId } from "@/lib/contact";
 
 /* ── Design tokens ───────────────────────────────────────────── */
 const T = {
@@ -79,14 +82,6 @@ const CHANNELS = [
   },
 ];
 
-const REASONS = [
-  { id: "demo",       label: "Book a demo"       },
-  { id: "pricing",    label: "Pricing question"  },
-  { id: "trial",      label: "Help on trial"     },
-  { id: "enterprise", label: "Enterprise / Agency" },
-  { id: "other",      label: "Something else"    },
-];
-
 const TEAM_SIZES = ["1 – 10", "10 – 50", "50 – 200", "200 – 1,000", "1,000+"];
 
 const FAQS = [
@@ -140,29 +135,69 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 
 /* ── Main component ──────────────────────────────────────────── */
 export default function ContactView() {
-  const [reason, setReason]   = useState("demo");
+  const [reason, setReason]   = useState<ContactReasonId>("demo");
   const [name, setName]       = useState("");
   const [email, setEmail]     = useState("");
   const [company, setCompany] = useState("");
   const [teamSize, setTeamSize] = useState("10 – 50");
   const [message, setMessage] = useState("");
   const [status, setStatus]   = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [errors, setErrors]   = useState<ContactFormErrors>({});
+  const [serverError, setServerError] = useState("");
+  const router = useRouter();
 
-  async function handleSubmit(e: React.FormEvent) {
+  function clearError(field: keyof ContactFormErrors) {
+    if (errors[field]) setErrors((prev) => ({ ...prev, [field]: undefined }));
+  }
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (status === "loading" || status === "success") return;
+
+    const nextErrors = validateContactForm({ name, email, message });
+    setErrors(nextErrors);
+    const firstInvalid = (["name", "email", "message"] as const).find((f) => nextErrors[f]);
+    if (firstInvalid) {
+      e.currentTarget.querySelector<HTMLElement>(`#contact-${firstInvalid}`)?.focus();
+      return;
+    }
+
     setStatus("loading");
+    setServerError("");
     try {
       const res = await fetch("/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reason, name, email, company, teamSize, message }),
+        body: JSON.stringify({ reason, name: name.trim(), email: email.trim(), company, teamSize, message }),
       });
-      setStatus(res.ok ? "success" : "error");
+      if (!res.ok) {
+        const data = (await res.json().catch(() => null)) as { error?: string } | null;
+        setServerError(
+          res.status === 400
+            ? "Some details look off — please check the form and try again."
+            : data?.error ?? "Something went wrong on our side."
+        );
+        setStatus("error");
+        return;
+      }
+      setStatus("success");
+      window.gtag?.("event", "generate_lead", { form: "contact", reason });
+      router.push("/thank-you");
     } catch {
+      setServerError("We couldn't reach the server. Check your connection and try again.");
       setStatus("error");
     }
   }
+
+  const fieldError = (field: keyof ContactFormErrors) =>
+    errors[field] ? (
+      <p id={`contact-${field}-error`} role="alert" style={{ marginTop: "6px", fontSize: "12px", color: "#f87171", letterSpacing: "-0.006em" }}>
+        {errors[field]}
+      </p>
+    ) : null;
+
+  const errorBorder = (field: keyof ContactFormErrors): React.CSSProperties =>
+    errors[field] ? { borderColor: "#f87171" } : {};
 
   const inputStyle: React.CSSProperties = {
     width: "100%",
@@ -206,7 +241,7 @@ export default function ContactView() {
             Talk to the team<br />behind VesperWise.
           </h1>
           <p style={{ maxWidth: "560px", color: T.txtSecondary, fontSize: "clamp(16px, 1.25vw, 19px)", lineHeight: 1.55, letterSpacing: "-0.011em" }}>
-            Questions about scoring, pricing or a demo on your own accounts? Email the right inbox below or send a note, and a person will reply by email.
+            Questions about scoring, pricing or a demo on your own accounts? Email the right inbox below or send a note. Every message gets a reply from a person within one business day.
           </p>
         </div>
       </section>
@@ -245,6 +280,21 @@ export default function ContactView() {
             </a>
           ))}
 
+
+          {/* Offices */}
+          <div style={{ marginTop: "32px", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "12px" }}>
+            {[
+              { city: "Cairo · HQ", flag: "EG", addr: "5 Sherif Pasha St.\nDowntown Cairo, 11511" },
+            ].map((o) => (
+              <div key={o.flag} style={{ border: `1px solid ${T.border}`, background: T.bgEl, borderRadius: "8px", padding: "14px 16px" }}>
+                <div style={{ fontSize: "14px", fontWeight: 500, color: T.txtPrimary, letterSpacing: "-0.011em", display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
+                  {o.city}
+                  <span style={{ fontFamily: T.fontMono, fontSize: "10px", padding: "1px 6px", borderRadius: "4px", background: "var(--muted)", color: T.txtTertiary, letterSpacing: "0.04em" }}>{o.flag}</span>
+                </div>
+                <div style={{ fontSize: "12px", color: T.txtTertiary, lineHeight: 1.5, letterSpacing: "-0.006em", whiteSpace: "pre-line" }}>{o.addr}</div>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* RIGHT: form card */}
@@ -254,7 +304,7 @@ export default function ContactView() {
 
           <h3 style={{ fontSize: "20px", fontWeight: 500, letterSpacing: "-0.022em", color: T.txtPrimary, marginBottom: "4px", position: "relative" }}>Or send a note.</h3>
           <p style={{ fontSize: "14px", color: T.txtTertiary, letterSpacing: "-0.006em", marginBottom: "24px", position: "relative" }}>
-            We reply by email.
+            We read every message and reply within one business day.
           </p>
 
           {/* Reason chips */}
@@ -275,36 +325,46 @@ export default function ContactView() {
             })}
           </div>
 
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} noValidate>
             {/* Row 1: name + email */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "12px" }}>
               <div style={{ marginBottom: "16px" }}>
-                <label style={{ display: "block", fontSize: "12px", fontWeight: 500, color: T.txtTertiary, letterSpacing: "-0.006em", marginBottom: "6px" }}>
+                <label htmlFor="contact-name" style={{ display: "block", fontSize: "12px", fontWeight: 500, color: T.txtTertiary, letterSpacing: "-0.006em", marginBottom: "6px" }}>
                   Full name <span style={{ color: "#f87171" }}>*</span>
                 </label>
                 <input
+                  id="contact-name"
                   type="text"
                   required
+                  autoComplete="name"
                   placeholder="Jane Doe"
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={(e) => { setName(e.target.value); clearError("name"); }}
+                  aria-invalid={!!errors.name}
+                  aria-describedby={errors.name ? "contact-name-error" : undefined}
                   className="field-input"
-                  style={inputStyle}
+                  style={{ ...inputStyle, ...errorBorder("name") }}
                 />
+                {fieldError("name")}
               </div>
               <div style={{ marginBottom: "16px" }}>
-                <label style={{ display: "block", fontSize: "12px", fontWeight: 500, color: T.txtTertiary, letterSpacing: "-0.006em", marginBottom: "6px" }}>
+                <label htmlFor="contact-email" style={{ display: "block", fontSize: "12px", fontWeight: 500, color: T.txtTertiary, letterSpacing: "-0.006em", marginBottom: "6px" }}>
                   Work email <span style={{ color: "#f87171" }}>*</span>
                 </label>
                 <input
+                  id="contact-email"
                   type="email"
                   required
+                  autoComplete="email"
                   placeholder="jane@example.com"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => { setEmail(e.target.value); clearError("email"); }}
+                  aria-invalid={!!errors.email}
+                  aria-describedby={errors.email ? "contact-email-error" : undefined}
                   className="field-input"
-                  style={inputStyle}
+                  style={{ ...inputStyle, ...errorBorder("email") }}
                 />
+                {fieldError("email")}
               </div>
             </div>
 
@@ -336,17 +396,23 @@ export default function ContactView() {
 
             {/* Message */}
             <div style={{ marginBottom: "16px" }}>
-              <label style={{ display: "block", fontSize: "12px", fontWeight: 500, color: T.txtTertiary, letterSpacing: "-0.006em", marginBottom: "6px" }}>
+              <label htmlFor="contact-message" style={{ display: "block", fontSize: "12px", fontWeight: 500, color: T.txtTertiary, letterSpacing: "-0.006em", marginBottom: "6px" }}>
                 What can we help with? <span style={{ color: "#f87171" }}>*</span>
               </label>
               <textarea
+                id="contact-message"
                 required
+                aria-invalid={!!errors.message}
+                aria-describedby={errors.message ? "contact-message-error" : undefined}
                 placeholder="We sell to mid-market SaaS and want to see how VesperWise scores our target list…"
                 value={message}
-                onChange={(e) => setMessage(e.target.value)}
+                onChange={(e) => { setMessage(e.target.value); clearError("message"); }}
                 className="field-input"
-                style={{ ...inputStyle, height: "120px", padding: "12px 14px", resize: "vertical", lineHeight: 1.55 }}
+                style={{ ...inputStyle, height: "120px", padding: "12px 14px", resize: "vertical", lineHeight: 1.55, ...errorBorder("message") }}
               />
+              {fieldError("message") ?? (
+                <div style={{ fontSize: "11px", color: T.txtQuaternary, marginTop: "6px", fontFamily: T.fontMono, letterSpacing: "0.02em" }}>We read every line</div>
+              )}
             </div>
 
             {/* Submit row */}
@@ -356,7 +422,7 @@ export default function ContactView() {
                 disabled={status === "loading" || status === "success"}
                 style={{ display: "inline-flex", alignItems: "center", gap: "6px", height: "38px", padding: "0 18px", borderRadius: "6px", fontSize: "14px", fontWeight: 500, letterSpacing: "-0.006em", cursor: status === "loading" || status === "success" ? "default" : "pointer", border: "none", fontFamily: T.fontSans, transition: "opacity 0.15s", background: status === "success" ? "rgba(255,255,255,0.07)" : T.accent, color: status === "success" ? T.txtSecondary : "#000000", boxShadow: status === "success" ? "none" : "inset 0 0 0 1px rgba(255,255,255,0.12), 0 1px 2px rgba(0,0,0,0.3)", opacity: status === "loading" ? 0.7 : 1 }}
               >
-                {status === "success" ? "Message sent" : status === "loading" ? "Sending…" : (
+                {status === "success" ? "Sent ✓" : status === "loading" ? "Sending…" : (
                   <>
                     Send message
                     <svg style={{ width: "12px", height: "12px" }} viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 6h6M7 4l2 2-2 2"/></svg>
@@ -372,7 +438,10 @@ export default function ContactView() {
               </p>
             </div>
             {status === "error" && (
-              <p style={{ marginTop: "10px", fontSize: "13px", color: "#f87171" }}>Something went wrong — please try again or email us directly.</p>
+              <p role="alert" style={{ marginTop: "10px", fontSize: "13px", color: "#f87171" }}>
+                {serverError} Or email us directly at{" "}
+                <a href="mailto:sales@vesperwise.com" style={{ textDecoration: "underline" }}>sales@vesperwise.com</a>.
+              </p>
             )}
           </form>
         </div>

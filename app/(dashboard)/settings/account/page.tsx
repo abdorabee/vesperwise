@@ -6,7 +6,10 @@ import type { DbUser, UserRole } from "@/lib/types";
 import { storedWorkspaceName } from "@/lib/workspace-label";
 import { AccountForm } from "@/components/settings/account-form";
 
-export const metadata = { title: "Account · Settings" };
+export const metadata = {
+  title: "Account · Settings",
+  description: "Manage your VesperWise account details.",
+};
 
 export default async function SettingsAccountPage() {
   const { userId } = await auth();

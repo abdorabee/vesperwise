@@ -3,6 +3,8 @@ import { Suspense } from "react";
 import { buildWatchlistStats } from "@/lib/watchlist-stats";
 import { WatchlistView } from "./watchlist-view";
 
+export const metadata = { title: "Watchlist" };
+
 export default async function WatchlistPage() {
   const { userId } = await auth();
   if (!userId) return null;

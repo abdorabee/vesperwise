@@ -5,6 +5,8 @@ import type { InboxNotification } from "@/lib/types";
 import type { DbList } from "@/lib/lists-types";
 import { InboxView } from "./inbox-view";
 
+export const metadata = { title: "Inbox" };
+
 export default async function InboxPage() {
   const { userId } = await auth();
   if (!userId) redirect("/login");

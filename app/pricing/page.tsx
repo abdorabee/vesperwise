@@ -4,7 +4,7 @@ import PricingView from "./pricing-view";
 const CANONICAL = "https://www.vesperwise.com/pricing";
 
 export const metadata: Metadata = {
-  title: "Pricing — VesperWise",
+  title: "Pricing",
   description:
     "Start free with 20 account scores. Paid plans from $29/mo for 500 credits. " +
     "No annual contracts, no setup calls. Cancel anytime.",

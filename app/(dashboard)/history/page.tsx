@@ -2,6 +2,8 @@ import { auth } from "@clerk/nextjs/server";
 import { createSupabaseAdmin } from "@/lib/supabase";
 import { HistoryView } from "./history-view";
 
+export const metadata = { title: "Score history" };
+
 export interface ActivityBucket {
   date: string;
   hot: number;

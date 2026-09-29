@@ -1,4 +1,6 @@
-import type { BillingStats, CreditBucket } from "@/lib/billing-stats";
+"use client";
+
+import type { BillingStats, CreditBucket, LedgerRow } from "@/lib/billing-stats";
 import { bucketDisplayLabel } from "@/lib/billing-stats";
 
 interface BillingLedgerProps {
@@ -57,6 +59,28 @@ function LedgerIcon({ bucket, type }: { bucket: CreditBucket; type: "debit" | "c
   );
 }
 
+function csvCell(value: string | number): string {
+  const s = String(value);
+  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+function exportLedgerCsv(rows: LedgerRow[]) {
+  const csv = [
+    ["date", "time", "type", "activity", "detail", "source", "amount", "balance"].join(","),
+    ...rows.map((r) =>
+      [r.date, r.time, r.type, r.title, r.subtitle, bucketDisplayLabel(r.bucket), r.type === "credit" ? r.amount : -r.amount, r.balance]
+        .map(csvCell)
+        .join(","),
+    ),
+  ].join("\n");
+  const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "credit-activity.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export function BillingLedger({ stats }: BillingLedgerProps) {
   return (
     <div className="ledger">
@@ -66,17 +90,16 @@ export function BillingLedger({ stats }: BillingLedgerProps) {
           <div className="s">Every debit and credit, in order — last 14 days</div>
         </div>
         <div className="right">
-          <button type="button" className="tb-btn outlined">
-            <svg className="ic" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <path d="M2 3h8M3 6h6M4 9h4" />
-            </svg>
-            Filter
-          </button>
-          <button type="button" className="tb-btn outlined">
-            <svg className="ic" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <button
+            type="button"
+            className="tb-btn outlined"
+            disabled={stats.ledger.length === 0}
+            onClick={() => exportLedgerCsv(stats.ledger)}
+          >
+            <svg aria-hidden="true" className="ic" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
               <path d="M3 7l3 3 3-3M6 1v9" />
             </svg>
-            Export
+            Export CSV
           </button>
         </div>
       </div>
@@ -127,7 +150,6 @@ export function BillingLedger({ stats }: BillingLedgerProps) {
             {stats.debitsLast14d.toLocaleString()}
           </strong>
         </span>
-        <a href="/api/billing/portal">View full ledger →</a>
       </div>
     </div>
   );

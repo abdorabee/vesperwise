@@ -1,5 +1,6 @@
 import Link from "next/link";
 import VesperWiseLogo from "@/components/vesperwise-logo";
+import { CookieSettingsButton } from "@/components/cookie-settings-button";
 
 type FooterLink = { label: string; href: string };
 
@@ -95,6 +96,7 @@ export default function SiteFooter() {
                 {label}
               </a>
             ))}
+            <CookieSettingsButton />
           </div>
         </div>
       </div>

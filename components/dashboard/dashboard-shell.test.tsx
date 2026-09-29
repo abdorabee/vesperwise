@@ -34,7 +34,6 @@ describe("DashboardShell", () => {
         creditsRemaining={42}
         plan="growth"
         workspaceName="Cairo Sales"
-        inboxCount={3}
         watchlistCount={8}
         pipelineHotCount={2}
       >
@@ -69,31 +68,51 @@ describe("DashboardShell", () => {
     expect(renderShell()).toContain('data-size="wide"');
   });
 
-  it("keeps regular Score and Inbox links without a Quick Score shortcut", () => {
+  it("keeps regular Score links and hides unfinished People, Inbox and Autopilot from the nav", () => {
     const html = renderShell();
 
     expect(html).toContain('href="/score"');
-    expect(html).toContain('href="/inbox"');
     expect(html).not.toContain("Quick Score");
+    for (const href of ["/people", "/inbox", "/autopilot"]) {
+      expect(html).not.toContain(`href="${href}"`);
+    }
+    expect(html).not.toMatch(/>Soon</);
+    expect(html).not.toMatch(/Coming soon/i);
+  });
+
+  it("restores API Keys to the nav as a finished destination", () => {
+    expect(renderShell()).toContain('href="/api-keys"');
   });
 
   it("uses the reference navigation hierarchy with tailored nested library sections", () => {
     const html = renderShell();
 
-    for (const label of ["Overview", "Accounts", "Library", "Workspace"]) {
+    for (const label of ["Overview", "Library", "Workspace"]) {
       expect(html).toContain(`>${label}<`);
     }
+    expect(html).not.toContain(">Accounts<");
     expect(html).toContain("Saved accounts");
     expect(html).toContain("Score activity");
     expect(html).toContain('data-slot="sidebar-menu-sub"');
   });
 
-  it("keeps the reference user-only footer while preserving credit context for the account menu", () => {
+  it("shows an always-visible credits meter above the user row", () => {
     const html = renderShell();
 
-    expect(html).not.toContain('data-slot="sidebar-credits"');
+    expect(html).toContain('data-slot="sidebar-credits"');
     expect(html).toContain("42 of 2,500 credits remaining");
+    expect(html.indexOf('data-slot="sidebar-credits"')).toBeLessThan(html.indexOf("Abdo Rabee"));
+    // 42 / 2,500 is under 20%, so the meter becomes a Top up prompt on a paid plan.
+    expect(html).toContain(">Top up<");
     expect(html).toContain('data-slot="sidebar-rail"');
+  });
+
+  it("shows the plan as a capitalized badge next to the brand glyph", () => {
+    const html = renderShell();
+
+    expect(html).toContain('data-slot="plan-badge"');
+    expect(html).toContain(">Growth<");
+    expect(html).not.toContain("· growth");
   });
 
   it("renders the reference mobile brand treatment instead of a route-title substitute", () => {
@@ -102,6 +121,8 @@ describe("DashboardShell", () => {
     expect(html).toContain('data-slot="mobile-brand"');
     expect(html).toContain('href="/dashboard"');
     expect(html).toContain(">VesperWise<");
-    expect(html).toContain("text-primary-foreground");
+    // Real brand glyph (favicon.svg path), not a lettered square.
+    expect(html).toContain("M13.5 19H24l7.9 25.4L39.9 19h10.6L37.2 48H26.8L13.5 19Z");
+    expect(html).not.toMatch(/>V<\/span>/);
   });
 });

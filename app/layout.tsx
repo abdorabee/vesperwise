@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
 import { GoogleAnalytics } from "@/components/google-analytics";
+import { CookieBanner } from "@/components/cookie-banner";
 import "./globals.css";
 import "./theme-overrides.css";
 import "./responsive.css";
@@ -79,6 +80,7 @@ export const metadata: Metadata = {
   manifest: "/site.webmanifest",
   icons: {
     icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
       { url: "/favicon-96x96.png", sizes: "96x96", type: "image/png" },
     ],
     shortcut: "/favicon.ico",
@@ -127,13 +129,14 @@ export default function RootLayout({
               __html: `(function(){try{var t=localStorage.getItem('intentiq-theme');var d=document.documentElement;if(t==='light'){d.classList.remove('dark');}else{d.classList.add('dark');}}catch(e){}})();`,
             }}
           />
-          <GoogleAnalytics />
         </head>
         <body className={`${instrumentSans.variable} font-sans antialiased`}>
           <ThemeProvider>
             <TooltipProvider>
               {children}
               <Toaster />
+              <CookieBanner />
+              <GoogleAnalytics />
             </TooltipProvider>
           </ThemeProvider>
         </body>

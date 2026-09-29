@@ -3,6 +3,8 @@ import { createSupabaseAdmin } from "@/lib/supabase";
 import { ScoreView } from "./score-view";
 import type { RecentScore } from "./score-view";
 
+export const metadata = { title: "Score a company" };
+
 export default async function ScorePage() {
   const { userId } = await auth();
   if (!userId) return null;

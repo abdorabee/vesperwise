@@ -4,12 +4,9 @@ import {
   Crosshair,
   Gauge,
   History,
-  UserSearch,
   Eye,
   ListChecks,
   Upload,
-  Zap,
-  Inbox,
   CreditCard,
   Key,
   Settings,
@@ -21,8 +18,6 @@ export interface NavItem {
   label: string;
   icon: ComponentType<{ className?: string }>;
   hotCount?: boolean;
-  beta?: boolean;
-  comingSoon?: boolean;
 }
 
 export interface NavCluster {
@@ -38,10 +33,10 @@ export const NAV_MAIN: NavItem[] = [
   { href: "/score", label: "Score", icon: Gauge },
 ];
 
-export const NAV_ACCOUNTS: NavItem[] = [
-  { href: "/people", label: "People", icon: UserSearch, beta: true },
-  { href: "/inbox", label: "Inbox", icon: Inbox },
-];
+/**
+ * People, Inbox and Autopilot are unfinished: their routes stay reachable by URL (and stay
+ * auth-protected in lib/route-access.ts) but they are intentionally absent from the nav and ⌘K.
+ */
 
 /** Flattened library routes retained for command palettes and deep imports. */
 export const NAV_LIBRARY: NavItem[] = [
@@ -64,10 +59,9 @@ export const NAV_LIBRARY_CLUSTERS: NavCluster[] = [
   },
 ];
 
-/** Reference-style Workspace group. */
+/** Workspace group (developer tools). */
 export const NAV_SECONDARY: NavItem[] = [
-  { href: "/autopilot", label: "Autopilot", icon: Zap, comingSoon: true },
-  { href: "/api-keys", label: "API Keys", icon: Key, comingSoon: true },
+  { href: "/api-keys", label: "API Keys", icon: Key },
 ];
 
 export const HELP_ITEM: NavItem = {
@@ -84,7 +78,6 @@ export const ACCOUNT_ITEMS: NavItem[] = [
 
 export const WORKSPACE_ITEMS: NavItem[] = [
   ...NAV_MAIN,
-  ...NAV_ACCOUNTS,
   ...NAV_LIBRARY,
   ...NAV_SECONDARY,
 ];

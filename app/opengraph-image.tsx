@@ -50,6 +50,9 @@ export default function OGImage() {
         {/* Headline */}
         <div
           style={{
+            display: "flex",
+            flexWrap: "wrap",
+            columnGap: 18,
             fontSize: 64,
             fontWeight: 900,
             color: "#FFFFFF",
@@ -58,7 +61,7 @@ export default function OGImage() {
             maxWidth: 900,
           }}
         >
-          Score Companies for{" "}
+          <span>Score Companies for</span>
           <span style={{ color: "#DFFF00" }}>Buying Intent</span>
         </div>
 

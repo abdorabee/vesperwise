@@ -1,10 +1,6 @@
 import { getPlanDef, type PlanKey } from "@/lib/billing-plans";
 import type { BillingStats } from "@/lib/billing-stats";
-import {
-  daysUntilReset,
-  formatRenewDate,
-  nextInvoiceAmount,
-} from "@/lib/billing-stats";
+import { daysUntilReset, formatRenewDate } from "@/lib/billing-stats";
 
 interface BillingHeroProps {
   stats: BillingStats;
@@ -39,11 +35,11 @@ export function BillingHero({ stats }: BillingHeroProps) {
   }
 
   const costPerCredit =
-    def.price > 0 && def.credits > 0
-      ? `$${(def.price / def.credits).toFixed(2)}`
-      : "$0.10";
+    def.price > 0 && def.credits > 0 ? `$${(def.price / def.credits).toFixed(2)}` : "—";
 
-  const invoiceTotal = nextInvoiceAmount(plan) + stats.cycleTopupSpend;
+  // Top-ups are charged when bought, so the next invoice is just the plan renewal.
+  const hasNextInvoice = isPaid && !cancelScheduled;
+  const invoiceTotal = hasNextInvoice ? def.price : 0;
   // Billing projections are intentionally anchored to the current render snapshot.
   // eslint-disable-next-line react-hooks/purity
   const now = Date.now();
@@ -199,12 +195,16 @@ export function BillingHero({ stats }: BillingHeroProps) {
         </div>
 
         <div className="ni-date">
-          {isPaid ? "Drafted · charges" : "Free tier · no upcoming charge"}
-          {renewDate && isPaid && (
+          {hasNextInvoice && renewDate ? (
             <>
-              {" "}
-              <span className="b">{renewDate}</span>
+              Charges on <span className="b">{renewDate}</span>
             </>
+          ) : cancelScheduled ? (
+            "Cancelled · no further charges"
+          ) : isPaid ? (
+            "Renewal date not available yet"
+          ) : (
+            "Free tier · no upcoming charge"
           )}
         </div>
 
@@ -215,34 +215,24 @@ export function BillingHero({ stats }: BillingHeroProps) {
             </span>
             <span className="v">${def.price.toFixed(2)}</span>
           </div>
-          <div className="ni-line">
-            <span>Top-ups this period</span>
-            <span className="v">${stats.cycleTopupSpend.toFixed(2)}</span>
-          </div>
-          <div className="ni-line">
-            <span>Tax · estimated</span>
-            <span className="v">included</span>
-          </div>
+          {stats.cycleTopupSpend > 0 ? (
+            <div className="ni-line">
+              <span>Top-ups this cycle · already charged</span>
+              <span className="v">${stats.cycleTopupSpend.toFixed(2)}</span>
+            </div>
+          ) : null}
         </div>
 
         <div className="ni-pm">
           {stats.profile.polar_customer_id ? (
             <>
-              <div className="card-mini">VISA</div>
-              <span>Charging via <span className="b">Polar.sh</span></span>
-              <a
-                href="/api/billing/portal"
-                className="mini-ic"
-                style={{ marginLeft: "auto", width: 22, height: 22 }}
-                title="Edit billing"
-              >
-                <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" width="10" height="10">
-                  <path d="M2 10l2-2 5-5 2 2-5 5-2 0v-2z" />
-                </svg>
+              <span>Payments handled by <span className="b">Polar</span></span>
+              <a href="/api/billing/portal" style={{ marginLeft: "auto" }} className="b underline underline-offset-4">
+                Manage billing
               </a>
             </>
           ) : (
-            <span>Subscribe to add a payment method</span>
+            <span>Payment details are added at checkout.</span>
           )}
         </div>
       </div>
