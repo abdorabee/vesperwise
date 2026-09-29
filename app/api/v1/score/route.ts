@@ -13,6 +13,7 @@ import {
   UnscorableDomainError,
   scoreCompany,
 } from "@/lib/score-service";
+import { formatSseEvent, type ScoreProgressHandler } from "@/lib/score-progress";
 import type { BusinessProfile } from "@/lib/types";
 
 export const maxDuration = 45;
@@ -94,10 +95,16 @@ async function authenticate(req: NextRequest): Promise<AuthenticatedUser | NextR
   };
 }
 
-async function executeScore(req: NextRequest, input: ScoreInput): Promise<NextResponse> {
-  const authenticated = await authenticate(req);
-  if (authenticated instanceof NextResponse) return authenticated;
+function wantsEventStream(req: NextRequest): boolean {
+  return (req.headers.get("accept") ?? "").toLowerCase().includes("text/event-stream");
+}
 
+async function scoreForUser(
+  req: NextRequest,
+  authenticated: AuthenticatedUser,
+  input: ScoreInput,
+  onProgress?: ScoreProgressHandler
+): Promise<NextResponse> {
   const idempotencyKey = req.headers.get("idempotency-key")?.trim();
   if (idempotencyKey && idempotencyKey.length > 255) {
     return errorResponse(400, "invalid_request", "Idempotency-Key must be 255 characters or fewer", {
@@ -114,6 +121,7 @@ async function executeScore(req: NextRequest, input: ScoreInput): Promise<NextRe
       businessProfile: authenticated.businessProfile,
       skipCredits: isDevCreditBypassEnabled(),
       idempotencyKey,
+      onProgress,
     });
 
     const headers = new Headers({
@@ -159,6 +167,63 @@ async function executeScore(req: NextRequest, input: ScoreInput): Promise<NextRe
     console.error("[score] unexpected error", error);
     return errorResponse(500, "scoring_failed", "Scoring failed");
   }
+}
+
+/**
+ * Streams real research progress as server-sent events, then ends with either
+ * `event: result` (the same JSON body the default path returns) or
+ * `event: error` (the same body plus its HTTP `status`). Auth failures are
+ * returned as plain JSON before the stream opens.
+ */
+function streamScore(req: NextRequest, authenticated: AuthenticatedUser, input: ScoreInput): Response {
+  const encoder = new TextEncoder();
+  let closed = false;
+  const stream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const send = (event: string, data: unknown) => {
+        if (closed) return;
+        try {
+          controller.enqueue(encoder.encode(formatSseEvent(event, data)));
+        } catch {
+          closed = true;
+        }
+      };
+      // Flush headers immediately so the client can show live progress.
+      controller.enqueue(encoder.encode(": scoring\n\n"));
+      const response = await scoreForUser(req, authenticated, input, (event) => send("progress", event));
+      let body: unknown = null;
+      try {
+        body = await response.json();
+      } catch {
+        body = { type: "error", code: "scoring_failed", message: "Scoring failed", error: "Scoring failed" };
+      }
+      if (response.ok) send("result", body);
+      else send("error", { ...(body as Record<string, unknown>), status: response.status });
+      if (!closed) {
+        closed = true;
+        controller.close();
+      }
+    },
+    cancel() {
+      // The score keeps running server-side (and is stored); we just stop writing.
+      closed = true;
+    },
+  });
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/event-stream; charset=utf-8",
+      "Cache-Control": "no-cache, no-transform",
+      Connection: "keep-alive",
+      "X-Accel-Buffering": "no",
+    },
+  });
+}
+
+async function executeScore(req: NextRequest, input: ScoreInput): Promise<Response> {
+  const authenticated = await authenticate(req);
+  if (authenticated instanceof NextResponse) return authenticated;
+  if (wantsEventStream(req)) return streamScore(req, authenticated, input);
+  return scoreForUser(req, authenticated, input);
 }
 
 /** Canonical scoring endpoint. */
