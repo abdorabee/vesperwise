@@ -9,7 +9,6 @@ import { PLAN_CREDITS, type DbUser } from "@/lib/types";
 import { getWorkspaceLabel } from "@/lib/workspace-label";
 import { useDashboardSearch } from "@/components/dashboard/search-provider";
 import {
-  NAV_ACCOUNTS,
   NAV_LIBRARY_CLUSTERS,
   NAV_MAIN,
   NAV_SECONDARY,
@@ -17,7 +16,9 @@ import {
   type NavCluster,
   type NavItem,
 } from "@/components/dashboard/nav-config";
-import { NavUser } from "@/components/dashboard/nav-user";
+import { NavUser, SidebarCredits } from "@/components/dashboard/nav-user";
+import { BrandMark } from "@/components/dashboard/brand-mark";
+import { Badge } from "@/components/ui/badge";
 import {
   Collapsible,
   CollapsibleContent,
@@ -46,16 +47,16 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   creditsRemaining: number;
   plan: DbUser["plan"];
   workspaceName?: string | null;
-  inboxCount?: number;
   watchlistCount?: number;
   pipelineHotCount?: number;
 }
 
+type NavCounts = { watchlist?: number; pipelineHot?: number };
+
 function itemCount(
   item: NavItem,
-  counts: { inbox?: number; watchlist?: number; pipelineHot?: number }
+  counts: NavCounts
 ): string | undefined {
-  if (item.href === "/inbox" && counts.inbox && counts.inbox > 0) return String(counts.inbox);
   if (item.href === "/pipeline" && counts.pipelineHot && counts.pipelineHot > 0) {
     return String(counts.pipelineHot);
   }
@@ -72,7 +73,7 @@ function NavRow({
 }: {
   item: NavItem;
   pathname: string;
-  counts: { inbox?: number; watchlist?: number; pipelineHot?: number };
+  counts: NavCounts;
 }) {
   const Icon = item.icon;
   const active = isNavActive(pathname, item.href);
@@ -83,16 +84,6 @@ function NavRow({
         <Link href={item.href}>
           <Icon />
           <span>{item.label}</span>
-          {item.comingSoon ? (
-            <span className="ml-auto text-[9px] font-bold uppercase tracking-wide text-muted-foreground group-data-[collapsible=icon]:hidden">
-              Soon
-            </span>
-          ) : null}
-          {item.beta && !item.comingSoon ? (
-            <span className="ml-auto text-[9px] font-bold uppercase tracking-wide text-muted-foreground group-data-[collapsible=icon]:hidden">
-              Beta
-            </span>
-          ) : null}
         </Link>
       </SidebarMenuButton>
       {count ? (
@@ -116,7 +107,7 @@ function NavClusterRow({
 }: {
   cluster: NavCluster;
   pathname: string;
-  counts: { inbox?: number; watchlist?: number; pipelineHot?: number };
+  counts: NavCounts;
 }) {
   const Icon = cluster.icon;
   const active = cluster.children.some((item) => isNavActive(pathname, item.href));
@@ -161,7 +152,6 @@ export function AppSidebar({
   creditsRemaining,
   plan,
   workspaceName,
-  inboxCount = 0,
   watchlistCount = 0,
   pipelineHotCount = 0,
   ...props
@@ -175,7 +165,8 @@ export function AppSidebar({
     fullName: user?.fullName,
     email: user?.primaryEmailAddress?.emailAddress,
   });
-  const counts = { inbox: inboxCount, watchlist: watchlistCount, pipelineHot: pipelineHotCount };
+  const counts: NavCounts = { watchlist: watchlistCount, pipelineHot: pipelineHotCount };
+  const planLabel = plan.charAt(0).toUpperCase() + plan.slice(1);
 
   return (
     <Sidebar collapsible="icon" {...props}>
@@ -188,20 +179,22 @@ export function AppSidebar({
               tooltip="VesperWise"
             >
               <Link href="/dashboard">
-                <span
-                  aria-hidden="true"
-                  className="flex aspect-square size-8 shrink-0 items-center justify-center rounded-sm bg-primary text-xs font-bold tracking-[-0.04em] text-primary-foreground"
-                >
-                  V
-                </span>
-                <span className="flex min-w-0 flex-1 flex-col gap-0.5 text-left leading-none">
-                  <span className="truncate font-medium text-sidebar-accent-foreground">
+                <BrandMark />
+                <span className="flex min-w-0 flex-1 flex-col gap-1 text-left leading-none">
+                  <span className="truncate font-semibold tracking-[-0.01em] text-sidebar-accent-foreground">
                     VesperWise
                   </span>
                   <span className="truncate text-xs font-normal text-muted-foreground">
-                    {workspaceLabel} · {plan}
+                    {workspaceLabel}
                   </span>
                 </span>
+                <Badge
+                  variant="outline"
+                  data-slot="plan-badge"
+                  className="min-h-5 px-2 py-0 text-[11px] font-medium text-muted-foreground group-data-[collapsible=icon]:hidden"
+                >
+                  {planLabel}
+                </Badge>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -215,22 +208,6 @@ export function AppSidebar({
             <SidebarGroupContent>
               <SidebarMenu>
                 {NAV_MAIN.map((item) => (
-                  <NavRow
-                    key={`${item.href}-${item.label}`}
-                    item={item}
-                    pathname={pathname}
-                    counts={counts}
-                  />
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-
-          <SidebarGroup>
-            <SidebarGroupLabel>Accounts</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {NAV_ACCOUNTS.map((item) => (
                   <NavRow
                     key={`${item.href}-${item.label}`}
                     item={item}
@@ -283,6 +260,7 @@ export function AppSidebar({
       </SidebarContent>
 
       <SidebarFooter>
+        <SidebarCredits creditsRemaining={creditsRemaining} creditCap={creditCap} plan={plan} />
         <NavUser creditsRemaining={creditsRemaining} creditCap={creditCap} />
       </SidebarFooter>
       <SidebarRail />

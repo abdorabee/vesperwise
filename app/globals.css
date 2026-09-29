@@ -1606,7 +1606,7 @@ nav.primary .row {
 .hub-col-head .count {
   font-family: var(--font-mono); font-size: 11px;
   color: var(--text-tertiary);
-  background: rgba(255,255,255,0.04);
+  background: var(--muted);
   padding: 1px 6px; border-radius: 999px;
 }
 .hub-col-head .add {
@@ -2487,40 +2487,6 @@ footer.site-footer {
 .hub-tab.active { background: rgba(255,255,255,0.06); color: var(--text-primary); }
 .hub-tab .ic { width: 12px; height: 12px; opacity: 0.85; }
 
-.filter-bar {
-  display: flex; align-items: center; gap: 6px;
-  padding: 10px 20px;
-  border-bottom: 1px solid var(--border);
-  background: rgba(255,255,255,0.01);
-  flex-shrink: 0;
-}
-.f-chip {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 3px 8px;
-  border: 1px solid var(--border);
-  border-radius: var(--r-md);
-  font-size: 12px; color: var(--text-secondary);
-  background: rgba(255,255,255,0.02);
-  cursor: pointer;
-}
-.f-chip:hover { background: rgba(255,255,255,0.05); color: var(--text-primary); }
-.f-chip.active {
-  background: rgba(223,255,0,0.12);
-  border-color: rgba(223,255,0,0.3);
-  color: #dfff00;
-}
-.f-chip .ic { width: 10px; height: 10px; opacity: 0.75; }
-.f-chip .swatch { width: 7px; height: 7px; border-radius: 999px; }
-.f-chip .x {
-  color: var(--text-tertiary); cursor: pointer;
-  display: grid; place-items: center; width: 10px; height: 10px;
-}
-.f-chip .x:hover { color: var(--text-primary); }
-.f-chip .label-key {
-  color: var(--text-quaternary);
-  font-family: var(--font-mono); font-size: 11px;
-}
-
 /* Kanban */
 .kanban-wrap {
   flex: 1; overflow: auto;
@@ -2533,7 +2499,7 @@ footer.site-footer {
   min-height: 100%;
 }
 .kcol {
-  background: rgba(255,255,255,0.014);
+  background: color-mix(in oklab, var(--muted) 35%, transparent);
   border: 1px solid var(--border);
   border-radius: var(--r-md);
   display: flex; flex-direction: column;
@@ -2626,7 +2592,7 @@ footer.site-footer {
   display: inline-flex; align-items: center; gap: 3px;
   padding: 1px 5px; font-size: 10px;
   font-family: var(--font-mono);
-  background: rgba(255,255,255,0.04);
+  background: var(--muted);
   color: var(--text-tertiary);
   border-radius: 3px;
 }
@@ -2666,32 +2632,7 @@ footer.site-footer {
 .pri-med { color: var(--text-tertiary); }
 .pri-low { color: var(--text-quaternary); }
 
-.kcard.hot {
-  border-color: rgba(74,222,128,0.2);
-  background: linear-gradient(180deg, rgba(74,222,128,0.04), var(--surface));
-}
-.kcard.engaged {
-  border-color: rgba(223,255,0,0.22);
-  background: linear-gradient(180deg, rgba(223,255,0,0.05), var(--surface));
-}
 
-/* Group toggle */
-.group-toggle {
-  display: inline-flex;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid var(--border);
-  border-radius: var(--r-md);
-  padding: 2px;
-}
-.group-toggle .gt {
-  padding: 3px 9px;
-  font-size: 12px; color: var(--text-tertiary);
-  border-radius: 4px; cursor: pointer;
-  font-family: var(--font-mono);
-}
-.group-toggle .gt.active {
-  background: rgba(255,255,255,0.06); color: var(--text-primary);
-}
 
 /* â”€â”€ Score CSS â”€â”€ */
 /* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -6507,14 +6448,10 @@ button.signal-card.gen-axis.is-selected {
   position: absolute; inset: 0;
   pointer-events: none;
 }
-.billing-page .hero-card.plan::before {
-  background: radial-gradient(ellipse 55% 100% at 100% 0%, rgba(223,255,0,0.16), transparent 55%);
-}
-.billing-page .hero-card.credits::before {
-  background: radial-gradient(ellipse 60% 90% at 0% 100%, rgba(223,255,0,0.10), transparent 55%);
-}
+.billing-page .hero-card.plan::before,
+.billing-page .hero-card.credits::before,
 .billing-page .hero-card.invoice::before {
-  background: radial-gradient(ellipse 60% 90% at 50% 100%, rgba(245,181,68,0.06), transparent 60%);
+  background: none;
 }
 .billing-page .hero-card > * { position: relative; z-index: 1; }
 
@@ -6607,8 +6544,7 @@ button.signal-card.gen-axis.is-selected {
 }
 .billing-page .cb-bar .used {
   height: 100%;
-  background: linear-gradient(90deg, var(--cyan), var(--accent), var(--accent-2));
-  box-shadow: 0 0 12px -2px var(--accent);
+  background: var(--foreground);
   position: relative;
 }
 .billing-page .cb-bar .proj {
@@ -6628,7 +6564,7 @@ button.signal-card.gen-axis.is-selected {
 .billing-page .cb-bar-leg .sw {
   width: 9px; height: 9px; border-radius: 2px;
 }
-.billing-page .cb-bar-leg .sw.used { background: var(--accent); }
+.billing-page .cb-bar-leg .sw.used { background: var(--foreground); }
 .billing-page .cb-bar-leg .sw.proj { background: repeating-linear-gradient(45deg, var(--warm), var(--warm) 2px, transparent 2px, transparent 4px); border: 1px solid var(--warm); }
 .billing-page .cb-bar-leg .sw.free { background: rgba(255,255,255,0.12); }
 
@@ -6704,17 +6640,6 @@ button.signal-card.gen-axis.is-selected {
   color: var(--text-tertiary);
   letter-spacing: -0.006em;
 }
-.billing-page .ni-pm .card-mini {
-  width: 30px; height: 20px;
-  border-radius: 3px;
-  background: linear-gradient(135deg, #1a1f71, #dfff00 130%);
-  display: grid; place-items: center;
-  font-size: 8px; font-weight: 800;
-  color: #fff;
-  font-family: var(--font-mono);
-  letter-spacing: 0.02em;
-  flex-shrink: 0;
-}
 .billing-page .ni-pm .b { color: var(--text-primary); }
 
 /* â”€â”€ Plans row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
@@ -6757,12 +6682,9 @@ button.signal-card.gen-axis.is-selected {
 }
 .billing-page .plan-card-c:hover { border-color: var(--border-strong); }
 .billing-page .plan-card-c.current {
-  border-color: rgba(223,255,0,0.5);
-  background:
-    linear-gradient(180deg, rgba(223,255,0,0.07), transparent 60%),
-    var(--bg-elevated);
-  box-shadow: 0 0 0 1px rgba(223,255,0,0.25),
-              0 8px 32px -8px rgba(223,255,0,0.25);
+  border-color: var(--foreground);
+  background: var(--bg-elevated);
+  box-shadow: 0 0 0 1px var(--foreground);
 }
 .billing-page .plan-card-c.recommended::after {
   content: 'RECOMMENDED';
@@ -6782,8 +6704,8 @@ button.signal-card.gen-axis.is-selected {
   font-family: var(--font-mono); font-size: 9px;
   letter-spacing: 0.08em;
   padding: 2px 6px; border-radius: 3px;
-  background: var(--accent-soft);
-  color: #dfff00;
+  background: var(--foreground);
+  color: var(--background);
   font-weight: 600;
   display: inline-flex; align-items: center; gap: 4px;
 }
@@ -6885,15 +6807,15 @@ button.signal-card.gen-axis.is-selected {
 }
 .billing-page .pc-cta.outline:hover { background: rgba(255,255,255,0.04); color: var(--text-primary); border-color: var(--text-quaternary); }
 .billing-page .pc-cta.solid {
-  background: var(--accent);
-  color: #000000;
+  background: var(--brand);
+  color: var(--on-brand);
   box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12), 0 1px 2px rgba(0,0,0,0.3);
 }
-.billing-page .pc-cta.solid:hover { background: var(--accent-2); }
+.billing-page .pc-cta.solid:hover { background: var(--brand-hover); }
 .billing-page .pc-cta.current {
-  background: rgba(223,255,0,0.08);
-  color: #dfff00;
-  border: 1px solid rgba(223,255,0,0.3);
+  background: var(--muted);
+  color: var(--foreground);
+  border: 1px solid var(--border);
   cursor: default;
 }
 
@@ -7004,7 +6926,7 @@ button.signal-card.gen-axis.is-selected {
   letter-spacing: -0.006em;
   cursor: pointer;
 }
-.billing-page .topup-card:hover .tu-cta { background: var(--accent); color: #000000; border-color: var(--accent); }
+.billing-page .topup-card:hover .tu-cta { background: var(--brand); color: var(--on-brand); border-color: var(--brand); }
 
 .billing-page .topup-foot {
   padding: 10px 18px;
@@ -7309,7 +7231,7 @@ button.signal-card.gen-axis.is-selected {
   border-radius: var(--r-md);
   background: rgba(255,255,255,0.015);
 }
-.billing-page .pm-row.default { border-color: rgba(223,255,0,0.3); }
+.billing-page .pm-row.default { border-color: var(--border-strong); }
 .billing-page .pm-card {
   width: 42px; height: 30px;
   border-radius: 4px;
@@ -7319,8 +7241,6 @@ button.signal-card.gen-axis.is-selected {
   letter-spacing: 0.04em;
   flex-shrink: 0;
 }
-.billing-page .pm-card.visa { background: linear-gradient(135deg, #1a1f71 0%, #dfff00 200%); }
-.billing-page .pm-card.amex { background: linear-gradient(135deg, #006fcf, #00224f); }
 .billing-page .pm-info {
   flex: 1; min-width: 0;
 }
@@ -7333,8 +7253,8 @@ button.signal-card.gen-axis.is-selected {
 .billing-page .pm-info .l1 .tag {
   font-family: var(--font-mono); font-size: 9px;
   padding: 1px 5px; border-radius: 3px;
-  background: var(--accent-soft);
-  color: #dfff00;
+  background: var(--brand-soft);
+  color: var(--brand-ink);
   letter-spacing: 0.04em;
 }
 .billing-page .pm-info .l2 {
@@ -7447,8 +7367,8 @@ button.signal-card.gen-axis.is-selected {
 }
 .billing-page .inv-row .pill.paid .d { width: 4px; height: 4px; border-radius: 999px; background: var(--hot); }
 .billing-page .inv-row .pill.refund {
-  background: rgba(223,255,0,0.10);
-  color: var(--cyan);
+  background: var(--muted);
+  color: var(--text-secondary);
 }
 .billing-page .inv-row .actions {
   display: flex; gap: 4px;
@@ -7528,8 +7448,8 @@ button.signal-card.gen-axis.is-selected {
   width: 28px; height: 28px;
   border-radius: 6px;
   display: grid; place-items: center;
-  background: rgba(223,255,0,0.08);
-  color: #dfff00;
+  background: var(--brand-soft);
+  color: var(--brand-ink);
   flex-shrink: 0;
 }
 .billing-page .help-row .txt {
@@ -7540,7 +7460,7 @@ button.signal-card.gen-axis.is-selected {
   color: var(--accent-2);
   cursor: pointer;
 }
-.billing-page .help-row .lk:hover { color: #dfff00; }
+.billing-page .help-row .lk:hover { color: var(--brand-ink); }
 
 /* Mini icon button */
 .billing-page .mini-ic {
@@ -8786,7 +8706,7 @@ button.signal-card.gen-axis.is-selected {
   .billing-page .plan-card-c:hover,
   .billing-page .topup-card:hover {
     transform: translateY(-1px);
-    border-color: color-mix(in oklab, var(--accent) 24%, var(--hairline));
+    border-color: color-mix(in oklab, var(--brand) 24%, var(--hairline));
     box-shadow:
       0 1px 0 rgba(255, 255, 255, 0.05) inset,
       0 24px 70px -36px rgba(0, 0, 0, 0.85);

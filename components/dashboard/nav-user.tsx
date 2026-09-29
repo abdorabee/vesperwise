@@ -5,6 +5,7 @@ import { useUser, SignOutButton } from "@clerk/nextjs";
 import {
   ChevronsUpDown,
   CircleHelp,
+  Coins,
   CreditCard,
   Key,
   LogOut,
@@ -34,15 +35,39 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { useTheme } from "@/components/theme-provider";
+import { cn } from "@/lib/utils";
+import type { DbUser } from "@/lib/types";
 
 interface NavUserProps {
   creditsRemaining: number;
   creditCap: number;
 }
 
+/** Share of the plan allowance left, 0–100. Top-ups can push credits above the cap. */
+export function creditPercent(creditsRemaining: number, creditCap: number): number {
+  if (creditCap <= 0) return 0;
+  return Math.max(0, Math.min(100, Math.round((creditsRemaining / creditCap) * 100)));
+}
+
+/** Below this share of the allowance the meter turns into a call to action. */
+export const LOW_CREDIT_PCT = 20;
+
+function CreditBar({ pct, low }: { pct: number; low: boolean }) {
+  return (
+    <div className="h-1 overflow-hidden rounded-full bg-muted">
+      <div
+        className={cn(
+          "h-full rounded-full transition-[width] duration-300 motion-reduce:transition-none",
+          low ? "bg-destructive" : "bg-foreground/70"
+        )}
+        style={{ width: `${pct}%` }}
+      />
+    </div>
+  );
+}
+
 function AccountCredits({ creditsRemaining, creditCap }: NavUserProps) {
-  const creditPct =
-    creditCap > 0 ? Math.min(100, Math.round((creditsRemaining / creditCap) * 100)) : 0;
+  const creditPct = creditPercent(creditsRemaining, creditCap);
 
   return (
     <div data-slot="account-credits" className="px-2 py-1.5 text-xs">
@@ -58,13 +83,57 @@ function AccountCredits({ creditsRemaining, creditCap }: NavUserProps) {
           {" "}/ {creditCap.toLocaleString()}
         </span>
       </div>
-      <div className="mt-2 h-1 overflow-hidden rounded-full bg-muted">
-        <div
-          className="h-full rounded-full bg-primary transition-[width] motion-reduce:transition-none"
-          style={{ width: `${creditPct}%` }}
-        />
+      <div className="mt-2">
+        <CreditBar pct={creditPct} low={creditPct < LOW_CREDIT_PCT} />
       </div>
     </div>
+  );
+}
+
+/**
+ * Always-visible credits meter for the sidebar footer. Expanded: numbers + bar, with an
+ * Upgrade / Top up prompt when under 20%. Collapsed: a gauge icon with a tooltip.
+ */
+export function SidebarCredits({
+  creditsRemaining,
+  creditCap,
+  plan,
+}: NavUserProps & { plan: DbUser["plan"] }) {
+  const pct = creditPercent(creditsRemaining, creditCap);
+  const low = pct < LOW_CREDIT_PCT;
+  const cta = plan === "free" ? "Upgrade" : "Top up";
+  const summary = `${creditsRemaining.toLocaleString()} of ${creditCap.toLocaleString()} credits remaining`;
+
+  return (
+    <SidebarMenu data-slot="sidebar-credits">
+      <SidebarMenuItem>
+        <SidebarMenuButton
+          asChild
+          tooltip={low ? `${summary} · ${cta}` : summary}
+          className="h-auto py-2 group-data-[collapsible=icon]:h-8! group-data-[collapsible=icon]:py-2!"
+        >
+          <Link href="/billing" aria-label={low ? `${summary}. ${cta}` : `${summary}. Billing`}>
+            <Coins className={cn(low && "text-destructive")} aria-hidden="true" />
+            <span className="flex min-w-0 flex-1 flex-col gap-1.5 group-data-[collapsible=icon]:hidden">
+              <span className="flex items-baseline justify-between gap-2 text-xs">
+                <span className="tabular-nums">
+                  <span className="font-medium text-sidebar-foreground">
+                    {creditsRemaining.toLocaleString()}
+                  </span>
+                  <span className="text-muted-foreground"> / {creditCap.toLocaleString()} credits</span>
+                </span>
+                {low ? (
+                  <span className="font-medium text-sidebar-foreground underline underline-offset-4">
+                    {cta}
+                  </span>
+                ) : null}
+              </span>
+              <CreditBar pct={pct} low={low} />
+            </span>
+          </Link>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    </SidebarMenu>
   );
 }
 

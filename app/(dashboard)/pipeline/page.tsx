@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,8 +18,13 @@ import {
   RefreshCw,
   ExternalLink,
   Check,
+  Crosshair,
 } from "lucide-react";
 import type { PipelineCompany, PipelineSignals } from "@/app/api/dashboard/pipeline/route";
+import { BandPill, CompanyMark, bandForScore } from "@/components/score/band";
+import { EmptyState } from "@/components/app-ui/page-primitives";
+import type { ScoreBand } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 type StageKey = "cold" | "warming" | "hot" | "engaged" | "converted";
 type OutcomeKey = "closed_won" | "closed_lost" | "no_decision" | "disqualified";
@@ -39,84 +43,50 @@ const STAGE_CONFIG: Record<StageKey, {
   desc: string;
   action: string;
   color: string;
-  bandClass: string;
-  glow: boolean;
   badgeClass: string;
-  scoreClass: string;
 }> = {
   cold: {
     label: "Cold",
     desc: "Nurture",
     action: "Send awareness content",
     color: "var(--text-tertiary)",
-    bandClass: "band-cold",
-    glow: false,
     badgeClass: "bg-slate-500/20 text-slate-400 border border-slate-500/30",
-    scoreClass: "text-slate-600 dark:text-slate-300",
   },
   warming: {
     label: "Warming",
     desc: "Follow Up",
     action: "Reference their recent signal",
     color: "#f5b544",
-    bandClass: "band-warm",
-    glow: false,
     badgeClass: "bg-amber-500/20 text-amber-400 border border-amber-500/30",
-    scoreClass: "text-amber-400",
   },
   hot: {
     label: "Hot",
     desc: "Act Now",
     action: "Book a call — use trigger in pitch",
     color: "#4ade80",
-    bandClass: "band-hot",
-    glow: true,
     badgeClass: "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30",
-    scoreClass: "text-emerald-400",
   },
   engaged: {
     label: "Engaged",
     desc: "In Outreach",
     action: "Send proposal or follow up",
-    color: "#e8ff40",
-    bandClass: "band-hot",
-    glow: false,
-    badgeClass: "border border-[#dfff00]/35 bg-[#dfff00]/15 text-[#dfff00]",
-    scoreClass: "text-[#dfff00]",
+    color: "var(--foreground)",
+    badgeClass: "border border-[var(--brand-border)] bg-[var(--brand-soft)] text-[var(--brand-ink)]",
   },
   converted: {
     label: "Converted",
     desc: "Won",
     action: "Request a referral",
     color: "#a78bfa",
-    bandClass: "band-hot",
-    glow: false,
     badgeClass: "bg-violet-500/20 text-violet-400 border border-violet-500/30",
-    scoreClass: "text-violet-400",
   },
 };
-
-const AV_COLORS = [
-  "linear-gradient(135deg,#dfff00,#dfff00)",
-  "linear-gradient(135deg,#4ade80,#22c55e)",
-  "linear-gradient(135deg,#f5b544,#8a8f98)",
-  "linear-gradient(135deg,#e8ff40,#dfff00)",
-  "linear-gradient(135deg,#f87171,#f5b544)",
-  "linear-gradient(135deg,#dfff00,#4ade80)",
-  "linear-gradient(135deg,#dfff00,#dfff00)",
-  "linear-gradient(135deg,#8a8f98,#f87171)",
-  "linear-gradient(135deg,#a78bfa,#e8ff40)",
-  "linear-gradient(135deg,#f5b544,#4ade80)",
-];
-
-function avColor(name: string): string {
-  return AV_COLORS[name.charCodeAt(0) % AV_COLORS.length];
-}
 
 function relTime(iso: string | null | undefined): string {
   if (!iso) return "—";
   const diff = Date.now() - new Date(iso).getTime();
   const m = Math.floor(diff / 60000);
+  if (m < 1) return "now";
   if (m < 60) return `${m}m`;
   const h = Math.floor(m / 60);
   if (h < 24) return `${h}h`;
@@ -196,6 +166,12 @@ function TrendBadge({ trend }: { trend: number | null }) {
   );
 }
 
+/** Colour comes from the score, never from the kanban column the card sits in. */
+function bandOf(company: Pick<PipelineCompany, "score" | "score_band">): ScoreBand | null {
+  if (company.score_band) return company.score_band;
+  return company.score == null ? null : bandForScore(company.score);
+}
+
 function urgencyConfig(urgency: string | null): string {
   if (urgency === "act-now") return "bg-red-500/15 text-red-400 border-red-500/30";
   if (urgency === "this-week") return "bg-orange-500/15 text-orange-400 border-orange-500/30";
@@ -233,25 +209,20 @@ function SignalPills({ signals }: { signals: PipelineSignals }) {
 
 function KanbanCard({
   company,
-  stage,
-  globalIndex,
-  userInitials,
   onSelect,
 }: {
   company: PipelineCompany;
-  stage: StageKey;
-  globalIndex: number;
-  userInitials: string;
   onSelect: (c: PipelineCompany) => void;
 }) {
-  const cfg = STAGE_CONFIG[stage];
-  const iqNum = `IQ-${String(1000 + globalIndex).padStart(4, "0")}`;
   const priorityLevel = priorityFromUrgency(company.urgency);
-  const cardClass = `kcard${stage === "hot" ? " hot" : stage === "engaged" ? " engaged" : ""}`;
+  const band = bandOf(company);
 
   return (
     <div
-      className={cardClass}
+      className="kcard outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      role="button"
+      tabIndex={0}
+      aria-label={`${company.company_name}${company.score != null ? `, score ${company.score}` : ""}${band ? `, ${band}` : ""}. Open details`}
       draggable
       onDragStart={(e) => {
         e.dataTransfer.setData("text/plain", company.domain);
@@ -262,17 +233,19 @@ function KanbanCard({
         (e.currentTarget as HTMLElement).style.opacity = "1";
       }}
       onClick={() => onSelect(company)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onSelect(company);
+        }
+      }}
     >
-      <div className="top">
-        <span className="iq">{iqNum}</span>
+      <div className="row-head">
+        <CompanyMark domain={company.domain} name={company.company_name} size={16} className="rounded" />
+        <div className="name">{company.company_name}</div>
         <PriorityIcon level={priorityLevel} />
       </div>
-      <div className="row-head">
-        <div className="co-av" style={{ background: avColor(company.company_name) }}>
-          {company.company_name[0]}
-        </div>
-        <div className="name">{company.company_name}</div>
-      </div>
+      <div className="mb-1.5 truncate text-[11px] text-muted-foreground">{company.domain}</div>
       {(company.ai_summary || company.key_triggers?.[0]) && (
         <div className="summary">{company.ai_summary || company.key_triggers?.[0]}</div>
       )}
@@ -281,30 +254,10 @@ function KanbanCard({
       )}
       <div className="meta">
         <div className="meta-left">
-          <span className={`band ${cfg.bandClass}`}>
-            <span className="dot" />
-            {company.score ?? "—"}
-          </span>
-          <span className="when">{relTime(company.last_scored)}</span>
+          <span className="text-sm font-semibold tabular-nums text-foreground">{company.score ?? "—"}</span>
+          {band ? <BandPill band={band} size="sm" /> : null}
         </div>
-        <div className="meta-right">
-          <span
-            className="av"
-            style={{
-              background: "linear-gradient(135deg,#f5b544,#8a8f98)",
-              color: "var(--bg)",
-              width: 18,
-              height: 18,
-              borderRadius: "50%",
-              display: "grid",
-              placeItems: "center",
-              fontSize: 9,
-              fontWeight: 700,
-            }}
-          >
-            {userInitials}
-          </span>
-        </div>
+        <span className="when">{relTime(company.last_scored)}</span>
       </div>
     </div>
   );
@@ -313,15 +266,11 @@ function KanbanCard({
 function KanbanColumn({
   stage,
   companies,
-  globalOffset,
-  userInitials,
   onSelect,
   onStageChange,
 }: {
   stage: StageKey;
   companies: PipelineCompany[];
-  globalOffset: number;
-  userInitials: string;
   onSelect: (c: PipelineCompany) => void;
   onStageChange: (domain: string, stage: StageKey) => void;
 }) {
@@ -331,7 +280,7 @@ function KanbanColumn({
   return (
     <div
       className="kcol"
-      style={dragOver ? { outline: "2px solid rgba(223,255,0,0.4)", outlineOffset: "-1px" } : undefined}
+      style={dragOver ? { outline: "2px solid var(--ring)", outlineOffset: "-1px" } : undefined}
       onDragOver={(e) => {
         e.preventDefault();
         e.dataTransfer.dropEffect = "move";
@@ -348,10 +297,7 @@ function KanbanColumn({
       <div className="kcol-head">
         <span
           className="indicator"
-          style={{
-            background: cfg.color,
-            boxShadow: cfg.glow ? `0 0 8px ${cfg.color}` : undefined,
-          }}
+          style={{ background: cfg.color }}
         />
         <span className="name">{cfg.label}</span>
         <span className="count">{companies.length}</span>
@@ -360,27 +306,15 @@ function KanbanColumn({
             avg {Math.round(companies.reduce((s, c) => s + (c.score ?? 0), 0) / companies.length)}
           </span>
         )}
-        <span className="add">
-          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" width="10" height="10">
-            <path d="M6 2v8M2 6h8" />
-          </svg>
-        </span>
       </div>
       <div className="kcards">
         {companies.length === 0 ? (
-          <div style={{ padding: "24px 12px", textAlign: "center", color: "var(--text-quaternary)", fontSize: 12 }}>
+          <div className="px-3 py-6 text-center text-xs text-muted-foreground">
             {dragOver ? `Drop here → ${cfg.label}` : `No ${cfg.label.toLowerCase()} companies`}
           </div>
         ) : (
-          companies.map((company, idx) => (
-            <KanbanCard
-              key={company.id}
-              company={company}
-              stage={stage}
-              globalIndex={globalOffset + idx}
-              userInitials={userInitials}
-              onSelect={onSelect}
-            />
+          companies.map((company) => (
+            <KanbanCard key={company.id} company={company} onSelect={onSelect} />
           ))
         )}
       </div>
@@ -388,18 +322,11 @@ function KanbanColumn({
   );
 }
 
-type ViewMode = "board" | "list" | "timeline";
+type BandFilter = "ALL" | ScoreBand;
+const BAND_FILTERS: BandFilter[] = ["ALL", "HOT", "WARM", "COLD"];
 
 export default function PipelinePage() {
-  const { user } = useUser();
-  const userInitials = (() => {
-    if (!user) return "U";
-    const fromName = (user.firstName?.[0] ?? "") + (user.lastName?.[0] ?? "");
-    if (fromName) return fromName;
-    return user.emailAddresses[0]?.emailAddress[0]?.toUpperCase() ?? "U";
-  })();
-
-  const [viewMode, setViewMode] = useState<ViewMode>("board");
+  const [bandFilter, setBandFilter] = useState<BandFilter>("ALL");
   const [companies, setCompanies] = useState<PipelineCompany[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<PipelineCompany | null>(null);
@@ -533,8 +460,15 @@ export default function PipelinePage() {
     setTimeout(() => setDialogEmailCopied(false), 2000);
   }
 
-  const grouped: Record<StageKey, PipelineCompany[]> = { cold: [], warming: [], hot: [], engaged: [], converted: [] };
+  const bandCounts = { HOT: 0, WARM: 0, COLD: 0 } as Record<ScoreBand, number>;
   for (const c of companies) {
+    const b = bandOf(c);
+    if (b) bandCounts[b] += 1;
+  }
+  const visible = bandFilter === "ALL" ? companies : companies.filter((c) => bandOf(c) === bandFilter);
+
+  const grouped: Record<StageKey, PipelineCompany[]> = { cold: [], warming: [], hot: [], engaged: [], converted: [] };
+  for (const c of visible) {
     const stage = (c.pipeline_stage ?? "cold") as StageKey;
     if (grouped[stage]) {
       grouped[stage].push(c);
@@ -548,94 +482,60 @@ export default function PipelinePage() {
 
   const selectedStage = selected ? ((selected.pipeline_stage ?? "cold") as StageKey) : "cold";
   const selectedCfg = selected ? STAGE_CONFIG[selectedStage] : null;
-
-  // Compute global offsets for IQ numbering
-  const globalOffsets: Record<StageKey, number> = { cold: 0, warming: 0, hot: 0, engaged: 0, converted: 0 };
-  let runningOffset = 0;
-  for (const stage of STAGE_ORDER) {
-    globalOffsets[stage] = runningOffset;
-    runningOffset += grouped[stage].length;
-  }
+  const selectedBand = selected ? bandOf(selected) : null;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
-      {/* Hub Tools bar */}
-      <div className="hub-tools">
-        <div className="hub-tabs">
-          <div className={`hub-tab${viewMode === "board" ? " active" : ""}`} onClick={() => setViewMode("board")}>
-            <svg className="ic" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <rect x="1" y="2" width="3" height="8" /><rect x="5" y="2" width="3" height="6" /><rect x="9" y="2" width="2" height="9" />
-            </svg>
-            Board
-          </div>
-          <div className={`hub-tab${viewMode === "list" ? " active" : ""}`} onClick={() => setViewMode("list")}>
-            <svg className="ic" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <path d="M2 3h8M2 6h8M2 9h8" />
-            </svg>
-            List
-          </div>
-          <div className={`hub-tab${viewMode === "timeline" ? " active" : ""}`} onClick={() => setViewMode("timeline")}>
-            <svg className="ic" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <circle cx="6" cy="6" r="4" /><path d="M6 2v4l3 1" />
-            </svg>
-            Timeline
-          </div>
+    <div className="flex h-full flex-col overflow-hidden">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-3 border-b border-border px-5 py-3">
+        <div className="min-w-0">
+          <h1 className="text-base font-semibold tracking-[-0.02em] text-foreground">Intent Hub</h1>
+          <p className="text-xs tabular-nums text-muted-foreground">
+            {companies.length} watched {companies.length === 1 ? "account" : "accounts"} · drag cards between stages
+          </p>
         </div>
-        <div style={{ marginLeft: 14, display: "flex", gap: 6, alignItems: "center" }}>
-          <span style={{ fontSize: 11, color: "var(--text-tertiary)", fontFamily: "var(--font-mono)" }}>Group:</span>
-          <div className="group-toggle">
-            <span className="gt active">Band</span>
-            <span className="gt">Owner</span>
-            <span className="gt">Industry</span>
-            <span className="gt">List</span>
+        {companies.length > 0 ? (
+          <div role="group" aria-label="Filter by score band" className="ml-auto inline-flex rounded-lg border border-border bg-muted/40 p-0.5">
+            {BAND_FILTERS.map((f) => {
+              const active = bandFilter === f;
+              const count = f === "ALL" ? companies.length : bandCounts[f];
+              return (
+                <button
+                  key={f}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => setBandFilter(f)}
+                  className={cn(
+                    "inline-flex min-h-7 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium transition-[background-color,color] duration-150 active:scale-[0.96] motion-reduce:transition-none",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    active ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {f === "ALL" ? "All" : f}
+                  <span className="tabular-nums text-muted-foreground">{count}</span>
+                </button>
+              );
+            })}
           </div>
-        </div>
-        <div className="spacer" style={{ flex: 1 }} />
-        <button className="tb-btn outlined">Sort: Score ↓</button>
-        <button className="tb-btn outlined">
-          <svg className="ic" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <circle cx="6" cy="6" r="1" /><circle cx="6" cy="6" r="4" />
-          </svg>
-          Options
-        </button>
-      </div>
-
-      {/* Filter bar */}
-      <div className="filter-bar">
-        <span className="f-chip active">
-          <span className="label-key">band:</span> All
-          <svg className="x" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <path d="M2.5 2.5l5 5M7.5 2.5l-5 5" />
-          </svg>
-        </span>
-        <span className="f-chip">
-          <span className="label-key">score</span> ≥ 50
-        </span>
-        <span className="f-chip">
-          <svg className="ic" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6">
-            <path d="M6 2v8M2 6h8" />
-          </svg>
-          Add filter
-        </span>
-        <div style={{ flex: 1 }} />
-        <span style={{ fontSize: 12, color: "var(--text-tertiary)", fontFamily: "var(--font-mono)" }}>
-          {companies.length} accounts
-        </span>
+        ) : null}
       </div>
 
       {loading ? (
-        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-tertiary)", fontSize: 13 }}>
+        <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground" role="status">
           Loading…
         </div>
       ) : companies.length === 0 ? (
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, color: "var(--text-tertiary)", fontSize: 13 }}>
-          <p>Your pipeline is empty.</p>
-          <p style={{ color: "var(--text-quaternary)", fontSize: 12 }}>Add companies to your watchlist to see them here.</p>
-          <Link href="/watchlist" className="text-sm text-[#dfff00] transition-colors hover:text-[var(--text-primary)]">
-            Go to Watchlist →
-          </Link>
-        </div>
-      ) : viewMode === "board" ? (
+        <EmptyState
+          className="flex-1"
+          icon={<Crosshair className="size-5" aria-hidden="true" />}
+          title="No accounts in the Intent Hub yet"
+          description="Add companies to your watchlist and they appear here, sorted by score into stages you can drag them through."
+          action={
+            <Button asChild>
+              <Link href="/watchlist">Go to Watchlist</Link>
+            </Button>
+          }
+        />
+      ) : (
         <div className="kanban-wrap">
           <div className="kanban">
             {STAGE_ORDER.map((stage) => (
@@ -643,25 +543,15 @@ export default function PipelinePage() {
                 key={stage}
                 stage={stage}
                 companies={grouped[stage]}
-                globalOffset={globalOffsets[stage]}
-                userInitials={userInitials}
                 onSelect={setSelected}
                 onStageChange={handleStageChange}
               />
             ))}
           </div>
         </div>
-      ) : viewMode === "list" ? (
-        <div style={{ flex: 1, padding: "24px", color: "var(--text-tertiary)", fontSize: 13 }}>
-          List view coming soon
-        </div>
-      ) : (
-        <div style={{ flex: 1, padding: "24px", color: "var(--text-tertiary)", fontSize: 13 }}>
-          Timeline view coming soon
-        </div>
       )}
 
-      {/* Detail Dialog — unchanged */}
+      {/* Detail dialog */}
       <Dialog open={!!selected} onOpenChange={(open) => { if (!open) { setSelected(null); setDialogEmailCopied(false); setOutcomeError(null); } }}>
         <DialogContent className="border-slate-200 dark:border-foreground/[0.08] bg-white dark:bg-[#0c1122] max-w-lg">
           {selected && selectedCfg && (
@@ -671,7 +561,8 @@ export default function PipelinePage() {
                   <DialogTitle className="text-slate-800 dark:text-slate-100 text-lg">{selected.company_name}</DialogTitle>
                   <div className="flex items-center gap-2">
                     <Badge className={`${selectedCfg.badgeClass}`}>{selectedCfg.label}</Badge>
-                    <span className={`text-2xl font-black ${selectedCfg.scoreClass}`}>{selected.score ?? "—"}</span>
+                    <span className="text-2xl font-semibold tabular-nums text-foreground">{selected.score ?? "—"}</span>
+                    {selectedBand ? <BandPill band={selectedBand} /> : null}
                   </div>
                 </div>
                 <div className="flex items-center gap-3 text-sm text-slate-500 mt-1">
@@ -733,7 +624,7 @@ export default function PipelinePage() {
                           onClick={() => handleOutcome(outcome)}
                           className={`text-[10px] px-2.5 py-1 border transition-colors disabled:opacity-50 ${
                             active
-                              ? "border-[#dfff00]/50 bg-[#dfff00]/15 text-[#dfff00]"
+                              ? "border-[var(--brand-border)] bg-[var(--brand-soft)] text-[var(--brand-ink)]"
                               : "border-slate-200 dark:border-foreground/[0.08] text-slate-500 hover:border-slate-400"
                           }`}
                         >
@@ -793,7 +684,7 @@ export default function PipelinePage() {
 
                 <div className="flex gap-2 flex-wrap pt-1">
                   <Button
-                    className="flex-1 cursor-pointer gap-1.5 border-0 bg-[#dfff00] text-black hover:bg-[#e8ff40]"
+                    className="flex-1 cursor-pointer gap-1.5 border-0 bg-[var(--brand)] text-[var(--on-brand)] hover:bg-[var(--brand-hover)]"
                     onClick={handleCopyDialogEmail}
                     disabled={!selected.email_subject && !selected.talk_track}
                   >

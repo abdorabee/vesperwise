@@ -16,16 +16,6 @@ export function BillingInvoices({ stats, workspaceLabel }: BillingInvoicesProps)
           <div className="t">Invoices</div>
           <div className="s">All charges to {workspaceLabel} · paid by Polar</div>
         </div>
-        {hasCustomer && (
-          <div className="right">
-            <a href="/api/billing/portal" className="tb-btn outlined">
-              Year: {new Date().getFullYear()}
-              <svg className="chev" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <path d="M3 4.5l3 3 3-3" />
-              </svg>
-            </a>
-          </div>
-        )}
       </div>
 
       {invoices.length > 0 ? (
@@ -51,15 +41,16 @@ export function BillingInvoices({ stats, workspaceLabel }: BillingInvoicesProps)
                 {inv.status === "paid" ? "Paid" : inv.status === "refunded" ? "Refunded" : "Pending"}
               </span>
               <span className="actions">
-                <a href={inv.portalUrl} className="ic-btn" title="View">
-                  <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" width="11" height="11">
+                <a
+                  href={inv.portalUrl}
+                  className="ic-btn"
+                  title="View in Polar"
+                  aria-label={`View invoice ${inv.invoiceNumber} in Polar`}
+                  style={{ minWidth: 28, minHeight: 28 }}
+                >
+                  <svg aria-hidden="true" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" width="11" height="11">
                     <path d="M1 6s2-4 5-4 5 4 5 4-2 4-5 4-5-4-5-4z" />
                     <circle cx="6" cy="6" r="1.5" />
-                  </svg>
-                </a>
-                <a href={inv.portalUrl} className="ic-btn" title="Download">
-                  <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" width="11" height="11">
-                    <path d="M3 7l3 3 3-3M6 1v9" />
                   </svg>
                 </a>
               </span>

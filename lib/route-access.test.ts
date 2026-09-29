@@ -14,7 +14,8 @@ describe("requiresAuth", () => {
   });
 
   it("protects private sections and their subpaths", () => {
-    for (const path of ["/dashboard", "/lists/123", "/settings/profile", "/api-keys"]) {
+    // People, Inbox and Autopilot are hidden from the nav but must stay protected by URL.
+    for (const path of ["/dashboard", "/lists/123", "/settings/profile", "/api-keys", "/people", "/inbox", "/autopilot"]) {
       expect(requiresAuth(path, prod), path).toBe(true);
     }
     expect(requiresAuth("/dashboardx", prod)).toBe(false);

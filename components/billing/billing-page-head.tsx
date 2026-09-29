@@ -6,10 +6,13 @@ import VesperWiseLogo from "@/components/vesperwise-logo";
 interface BillingPageHeadProps {
   renewAt: string | null;
   workspaceLabel: string;
+  /** Polar customer exists, so the hosted customer portal can open. */
+  hasPortal: boolean;
+  cancelScheduled: boolean;
   onTopUp: () => void;
 }
 
-export function BillingPageHead({ renewAt, workspaceLabel, onTopUp }: BillingPageHeadProps) {
+export function BillingPageHead({ renewAt, workspaceLabel, hasPortal, cancelScheduled, onTopUp }: BillingPageHeadProps) {
   const renewDate = formatRenewDate(renewAt);
 
   return (
@@ -23,26 +26,25 @@ export function BillingPageHead({ renewAt, workspaceLabel, onTopUp }: BillingPag
           </span>
         </div>
         <div className="sub">
-          Manage your plan, top-ups, payment methods, and invoices ·{" "}
-          <span className="mono">
+          Your plan, credits and invoices ·{" "}
+          <span>
             {renewDate ? (
               <>
-                Next charge{" "}
+                {cancelScheduled ? "Plan ends" : "Renews"}{" "}
                 <strong style={{ color: "var(--text-primary)", fontWeight: 500 }}>{renewDate}</strong>
               </>
             ) : (
-              "Free tier · no upcoming charge"
+              "No upcoming charge"
             )}
           </span>
         </div>
       </div>
       <div style={{ display: "flex", gap: 6 }}>
-        <button type="button" className="tb-btn outlined">
-          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" width="12" height="12">
-            <path d="M3 7l3 3 3-3M6 1v9M2 11h8" />
-          </svg>
-          Download statement
-        </button>
+        {hasPortal ? (
+          <a href="/api/billing/portal" className="tb-btn outlined">
+            Manage billing
+          </a>
+        ) : null}
         <button type="button" className="btn-primary" onClick={onTopUp}>
           <svg className="ic" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8">
             <path d="M6 2v8M2 6h8" />

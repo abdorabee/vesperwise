@@ -37,6 +37,13 @@ export interface PipelineCompany {
   } | null;
 }
 
+/** Until a user drags a card, place it in the stage that matches its score band. */
+function defaultStage(band: PipelineCompany["score_band"]): string {
+  if (band === "HOT") return "hot";
+  if (band === "WARM") return "warming";
+  return "cold";
+}
+
 export async function GET() {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -117,7 +124,7 @@ export async function GET() {
       ai_summary: latest?.ai_summary ?? null,
       key_triggers: latest?.key_triggers ?? null,
       urgency: latest?.urgency ?? null,
-      pipeline_stage: w.pipeline_stage ?? "cold",
+      pipeline_stage: w.pipeline_stage ?? defaultStage(w.score_band ?? null),
       signals: latest?.signals ?? null,
       score_id: latest?.id ?? null,
       score_status: latest?.score_status ?? null,
