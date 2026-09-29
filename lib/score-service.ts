@@ -388,7 +388,7 @@ function unavailableSignal(key: SignalKey, reason: string): SignalResult {
   return {
     score: 0,
     max: MAX_BY_SIGNAL[key],
-    detail: `${key.charAt(0).toUpperCase()}${key.slice(1)} data unavailable`,
+    detail: `${key.charAt(0).toUpperCase()}${key.slice(1).replace(/_/g, " ")} data unavailable`,
     status: "unavailable",
     observed_at: null,
     fetched_at: new Date().toISOString(),

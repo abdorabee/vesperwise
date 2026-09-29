@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { createSupabaseAdmin } from "@/lib/supabase";
 import { PLAN_WATCHLIST_LIMIT } from "@/lib/types";
+import { watchlistScoreFields } from "@/lib/watchlist-seed";
 
 export async function GET() {
   const { userId } = await auth();
@@ -27,10 +28,19 @@ export async function POST(req: NextRequest) {
   if (!domain) return NextResponse.json({ error: "domain required" }, { status: 400 });
 
   const supabase = createSupabaseAdmin();
+  const normalizedDomain = domain.toLowerCase();
 
-  const [{ data: user }, { count }] = await Promise.all([
+  const [{ data: user }, { count }, { data: latestScore }] = await Promise.all([
     supabase.from("users").select("plan").eq("id", userId).single(),
     supabase.from("watchlist").select("*", { count: "exact", head: true }).eq("user_id", userId).eq("is_active", true),
+    supabase
+      .from("scores")
+      .select("score, score_band, created_at")
+      .eq("user_id", userId)
+      .eq("domain", normalizedDomain)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ]);
 
   const plan = (user?.plan ?? "free") as keyof typeof PLAN_WATCHLIST_LIMIT;
@@ -42,7 +52,13 @@ export async function POST(req: NextRequest) {
   const { data, error } = await supabase
     .from("watchlist")
     .upsert(
-      { user_id: userId, domain: domain.toLowerCase(), company_name: company_name ?? domain, is_active: true },
+      {
+        user_id: userId,
+        domain: normalizedDomain,
+        company_name: company_name ?? domain,
+        is_active: true,
+        ...watchlistScoreFields(latestScore),
+      },
       { onConflict: "user_id,domain" }
     )
     .select()
