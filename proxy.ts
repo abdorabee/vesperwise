@@ -12,6 +12,7 @@ const basePublicRoutes = [
   "/contact(.*)",
   "/about(.*)",
   "/legal/(.*)",
+  "/demo/(.*)",
   "/api/v1/(.*)",
   "/api/chat(.*)",
   "/api/billing/webhook",
