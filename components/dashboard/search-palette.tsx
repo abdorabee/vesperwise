@@ -94,12 +94,6 @@ export function SearchPalette({ open, onOpenChange }: SearchPaletteProps) {
           rows: remote.watchlist.map((item) => ({ type: "result", item })),
         });
       }
-      if (remote.people.length) {
-        out.push({
-          title: "People",
-          rows: remote.people.map((item) => ({ type: "result", item })),
-        });
-      }
       if (remote.lists.length) {
         out.push({
           title: "Lists",
@@ -210,7 +204,7 @@ export function SearchPalette({ open, onOpenChange }: SearchPaletteProps) {
             ref={inputRef}
             type="text"
             className="cmd-input min-w-0 flex-1 border-none bg-transparent text-[15px] text-[var(--text-primary)] outline-none"
-            placeholder="Search companies, people, pages…"
+            placeholder="Search companies, lists, pages…"
             value={query}
             onChange={(e) => {
               const nextQuery = e.target.value;

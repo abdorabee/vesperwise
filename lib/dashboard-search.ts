@@ -4,10 +4,7 @@ import {
   Crosshair,
   Gauge,
   History,
-  UserSearch,
   Eye,
-  Zap,
-  Inbox,
   CreditCard,
   Key,
   List,
@@ -37,17 +34,15 @@ export interface SearchResultItem {
   band?: "HOT" | "WARM" | "COLD" | null;
 }
 
+// People, Inbox and Autopilot are hidden until they ship; their routes still work by URL.
 export const SEARCH_NAV_ITEMS: SearchNavItem[] = [
   { id: "dashboard", kind: "page", label: "Dashboard", href: "/dashboard", keywords: "home overview", icon: LayoutGrid },
   { id: "pipeline", kind: "page", label: "Intent Hub", href: "/pipeline", keywords: "pipeline intent hub deals", icon: Crosshair },
   { id: "score", kind: "page", label: "Score", href: "/score", keywords: "score company domain lookup", icon: Gauge },
   { id: "history", kind: "page", label: "History", href: "/history", keywords: "history runs past scores", icon: History },
-  { id: "people", kind: "page", label: "People", href: "/people", keywords: "people contacts person scoring", icon: UserSearch },
   { id: "watchlist", kind: "page", label: "Watchlist", href: "/watchlist", keywords: "watchlist monitor accounts", icon: Eye },
   { id: "lists", kind: "page", label: "Lists", href: "/lists", keywords: "lists segments accounts", icon: List },
   { id: "bulk", kind: "page", label: "Bulk Score", href: "/bulk", keywords: "bulk csv upload score companies", icon: Upload },
-  { id: "autopilot", kind: "page", label: "Autopilot", href: "/autopilot", keywords: "autopilot workflows automation", icon: Zap },
-  { id: "inbox", kind: "page", label: "Inbox", href: "/inbox", keywords: "inbox notifications messages alerts", icon: Inbox },
   // "memory" stays in the keywords so anyone who learned the old name still lands here.
   { id: "settings-profile", kind: "page", label: "Business Profile", href: "/settings/profile", keywords: "profile memory settings business profile icp industries", icon: BrainCircuit },
   { id: "settings-account", kind: "page", label: "Settings", href: "/settings/account", keywords: "settings account workspace name role preferences", icon: Settings },
