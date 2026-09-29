@@ -5,12 +5,11 @@ import Link from "next/link";
 import VesperWiseLogo from "@/components/vesperwise-logo";
 
 const NAV_ITEMS = [
-  { label: "Product",    href: "#product" },
-  { label: "Autopilot", href: "#autopilot" },
+  { label: "Product",    href: "/#product" },
+  { label: "Autopilot",  href: "/#autopilot" },
   { label: "Developers", href: "/docs" },
-  { label: "Pricing",   href: "#pricing" },
-  { label: "Customers", href: "#customers" },
-  { label: "Company",   href: "/about" },
+  { label: "Pricing",    href: "/pricing" },
+  { label: "About",      href: "/about" },
 ];
 
 export default function LandingNav() {
@@ -26,18 +25,11 @@ export default function LandingNav() {
 
           {/* Desktop nav links */}
           <div className="nav-links">
-            <a className="nav-link" href="#product">
-              Product
-              <svg className="chev" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 4.5l3 3 3-3"/></svg>
-            </a>
-            <a className="nav-link" href="#autopilot">Autopilot</a>
-            <a className="nav-link" href="/docs">Developers</a>
-            <a className="nav-link" href="#pricing">Pricing</a>
-            <a className="nav-link" href="#customers">Customers</a>
-            <a className="nav-link" href="/about">
-              Company
-              <svg className="chev" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 4.5l3 3 3-3"/></svg>
-            </a>
+            {NAV_ITEMS.map((item) => (
+              <a key={item.href} className="nav-link" href={item.href}>
+                {item.label}
+              </a>
+            ))}
           </div>
 
           <div className="nav-spacer" />
