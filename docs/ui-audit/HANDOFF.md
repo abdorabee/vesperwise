@@ -51,7 +51,7 @@ MOCK_SIGNALS=true npm run dev
 
 ## Known limits (intentional)
 - History "sort by Δ" only reorders the loaded page, because deltas are computed client-side.
-- `/api/v1/score/bulk` is documented as early access; the BullMQ worker isn't wired up.
+- `/api/v1/score/bulk` is documented as early access; the bulk processor isn't wired up.
 - The API keys list can't show a key prefix, because only hashes are stored.
 - Home KPIs use fixed 7-day windows; only the trend and the activity feed follow `?range=`.
 - The band-trend chart is hand-built SVG/CSS (Recharts isn't installed).

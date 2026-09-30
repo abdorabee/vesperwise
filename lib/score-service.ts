@@ -8,7 +8,7 @@ import {
   SCORE_RESULT_TTL_SECONDS,
   scoreEvidenceCacheKey,
   scoreResultCacheKey,
-} from "@/lib/redis";
+} from "@/lib/cache";
 import { createSupabaseAdmin } from "@/lib/supabase";
 import { fetchFundingSignal } from "@/lib/signals/funding";
 import { fetchHiringSignal } from "@/lib/signals/hiring";

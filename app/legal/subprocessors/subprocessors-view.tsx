@@ -215,11 +215,6 @@ export default function SubprocessorsView() {
                   "United States"
                 ],
                 [
-                  <Strong key="name">Upstash</Strong>,
-                  "Redis cache, rate limiting",
-                  "United States"
-                ],
-                [
                   <Strong key="name">OpenRouter</Strong>,
                   "AI model routing",
                   "United States"

@@ -8,6 +8,10 @@ export default defineConfig({
     },
   },
   test: {
-    exclude: [...configDefaults.exclude, ".claude/**"],
+    exclude: [
+      ...configDefaults.exclude,
+      ".claude/**",
+      "workers/shared/pg-queue.test.mjs",
+    ],
   },
 });

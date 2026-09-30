@@ -1,10 +1,14 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+const enqueueJob = vi.hoisted(() => vi.fn());
+
+vi.mock("@/lib/job-queue", () => ({ enqueueJob }));
 
 import {
+  enqueueWebEnrichment,
   WEB_ENRICHMENT_SIGNAL_KEYS,
   webEnrichmentSignalsForStatuses,
   webEnrichmentDeduplicationId,
-  webEnrichmentJobId,
 } from "./web-enrichment-queue";
 
 describe("web enrichment queue identifiers", () => {
@@ -26,16 +30,43 @@ describe("web enrichment queue identifiers", () => {
       .toEqual([...WEB_ENRICHMENT_SIGNAL_KEYS]);
   });
 
-  it("deduplicates a domain within a six-hour freshness bucket", () => {
-    const start = Date.UTC(2026, 6, 24, 0, 0, 0);
-    expect(webEnrichmentJobId("Example.COM", start))
-      .toBe(webEnrichmentJobId("example.com", start + 60_000));
-    expect(webEnrichmentJobId("example.com", start))
-      .not.toBe(webEnrichmentJobId("example.com", start + 6 * 60 * 60 * 1000));
-  });
-
   it("uses a stable domain-level deduplication key", () => {
     expect(webEnrichmentDeduplicationId(" Example.COM "))
       .toBe("web-enrichment-v1-example.com");
+  });
+});
+
+describe("web enrichment enqueue", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    enqueueJob.mockReset();
+  });
+
+  it("enqueues a Postgres-backed job with unique requested signals", async () => {
+    enqueueJob.mockResolvedValue(true);
+
+    await expect(enqueueWebEnrichment(" Example.COM ", ["hiring", "funding", "hiring"]))
+      .resolves.toBe(true);
+
+    expect(enqueueJob).toHaveBeenCalledWith(
+      "web-enrichment",
+      "web-enrichment-v1-example.com",
+      expect.objectContaining({
+        domain: "example.com",
+        schemaVersion: "web-enrichment-v1",
+        requestedAt: expect.any(String),
+        signals: ["hiring", "funding"],
+        shadow: true,
+      }),
+      { maxAttempts: 3 }
+    );
+  });
+
+  it("skips enqueueing when mock signals are active", async () => {
+    vi.stubEnv("MOCK_SIGNALS", "true");
+
+    await expect(enqueueWebEnrichment("example.com")).resolves.toBe(false);
+
+    expect(enqueueJob).not.toHaveBeenCalled();
   });
 });

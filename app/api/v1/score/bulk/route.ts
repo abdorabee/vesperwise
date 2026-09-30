@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Failed to create job" }, { status: 500 });
   }
 
-  // TODO: Push to BullMQ queue (Railway worker) — wired up in step 13
+  // TODO: Hand off to the bulk scoring processor.
   // await bulkQueue.add('score-bulk', { jobId: job.id, companies: body.companies, userId });
 
   return NextResponse.json({

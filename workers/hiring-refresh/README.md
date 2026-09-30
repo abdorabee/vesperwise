@@ -1,6 +1,6 @@
 # Hiring refresh worker
 
-This worker consumes deduplicated `hiring-refresh` BullMQ jobs, runs the pinned
+This worker consumes deduplicated Postgres-backed `hiring-refresh` jobs, runs the pinned
 Scrapling crawler, and stores `hiring-v2` evidence in `signal_evidence`. It is a
 fallback for hiring coverage, not a second signal to add on top of Explorium.
 
@@ -11,7 +11,6 @@ The web app enqueues a refresh when primary Explorium hiring evidence is
 
 Required:
 
-- `BULLMQ_REDIS_URL` — a Redis TCP/TLS URL (Upstash REST is not compatible)
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY`
 
@@ -26,8 +25,9 @@ Optional:
 - `SCRAPLING_JOB_TIMEOUT_MS` (default `90000`)
 - `PYTHON_BIN` (default `python3`)
 
-`UPSTASH_REDIS_REST_URL` serves the web cache only. BullMQ requires a Redis
-connection that supports its TCP/TLS protocol.
+The web app only enqueues when it runs with `BACKGROUND_JOBS_ENABLED=true`.
+Jobs are claimed from the Supabase `background_jobs` table through service-role
+RPCs. No separate queue service is required.
 
 ## Promotion behavior
 
@@ -84,4 +84,4 @@ Run the production container with a read-only root filesystem, a writable
 network policy that denies private, loopback, link-local, and cloud metadata
 ranges. The crawler pins validated public DNS answers for static and browser
 fetches, runs as a non-root user, and does not inherit the worker's Supabase or
-Redis credentials.
+queue or unrelated application credentials.
