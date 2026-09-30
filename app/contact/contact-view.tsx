@@ -1,12 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { STARTING_PRICE } from "@/lib/plan-features";
+import { PLAN_CREDITS } from "@/lib/types";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { validateContactForm, type ContactFormErrors } from "@/lib/contact-form";
+import LandingNav from "@/components/landing/LandingNav";
 import SiteFooter from "@/components/site-footer";
 import { CONTACT_REASONS as REASONS, type ContactReasonId } from "@/lib/contact";
-import VesperWiseLogo from "@/components/vesperwise-logo";
 
 /* ── Design tokens ───────────────────────────────────────────── */
 const T = {
@@ -29,75 +31,51 @@ const T = {
   fontMono:      "var(--font-sans)",
 };
 
-const NAV_LINKS = [
-  { label: "Product",    href: "/#product"   },
-  { label: "Autopilot",  href: "/#autopilot" },
-  { label: "Developers", href: "/docs"       },
-  { label: "Pricing",    href: "/#pricing"   },
-];
-
 const CHANNELS = [
   {
     type: "sales",
-    label: "Sales · Demos",
-    name: "Talk to a sales engineer",
-    desc: "Plan sizing, multi‑seat pricing, security questionnaires.",
+    label: "Demos and plans",
+    name: "Book a demo or ask about pricing",
+    desc: "See VesperWise on your own target accounts, or find the right plan.",
     email: "sales@vesperwise.com",
-    color: { bg: "rgba(223,255,0,0.12)", fg: "#dfff00" },
     icon: (
-      <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" width="16" height="16">
+      <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" width="16" height="16" aria-hidden="true">
         <path d="M3 5l6 5 6-5"/><rect x="2" y="4" width="14" height="11" rx="1.5"/>
       </svg>
     ),
   },
   {
     type: "support",
-    label: "Product support",
-    name: "For paying customers",
-    desc: "Bugs, billing, integrations. Reply within one business day.",
+    label: "Support",
+    name: "Help with your account",
+    desc: "Scoring questions, billing, API keys and bugs.",
     email: "support@vesperwise.com",
-    color: { bg: "rgba(223,255,0,0.12)", fg: T.cyan },
     icon: (
-      <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" width="16" height="16">
+      <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" width="16" height="16" aria-hidden="true">
         <circle cx="9" cy="9" r="7"/><path d="M9 5v4l3 1"/>
       </svg>
     ),
   },
   {
     type: "security",
-    label: "Security · Trust",
-    name: "Vulnerability reports, SOC 2 + DPA",
-    desc: "PGP key on the Security page. Bounties paid in 14 days.",
+    label: "Security and privacy",
+    name: "Report a vulnerability or ask about data",
+    desc: "Security reports, questionnaires and data protection requests.",
     email: "security@vesperwise.com",
-    color: { bg: "rgba(74,222,128,0.10)", fg: T.hot },
     icon: (
-      <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" width="16" height="16">
+      <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" width="16" height="16" aria-hidden="true">
         <path d="M9 2L3 4v5c0 4 6 7 6 7s6-3 6-7V4z"/><path d="M6.5 9l2 2 3-4"/>
-      </svg>
-    ),
-  },
-  {
-    type: "press",
-    label: "Press · Analyst",
-    name: "Briefings, comments, press kit",
-    desc: "Logo files, exec headshots, embargoes — all in the kit.",
-    email: "support@vesperwise.com",
-    color: { bg: "rgba(245,181,68,0.10)", fg: T.warm },
-    icon: (
-      <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" width="16" height="16">
-        <path d="M3 5h12v9H3z"/><path d="M6 8h6M6 11h4"/>
       </svg>
     ),
   },
   {
     type: "partners",
     label: "Partnerships",
-    name: "Integrations, resellers, agencies",
-    desc: "If you build for sales teams, we'd like to meet.",
+    name: "Agencies and integrations",
+    desc: "If you build for or sell to sales teams, we would like to talk.",
     email: "sales@vesperwise.com",
-    color: { bg: "rgba(138,143,152,0.10)", fg: "#8a8f98" },
     icon: (
-      <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" width="16" height="16">
+      <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" width="16" height="16" aria-hidden="true">
         <circle cx="6" cy="9" r="3"/><circle cx="12" cy="9" r="3"/>
       </svg>
     ),
@@ -108,24 +86,24 @@ const TEAM_SIZES = ["1 – 10", "10 – 50", "50 – 200", "200 – 1,000", "1,0
 
 const FAQS = [
   {
-    q: "Can I try VesperWise without giving you a credit card?",
-    a: "Yes. The Free tier gives you 20 account scores, full dashboard access, and AI summaries on every score. No card. If you want more, Starter is $29/mo with no annual commitment.",
+    q: "Can I try VesperWise without a credit card?",
+    a: `Yes. The Free plan includes ${PLAN_CREDITS.free} account scores with the full evidence and next step on each one. Paid plans start at $${STARTING_PRICE}/mo, billed monthly with no contract.`,
   },
   {
-    q: "Do you have a security questionnaire pre‑filled?",
-    a: "We do. We maintain a pre‑filled CAIQ Lite, SIG Core, and a Vanta trust portal that covers ~90% of incoming questionnaires. Email security@vesperwise.com and we'll send the bundle the same day.",
+    q: "How do credits work?",
+    a: "One credit scores one company. Checking the same company again within 6 hours is free, and a company without enough reliable data returns no score and uses no credit.",
   },
   {
-    q: "How long does an enterprise rollout typically take?",
-    a: "Most teams are live inside two weeks — usually four working days for a 25–50 seat team, plus a week for SSO + HubSpot/Salesforce mapping. The longest part is usually procurement.",
+    q: "Do you answer security questionnaires?",
+    a: "Yes. Email security@vesperwise.com with your questionnaire and we will answer it directly. Our current controls are listed on the Security page.",
   },
   {
-    q: "Can we BYO Anthropic key for AI reasoning?",
-    a: "On Pro and Agency, yes. Drop your Anthropic key into Settings → AI and we'll route all summary + chat copilot calls through your account. Useful for AUP scope, billing consolidation, and model‑choice control.",
+    q: "Where is customer data stored?",
+    a: "VesperWise runs on Vercel and Supabase. The Subprocessors page lists every provider we use and where it processes data.",
   },
   {
-    q: "Where is customer data stored, and can I pick a region?",
-    a: "Primary stack on Vercel (us‑east‑1) + Supabase (us‑east‑1) today. EU region (Frankfurt) ships Q3 2026 — Pro and Agency customers can opt in. See the Security page for the full data map.",
+    q: "How do I get a demo?",
+    a: "Use the form on this page and pick \"Book a demo\". We will reply by email to find a time and can run the demo on accounts from your own target list.",
   },
 ];
 
@@ -243,49 +221,14 @@ export default function ContactView() {
         html { scroll-behavior: smooth; }
         .ch-card:hover { border-color: var(--border-strong) !important; background: var(--muted) !important; }
         .ch-card:hover .ch-arrow { color: var(--foreground) !important; transform: translateX(2px) !important; }
-        .nav-link-hover:hover { color: var(--foreground) !important; background: var(--muted) !important; }
-        .field-input:focus { border-color: #dfff00 !important; background: rgba(223,255,0,0.04) !important; }
+        .field-input:focus { border-color: var(--brand-border) !important; box-shadow: 0 0 0 3px var(--brand-soft); }
         .field-input::placeholder { color: #62666d; }
         .reason-chip { transition: border-color 0.15s, background 0.15s, color 0.15s; }
         .reason-chip:hover:not(.active) { border-color: var(--border-strong) !important; }
         .faq-item:hover { border-color: var(--border-strong) !important; }
       `}</style>
 
-      {/* ── Sticky banner ── */}
-      <div style={{ position: "sticky", top: 0, zIndex: 100, height: "36px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "13px", color: T.txtSecondary, background: "var(--bg-translucent)", backdropFilter: "saturate(180%) blur(20px)", WebkitBackdropFilter: "saturate(180%) blur(20px)", borderBottom: `1px solid ${T.border}`, letterSpacing: "-0.011em", gap: 0 } as React.CSSProperties}>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", marginRight: "10px", fontSize: "11px", fontWeight: 600, color: T.cyan, background: T.cyanSoft, padding: "1px 8px", borderRadius: "999px" }}>Sales</span>
-        <strong style={{ color: T.txtPrimary, fontWeight: 500 }}>Every message gets a human reply</strong>
-        <span style={{ margin: "0 6px", color: T.txtQuaternary }}>·</span>
-        within one business day
-        <span style={{ margin: "0 10px", color: T.txtQuaternary }}>·</span>
-        <a href="#contact-form" style={{ display: "inline-flex", alignItems: "center", gap: "4px", color: T.txtSecondary, textDecoration: "none" }}>
-          Book a demo
-          <svg style={{ width: "12px", height: "12px" }} viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 6h6M7 4l2 2-2 2"/></svg>
-        </a>
-      </div>
-
-      {/* ── Sticky nav ── */}
-      <nav style={{ position: "sticky", top: "36px", zIndex: 50, background: "var(--bg-translucent)", backdropFilter: "saturate(180%) blur(20px)", WebkitBackdropFilter: "saturate(180%) blur(20px)", borderBottom: `1px solid ${T.border}` } as React.CSSProperties}>
-        <div style={{ display: "flex", alignItems: "center", height: "56px", padding: "0 24px", maxWidth: "1320px", margin: "0 auto", gap: "28px" }}>
-          <Link href="/" aria-label="VesperWise home" style={{ display: "inline-flex", alignItems: "center", gap: "8px", fontWeight: 600, letterSpacing: "-0.022em", fontSize: "15px", color: T.txtPrimary, textDecoration: "none" }}>
-            <VesperWiseLogo size={42} variant="wordmark" />
-          </Link>
-          <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
-            {NAV_LINKS.map(({ label, href }) => (
-              <Link key={label} href={href} className="nav-link-hover" style={{ display: "inline-flex", alignItems: "center", fontSize: "14px", color: T.txtSecondary, padding: "6px 10px", borderRadius: "6px", letterSpacing: "-0.011em", textDecoration: "none" }}>
-                {label}
-              </Link>
-            ))}
-          </div>
-          <div style={{ flex: 1 }} />
-          <Link href="/login" style={{ fontSize: "14px", fontWeight: 500, color: T.txtSecondary, padding: "6px 10px", borderRadius: "6px", textDecoration: "none" }}>Sign in</Link>
-          <Link href="/signup" style={{ display: "inline-flex", alignItems: "center", fontSize: "14px", fontWeight: 500, color: T.txtPrimary, padding: "0 14px", height: "32px", borderRadius: "6px", border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.05)", textDecoration: "none" }}>Start free</Link>
-          <Link href="/contact" style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "14px", fontWeight: 500, color: "#000000", padding: "0 14px", height: "32px", borderRadius: "6px", background: T.accent, boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.12), 0 1px 2px rgba(0,0,0,0.3)", textDecoration: "none" }}>
-            Talk to us
-            <svg style={{ width: "12px", height: "12px" }} viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 6h6M7 4l2 2-2 2"/></svg>
-          </Link>
-        </div>
-      </nav>
+      <LandingNav />
 
       {/* ── Hero ── */}
       <section style={{ position: "relative", padding: "88px 0 64px", overflow: "hidden", borderBottom: `1px solid ${T.border}` }}>
@@ -294,15 +237,11 @@ export default function ContactView() {
           <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(rgba(255,255,255,0.022) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.022) 1px, transparent 1px)", backgroundSize: "64px 64px", maskImage: "radial-gradient(ellipse 80% 60% at 50% 30%, #000 30%, transparent 80%)", WebkitMaskImage: "radial-gradient(ellipse 80% 60% at 50% 30%, #000 30%, transparent 80%)" } as React.CSSProperties} />
         </div>
         <div style={{ position: "relative", zIndex: 2, maxWidth: "1200px", margin: "0 auto", padding: "0 24px" }}>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", fontSize: "13px", fontWeight: 500, color: T.txtSecondary, letterSpacing: "-0.011em", marginBottom: "22px" }}>
-            <span style={{ width: "5px", height: "5px", borderRadius: "999px", background: T.cyan, boxShadow: "0 0 8px #dfff00", display: "block" }} />
-            Contact
-          </div>
           <h1 style={{ fontWeight: 500, letterSpacing: "-0.042em", lineHeight: 1.05, fontSize: "clamp(40px, 6.4vw, 76px)", marginBottom: "22px", color: T.txtPrimary }}>
-            The fastest way<br />to reach us.
+            Talk to the team<br />behind VesperWise.
           </h1>
           <p style={{ maxWidth: "560px", color: T.txtSecondary, fontSize: "clamp(16px, 1.25vw, 19px)", lineHeight: 1.55, letterSpacing: "-0.011em" }}>
-            Five channels. The right one is whichever gets a human to your problem fastest. Every message gets a reply from a real person within one business day.
+            Questions about scoring, pricing or a demo on your own accounts? Email the right inbox below or send a note. Every message gets a reply from a person within one business day.
           </p>
         </div>
       </section>
@@ -314,7 +253,7 @@ export default function ContactView() {
         <div style={{ display: "flex", flexDirection: "column" }}>
           <h2 style={{ fontSize: "24px", fontWeight: 500, letterSpacing: "-0.022em", color: T.txtPrimary, marginBottom: "6px" }}>Pick a channel.</h2>
           <p style={{ fontSize: "15px", lineHeight: 1.6, color: T.txtTertiary, letterSpacing: "-0.006em", marginBottom: "28px", maxWidth: "420px" }}>
-            Each one routes to a real person — not a queue, not a ticketing system that won&rsquo;t reply for nine days.
+            Every message is read by the team, not a bot.
           </p>
 
           {CHANNELS.map((ch) => (
@@ -324,11 +263,11 @@ export default function ContactView() {
               className="ch-card"
               style={{ border: `1px solid ${T.border}`, borderRadius: "8px", background: T.bgEl, padding: "18px 20px", display: "grid", gridTemplateColumns: "32px 1fr auto", gap: "14px", alignItems: "center", cursor: "pointer", transition: "border-color 0.15s, background 0.15s", marginBottom: "8px", textDecoration: "none" }}
             >
-              <div style={{ width: "32px", height: "32px", display: "grid", placeItems: "center", borderRadius: "6px", flexShrink: 0, background: ch.color.bg, color: ch.color.fg }}>
+              <div style={{ width: "32px", height: "32px", display: "grid", placeItems: "center", borderRadius: "6px", flexShrink: 0, background: "var(--muted)", color: T.txtPrimary }}>
                 {ch.icon}
               </div>
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: "11px", color: T.txtQuaternary, textTransform: "uppercase", letterSpacing: "0.06em", fontFamily: T.fontMono, marginBottom: "2px" }}>{ch.label}</div>
+                <div style={{ fontSize: "12px", color: T.txtTertiary, marginBottom: "2px" }}>{ch.label}</div>
                 <div style={{ fontSize: "15px", fontWeight: 500, color: T.txtPrimary, letterSpacing: "-0.011em", marginBottom: "4px" }}>{ch.name}</div>
                 <div style={{ fontSize: "13px", color: T.txtTertiary, letterSpacing: "-0.006em", lineHeight: 1.4 }}>{ch.desc}</div>
               </div>
@@ -465,7 +404,7 @@ export default function ContactView() {
                 required
                 aria-invalid={!!errors.message}
                 aria-describedby={errors.message ? "contact-message-error" : undefined}
-                placeholder="We're evaluating VesperWise vs 6sense. Looking for a 20‑min walkthrough of Autopilot routing logic…"
+                placeholder="We sell to mid-market SaaS and want to see how VesperWise scores our target list…"
                 value={message}
                 onChange={(e) => { setMessage(e.target.value); clearError("message"); }}
                 className="field-input"
@@ -485,7 +424,7 @@ export default function ContactView() {
               >
                 {status === "success" ? "Sent ✓" : status === "loading" ? "Sending…" : (
                   <>
-                    Send to sales
+                    Send message
                     <svg style={{ width: "12px", height: "12px" }} viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 6h6M7 4l2 2-2 2"/></svg>
                   </>
                 )}
@@ -495,7 +434,7 @@ export default function ContactView() {
                 <Link href="/terms" style={{ color: T.txtTertiary, textDecoration: "underline", textDecorationColor: T.borderStrong, textUnderlineOffset: "2px" }}>Terms</Link>
                 {" "}and{" "}
                 <Link href="/privacy" style={{ color: T.txtTertiary, textDecoration: "underline", textDecorationColor: T.borderStrong, textUnderlineOffset: "2px" }}>Privacy Policy</Link>
-                . We won&rsquo;t add you to a drip campaign.
+                .
               </p>
             </div>
             {status === "error" && (
@@ -511,15 +450,11 @@ export default function ContactView() {
       {/* ── FAQ strip ── */}
        <section style={{ borderTop: `1px solid ${T.border}`, background: T.bgEl, padding: "64px 0" }}>
         <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 24px" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: "48px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "32px 48px" }}>
             <div>
-              <div style={{ fontSize: "12px", color: T.txtTertiary, textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 500 }}>Before you send</div>
-              <h3 style={{ fontSize: "24px", fontWeight: 500, letterSpacing: "-0.022em", color: T.txtPrimary, marginTop: "12px", marginBottom: "8px" }}>
-                The five questions we get most.
+              <h3 style={{ fontSize: "24px", fontWeight: 500, letterSpacing: "-0.022em", color: T.txtPrimary, marginBottom: "8px" }}>
+                Common questions
               </h3>
-              <p style={{ fontSize: "14px", color: T.txtTertiary, lineHeight: 1.55, letterSpacing: "-0.006em", maxWidth: "280px" }}>
-                If your question is here, you&rsquo;ll have an answer in 30 seconds.
-              </p>
             </div>
             <div>
               {FAQS.map((faq) => (

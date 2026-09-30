@@ -4,7 +4,7 @@ import { useState, useMemo, type ReactElement } from "react";
 import type { BillingStats, DailyUsageDay } from "@/lib/billing-stats";
 
 const SEGMENTS = [
-  { key: "score" as const, label: "Score", color: "#dfff00" },
+  { key: "score" as const, label: "Score", color: "var(--foreground)" },
   { key: "bulk" as const, label: "Bulk", color: "#a0a0a0" },
   { key: "people" as const, label: "People", color: "#4ade80" },
   { key: "autopilot" as const, label: "Autopilot", color: "#f5b544" },
@@ -14,19 +14,16 @@ const SEGMENTS = [
 const SVG_W = 600;
 const SVG_H = 162;
 
-type Range = "7D" | "30D" | "90D" | "YTD";
+// dailyUsage covers the last 30 days, so only offer ranges that data can fill.
+type Range = "7D" | "30D";
+const RANGES: Range[] = ["7D", "30D"];
 
 interface BillingUsageChartProps {
   stats: BillingStats;
 }
 
 function sliceDays(days: DailyUsageDay[], range: Range): DailyUsageDay[] {
-  if (range === "7D") return days.slice(-7);
-  if (range === "YTD") {
-    const jan1 = new Date(new Date().getFullYear(), 0, 1).toISOString().slice(0, 10);
-    return days.filter((d) => d.date >= jan1);
-  }
-  return days.slice(-30); // 30D and 90D both use the 30d data we have
+  return range === "7D" ? days.slice(-7) : days.slice(-30);
 }
 
 function handleExportCSV(days: DailyUsageDay[]) {
@@ -114,10 +111,11 @@ export function BillingUsageChart({ stats }: BillingUsageChartProps) {
         </div>
         <div className="right">
           <div className="range-tabs">
-            {(["7D", "30D", "90D", "YTD"] as Range[]).map((r) => (
+            {RANGES.map((r) => (
               <button
                 key={r}
                 type="button"
+                aria-pressed={range === r}
                 className={`range-tab${range === r ? " active" : ""}`}
                 onClick={() => setRange(r)}
               >
@@ -129,9 +127,10 @@ export function BillingUsageChart({ stats }: BillingUsageChartProps) {
             type="button"
             className="mini-ic"
             title="Download CSV"
+            aria-label="Download usage as CSV"
             onClick={() => handleExportCSV(days)}
           >
-            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" width="11" height="11">
+            <svg aria-hidden="true" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" width="11" height="11">
               <path d="M3 7l3 3 3-3M6 1v9" />
             </svg>
           </button>
@@ -182,7 +181,7 @@ export function BillingUsageChart({ stats }: BillingUsageChartProps) {
                   transform: "translateX(-50%)",
                   fontFamily: "var(--font-mono)",
                   fontSize: 9,
-                  color: "rgba(255,255,255,0.5)",
+                  color: "var(--muted-foreground)",
                   letterSpacing: "0.08em",
                   lineHeight: 1,
                   whiteSpace: "nowrap",
@@ -236,7 +235,7 @@ export function BillingUsageChart({ stats }: BillingUsageChartProps) {
                   y1={SVG_H * (1 - pct)}
                   x2={SVG_W}
                   y2={SVG_H * (1 - pct)}
-                  stroke="rgba(255,255,255,0.04)"
+                  style={{ stroke: "var(--border)" }}
                   strokeWidth={1}
                 />
               ))}
@@ -283,7 +282,7 @@ export function BillingUsageChart({ stats }: BillingUsageChartProps) {
                       y={segY}
                       width={barW}
                       height={segH}
-                      fill={seg.color}
+                      style={{ fill: seg.color }}
                     />,
                   );
                   accH += segH;
@@ -307,7 +306,7 @@ export function BillingUsageChart({ stats }: BillingUsageChartProps) {
                   y1={10}
                   x2={todayX}
                   y2={SVG_H}
-                  stroke="rgba(255,255,255,0.22)"
+                  style={{ stroke: "var(--muted-foreground)" }}
                   strokeWidth={1}
                 />
               )}

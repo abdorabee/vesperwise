@@ -2,12 +2,13 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { toast } from "sonner";
 import { toCSV, downloadCSV, csvFilename } from "@/lib/csv";
 import type { WatchlistRange, WatchlistStats } from "@/lib/watchlist-stats";
 import { WatchlistPageHead } from "@/components/watchlist/watchlist-page-head";
 import { WatchlistAlertStrip } from "@/components/watchlist/watchlist-alert-strip";
 import { WatchlistListTabs } from "@/components/watchlist/watchlist-list-tabs";
-import { WatchlistTable } from "@/components/watchlist/watchlist-table";
+import { lastScoreHref, WatchlistTable } from "@/components/watchlist/watchlist-table";
 import {
   WatchlistQuickAdd,
   type WatchlistQuickAddHandle,
@@ -37,7 +38,8 @@ export function WatchlistView({ initial }: WatchlistViewProps) {
   const [showAll, setShowAll] = useState(false);
   const [adding, setAdding] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
-  const [removing, setRemoving] = useState<string | null>(null);
+  // Removals wait out the undo window before the DELETE is sent.
+  const pendingRemovals = useRef(new Map<string, number>());
 
   useEffect(() => {
     setEntries(initial.entries);
@@ -49,6 +51,18 @@ export function WatchlistView({ initial }: WatchlistViewProps) {
     const q = searchParams.get("q")?.trim();
     if (q) setQuery(q);
   }, [searchParams]);
+
+  useEffect(() => {
+    const pending = pendingRemovals.current;
+    return () => {
+      // Leaving the page commits any removal still inside its undo window.
+      for (const [domain, timer] of pending) {
+        window.clearTimeout(timer);
+        void fetch(`/api/dashboard/watchlist?domain=${encodeURIComponent(domain)}`, { method: "DELETE", keepalive: true });
+      }
+      pending.clear();
+    };
+  }, []);
 
   useEffect(() => {
     function onFocusAdd() {
@@ -95,27 +109,65 @@ export function WatchlistView({ initial }: WatchlistViewProps) {
     }
   }
 
-  async function handleRemove(domain: string) {
-    setRemoving(domain);
-    try {
-      await fetch(`/api/dashboard/watchlist?domain=${encodeURIComponent(domain)}`, {
-        method: "DELETE",
+  function adjustCounts(domain: string, by: 1 | -1) {
+    const lower = domain.toLowerCase();
+    setStats((current) => ({ ...current, total: Math.max(0, current.total + by) }));
+    setLists((prev) =>
+      prev.map((tab) =>
+        tab.id === "all" || tab.domains.includes(lower) ? { ...tab, count: Math.max(0, tab.count + by) } : tab,
+      ),
+    );
+  }
+
+  function handleRemove(domain: string) {
+    const index = entries.findIndex((entry) => entry.domain === domain);
+    const entry = entries[index];
+    if (!entry || pendingRemovals.current.has(domain)) return;
+
+    setEntries((prev) => prev.filter((item) => item.domain !== domain));
+    setSelected((prev) => {
+      if (!prev.has(domain)) return prev;
+      const next = new Set(prev);
+      next.delete(domain);
+      return next;
+    });
+    adjustCounts(domain, -1);
+
+    const restore = () => {
+      setEntries((prev) => {
+        if (prev.some((item) => item.domain === domain)) return prev;
+        const next = [...prev];
+        next.splice(Math.min(index, next.length), 0, entry);
+        return next;
       });
-      const lower = domain.toLowerCase();
-      setEntries((prev) => prev.filter((e) => e.domain !== domain));
-      setStats((s) => ({ ...s, total: Math.max(0, s.total - 1) }));
-      setLists((prev) =>
-        prev.map((tab) => {
-          if (tab.id === "all") return { ...tab, count: Math.max(0, tab.count - 1) };
-          if (tab.domains.includes(lower)) {
-            return { ...tab, count: Math.max(0, tab.count - 1) };
-          }
-          return tab;
-        }),
-      );
-    } finally {
-      setRemoving(null);
-    }
+      adjustCounts(domain, 1);
+    };
+
+    const timer = window.setTimeout(async () => {
+      pendingRemovals.current.delete(domain);
+      try {
+        const res = await fetch(`/api/dashboard/watchlist?domain=${encodeURIComponent(domain)}`, { method: "DELETE" });
+        if (!res.ok) throw new Error("remove failed");
+      } catch {
+        restore();
+        toast.error(`Couldn't remove ${entry.company_name}. It's back on your watchlist.`);
+      }
+    }, 5000);
+    pendingRemovals.current.set(domain, timer);
+
+    toast(`Removed ${entry.company_name}`, {
+      duration: 5000,
+      action: {
+        label: "Undo",
+        onClick: () => {
+          const pending = pendingRemovals.current.get(domain);
+          if (pending === undefined) return;
+          window.clearTimeout(pending);
+          pendingRemovals.current.delete(domain);
+          restore();
+        },
+      },
+    });
   }
 
   function handleExport() {
@@ -164,12 +216,29 @@ export function WatchlistView({ initial }: WatchlistViewProps) {
           onDismiss={() => setAlertDismissed(true)}
           onReview={() => {
             const first = alertItems[0];
-            if (first) router.push(`/score?domain=${encodeURIComponent(first.domain)}`);
+            if (first) router.push(lastScoreHref(first.domain));
           }}
         />
       )}
 
       <WatchlistListTabs tabs={lists} activeId={activeListId} onChange={setActiveListId} />
+
+      {selected.size > 0 && (
+        <div
+          role="toolbar"
+          aria-label="Selected accounts"
+          style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, padding: "8px 12px", border: "1px solid var(--border)", borderRadius: "var(--r-md)", background: "var(--bg-elevated)", fontSize: 13 }}
+        >
+          <span style={{ color: "var(--text-secondary)", fontVariantNumeric: "tabular-nums" }}>{selected.size} selected</span>
+          <span style={{ flex: 1 }} />
+          <button type="button" className="tb-btn outlined" onClick={() => { for (const domain of [...selected]) handleRemove(domain); }}>
+            Remove
+          </button>
+          <button type="button" className="tb-btn" onClick={() => setSelected(new Set())}>
+            Clear
+          </button>
+        </div>
+      )}
 
       <WatchlistTable
         rows={filtered}
@@ -177,7 +246,9 @@ export function WatchlistView({ initial }: WatchlistViewProps) {
         selected={selected}
         onToggleSelect={toggleSelect}
         onRemove={handleRemove}
-        removing={removing}
+        onAdd={(domain) => void handleAdd(domain)}
+        onFocusAdd={() => quickAddRef.current?.focus()}
+        filtered={entries.length > 0}
         showAll={showAll}
         onShowAll={() => setShowAll(true)}
       />

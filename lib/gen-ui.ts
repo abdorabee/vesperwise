@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { ScoreBand, SignalSet } from "@/lib/types";
+import type { ScoreBand, SignalContribution, SignalResult, SignalSet } from "@/lib/types";
 
 const scoreBandSchema = z.enum(["HOT", "WARM", "COLD"]);
 
@@ -17,6 +17,14 @@ export const signalAxisSchema = z.object({
   observed_at: z.string().max(80).nullable().optional(),
   source: z.string().max(80).optional(),
   context: z.boolean().optional(),
+  /** First http(s) evidence URL for this signal, when the provider supplied one. */
+  source_url: z.string().url().max(2000).optional(),
+  /** Age of the observed evidence in days at scoring time. */
+  days_ago: z.number().nullable().optional(),
+  /** Points this signal added to the final score (trigger signals only). */
+  contribution: z.number().optional(),
+  /** Freshness multiplier 0–1 applied for evidence age. */
+  freshness: z.number().optional(),
 });
 
 const intentHeroSchema = z.object({
@@ -30,6 +38,8 @@ const intentHeroSchema = z.object({
   data_coverage: z.number().optional(),
   score_status: z.string().max(40).optional(),
   icp_fit_score: z.number().nullable().optional(),
+  /** When the score was computed (drives "Fetched N min ago"). */
+  last_updated: z.string().max(80).optional(),
 });
 
 const signalExplorerSchema = z.object({
@@ -107,13 +117,33 @@ const AXIS_META: Record<string, { label: string; context?: boolean }> = {
   github: { label: "GitHub activity", context: true },
 };
 
-export function signalAxesFromSet(signals: SignalSet): SignalAxis[] {
+function isHttpUrl(value: unknown): value is string {
+  if (typeof value !== "string" || value.length > 2000) return false;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:";
+  } catch {
+    return false;
+  }
+}
+
+function firstSourceUrl(sig: SignalResult, contribution?: SignalContribution): string | undefined {
+  const candidates = [
+    ...(sig.evidence ?? []).map((item) => item.source_url),
+    ...(contribution?.sourceUrls ?? []),
+  ];
+  return candidates.find(isHttpUrl);
+}
+
+export function signalAxesFromSet(signals: SignalSet, contributions: SignalContribution[] = []): SignalAxis[] {
   const keys = ["funding", "hiring", "news", "technology", "web", "github"] as const;
+  const byType = new Map(contributions.map((item) => [item.type as string, item]));
   return keys.flatMap((key) => {
     const sig = signals[key];
     if (!sig) return [];
     const meta = AXIS_META[key];
-    return [{
+    const contribution = byType.get(key);
+    const axis: SignalAxis = {
       key,
       label: meta.label,
       score: sig.score,
@@ -122,7 +152,15 @@ export function signalAxesFromSet(signals: SignalSet): SignalAxis[] {
       observed_at: sig.observed_at ?? null,
       source: sig.source,
       context: meta.context,
-    }];
+    };
+    const url = firstSourceUrl(sig, contribution);
+    if (url) axis.source_url = url;
+    if (contribution && !meta.context) {
+      axis.contribution = Math.round(contribution.contribution * 10) / 10;
+      axis.days_ago = contribution.daysAgo;
+      axis.freshness = contribution.freshness;
+    }
+    return [axis];
   });
 }
 
@@ -142,6 +180,8 @@ export type WorkspaceScore = {
   email_subject?: string;
   talk_track?: string;
   signals?: SignalSet;
+  contributions?: SignalContribution[];
+  last_updated?: string;
 };
 
 export function defaultSuggestions(score: { company: string; score_band: string }): UiSuggestion[] {
@@ -174,11 +214,12 @@ export function workspaceFromScore(score: WorkspaceScore): UiBlock[] {
       data_coverage: score.data_coverage,
       score_status: score.score_status,
       icp_fit_score: score.icp_fit_score,
+      last_updated: score.last_updated,
     },
   ];
 
   if (score.signals) {
-    const axes = signalAxesFromSet(score.signals);
+    const axes = signalAxesFromSet(score.signals, score.contributions);
     if (axes.length > 0) {
       const weakest = axes
         .filter((a) => !a.context)

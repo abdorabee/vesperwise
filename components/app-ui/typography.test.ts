@@ -25,7 +25,7 @@ describe("product typography", () => {
       "../../app/legal/dpa/dpa-view.tsx",
       "../../app/legal/security/security-view.tsx",
       "../../app/legal/subprocessors/subprocessors-view.tsx",
-      "../score/score-result-card.tsx",
+      "../score/gen-ui/workspace.tsx",
     ];
 
     for (const path of surfaces) {

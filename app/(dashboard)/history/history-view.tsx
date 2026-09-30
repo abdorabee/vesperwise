@@ -1,14 +1,29 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import type { CSSProperties } from "react";
 import { useRouter } from "next/navigation";
+import { BandPill } from "@/components/score/band";
 import { toCSV, downloadCSV as triggerDownload, csvFilename, formatSignal } from "@/lib/csv";
 import type { DbScore, IntentSignalKey, ScoreBand, SignalSet } from "@/lib/types";
 import type { HistoryStats, ActivityBucket } from "./page";
 
 interface HistoryViewProps { stats: HistoryStats; }
 
-const HT_GRID = "70px minmax(180px,1.2fr) 60px 70px 220px 1fr 90px 60px";
+const RANGES = [
+  { id: "24h", label: "24H" },
+  { id: "7d", label: "7D" },
+  { id: "30d", label: "30D" },
+  { id: "90d", label: "90D" },
+  { id: "all", label: "All" },
+] as const;
+type RangeId = (typeof RANGES)[number]["id"];
+type SortId = "newest" | "score" | "delta";
+
+function lastScoreHref(domain: string) {
+  return `/score?domain=${encodeURIComponent(domain)}&view=last`;
+}
+
+const HT_GRID = "70px minmax(180px,1.2fr) 60px 70px 220px 1fr 90px 36px";
 
 const S = {
   activityStrip: {
@@ -305,8 +320,12 @@ function DrawerRing({ score, band }: { score: number; band: string }) {
 
 export function HistoryView({ stats }: HistoryViewProps) {
   const [rows, setRows] = useState<DbScore[]>([]);
-  const [loading, setLoading] = useState(true);
+  // The query string whose response is on screen; anything else means a request is in flight.
+  const [loadedKey, setLoadedKey] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [range, setRange] = useState<RangeId>("all");
+  const [sort, setSort] = useState<SortId>("newest");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
@@ -316,23 +335,42 @@ export function HistoryView({ stats }: HistoryViewProps) {
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const router = useRouter();
 
-  const fetchScores = useCallback(async (p: number, q: string, band: ScoreBand | null) => {
-    setLoading(true);
-    try {
-      const params = new URLSearchParams({ page: String(p), limit: "20" });
-      if (q.trim()) params.set("q", q.trim());
-      if (band) params.set("band", band);
-      const res = await fetch(`/api/dashboard/scores?${params}`);
-      if (res.ok) {
+  const requestRef = useRef<AbortController | null>(null);
+
+  // Debounce typing so each keystroke doesn't fire (and race) a request.
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedQuery(query.trim()), 250);
+    return () => window.clearTimeout(timer);
+  }, [query]);
+
+  const params = new URLSearchParams({ page: String(page), limit: "20" });
+  if (debouncedQuery) params.set("q", debouncedQuery);
+  if (bandFilter) params.set("band", bandFilter);
+  if (range !== "all") params.set("range", range);
+  if (sort === "score") params.set("sort", "score");
+  const requestKey = params.toString();
+  const loading = loadedKey !== requestKey;
+
+  useEffect(() => {
+    requestRef.current?.abort();
+    const controller = new AbortController();
+    requestRef.current = controller;
+    fetch(`/api/dashboard/scores?${requestKey}`, { signal: controller.signal })
+      .then(async (res) => {
+        if (!res.ok) return;
         const data = await res.json();
         setRows(data.scores ?? []);
         setTotalPages(data.totalPages ?? 1);
         setTotal(data.total ?? 0);
-      }
-    } finally { setLoading(false); }
-  }, []);
-
-  useEffect(() => { fetchScores(page, query, bandFilter); }, [fetchScores, page, query, bandFilter]);
+      })
+      .catch((error: unknown) => {
+        if ((error as Error).name !== "AbortError") console.warn("[history] load failed", error);
+      })
+      .finally(() => {
+        if (requestRef.current === controller && !controller.signal.aborted) setLoadedKey(requestKey);
+      });
+    return () => controller.abort();
+  }, [requestKey]);
 
   useEffect(() => {
     if (!drawerOpen) return;
@@ -342,6 +380,8 @@ export function HistoryView({ stats }: HistoryViewProps) {
   }, [drawerOpen]);
 
   function handleSearch(val: string) { setQuery(val); setPage(1); }
+  function handleRange(next: RangeId) { setRange(next); setPage(1); }
+  function handleSort(next: SortId) { setSort(next); setPage(1); }
   function handleBandFilter(band: ScoreBand | null) { setBandFilter(b => b === band ? null : band); setPage(1); }
 
   function exportCSV() {
@@ -412,7 +452,16 @@ export function HistoryView({ stats }: HistoryViewProps) {
     );
   }
 
-  const groupedRows = rows.reduce<{ dateKey: string; rows: DbScore[] }[]>((acc, row) => {
+  const deltas = computeDeltas(rows);
+  const signedDelta = (row: DbScore) => {
+    const d = deltas.get(row.id);
+    if (!d || d.direction === "first") return Number.NEGATIVE_INFINITY;
+    return d.direction === "down" ? -d.diff : d.diff;
+  };
+  const sortedRows = sort === "delta" ? rows.slice().sort((a, b) => signedDelta(b) - signedDelta(a)) : rows;
+  const groupedRows = sort !== "newest"
+    ? [{ dateKey: sort === "score" ? "Highest score first" : "Biggest Δ vs previous first (this page)", rows: sortedRows }]
+    : rows.reduce<{ dateKey: string; rows: DbScore[] }[]>((acc, row) => {
     const dk = getDateGroupKey(row.created_at);
     const last = acc[acc.length - 1];
     if (last && last.dateKey === dk) last.rows.push(row);
@@ -420,7 +469,6 @@ export function HistoryView({ stats }: HistoryViewProps) {
     return acc;
   }, []);
 
-  const deltas = computeDeltas(rows);
   const today = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" });
   const drawerDelta = drawerRow ? deltas.get(drawerRow.id) : null;
 
@@ -438,9 +486,9 @@ export function HistoryView({ stats }: HistoryViewProps) {
           </div>
         </div>
         <div className="page-actions">
-          <div className="range-tabs">
-            {(["24H", "7D", "30D", "90D", "All"] as const).map(r => (
-              <span key={r} className={`range-tab${r === "30D" ? " active" : ""}`}>{r}</span>
+          <div className="range-tabs" role="group" aria-label="Time range">
+            {RANGES.map(r => (
+              <button key={r.id} type="button" aria-pressed={range === r.id} className={`range-tab${range === r.id ? " active" : ""}`} onClick={() => handleRange(r.id)}>{r.label}</button>
             ))}
           </div>
           <button className="tb-btn outlined" onClick={exportCSV} disabled={rows.length === 0}>
@@ -527,7 +575,8 @@ export function HistoryView({ stats }: HistoryViewProps) {
           <svg style={{ width: 12, height: 12, color: "var(--text-tertiary)", flexShrink: 0 }} viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="5" cy="5" r="3" /><path d="M7 7l3 3" /></svg>
           <input
             type="text"
-            placeholder="Search company, domain, trigger keyword…"
+            placeholder="Search company or domain…"
+            aria-label="Search score history"
             value={query}
             onChange={e => handleSearch(e.target.value)}
             style={{ flex: 1, minWidth: 0, background: "transparent", border: "none", outline: "none", fontSize: 13, color: "var(--text-primary)", letterSpacing: "-0.006em" }}
@@ -538,28 +587,40 @@ export function HistoryView({ stats }: HistoryViewProps) {
           const count = band === "HOT" ? stats.hotCount : band === "WARM" ? stats.warmCount : stats.coldCount;
           const inactive = bandFilter !== null && bandFilter !== band;
           return (
-            <span key={band} style={bandChipStyle(cls, inactive)} onClick={() => handleBandFilter(band)}>
+            <button key={band} type="button" aria-pressed={bandFilter === band} style={bandChipStyle(cls, inactive)} onClick={() => handleBandFilter(band)}>
               <span style={bandDotStyle(cls)} />{band} {count}
-            </span>
+            </button>
           );
         })}
         <div style={{ flex: 1 }} />
-        <button className="tb-btn outlined">
-          <svg className="ic" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="2" width="3" height="3" /><rect x="7" y="2" width="3" height="3" /><rect x="2" y="7" width="3" height="3" /><rect x="7" y="7" width="3" height="3" /></svg>
-          Stage
-        </button>
-        <button className="tb-btn outlined">
-          <svg className="ic" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 6h8M4 3h4M5 9h2" /></svg>
-          Filter
-        </button>
-        <button className="tb-btn outlined">Sort: Newest</button>
+        <label className="tb-btn outlined" style={{ gap: 6 }}>
+          <span style={{ color: "var(--text-tertiary)" }}>Sort</span>
+          <select
+            value={sort}
+            onChange={e => handleSort(e.target.value as SortId)}
+            aria-label="Sort score history"
+            style={{ background: "transparent", border: "none", outline: "none", color: "var(--text-primary)", font: "inherit", cursor: "pointer" }}
+          >
+            <option value="newest">Newest</option>
+            <option value="score">Score</option>
+            <option value="delta">Δ vs previous</option>
+          </select>
+        </label>
       </div>
 
       {loading ? (
-        <div style={{ padding: "40px 0", textAlign: "center", color: "var(--text-tertiary)", fontSize: 13 }}>Loading…</div>
+        <div role="status" aria-label="Loading score history" style={{ ...S.histTable, minWidth: 0 }}>
+          {[0, 1, 2, 3, 4].map(i => (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 14, padding: "0 16px", height: 58, borderBottom: "1px solid var(--border-subtle)" }}>
+              <span className="animate-pulse motion-reduce:animate-none" style={{ width: 28, height: 28, borderRadius: 6, background: "var(--muted)" }} />
+              <span className="animate-pulse motion-reduce:animate-none" style={{ width: "30%", height: 10, borderRadius: 4, background: "var(--muted)" }} />
+              <span className="animate-pulse motion-reduce:animate-none" style={{ width: 40, height: 10, borderRadius: 4, background: "var(--muted)", marginLeft: "auto" }} />
+            </div>
+          ))}
+        </div>
       ) : rows.length === 0 ? (
         <div style={{ padding: "60px 0", textAlign: "center", color: "var(--text-tertiary)", fontSize: 13 }}>
-          {query ? "No results match your search." : "No scores yet. Use Score to score your first company."}
+          {debouncedQuery || bandFilter || range !== "all" ? "No runs match these filters." : "No scores yet. Use Score to score your first company."}
         </div>
       ) : (
         <div style={{ overflowX: "auto" }}>
@@ -586,8 +647,9 @@ export function HistoryView({ stats }: HistoryViewProps) {
                   const urg = urgencyLabel(row.urgency);
                   const flatSameDay = delta.direction === "flat" && delta.prevTime && sameDay(new Date(row.created_at), new Date(delta.prevTime));
                   return (
-                    <div key={row.id} style={S.htRow(isOpen)}
-                      onClick={() => { setDrawerRow(row); setDrawerOpen(true); }}>
+                    <div key={row.id} style={S.htRow(isOpen)} role="button" tabIndex={0} aria-label={`${row.company_name}, ${row.score} ${row.score_band}. Show details`}
+                      onClick={() => { setDrawerRow(row); setDrawerOpen(true); }}
+                      onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setDrawerRow(row); setDrawerOpen(true); } }}>
                       <div style={S.htTime}>
                         {fmtRowTime(row.created_at)}
                         <span style={S.htAgo}>{relTime(row.created_at)}</span>
@@ -605,9 +667,7 @@ export function HistoryView({ stats }: HistoryViewProps) {
                         {row.score}<span style={S.htScoreOf}>/100</span>
                       </div>
                       <div>
-                        <span style={htBandStyle(row.score_band)}>
-                          <span style={htBandDotStyle(row.score_band)} />{row.score_band}
-                        </span>
+                        <BandPill band={row.score_band} size="sm" />
                       </div>
                       <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
                         <div style={{ display: "flex", gap: 5, alignItems: "center" }}>
@@ -648,12 +708,9 @@ export function HistoryView({ stats }: HistoryViewProps) {
                         )}
                       </div>
                       <div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }} onClick={e => e.stopPropagation()}>
-                        <div style={{ width: 26, height: 26, display: "grid", placeItems: "center", borderRadius: "var(--r-sm)", color: "var(--text-tertiary)", cursor: "pointer" }} title="Re-score" onClick={() => router.push(`/score?domain=${row.domain}`)}>
-                          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" width="11" height="11"><path d="M2 6a4 4 0 018-1M10 6a4 4 0 01-8 1M8 3v2h2M4 9V7H2" /></svg>
-                        </div>
-                        <div style={{ width: 26, height: 26, display: "grid", placeItems: "center", borderRadius: "var(--r-sm)", color: "var(--text-tertiary)", cursor: "pointer" }}>
-                          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" width="11" height="11"><circle cx="3" cy="6" r="1" /><circle cx="6" cy="6" r="1" /><circle cx="9" cy="6" r="1" /></svg>
-                        </div>
+                        <button type="button" aria-label={`Open last score for ${row.company_name}`} title="Open last score" style={{ width: 26, height: 26, display: "grid", placeItems: "center", borderRadius: "var(--r-sm)", color: "var(--text-tertiary)", cursor: "pointer" }} onClick={() => router.push(lastScoreHref(row.domain))}>
+                          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" width="11" height="11" aria-hidden="true"><path d="M3 6h6M6 3l3 3-3 3" /></svg>
+                        </button>
                       </div>
                     </div>
                   );
@@ -665,11 +722,11 @@ export function HistoryView({ stats }: HistoryViewProps) {
               <span>Showing {rows.length} of {total} runs</span>
               {totalPages > 1 && (
                 <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                  <div style={{ width: 24, height: 24, display: "grid", placeItems: "center", borderRadius: 4, cursor: "pointer", fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-tertiary)" }} onClick={() => setPage(p => Math.max(1, p - 1))}>‹</div>
+                  <button type="button" aria-label="Previous page" disabled={page <= 1} style={{ width: 24, height: 24, display: "grid", placeItems: "center", borderRadius: 4, cursor: "pointer", fontSize: 11, color: "var(--text-tertiary)", opacity: page <= 1 ? 0.4 : 1 }} onClick={() => setPage(p => Math.max(1, p - 1))}>‹</button>
                   {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => i + 1).map(n => (
-                    <div key={n} style={{ width: 24, height: 24, display: "grid", placeItems: "center", borderRadius: 4, cursor: "pointer", fontFamily: "var(--font-mono)", fontSize: 11, color: page === n ? "var(--text-primary)" : "var(--text-tertiary)", background: page === n ? "rgba(255,255,255,0.08)" : undefined }} onClick={() => setPage(n)}>{n}</div>
+                    <button key={n} type="button" aria-label={`Page ${n}`} aria-current={page === n ? "page" : undefined} style={{ width: 24, height: 24, display: "grid", placeItems: "center", borderRadius: 4, cursor: "pointer", fontSize: 11, fontVariantNumeric: "tabular-nums", color: page === n ? "var(--text-primary)" : "var(--text-tertiary)", background: page === n ? "var(--muted)" : undefined }} onClick={() => setPage(n)}>{n}</button>
                   ))}
-                  <div style={{ width: 24, height: 24, display: "grid", placeItems: "center", borderRadius: 4, cursor: "pointer", fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-tertiary)" }} onClick={() => setPage(p => Math.min(totalPages, p + 1))}>›</div>
+                  <button type="button" aria-label="Next page" disabled={page >= totalPages} style={{ width: 24, height: 24, display: "grid", placeItems: "center", borderRadius: 4, cursor: "pointer", fontSize: 11, color: "var(--text-tertiary)", opacity: page >= totalPages ? 0.4 : 1 }} onClick={() => setPage(p => Math.min(totalPages, p + 1))}>›</button>
                 </div>
               )}
             </div>
@@ -690,9 +747,9 @@ export function HistoryView({ stats }: HistoryViewProps) {
                 <div style={{ fontSize: 16, fontWeight: 500, color: "var(--text-primary)", letterSpacing: "-0.022em" }}>{drawerRow.company_name}</div>
                 <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-tertiary)" }}>{drawerRow.domain}</div>
               </div>
-              <div style={{ width: 28, height: 28, display: "grid", placeItems: "center", borderRadius: "var(--r-sm)", color: "var(--text-tertiary)", cursor: "pointer" }} onClick={() => setDrawerOpen(false)}>
-                <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" width="14" height="14"><path d="M3 3l8 8M11 3l-8 8" /></svg>
-              </div>
+              <button type="button" aria-label="Close details" style={{ width: 28, height: 28, display: "grid", placeItems: "center", borderRadius: "var(--r-sm)", color: "var(--text-tertiary)", cursor: "pointer" }} onClick={() => setDrawerOpen(false)}>
+                <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" width="14" height="14" aria-hidden="true"><path d="M3 3l8 8M11 3l-8 8" /></svg>
+              </button>
             </div>
 
             <div className="drawer-body" style={{ flex: 1, overflowY: "auto", padding: "18px 22px 24px" }}>
@@ -860,13 +917,9 @@ export function HistoryView({ stats }: HistoryViewProps) {
               <div style={{ flex: 1, fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-tertiary)" }}>
                 Run <strong style={{ color: "var(--text-secondary)", fontWeight: 500 }}>#{runId(drawerRow.id)}</strong> · {drawerRow.scoring_version} · 6h personalized cache
               </div>
-              <button className="tb-btn outlined" onClick={() => { setDrawerOpen(false); router.push(`/score?domain=${drawerRow.domain}`); }}>
-                <svg className="ic" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 6a4 4 0 018-1M10 6a4 4 0 01-8 1M8 3v2h2M4 9V7H2" /></svg>
-                Re-score
-              </button>
-              <button className="btn-primary" onClick={() => router.push(`/score?domain=${drawerRow.domain}`)}>
-                Open account
-                <svg className="ic" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M3 6h6M6 3l3 3-3 3" /></svg>
+              <button type="button" className="btn-primary" onClick={() => { setDrawerOpen(false); router.push(lastScoreHref(drawerRow.domain)); }}>
+                Open last score
+                <svg className="ic" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><path d="M3 6h6M6 3l3 3-3 3" /></svg>
               </button>
             </div>
           </>

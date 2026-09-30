@@ -18,6 +18,7 @@ const T = {
   borderStrong:  "var(--border-strong)",
   accent:        "var(--brand)",
   accent2:       "var(--brand-hover)",
+  ink:           "var(--brand-ink)",
   cyan:          "var(--brand)",
   cyanSoft:      "var(--brand-soft)",
   fontSans:      "var(--font-sans)",
@@ -43,11 +44,9 @@ const TOC = [
 
 const NAV_LINKS = [
   { label: "Product",    href: "/#product"   },
-  { label: "Autopilot",  href: "/#autopilot" },
   { label: "Developers", href: "/docs"       },
-  { label: "Pricing",    href: "/#pricing"   },
-  { label: "Customers",  href: "/#"          },
-  { label: "Company",    href: "/#"          },
+  { label: "Pricing",    href: "/pricing"    },
+  { label: "About",      href: "/about"      },
 ];
 
 /* ── Shared primitives ───────────────────────────────────────── */
@@ -55,7 +54,7 @@ const NAV_LINKS = [
 function InfoCallout({ children }: { children: React.ReactNode }) {
   return (
     <div style={{ margin: "20px 0", padding: "14px 16px", borderRadius: "6px", background: "rgba(223,255,0,0.06)", border: "1px solid rgba(223,255,0,0.18)", fontSize: "14px", lineHeight: 1.55, color: T.txtSecondary, display: "flex", gap: "12px" }}>
-      <svg style={{ width: "18px", height: "18px", flexShrink: 0, color: "#dfff00", marginTop: "1px" }} viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <svg style={{ width: "18px", height: "18px", flexShrink: 0, color: T.ink, marginTop: "1px" }} viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5">
         <circle cx="9" cy="9" r="7" /><path d="M9 6v4M9 12h.01" />
       </svg>
       <div>{children}</div>
@@ -132,18 +131,10 @@ function Code({ children }: { children: React.ReactNode }) {
 function DpaActions() {
   return (
     <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "24px" }}>
-      <button style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "6px 12px", fontSize: "12px", background: "rgba(223,255,0,0.12)", border: "1px solid rgba(223,255,0,0.3)", borderRadius: "999px", color: "#dfff00", fontWeight: 500, letterSpacing: "-0.006em", cursor: "pointer", fontFamily: T.fontSans }}>
-        <svg style={{ width: "12px", height: "12px" }} viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 7h8M8 4l3 3-3 3"/></svg>
-        Download signed PDF
-      </button>
-      <button style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "6px 12px", fontSize: "12px", background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, borderRadius: "999px", color: T.txtSecondary, fontWeight: 500, letterSpacing: "-0.006em", cursor: "pointer", fontFamily: T.fontSans }}>
-        <svg style={{ width: "12px", height: "12px" }} viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 5h8v6H3zM3 5l4 3 4-3"/></svg>
+      <a href="mailto:legal@vesperwise.com?subject=Counter-signed%20DPA" className="pill-btn-hover" style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "6px 12px", fontSize: "12px", background: "transparent", border: `1px solid ${T.border}`, borderRadius: "999px", color: T.txtSecondary, fontWeight: 500, letterSpacing: "-0.006em", textDecoration: "none", fontFamily: T.fontSans }}>
+        <svg style={{ width: "12px", height: "12px" }} viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="M3 5h8v6H3zM3 5l4 3 4-3"/></svg>
         Request a counter‑signed copy
-      </button>
-      <button style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "6px 12px", fontSize: "12px", background: "rgba(255,255,255,0.04)", border: `1px solid ${T.border}`, borderRadius: "999px", color: T.txtSecondary, fontWeight: 500, letterSpacing: "-0.006em", cursor: "pointer", fontFamily: T.fontSans }}>
-        <svg style={{ width: "12px", height: "12px" }} viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="7" cy="7" r="5"/><path d="M5 7l2 2 3-4"/></svg>
-        Already accepted at signup
-      </button>
+      </a>
     </div>
   );
 }
@@ -212,7 +203,7 @@ export default function DpaView() {
 
       {/* ── Sticky banner ── */}
       <div style={{ position: "sticky", top: 0, zIndex: 100, height: "36px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "13px", color: T.txtSecondary, background: "var(--bg-translucent)", backdropFilter: "saturate(180%) blur(20px)", WebkitBackdropFilter: "saturate(180%) blur(20px)", borderBottom: `1px solid ${T.border}`, letterSpacing: "-0.011em", gap: 0 } as React.CSSProperties}>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", marginRight: "10px", fontSize: "11px", fontWeight: 600, color: T.cyan, background: T.cyanSoft, padding: "1px 8px", borderRadius: "999px" }}>v1.6</span>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", marginRight: "10px", fontSize: "11px", fontWeight: 600, color: T.ink, background: T.cyanSoft, padding: "1px 8px", borderRadius: "999px" }}>v1.6</span>
         <strong style={{ color: T.txtPrimary, fontWeight: 500 }}>Data Processing Agreement</strong>
         <span style={{ margin: "0 6px", color: T.txtQuaternary }}>·</span>
         last updated May 12, 2026
@@ -278,7 +269,7 @@ export default function DpaView() {
               return (
                 <li key={id}>
                   <a href={`#${id}`} className="toc-link" onClick={() => setActiveId(id)} style={{ display: "flex", gap: "10px", padding: "5px 12px", borderRadius: "4px", color: active ? T.txtPrimary : T.txtTertiary, letterSpacing: "-0.006em", fontSize: "13px", lineHeight: 1.4, textDecoration: "none", background: active ? "rgba(255,255,255,0.04)" : "transparent" }}>
-                    <span style={{ fontFamily: T.fontMono, fontSize: "10px", color: active ? T.accent2 : T.txtQuaternary, letterSpacing: "0.04em", flexShrink: 0, paddingTop: "2px" }}>{num}</span>
+                    <span style={{ fontFamily: T.fontMono, fontSize: "10px", color: active ? T.ink : T.txtQuaternary, letterSpacing: "0.04em", flexShrink: 0, paddingTop: "2px" }}>{num}</span>
                     {label}
                   </a>
                 </li>
@@ -306,7 +297,7 @@ export default function DpaView() {
 
           {/* Info callout */}
           <InfoCallout>
-            <strong style={{ color: T.txtPrimary, fontWeight: 500 }}>You don&rsquo;t need to sign anything.</strong>{" "}This DPA is automatically incorporated into the Terms of Service when you create an account. If your procurement team requires a counter‑signed copy, email <Code>legal@vesperwise.com</Code> and you&rsquo;ll have a DocuSign within one business day.
+            <strong style={{ color: T.txtPrimary, fontWeight: 500 }}>You don&rsquo;t need to sign anything.</strong>{" "}This DPA is automatically incorporated into the Terms of Service when you create an account. If your procurement team requires a counter‑signed copy, email <Code>legal@vesperwise.com</Code> and we&rsquo;ll send one.
           </InfoCallout>
 
           {/* ── 01 ── */}
@@ -391,7 +382,7 @@ export default function DpaView() {
 
           {/* ── 10 ── */}
           <Section id="s10" num="10" title="Audits">
-            <P>VesperWise will make available to the Controller all information necessary to demonstrate compliance with this DPA, including a current SOC 2 Type II report and the answers to the CAIQ Lite and SIG Core. The Controller may request an audit once per twelve‑month period, on 30 days notice, conducted during business hours, by a mutually agreed independent auditor bound by confidentiality. The Controller bears the cost unless the audit reveals material non‑compliance.</P>
+            <P>VesperWise will make available to the Controller all information necessary to demonstrate compliance with this DPA, including written answers to reasonable security questionnaires and the controls described on the Security page. VesperWise does not currently hold a SOC 2 report or ISO 27001 certification. The Controller may request an audit once per twelve‑month period, on 30 days notice, conducted during business hours, by a mutually agreed independent auditor bound by confidentiality. The Controller bears the cost unless the audit reveals material non‑compliance.</P>
           </Section>
 
           {/* ── 11 ── */}
@@ -426,22 +417,22 @@ export default function DpaView() {
 
           {/* ── Annex II ── */}
           <Section id="a2" num="A2" title="Annex II · Technical & organizational measures">
-            <P>VesperWise implements the following measures. The full Security page, including diagrams and control mappings, is at <A href="/legal/security">vesperwise.com/security</A>.</P>
+            <P>VesperWise implements the following measures. The current list of controls, including what is not yet in place, is on the <A href="/legal/security">Security page</A>.</P>
             <DocTable
               headers={["Control area", "Measure"]}
               rows={[
-                ["Encryption · transit",       "TLS 1.3 on all customer‑facing endpoints; HSTS preloaded."],
-                ["Encryption · at rest",        "AES‑256 for database and object storage (Supabase + Vercel Blob)."],
-                ["Access control",              "SSO + MFA enforced for all internal access. Least‑privilege RBAC; quarterly access review."],
-                ["API authentication",          <span key="api">SHA‑256 hashed bearer tokens; per‑user rate limiting; revocation on suspected compromise.</span>],
-                ["Tenant isolation",            "Postgres Row‑Level Security on every multi‑tenant table; tenant ID required on all queries."],
-                ["Logging & monitoring",        "Audit logs for all admin actions; 12‑month retention; alerts on anomalous read volume."],
-                ["Vulnerability management",    "Dependabot for dependencies; quarterly third‑party pen test; bounties via the Security page."],
-                ["Personnel security",          "Confidentiality agreements; security training on hire and annually."],
+                ["Encryption · transit",       "TLS on all customer‑facing endpoints."],
+                ["Encryption · at rest",        "AES‑256 encryption at rest for the production database (Supabase)."],
+                ["Access control",              "Production access limited to authorized team members; backend services use least‑privilege credentials."],
+                ["API authentication",          "API keys stored as SHA‑256 hashes, shown once, revocable at any time."],
+                ["Tenant isolation",            "Database access is restricted to VesperWise backend services, and every query is scoped to the requesting account. Database‑level isolation hardening is on the roadmap."],
+                ["Logging & monitoring",        "Application and hosting logs retained by our infrastructure providers. Audit logging for administrative actions is on the roadmap."],
+                ["Vulnerability management",    "Dependencies updated regularly. No third‑party penetration test or paid bug bounty yet; see the Security page."],
+                ["Personnel security",          "Confidentiality obligations for everyone with production access."],
                 ["Subprocessor management",     "Public list; 30‑day notice; DPA required from each."],
-                ["Incident response",           "72‑hour Controller notification on breach; runbook tested twice per year."],
-                ["Backups & resilience",        "Daily encrypted backups; 35‑day retention; RPO 24h, RTO 4h."],
-                ["Physical security",           "None operated by VesperWise; all production hosting is with subprocessors with SOC 2 / ISO 27001."],
+                ["Incident response",           "Controller notified without undue delay, and within 72 hours of VesperWise becoming aware of a personal data breach."],
+                ["Backups & resilience",        "Automated backups managed by the database provider."],
+                ["Physical security",           "None operated by VesperWise; production hosting is with subprocessors that hold their own SOC 2 reports."],
               ]}
             />
           </Section>

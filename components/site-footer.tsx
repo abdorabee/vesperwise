@@ -8,11 +8,9 @@ const FOOTER_COLUMNS: { title: string; links: FooterLink[] }[] = [
   {
     title: "Product",
     links: [
-      { label: "Score", href: "/score" },
-      { label: "Intent Hub", href: "/dashboard" },
-      { label: "Autopilot", href: "/#autopilot" },
-      { label: "People scoring", href: "/people" },
-      { label: "Watchlist", href: "/watchlist" },
+      { label: "How scoring works", href: "/#product" },
+      { label: "Pricing", href: "/pricing" },
+      { label: "Start free", href: "/signup" },
     ],
   },
   {
@@ -25,7 +23,6 @@ const FOOTER_COLUMNS: { title: string; links: FooterLink[] }[] = [
     title: "Company",
     links: [
       { label: "About", href: "/about" },
-      { label: "Pricing", href: "/#pricing" },
       { label: "Contact", href: "/contact" },
     ],
   },
@@ -36,6 +33,7 @@ const FOOTER_COLUMNS: { title: string; links: FooterLink[] }[] = [
       { label: "Privacy", href: "/privacy" },
       { label: "DPA", href: "/legal/dpa" },
       { label: "Security", href: "/legal/security" },
+      { label: "Subprocessors", href: "/legal/subprocessors" },
     ],
   },
 ];
@@ -71,7 +69,7 @@ export default function SiteFooter() {
               <VesperWiseLogo className="logo" size={42} variant="wordmark" />
             </Link>
             <p>
-              B2B intent scoring for sales teams that close. From $29/mo. Built in Cairo.
+              Buying-intent scores for B2B sales teams, with the evidence behind every number. Built in Cairo.
             </p>
           </div>
           {FOOTER_COLUMNS.map((col) => (

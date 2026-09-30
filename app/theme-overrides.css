@@ -9,9 +9,12 @@
   color-scheme: light;
 
   /* VesperWise brand */
-  --brand: #c9e92f;
-  --brand-hover: #b9db24;
-  --brand-active: #a8ca19;
+  --brand: #dfff00;
+  --brand-hover: #e8ff40;
+  --brand-active: #cfee00;
+  /* Text/icons that sit ON lime, and lime-family text on light surfaces (lime itself is ~1.1:1 on white) */
+  --on-brand: #0a0b0c;
+  --brand-ink: #4d5a00;
   --brand-soft: rgba(223, 255, 0, 0.14);
   --brand-border: rgba(223, 255, 0, 0.32);
   --brand-glow: rgba(223, 255, 0, 0.28);
@@ -35,7 +38,7 @@
   --destructive: #dc2626;
   --border: rgba(10, 14, 26, 0.10);
   --input: rgba(10, 14, 26, 0.12);
-  --ring: var(--brand-active);
+  --ring: #15171a;
   --chart-1: var(--brand);
   --chart-2: #16a34a;
   --chart-3: #b45309;
@@ -103,9 +106,11 @@
 .dark {
   color-scheme: dark;
 
-  --brand: #d4f238;
-  --brand-hover: #c6e62c;
-  --brand-active: #b8d91f;
+  --brand: #dfff00;
+  --brand-hover: #e8ff40;
+  --brand-active: #cfee00;
+  --on-brand: #0a0b0c;
+  --brand-ink: #dfff00;
   --brand-soft: rgba(223, 255, 0, 0.12);
   --brand-border: rgba(223, 255, 0, 0.28);
   --brand-glow: rgba(212, 242, 56, 0.18);

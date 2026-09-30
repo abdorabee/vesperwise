@@ -43,6 +43,8 @@ export function BillingView({ stats, email, workspaceLabel }: BillingViewProps) 
             <BillingPageHead
               renewAt={stats.profile.subscription_renews_at}
               workspaceLabel={workspaceLabel}
+              hasPortal={!!stats.profile.polar_customer_id}
+              cancelScheduled={stats.profile.subscription_cancel_at_period_end ?? false}
               onTopUp={scrollToTopup}
             />
 

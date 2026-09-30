@@ -8,6 +8,7 @@ import { CRUMB } from "@/components/dashboard/nav-config";
 import { focusWatchlistAdd } from "@/lib/watchlist-events";
 import { openScoreThreads, startNewScore } from "@/lib/score-workspace-events";
 import { Button } from "@/components/ui/button";
+import { BrandMark } from "@/components/dashboard/brand-mark";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -22,7 +23,6 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 export function SiteHeader({ creditsRemaining }: { creditsRemaining?: number }) {
   const pathname = usePathname();
   const isLists = pathname === "/lists" || pathname.startsWith("/lists/");
-  const isBilling = pathname === "/billing";
   const isWatchlist = pathname === "/watchlist";
   const isScore = pathname === "/score";
   const listIdMatch = pathname.match(/^\/lists\/([^/]+)$/);
@@ -87,12 +87,7 @@ export function SiteHeader({ creditsRemaining }: { creditsRemaining?: number }) 
           data-slot="mobile-brand"
           className="flex min-w-0 items-center gap-2 md:hidden"
         >
-          <span
-            aria-hidden="true"
-            className="flex aspect-square size-8 shrink-0 items-center justify-center rounded-sm bg-primary text-xs font-bold text-primary-foreground"
-          >
-            V
-          </span>
+          <BrandMark className="size-7" />
           <span className="truncate font-semibold">VesperWise</span>
         </Link>
         <div className="ml-auto flex items-center gap-2">
@@ -115,11 +110,6 @@ export function SiteHeader({ creditsRemaining }: { creditsRemaining?: number }) 
             <Button type="button" size="sm" className="rounded-lg" onClick={openNewListModal}>
               <Plus className="size-4" />
               New list
-            </Button>
-          ) : null}
-          {isBilling ? (
-            <Button type="button" variant="outline" size="sm" className="rounded-lg">
-              Export
             </Button>
           ) : null}
           {isWatchlist ? (

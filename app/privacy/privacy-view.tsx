@@ -18,6 +18,7 @@ const T = {
   borderStrong: "var(--border-strong)",
   accent:       "var(--brand)",
   accent2:      "var(--brand-hover)",
+  ink:           "var(--brand-ink)",
   cyan:         "var(--brand)",
   cyanSoft:     "var(--brand-soft)",
   fontSans:     "var(--font-sans)",
@@ -41,11 +42,9 @@ const TOC = [
 
 const NAV_LINKS = [
   { label: "Product",    href: "/#product"   },
-  { label: "Autopilot",  href: "/#autopilot" },
   { label: "Developers", href: "/docs"       },
-  { label: "Pricing",    href: "/#pricing"   },
-  { label: "Customers",  href: "/#"          },
-  { label: "Company",    href: "/#"          },
+  { label: "Pricing",    href: "/pricing"    },
+  { label: "About",      href: "/about"      },
 ];
 
 /* ── Primitives ─────────────────────────────────────────────── */
@@ -53,7 +52,7 @@ const NAV_LINKS = [
 function InfoCallout({ children }: { children: React.ReactNode }) {
   return (
     <div style={{ margin: "20px 0", padding: "14px 16px", borderRadius: "6px", background: "rgba(223,255,0,0.06)", border: "1px solid rgba(223,255,0,0.18)", fontSize: "14px", lineHeight: 1.55, color: T.txtSecondary, display: "flex", gap: "12px" }}>
-      <svg style={{ width: "18px", height: "18px", flexShrink: 0, color: "#dfff00", marginTop: "1px" }} viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <svg style={{ width: "18px", height: "18px", flexShrink: 0, color: T.ink, marginTop: "1px" }} viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5">
         <circle cx="9" cy="9" r="7" /><path d="M9 6v4M9 12h.01" />
       </svg>
       <div>{children}</div>
@@ -191,12 +190,10 @@ export default function PrivacyView() {
 
       {/* ── Top banner — sticky ── */}
       <div style={{ position: "sticky", top: 0, zIndex: 100, height: "36px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "13px", color: T.txtSecondary, background: "var(--bg-translucent)", backdropFilter: "saturate(180%) blur(20px)", WebkitBackdropFilter: "saturate(180%) blur(20px)", borderBottom: `1px solid ${T.border}`, letterSpacing: "-0.011em", gap: 0 } as React.CSSProperties}>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", marginRight: "10px", fontSize: "11px", fontWeight: 600, color: T.cyan, background: T.cyanSoft, padding: "1px 8px", borderRadius: "999px" }}>v2.4</span>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", marginRight: "10px", fontSize: "11px", fontWeight: 600, color: T.ink, background: T.cyanSoft, padding: "1px 8px", borderRadius: "999px" }}>v2.4</span>
         <strong style={{ color: T.txtPrimary, fontWeight: 500 }}>Privacy Policy</strong>
         <span style={{ margin: "0 6px", color: T.txtQuaternary }}>·</span>
         last updated May 12, 2026
-        <span style={{ margin: "0 6px", color: T.txtQuaternary }}>·</span>
-        <a href="#" style={{ color: T.txtQuaternary, textDecoration: "underline", textDecorationColor: T.borderStrong }}>view diff</a>
       </div>
 
       {/* ── Nav — sticky below banner ── */}
@@ -255,7 +252,7 @@ export default function PrivacyView() {
               return (
                 <li key={id}>
                   <a href={`#${id}`} className="toc-link" onClick={() => setActiveId(id)} style={{ display: "flex", gap: "10px", padding: "5px 12px", borderRadius: "4px", color: active ? T.txtPrimary : T.txtTertiary, letterSpacing: "-0.006em", fontSize: "13px", lineHeight: 1.4, textDecoration: "none", background: active ? "rgba(255,255,255,0.04)" : "transparent" }}>
-                    <span style={{ fontFamily: T.fontMono, fontSize: "10px", color: active ? T.accent2 : T.txtQuaternary, letterSpacing: "0.04em", flexShrink: 0, paddingTop: "2px" }}>{num}</span>
+                    <span style={{ fontFamily: T.fontMono, fontSize: "10px", color: active ? T.ink : T.txtQuaternary, letterSpacing: "0.04em", flexShrink: 0, paddingTop: "2px" }}>{num}</span>
                     {label}
                   </a>
                 </li>
@@ -361,13 +358,12 @@ export default function PrivacyView() {
 
           {/* ── 06 ── */}
           <Section id="s6" num="06" title="AI processing">
-            <P>When you request a score, the company domain and signal data are sent to <Strong>Anthropic</Strong> to generate a human-readable summary and recommended action. We:</P>
+            <P>When you request a score, the company domain, the signal data we collected and your workspace&rsquo;s product description are sent to a large language model through <Strong>OpenRouter</Strong> to write a summary and recommended action. We:</P>
             <OL items={[
-              <span key="a">Use Anthropic&rsquo;s <Strong>zero-data-retention</Strong> API configuration — prompts and completions are not stored or used for training by Anthropic</span>,
-              "Never include API keys, billing information, or user PII in prompts sent to Anthropic",
-              <span key="c">Allow you to disable AI summaries entirely in <Strong>Settings → AI</Strong>; doing so replaces summaries with the raw signal data</span>,
+              "Never include API keys, passwords or billing information in these requests",
+              <span key="b">List OpenRouter and the other providers we use on the <A href="/legal/subprocessors">Subprocessors</A> page</span>,
             ]} />
-            <P>Anthropic&rsquo;s handling of any data that passes through their API is governed by their <A href="https://www.anthropic.com/legal/privacy">Privacy Policy</A> and our DPA addendum with them.</P>
+            <P>OpenRouter&rsquo;s handling of data that passes through its API is governed by its own privacy policy and terms.</P>
           </Section>
 
           {/* ── 07 ── */}
@@ -412,9 +408,9 @@ export default function PrivacyView() {
               <span key="b"><Strong>At rest</Strong> — AES-256 encryption via Supabase</span>,
               <span key="c"><Strong>API keys</Strong> — SHA-256 hashed; we never store plaintext keys</span>,
               <span key="d"><Strong>Passwords</Strong> — Argon2id hashed by Clerk; we never see your password</span>,
-              <span key="e"><Strong>Access control</Strong> — Row-Level Security in Postgres; employees access data only to resolve support issues</span>,
+              <span key="e"><Strong>Access control</Strong> — database access restricted to our backend services; team members access data only to resolve support issues</span>,
             ]} />
-            <P>See our <A href="/legal/security">Security page</A> for full details including penetration testing, incident response, and bug bounty information.</P>
+            <P>See our <A href="/legal/security">Security page</A> for the full list of current controls and what is still on our roadmap.</P>
             <P>In the event of a data breach affecting your personal data, we will notify you and the relevant supervisory authority within <Strong>72 hours</Strong> as required by GDPR Art.&nbsp;33.</P>
           </Section>
 

@@ -39,6 +39,11 @@ import {
   type ScoringPolicyRow,
 } from "@/lib/scoring-policy";
 import { generateReasoning } from "@/lib/reasoning";
+import {
+  emitProgress,
+  signalDoneEvent,
+  type ScoreProgressHandler,
+} from "@/lib/score-progress";
 import { updatePipelineStage } from "@/lib/pipeline";
 import { createInboxNotification } from "@/lib/inbox";
 import { evaluateV2ScoreTransition } from "@/lib/score-transition";
@@ -105,6 +110,12 @@ export interface ScoreCompanyOptions {
   businessProfile?: BusinessProfile | null;
   skipCredits?: boolean;
   idempotencyKey?: string;
+  /**
+   * Optional listener for real research progress (one `signal_done` per
+   * signal key as it resolves, then `reasoning_start` / `reasoning_done`).
+   * A throwing listener never breaks scoring.
+   */
+  onProgress?: ScoreProgressHandler;
 }
 
 export interface ScorePersistenceMetadata {
@@ -377,7 +388,7 @@ function unavailableSignal(key: SignalKey, reason: string): SignalResult {
   return {
     score: 0,
     max: MAX_BY_SIGNAL[key],
-    detail: `${key.charAt(0).toUpperCase()}${key.slice(1)} data unavailable`,
+    detail: `${key.charAt(0).toUpperCase()}${key.slice(1).replace(/_/g, " ")} data unavailable`,
     status: "unavailable",
     observed_at: null,
     fetched_at: new Date().toISOString(),
@@ -560,16 +571,28 @@ async function loadScoringPolicy(
   );
 }
 
-async function getEvidenceSnapshot(
+function emitAllSignals(onProgress: ScoreProgressHandler | undefined, signals: SignalSet | undefined) {
+  if (!onProgress || !signals) return;
+  for (const key of SIGNAL_KEYS) {
+    const signal = signals[key] as SignalResult | undefined;
+    if (signal) emitProgress(onProgress, signalDoneEvent(key, signal));
+  }
+}
+
+export async function getEvidenceSnapshot(
   supabase: SupabaseAdmin,
-  domain: string
+  domain: string,
+  onProgress?: ScoreProgressHandler
 ): Promise<EvidenceSnapshot> {
   const cacheKey = scoreEvidenceCacheKey(
     domain,
     `${SIGNAL_EVIDENCE_SCHEMA_VERSION}-${HIRING_EVIDENCE_SCHEMA_VERSION}-${WEB_ENRICHMENT_SCHEMA_VERSION}`
   );
   const cached = await cacheGet<EvidenceSnapshot>(cacheKey);
-  if (isEvidenceSnapshot(cached)) return cached;
+  if (isEvidenceSnapshot(cached)) {
+    emitAllSignals(onProgress, cached.signals);
+    return cached;
+  }
 
   if (USE_MOCK) {
     const mockSignals = getMockSignals(domain);
@@ -591,6 +614,7 @@ async function getEvidenceSnapshot(
       evidenceRowForSignal(domain, key, signals[key] as SignalResult, "mock")
     );
     const snapshot = { signals, rows };
+    emitAllSignals(onProgress, signals);
     await cacheSet(cacheKey, snapshot, SCORE_EVIDENCE_TTL_SECONDS);
     return snapshot;
   }
@@ -599,7 +623,7 @@ async function getEvidenceSnapshot(
   const resolved = {} as Record<SignalKey, SignalResult>;
   const rows: SignalEvidenceRow[] = [];
 
-  await Promise.all(SIGNAL_KEYS.map(async (key) => {
+  const resolveKey = async (key: SignalKey) => {
     const candidates = databaseRows.get(key) ?? [];
     const usableStoredRows = candidates.filter((row) =>
       isUsableEvidenceStatus(row.status) && signalFromEvidenceRow(row) !== null
@@ -668,6 +692,13 @@ async function getEvidenceSnapshot(
     }
 
     resolved[key] = refreshed;
+  };
+
+  await Promise.all(SIGNAL_KEYS.map(async (key) => {
+    await resolveKey(key);
+    // Emitted as each provider actually lands, whether from fresh stored
+    // evidence or a live refresh.
+    emitProgress(onProgress, signalDoneEvent(key, resolved[key]));
   }));
 
   const signals: SignalSet = {
@@ -1201,6 +1232,7 @@ export async function scoreCompany(opts: ScoreCompanyOptions): Promise<StoredInt
     businessProfile,
     skipCredits = false,
     idempotencyKey,
+    onProgress,
   } = opts;
   const supabase = createSupabaseAdmin();
   const lookupDomain = canonicalizeDomain(domain);
@@ -1220,6 +1252,7 @@ export async function scoreCompany(opts: ScoreCompanyOptions): Promise<StoredInt
   if (!normalizedIdempotencyKey) {
     const cached = await cacheGet<StoredIntentScore>(resultCacheKey);
     if (isStoredIntentScore(cached, scoringVersion)) {
+      emitAllSignals(onProgress, cached.signals);
       return {
         ...cached,
         cached: true,
@@ -1260,6 +1293,7 @@ export async function scoreCompany(opts: ScoreCompanyOptions): Promise<StoredInt
   }
 
   if (run.run_status === "completed" && isStoredIntentScore(run.stored_result, scoringVersion)) {
+    emitAllSignals(onProgress, run.stored_result.signals);
     const replay: StoredIntentScore = {
       ...run.stored_result,
       cached: true,
@@ -1295,7 +1329,7 @@ export async function scoreCompany(opts: ScoreCompanyOptions): Promise<StoredInt
   let terminal = false;
 
   try {
-    const snapshot = await getEvidenceSnapshot(supabase, lookupDomain);
+    const snapshot = await getEvidenceSnapshot(supabase, lookupDomain, onProgress);
     evidence = snapshot.rows;
     const shouldComputeV3Shadow =
       scoringVersion === SCORING_VERSION &&
@@ -1381,6 +1415,7 @@ export async function scoreCompany(opts: ScoreCompanyOptions): Promise<StoredInt
       parseEmployeeRange(profile.company_size)
       ? getFirmographics(supabase, lookupDomain, businessIdFromSignals(snapshot.signals))
       : Promise.resolve({ data: null, rows: [], status: "unavailable" as const });
+    emitProgress(onProgress, { type: "reasoning_start" });
     const reasoningPromise = generateReasoning(
       lookupCompany,
       partial.intent_score,
@@ -1389,7 +1424,10 @@ export async function scoreCompany(opts: ScoreCompanyOptions): Promise<StoredInt
       effectiveProductCategory,
       isBaseline,
       profile
-    );
+    ).then((value) => {
+      emitProgress(onProgress, { type: "reasoning_done" });
+      return value;
+    });
     const [firmographics, reasoning] = await Promise.all([
       firmographicsPromise,
       reasoningPromise,

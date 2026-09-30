@@ -20,6 +20,7 @@ const settingsSource = readFileSync(
   "utf8"
 );
 const siteHeaderSource = readFileSync(new URL("./site-header.tsx", import.meta.url), "utf8");
+const searchSource = readFileSync(new URL("../../lib/dashboard-search.ts", import.meta.url), "utf8");
 
 describe("dashboard profile navigation cleanup", () => {
   it("omits the retired Memory page from the shared dashboard navigation", () => {
@@ -35,11 +36,21 @@ describe("dashboard profile navigation cleanup", () => {
     expect(appSidebarSource).toContain('collapsible="icon"');
   });
 
-  it("keeps Score and Inbox as normal destinations without a Quick Score shortcut row", () => {
+  it("keeps Score as a normal destination without a Quick Score shortcut row", () => {
     expect(navConfigSource).toContain('{ href: "/score", label: "Score"');
-    expect(navConfigSource).toContain('{ href: "/inbox", label: "Inbox"');
     expect(appSidebarSource).not.toContain("Quick Score");
-    expect(appSidebarSource).not.toContain('aria-label="Inbox"');
+  });
+
+  it("hides unfinished People, Inbox and Autopilot from the sidebar and palette, with no Soon badges", () => {
+    for (const href of ["/people", "/inbox", "/autopilot"]) {
+      const pattern = new RegExp(`href:\\s*["']${href}["']`);
+      expect(navConfigSource).not.toMatch(pattern);
+      expect(searchSource).not.toMatch(pattern);
+    }
+    expect(navConfigSource).not.toContain("comingSoon");
+    expect(appSidebarSource).not.toMatch(/>\s*Soon\s*</);
+    expect(navConfigSource).toMatch(/href:\s*["']\/api-keys["']/);
+    expect(searchSource).toMatch(/href:\s*["']\/api-keys["']/);
   });
 
   it("keeps Score workspace actions in the approved shell header", () => {

@@ -1,3 +1,4 @@
+import { sourceLabel, stripMockMarker } from "@/lib/source-labels";
 import type { SignalStatus } from "@/lib/types";
 
 const COVERAGE_SIGNALS = [
@@ -44,14 +45,6 @@ function signalState(status: SignalStatus): Pick<CoverageSignalView, "state" | "
   return { state: "unavailable", statusLabel: "Unavailable" };
 }
 
-function titleCaseSource(value: string): string {
-  return value
-    .split(/[-_]/g)
-    .filter(Boolean)
-    .map((part) => part[0]?.toUpperCase() + part.slice(1))
-    .join(" ");
-}
-
 export function parseIncompleteCoverage(payload: unknown): IncompleteCoverageResult | null {
   if (!isRecord(payload) || payload.code !== "unscorable_domain") return null;
   if (typeof payload.domain !== "string" || !payload.domain.trim()) return null;
@@ -67,11 +60,11 @@ export function parseIncompleteCoverage(payload: unknown): IncompleteCoverageRes
     const score = typeof signal.score === "number" && Number.isFinite(signal.score) ? signal.score : 0;
     const max = typeof signal.max === "number" && Number.isFinite(signal.max) ? signal.max : null;
     const unavailable = status === "unavailable" || status === "not_found";
-    const detail = typeof signal.detail === "string" && signal.detail.trim()
-      ? signal.detail.trim()
+    const detail = typeof signal.detail === "string" && stripMockMarker(signal.detail)
+      ? stripMockMarker(signal.detail)
       : unavailable ? "No reliable source evidence was returned." : "Source checked successfully.";
     const source = typeof signal.source === "string" && signal.source.trim()
-      ? titleCaseSource(signal.source.trim())
+      ? sourceLabel(signal.source) ?? undefined
       : undefined;
 
     return {

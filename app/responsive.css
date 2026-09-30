@@ -133,18 +133,6 @@ button, a, [role="button"] { touch-action: manipulation; }
   .btn-lg { min-height: 48px; font-size: 15px; }
   .nav-link, .sb-item, .tb-btn { min-height: 44px; }
 
-  /* Trust logos: horizontally scrollable */
-  .trust-row {
-    display: flex !important;
-    overflow-x: auto;
-    gap: 28px;
-    padding-bottom: 4px;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-  }
-  .trust-row::-webkit-scrollbar { display: none; }
-  .trust-row .logo { flex-shrink: 0; }
-
   /* Content padding */
   .page { padding: 16px; }
   .topbar { padding-left: 12px; padding-right: 12px; }
@@ -520,13 +508,6 @@ button, a, [role="button"] { touch-action: manipulation; }
   .stat  { border-right: none; border-bottom: 1px solid var(--border); }
   .stat:last-child { border-bottom: none; }
 
-  /* Trust row: 3-col grid (overrides the flex scroll from 980px) */
-  .trust-row {
-    display: grid !important;
-    grid-template-columns: repeat(3, 1fr) !important;
-    overflow: visible;
-    gap: 12px !important;
-  }
 
   /* Footer: single column */
   .footer-grid   { grid-template-columns: 1fr !important; }
@@ -547,6 +528,8 @@ button, a, [role="button"] { touch-action: manipulation; }
   .feature-screen {
     display: none;
   }
+  /* ...and their "Illustrative data" caption, which would otherwise caption nothing */
+  .landing-mockup-caption { display: none; }
 
   /* Two-col feature card visuals (API code block, Watchlist, People) */
   .feat-visual {
@@ -562,129 +545,8 @@ button, a, [role="button"] { touch-action: manipulation; }
   .feat-card { min-height: auto !important; }
 }
 
-/* ============================================================
-   HERO MOBILE SCORE PREVIEW
-   Replaces the complex desktop product mockup on phones.
-   Hidden on desktop (≥ 981px), shown on phones (≤ 980px).
-   ============================================================ */
-.hero-mob-preview {
-  display: none; /* hidden on desktop */
-}
-
-@media (max-width: 980px) {
-  .hero-mob-preview {
-    display: block;
-    margin: 40px auto 0;
-    max-width: 420px;
-    width: calc(100% - 48px);
-    background: var(--bg-elevated);
-    border: 1px solid var(--border-strong);
-    border-radius: 14px;
-    overflow: hidden;
-    box-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 32px 64px -16px rgba(0,0,0,0.5);
-  }
-
-  .hmp-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--border);
-    font-size: 11px;
-    font-family: var(--font-mono, monospace);
-    letter-spacing: 0.04em;
-  }
-  .hmp-label { color: var(--text-quaternary); text-transform: uppercase; }
-  .hmp-badge {
-    display: inline-flex; align-items: center; gap: 5px;
-    padding: 2px 8px;
-    background: var(--hot-bg);
-    border: 1px solid var(--hot-border);
-    border-radius: 999px;
-    color: var(--hot);
-    font-size: 10px; font-weight: 700;
-  }
-  .hmp-dot {
-    width: 5px; height: 5px; border-radius: 999px;
-    background: var(--hot);
-    box-shadow: 0 0 6px var(--hot);
-    animation: pulse 2s ease-in-out infinite;
-    flex-shrink: 0;
-  }
-
-  .hmp-row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--border-subtle);
-  }
-  .hmp-row:last-of-type { border-bottom: none; }
-
-  .hmp-av {
-    width: 32px; height: 32px;
-    border-radius: 8px;
-    display: grid; place-items: center;
-    font-size: 12px; font-weight: 700;
-    color: rgba(10,11,15,0.9);
-    flex-shrink: 0;
-  }
-  /* avatar colors matching real dashboard */
-  .av-s { background: linear-gradient(135deg, #635bff, #0570de); }
-  .av-l { background: linear-gradient(135deg, #dfff00, #e8ff40); }
-  .av-a { background: linear-gradient(135deg, #8a8f98, #8b5cf6); }
-  .av-v { background: linear-gradient(135deg, #111, #444); }
-  .av-n { background: linear-gradient(135deg, #000, #333); }
-
-  .hmp-info {
-    display: flex; flex-direction: column; gap: 2px;
-    flex: 1; min-width: 0;
-  }
-  .hmp-name {
-    font-size: 13px; font-weight: 500;
-    color: var(--text-primary);
-    letter-spacing: -0.011em;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
-  .hmp-domain {
-    font-size: 11px; color: var(--text-quaternary);
-    font-family: var(--font-mono, monospace);
-  }
-
-  .hmp-right {
-    display: flex; align-items: center; gap: 8px;
-    flex-shrink: 0;
-  }
-  .hmp-band {
-    font-size: 9px; font-weight: 700;
-    letter-spacing: 0.06em; text-transform: uppercase;
-    padding: 2px 7px; border-radius: 999px;
-    font-family: var(--font-mono, monospace);
-  }
-  .hmp-band.hot  { background: var(--hot-bg);  border: 1px solid var(--hot-border);  color: var(--hot); }
-  .hmp-band.warm { background: var(--warm-bg); border: 1px solid var(--warm-border); color: var(--warm); }
-  .hmp-band.cold { background: var(--cold-bg); border: 1px solid var(--cold-border); color: var(--cold); }
-  .hmp-score {
-    font-family: var(--font-mono, monospace);
-    font-size: 15px; font-weight: 600;
-    color: var(--text-primary);
-    letter-spacing: -0.02em;
-    min-width: 28px; text-align: right;
-  }
-
-  .hmp-footer {
-    padding: 10px 16px;
-    font-size: 11px; color: var(--text-quaternary);
-    text-align: center;
-    font-family: var(--font-mono, monospace);
-    border-top: 1px solid var(--border);
-    background: rgba(255,255,255,0.01);
-  }
-}
-
 /* ── Tiny phones (≤ 420px) ───────────────────────────────── */
 @media (max-width: 420px) {
-  .trust-row { grid-template-columns: repeat(2, 1fr) !important; }
   .hero h1   { font-size: clamp(28px, 9vw, 44px); }
   .lead      { font-size: 16px; }
   .container { padding: 0 16px; }
