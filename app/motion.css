@@ -1,0 +1,273 @@
+:root {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --dur-press: 140ms;
+  --dur-fast: 180ms;
+  --dur-base: 240ms;
+}
+
+.route-enter {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: inherit;
+  /* backwards, not both: a retained transform would trap position:fixed children. */
+  animation: route-enter 200ms var(--ease-out) backwards;
+}
+
+.text-swap-in {
+  animation: text-swap-in 200ms var(--ease-out) backwards;
+}
+
+.headline-shimmer {
+  color: color-mix(in srgb, var(--muted-foreground) 82%, var(--foreground));
+  background: linear-gradient(
+    90deg,
+    currentColor 0%,
+    currentColor 38%,
+    var(--foreground) 50%,
+    currentColor 62%,
+    currentColor 100%
+  );
+  background-size: 220% 100%;
+  background-position: 100% 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: headline-shimmer 1.8s linear infinite;
+}
+
+.score-meter-fill {
+  transform-origin: left center;
+}
+
+/* Matches ScoreNumber's 600ms ease-out-cubic count-up so the bar and the number land together. */
+[data-motion="generated"] .score-meter-fill {
+  animation: score-meter-fill-in 600ms cubic-bezier(0.33, 1, 0.68, 1) backwards;
+}
+
+.score-message-user.score-user-bubble-in[data-motion="submitted"] {
+  transform-origin: bottom right;
+  animation: score-user-bubble-in 200ms var(--ease-out) backwards;
+}
+
+.score-tool-chip {
+  animation: score-tool-chip-in 180ms var(--ease-out) backwards;
+}
+
+.score-tool-spinner {
+  animation: score-tool-spinner 600ms linear infinite;
+}
+
+.score-tool-status[data-state="done"] {
+  animation: score-tool-check-settle 240ms var(--ease-out) backwards;
+}
+
+.score-tool-check path {
+  stroke-dasharray: 18;
+  stroke-dashoffset: 0;
+  animation: score-tool-check-draw 240ms var(--ease-out) backwards;
+}
+
+.score-suggestion-chip {
+  animation: score-suggestion-chip-in 180ms var(--ease-out)
+    calc(var(--i, 0) * 40ms) backwards;
+}
+
+.score-submit-icon-swap {
+  animation: score-submit-icon-swap 160ms var(--ease-out) backwards;
+}
+
+.conversation-scroll-button-in {
+  /* Animates `scale`, not `transform`, so it composes with Tailwind's `translate`. */
+  animation: conversation-scroll-button-in 180ms var(--ease-out) backwards;
+}
+
+.score-error-card-shake {
+  animation: score-error-card-shake 300ms cubic-bezier(0.36, 0.07, 0.19, 0.97)
+    backwards;
+}
+
+@keyframes route-enter {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes text-swap-in {
+  from {
+    opacity: 0;
+    filter: blur(3px);
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0);
+  }
+}
+
+@keyframes headline-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -120% 0;
+  }
+}
+
+@keyframes score-meter-fill-in {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes score-user-bubble-in {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes score-tool-chip-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes score-tool-spinner {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes score-tool-check-settle {
+  from {
+    opacity: 0;
+    filter: blur(2px);
+    transform: rotate(-10deg) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: none;
+  }
+}
+
+@keyframes score-tool-check-draw {
+  from {
+    stroke-dashoffset: 18;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes score-suggestion-chip-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes score-submit-icon-swap {
+  from {
+    opacity: 0;
+    filter: blur(2px);
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: none;
+  }
+}
+
+@keyframes conversation-scroll-button-in {
+  from {
+    opacity: 0;
+    scale: 0.9;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+@keyframes score-error-card-shake {
+  0%,
+  100% {
+    transform: none;
+  }
+  18% {
+    transform: translateX(-4px);
+  }
+  36% {
+    transform: translateX(4px);
+  }
+  54% {
+    transform: translateX(-3px);
+  }
+  72% {
+    transform: translateX(3px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .route-enter,
+  .text-swap-in,
+  .headline-shimmer,
+  [data-motion="generated"] .score-meter-fill,
+  .score-user-bubble-in[data-motion="submitted"],
+  .score-tool-chip,
+  .score-tool-spinner,
+  .score-tool-status,
+  .score-tool-check,
+  .score-tool-check path,
+  .score-suggestion-chip,
+  .score-submit-icon-swap,
+  .score-error-card-shake {
+    opacity: 1;
+    filter: none;
+    transform: none;
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .headline-shimmer {
+    background: none;
+    color: inherit;
+    -webkit-text-fill-color: currentColor;
+  }
+
+  .score-tool-check path {
+    stroke-dashoffset: 0;
+  }
+
+  .conversation-scroll-button-in {
+    animation: none !important;
+  }
+}

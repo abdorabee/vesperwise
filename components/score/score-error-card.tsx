@@ -25,7 +25,7 @@ export function ScoreErrorCard({
   if (failure.status === 402) {
     const credits = failure.creditsRemaining ?? 0;
     return (
-      <section role="alert" className="rounded-lg border border-border/70 bg-card/40 p-4 sm:p-5">
+      <section role="alert" className="score-error-card-shake rounded-lg border border-border/70 bg-card/40 p-4 sm:p-5">
         <div className="flex items-start gap-3">
           <CreditCard className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
           <div className="min-w-0 flex-1">
@@ -58,7 +58,7 @@ export function ScoreErrorCard({
 
   const heading = failure.status === 409 ? "This company is still being scored" : failure.status === 400 ? "That domain couldn't be scored" : "Scoring didn't finish";
   return (
-    <section role="alert" className="rounded-lg border border-border/70 bg-card/40 p-4 sm:p-5">
+    <section role="alert" className="score-error-card-shake rounded-lg border border-border/70 bg-card/40 p-4 sm:p-5">
       <div className="flex items-start gap-3">
         <AlertCircle className="mt-0.5 size-4 shrink-0 text-destructive" aria-hidden="true" />
         <div className="min-w-0 flex-1">

@@ -97,7 +97,7 @@ export function ScoreMeter({ value, band, className }: { value: number; band?: S
         aria-label={`Intent score ${Math.round(clamped)} of 100, ${b}`}
         className="relative h-1.5 w-full rounded-full bg-muted"
       >
-        <div className={cn("absolute inset-y-0 left-0 rounded-full", FILL_CLASS[b])} style={{ width: `${clamped}%` }} />
+        <div className={cn("score-meter-fill absolute inset-y-0 left-0 rounded-full", FILL_CLASS[b])} style={{ width: `${clamped}%` }} />
         {[BAND_THRESHOLDS.warm, BAND_THRESHOLDS.hot].map((t) => (
           <span key={t} aria-hidden className="absolute -top-1 -bottom-1 w-px bg-border" style={{ left: `${t}%` }} />
         ))}
