@@ -120,9 +120,11 @@ describe("DashboardShell", () => {
 
     expect(html).toContain('data-slot="mobile-brand"');
     expect(html).toContain('href="/dashboard"');
-    expect(html).toContain(">VesperWise<");
-    // Real brand glyph (favicon.svg path), not a lettered square.
-    expect(html).toContain("M13.5 19H24l7.9 25.4L39.9 19h10.6L37.2 48H26.8L13.5 19Z");
+    // The real wordmark image, not a text or lettered-square substitute.
+    expect(html).toContain('alt="VesperWise"');
+    expect(html).toContain("vesperwise-logo");
+    // Collapsed rail keeps the compact "VW" monogram.
+    expect(html).toContain(">VW</text>");
     expect(html).not.toMatch(/>V<\/span>/);
   });
 });
