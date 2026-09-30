@@ -27,7 +27,7 @@ export function WorkspaceSetupScreen({
       <div className="overflow-y-auto p-12 pb-0">
         <div className="max-w-[520px]">
           <h1 className="m-0 font-sans text-[28px] font-semibold leading-[1.2] tracking-[-0.03em]">
-            A few details, then you see <span className="text-[#dfff00]">accounts</span>.
+            A few details, then you see <span className="text-[var(--brand)]">accounts</span>.
           </h1>
           <p className="mt-3 max-w-[520px] text-[13px] leading-[1.6] text-[#a0a0a0]">
             Name your workspace and tell us what you sell. Nothing you enter is lost between steps.
@@ -44,7 +44,7 @@ export function WorkspaceSetupScreen({
                 onChange={(event) => onUpdateField("workspace_name", event.target.value)}
                 placeholder="Your company or team name"
                 aria-describedby={errors.workspace_name ? "workspace-name-error" : undefined}
-                className="mt-2 h-10 w-full rounded-lg border border-white/[0.08] bg-[#111] px-3 font-sans text-[15px] font-medium text-white placeholder:text-[#555b63] focus:border-[#dfff00]/60 focus:outline-none focus:ring-2 focus:ring-[#dfff00]/20"
+                className="mt-2 h-10 w-full rounded-lg border border-white/[0.08] bg-[#111] px-3 font-sans text-[15px] font-medium text-white placeholder:text-[#555b63] focus:border-[color:var(--brand)] focus:outline-none focus:ring-2 focus:ring-[var(--brand)]/20"
               />
               {errors.workspace_name && (
                 <p id="workspace-name-error" className="mt-2 text-[13px] text-red-300">
@@ -56,7 +56,7 @@ export function WorkspaceSetupScreen({
             {emailDomain && (
               <div>
                 <span className="block font-mono text-[11px] uppercase tracking-[0.07em] text-[#666]">Your domain</span>
-                <div className="mt-2 flex h-10 items-center justify-between rounded-lg border border-[#dfff00]/[0.28] bg-[#111] px-3">
+                <div className="mt-2 flex h-10 items-center justify-between rounded-lg border border-[color:var(--brand-border)] bg-[#111] px-3">
                   <span className="font-mono text-[15px] font-medium text-white">{emailDomain}</span>
                   <span className="font-mono text-[11px] tracking-[0.05em] text-[#666]">FROM YOUR EMAIL</span>
                 </div>
@@ -73,7 +73,7 @@ export function WorkspaceSetupScreen({
                 onChange={(event) => onUpdateField("product_category", event.target.value)}
                 placeholder="e.g. B2B analytics for finance teams"
                 aria-describedby={errors.product_category ? "product-category-error" : undefined}
-                className="mt-2 h-10 w-full rounded-lg border border-white/[0.08] bg-[#111] px-3 font-sans text-[15px] font-medium text-white placeholder:text-[#555b63] focus:border-[#dfff00]/60 focus:outline-none focus:ring-2 focus:ring-[#dfff00]/20"
+                className="mt-2 h-10 w-full rounded-lg border border-white/[0.08] bg-[#111] px-3 font-sans text-[15px] font-medium text-white placeholder:text-[#555b63] focus:border-[color:var(--brand)] focus:outline-none focus:ring-2 focus:ring-[var(--brand)]/20"
               />
               {errors.product_category && (
                 <p id="product-category-error" className="mt-2 text-[13px] text-red-300">
@@ -102,7 +102,7 @@ export function WorkspaceSetupScreen({
         <div className="flex flex-col gap-4">
           {PLAN.map((p, i) => (
             <div key={p.n} className="grid grid-cols-[20px_1fr] items-start gap-3">
-              <span className="font-mono text-[11px] leading-[1.5] tabular-nums" style={{ color: i === 0 ? "#dfff00" : "#666" }}>
+              <span className="font-mono text-[11px] leading-[1.5] tabular-nums" style={{ color: i === 0 ? "var(--brand)" : "#666" }}>
                 {p.n}
               </span>
               <div>

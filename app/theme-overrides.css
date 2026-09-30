@@ -268,8 +268,6 @@ html:not(.dark) .sb-credits .bar       { background: rgba(10,14,26,0.08); }
 html:not(.dark) .sb-user:hover         { background: rgba(10,14,26,0.04); }
 
 /* Topbar */
-html:not(.dark) .tb-btn:hover          { background: rgba(10,14,26,0.04); }
-html:not(.dark) .tb-btn .kbd           { background: rgba(10,14,26,0.06); }
 html:not(.dark) .range-tabs            { background: rgba(10,14,26,0.03); }
 html:not(.dark) .range-tab.active      { background: rgba(10,14,26,0.07); }
 html:not(.dark) .notif:hover           { background: rgba(10,14,26,0.06); }
@@ -386,15 +384,34 @@ html:not(.dark) .cmd-palette .kbd {
   flex-wrap: wrap;
 }
 
+.btn,
+.tb-btn,
+.btn-primary,
+.billing-page .pc-cta,
+.billing-page .tu-cta {
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease,
+    box-shadow 150ms ease,
+    transform 150ms ease;
+}
+
 .tb-btn,
 .btn-primary {
+  display: inline-flex;
+  align-items: center;
   min-height: 2.25rem;
   justify-content: center;
+  gap: 6px;
   padding: 0.45rem 0.75rem;
-  border-radius: 0.5rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-lg);
   font-size: 0.875rem;
   font-weight: 500;
-  transition: background-color 200ms, border-color 200ms, color 200ms, transform 200ms;
+  letter-spacing: -0.006em;
+  cursor: pointer;
+  text-decoration: none;
 }
 
 .tb-btn {
@@ -406,16 +423,65 @@ html:not(.dark) .cmd-palette .kbd {
 
 .tb-btn:hover {
   color: var(--foreground);
-  background: var(--accent);
+  background: var(--surface-hover);
 }
 
+.tb-btn.outlined {
+  border-color: var(--border);
+}
+
+.tb-btn.outlined:hover {
+  border-color: var(--border-strong);
+}
+
+.tb-btn .ic,
+.btn-primary .ic {
+  width: 12px;
+  height: 12px;
+}
+
+.tb-btn .ic {
+  opacity: 0.85;
+}
+
+.tb-btn .kbd {
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-tertiary);
+  background: color-mix(in oklab, var(--foreground) 6%, transparent);
+}
+
+.btn-ghost:hover {
+  color: var(--text-primary);
+  background: var(--muted);
+}
+
+.btn-secondary:hover {
+  background: var(--muted);
+  border-color: var(--border-strong);
+}
+
+.btn.btn-primary:hover {
+  background: #ffffff;
+}
+
+.btn-accent:hover {
+  background: var(--brand-hover);
+  border-color: var(--brand-hover);
+}
+
+.btn:active,
 .tb-btn:active,
-.btn-primary:active {
-  transform: translateY(1px);
+.btn-primary:active,
+.billing-page .pc-cta:not(.current):active,
+.billing-page .tu-cta:active {
+  transform: scale(0.97);
 }
 
 .btn-primary {
-  color: #111316;
+  color: var(--on-brand);
   background: var(--brand);
   border: 1px solid var(--brand);
   box-shadow: none;
@@ -423,14 +489,39 @@ html:not(.dark) .cmd-palette .kbd {
 
 .btn-primary:hover {
   background: var(--brand-hover);
+  border-color: var(--brand-hover);
 }
 
+.btn-primary:active {
+  background: var(--brand-active);
+  border-color: var(--brand-active);
+}
+
+.btn:focus-visible,
 .tb-btn:focus-visible,
 .btn-primary:focus-visible,
+.billing-page .pc-cta:focus-visible,
+.billing-page .tu-cta:focus-visible,
 .range-tab:focus-visible,
 .card-mini-tab:focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
+}
+
+.btn:disabled,
+.btn[aria-disabled="true"],
+.tb-btn:disabled,
+.tb-btn[aria-disabled="true"],
+.btn-primary:disabled,
+.btn-primary[aria-disabled="true"],
+.billing-page .pc-cta:disabled,
+.billing-page .pc-cta[aria-disabled="true"],
+.billing-page .tu-cta:disabled,
+.billing-page .tu-cta[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.45;
+  pointer-events: none;
+  transform: none;
 }
 
 .range-tabs {
@@ -511,12 +602,22 @@ html:not(.dark) .cmd-palette .kbd {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .btn,
   .tb-btn,
   .btn-primary,
+  .billing-page .pc-cta,
+  .billing-page .tu-cta,
   .activity-row,
   .mover-row,
   .ap-row,
   .hm-cell {
     transition: none;
+    transform: none;
   }
+}
+
+/* Billing card CTAs share the app control radius. */
+.billing-page .pc-cta,
+.billing-page .tu-cta {
+  border-radius: var(--radius-lg);
 }

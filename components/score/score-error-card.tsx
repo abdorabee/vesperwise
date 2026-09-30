@@ -34,7 +34,7 @@ export function ScoreErrorCard({
               <span className="font-medium tabular-nums text-foreground">{credits}</span> {credits === 1 ? "credit" : "credits"} left. A fresh score uses 1 credit; nothing was charged.
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
-              <Button asChild size="sm" className="border-transparent bg-[var(--brand)] text-[var(--on-brand)] hover:bg-[var(--brand-hover)]"><Link href="/billing">Top up</Link></Button>
+              <Button asChild size="sm" variant="brand"><Link href="/billing">Top up</Link></Button>
               <Button asChild size="sm" variant="outline"><Link href="/billing#plans">See plans</Link></Button>
             </div>
           </div>
@@ -49,7 +49,7 @@ export function ScoreErrorCard({
         <h3 className="text-sm font-semibold text-foreground">No stored score for {domain ?? "this domain"} yet</h3>
         <p className="mt-1 text-sm text-muted-foreground">Score it now to verify current signals.</p>
         <div className="mt-4 flex flex-wrap gap-2">
-          {domain && onRetry ? <Button size="sm" onClick={() => onRetry(domain)} className="border-transparent bg-[var(--brand)] text-[var(--on-brand)] hover:bg-[var(--brand-hover)]">Score now · 1 credit</Button> : null}
+          {domain && onRetry ? <Button size="sm" variant="brand" onClick={() => onRetry(domain)}>Score now · 1 credit</Button> : null}
           {onReset ? <Button size="sm" variant="ghost" onClick={onReset}>Score another company</Button> : null}
         </div>
       </section>

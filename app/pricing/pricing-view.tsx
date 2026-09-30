@@ -81,6 +81,7 @@ export default function PricingView() {
         .pp-cta h2 { font-size: clamp(28px, 4vw, 40px); font-weight: 500; letter-spacing: -0.03em; margin: 0 0 12px; }
         .pp-cta p { color: var(--text-secondary); margin: 0 0 24px; }
         .pp-cta .row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+        @media (max-width: 640px) { .pp-hero h1 { font-size: 32px; } }
       `}</style>
 
       <LandingNav />

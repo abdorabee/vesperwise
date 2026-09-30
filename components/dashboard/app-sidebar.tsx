@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
@@ -42,6 +43,7 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
   SidebarRail,
+  useSidebar,
 } from "@/components/ui/sidebar";
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
@@ -159,6 +161,7 @@ export function AppSidebar({
 }: AppSidebarProps) {
   const pathname = usePathname();
   const { open: openSearch } = useDashboardSearch();
+  const { setOpenMobile } = useSidebar();
   const { user } = useUser();
   const creditCap = PLAN_CREDITS[plan] ?? PLAN_CREDITS.free;
   const workspaceLabel = getWorkspaceLabel({
@@ -168,6 +171,10 @@ export function AppSidebar({
   });
   const counts: NavCounts = { watchlist: watchlistCount, pipelineHot: pipelineHotCount };
   const planLabel = plan.charAt(0).toUpperCase() + plan.slice(1);
+
+  useEffect(() => {
+    setOpenMobile(false);
+  }, [pathname, setOpenMobile]);
 
   return (
     <Sidebar collapsible="icon" {...props}>
@@ -252,7 +259,13 @@ export function AppSidebar({
                   />
                 ))}
                 <SidebarMenuItem>
-                  <SidebarMenuButton tooltip="Search" onClick={openSearch}>
+                  <SidebarMenuButton
+                    tooltip="Search"
+                    onClick={() => {
+                      setOpenMobile(false);
+                      openSearch();
+                    }}
+                  >
                     <Search />
                     <span>Search</span>
                   </SidebarMenuButton>

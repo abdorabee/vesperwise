@@ -18,7 +18,7 @@ import {
   RefreshCw,
   ExternalLink,
   Check,
-  Crosshair,
+  Activity,
 } from "lucide-react";
 import type { PipelineCompany, PipelineSignals } from "@/app/api/dashboard/pipeline/route";
 import { BandPill, CompanyMark, bandForScore } from "@/components/score/band";
@@ -490,7 +490,9 @@ export default function PipelinePage() {
         <div className="min-w-0">
           <h1 className="text-base font-semibold tracking-[-0.02em] text-foreground">Intent Hub</h1>
           <p className="text-xs tabular-nums text-muted-foreground">
-            {companies.length} watched {companies.length === 1 ? "account" : "accounts"} · drag cards between stages
+            {companies.length} watched {companies.length === 1 ? "account" : "accounts"} ·{" "}
+            <span className="hidden md:inline">drag cards between stages</span>
+            <span className="md:hidden">Tap a card to change its stage</span>
           </p>
         </div>
         {companies.length > 0 ? (
@@ -526,7 +528,7 @@ export default function PipelinePage() {
       ) : companies.length === 0 ? (
         <EmptyState
           className="flex-1"
-          icon={<Crosshair className="size-5" aria-hidden="true" />}
+          icon={<Activity className="size-5" aria-hidden="true" />}
           title="No accounts in the Intent Hub yet"
           description="Add companies to your watchlist and they appear here, sorted by score into stages you can drag them through."
           action={

@@ -2,7 +2,7 @@ export function WorkspaceSetupError() {
   return (
     <main className="flex min-h-[100dvh] flex-col items-center justify-center bg-[#08090a] px-6 text-center">
       <div className="text-[15px] font-semibold tracking-[-0.03em] text-white">
-        VESPERWISE<span className="text-[#dfff00]">.</span>
+        VESPERWISE<span className="text-[var(--brand)]">.</span>
       </div>
       <h1 className="mt-8 text-xl font-medium text-white">Couldn&apos;t set up your workspace</h1>
       <p className="mt-3 max-w-md text-sm leading-6 text-[#a0a0a0]">
@@ -11,7 +11,7 @@ export function WorkspaceSetupError() {
       </p>
       <a
         href="."
-        className="mt-8 text-sm font-medium text-[#dfff00] hover:text-[#e8ff40]"
+        className="mt-8 text-sm font-medium text-[var(--brand)] hover:text-[var(--brand-hover)]"
       >
         Reload
       </a>

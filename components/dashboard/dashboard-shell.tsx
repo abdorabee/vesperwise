@@ -75,7 +75,7 @@ export default function DashboardShell({
           watchlistCount={watchlistCount}
           pipelineHotCount={pipelineHotCount}
         />
-        <SidebarInset className="min-h-svh overflow-hidden">
+        <SidebarInset className="min-h-svh overflow-x-clip">
           <SiteHeader creditsRemaining={creditsRemaining} />
           <PageContainer size={containerSize}>{children}</PageContainer>
         </SidebarInset>

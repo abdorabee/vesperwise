@@ -59,6 +59,7 @@ export default function AboutView() {
         .about-btn:active { transform: scale(0.97); }
         .about-btn.primary { background: var(--brand); color: var(--on-brand, #000); border-color: transparent; }
         .about-btn.primary:hover { background: var(--brand-hover); }
+        @media (max-width: 640px) { .about-hero h1 { font-size: 32px; } }
         @media (max-width: 560px) { .about-founder { grid-template-columns: 1fr; } }
       `}</style>
 

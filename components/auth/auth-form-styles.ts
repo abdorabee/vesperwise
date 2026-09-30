@@ -67,19 +67,22 @@ export const AUTH_FORM_CSS = `
     position: relative;
   }
   .auth-password-wrap input {
-    padding-right: 44px;
+    padding-right: 52px;
   }
   .auth-password-toggle {
     position: absolute;
-    right: 10px;
+    right: 0;
     top: 50%;
     transform: translateY(-50%);
+    width: 44px;
+    height: 44px;
     background: none;
     border: 0;
     color: var(--muted-foreground);
     cursor: pointer;
-    padding: 4px;
     display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
   .auth-password-toggle:hover {
     color: var(--foreground);
@@ -138,11 +141,17 @@ export const AUTH_FORM_CSS = `
   .auth-text-button {
     background: none;
     border: 0;
-    padding: 0;
+    min-width: 44px;
+    min-height: 44px;
+    margin: -12px -8px;
+    padding: 0 8px;
     color: var(--brand-active);
     font-size: 12px;
     font-weight: 500;
     cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
   .auth-text-button:hover {
     text-decoration: underline;
@@ -152,11 +161,25 @@ export const AUTH_FORM_CSS = `
     .auth-avatar,
     .auth-avatar .bs-avatar,
     .auth-avatar .bs-avatar__svg {
-      width: 160px !important;
-      height: 160px !important;
+      width: 104px !important;
+      height: 104px !important;
     }
     .auth-avatar-wrap {
-      margin-bottom: 4px;
+      margin-bottom: 0;
+    }
+    .auth-form-card {
+      padding: 24px;
+    }
+    .auth-form-header {
+      margin-bottom: 18px;
+    }
+  }
+  @media (max-width: 768px) and (max-height: 740px) {
+    .auth-avatar-wrap {
+      display: none;
+    }
+    .auth-form-stack {
+      gap: 12px;
     }
   }
 `;

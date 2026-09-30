@@ -1,7 +1,7 @@
 import type { ComponentType } from "react";
 import {
   LayoutGrid,
-  Crosshair,
+  Activity,
   Gauge,
   History,
   Eye,
@@ -29,7 +29,7 @@ export interface NavCluster {
 /** Primary work — dashboard-01 NavMain */
 export const NAV_MAIN: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutGrid },
-  { href: "/pipeline", label: "Intent Hub", icon: Crosshair, hotCount: true },
+  { href: "/pipeline", label: "Intent Hub", icon: Activity, hotCount: true },
   { href: "/score", label: "Score", icon: Gauge },
 ];
 

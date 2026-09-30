@@ -72,14 +72,14 @@ export function IcpDefinitionScreen({
         <div className="flex items-end justify-between gap-8">
             <div>
               <h1 className="m-0 font-sans text-[28px] font-semibold leading-[1.2] tracking-[-0.03em]">
-                Who counts as a <span className="text-[#dfff00]">fit</span>.
+                Who counts as a <span className="text-[var(--brand)]">fit</span>.
               </h1>
               <p className="mt-3 max-w-[520px] text-[13px] leading-[1.6] text-[#a0a0a0]">
                 These rules set the universe we watch. Tighter is better — you can widen it after the first run.
               </p>
             </div>
             <div className="flex-none text-right">
-              <div className="font-mono text-[44px] font-medium leading-none tracking-[-0.03em] text-[#dfff00] tabular-nums">
+              <div className="font-mono text-[44px] font-medium leading-none tracking-[-0.03em] text-[var(--brand)] tabular-nums">
                 {estimate.toLocaleString()}
               </div>
               <div className="mt-2 font-mono text-[11px] uppercase tracking-[0.07em] text-[#666]">accounts match</div>
@@ -112,7 +112,7 @@ export function IcpDefinitionScreen({
                       setAddingIndustry(false);
                     }}
                     placeholder="Industry name…"
-                    className="h-8 w-[150px] rounded-lg border border-[#dfff00]/[0.28] bg-[#111] px-3 font-sans text-[13px] text-white placeholder:text-[#4a4a4a] focus:outline-none"
+                    className="h-8 w-[150px] rounded-lg border border-[color:var(--brand-border)] bg-[#111] px-3 font-sans text-[13px] text-white placeholder:text-[#4a4a4a] focus:outline-none"
                   />
                 ) : (
                   <button
