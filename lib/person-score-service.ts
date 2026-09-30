@@ -1,4 +1,4 @@
-import { cacheGet, cacheSet, personScoreCacheKey, SCORE_TTL_SECONDS } from "@/lib/redis";
+import { cacheGet, cacheSet, personScoreCacheKey, SCORE_TTL_SECONDS } from "@/lib/cache";
 import { createSupabaseAdmin } from "@/lib/supabase";
 import { enrichPerson } from "@/lib/pdl";
 import { computeCareerChangeSignal } from "@/lib/signals/person/career-change";

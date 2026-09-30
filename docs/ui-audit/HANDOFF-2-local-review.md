@@ -44,7 +44,7 @@ How to do it:
   - Technology: always unavailable (BuiltWith free tier).
   - The 5 companies at 0 (figma, plaid, hashicorp, canva, intercom) have no hiring, no news, and funding that has decayed away.
 - **Draft outreach credit bug.** The reply said "Testing mode · no credit charged", but 0.25 was deducted (20 → 19.75).
-- **Redis/BullMQ (being handled in a fork).** `BULLMQ_REDIS_URL` points at `redis.railway.internal`, and the seed script never exits.
+- **Legacy external queue note (now superseded).** The seed script never exits in that older local review.
 - **Demo polish.**
   - The mongodb.com stored draft contains a literal "[specific pain]".
   - Company names are derived from the domain ("Mongodb").

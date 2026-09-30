@@ -14,8 +14,7 @@ describe("getEvidenceSnapshot progress (mock signals)", () => {
 
   it("emits exactly one signal_done per signal key", async () => {
     vi.stubEnv("MOCK_SIGNALS", "true");
-    vi.stubEnv("UPSTASH_REDIS_REST_URL", "");
-    vi.stubEnv("UPSTASH_REDIS_REST_TOKEN", "");
+    vi.stubEnv("CACHE_DISABLED", "true");
     vi.resetModules();
     const { getEvidenceSnapshot } = await import("./score-service");
     const events: ScoreProgressEvent[] = [];
@@ -34,6 +33,7 @@ describe("getEvidenceSnapshot progress (mock signals)", () => {
 
   it("keeps scoring alive when the listener throws", async () => {
     vi.stubEnv("MOCK_SIGNALS", "true");
+    vi.stubEnv("CACHE_DISABLED", "true");
     vi.resetModules();
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const { getEvidenceSnapshot } = await import("./score-service");

@@ -17,6 +17,7 @@ RUN mkdir -p "$PLAYWRIGHT_BROWSERS_PATH" \
     && scrapling install
 
 COPY --chown=node:node workers/hiring-refresh ./workers/hiring-refresh
+COPY --chown=node:node workers/shared ./workers/shared
 RUN chown -R node:node /app "$PLAYWRIGHT_BROWSERS_PATH"
 
 ENV NODE_ENV=production

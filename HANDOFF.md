@@ -102,7 +102,7 @@ Secrets were injected mid-run. **A new agent does not automatically get mid-run 
 | `NEXT_PUBLIC_SUPABASE_URL` | Full `https://…` | First paste was `ttps://…` (missing `h`). Authenticated pages → `Invalid supabaseUrl`. |
 | `OPENROUTER_API_KEY` | User key from [openrouter.ai/keys](https://openrouter.ai/keys), starts with `sk-or-` | First key was 64 chars, not `sk-or-`. Chat → OpenRouter **401 Missing Authentication header**. `GET /models` is **public** — a 200 does not validate the key. |
 | `TEST_LOGIN_USERNAME` / `PASSWORD` | User must exist on the **same Clerk instance** as `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Keys were `pk_test_` / `sk_test_`. A production test user is **not** on the development instance. |
-| `MOCK_SIGNALS` | `true` for this VM unless signal vendor keys are injected | User set `false`. `BULLMQ_REDIS_URL` pointed at `redis.railway.internal` (unresolvable here) → typed score can hang. For local tests: `MOCK_SIGNALS=true` and `unset BULLMQ_REDIS_URL`. |
+| `MOCK_SIGNALS` | `true` for this VM unless signal vendor keys are injected | User set `false` during prior testing. For local tests without vendor keys: `MOCK_SIGNALS=true`. |
 
 Also required: `CLERK_SECRET_KEY`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`. Polar keys may exist in the env catalog but are not needed for Score/onboarding.
 
@@ -132,7 +132,7 @@ Also required: `CLERK_SECRET_KEY`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SE
 git fetch origin dev && git checkout dev && git pull origin dev
 npx vitest run lib/user-provisioning-result.test.ts
 # if secrets are injected:
-# write .env.local (do not commit), unset BULLMQ_REDIS_URL, MOCK_SIGNALS=true
+# write .env.local (do not commit), MOCK_SIGNALS=true
 npm run dev -- --hostname 0.0.0.0 --port 3000
 ```
 

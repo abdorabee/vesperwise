@@ -40,7 +40,7 @@ const CURRENT_CONTROLS = [
     items: [
       "TLS encryption in transit (Vercel)",
       "Postgres at Supabase with AES-256 at rest",
-      "Cached score results in Upstash Redis expire after 6 hours",
+      "Cached score results are stored in our database and expire after 6 hours",
       "Hosting providers maintain their own SOC 2 reports",
     ],
   },

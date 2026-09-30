@@ -30,9 +30,8 @@ CLERK_SECRET_KEY=
 # OpenRouter (score reasoning + chat copilot; deterministic fallback if unset)
 OPENROUTER_API_KEY=
 
-# Upstash Redis (optional — cache is skipped if not set)
-UPSTASH_REDIS_REST_URL=
-UPSTASH_REDIS_REST_TOKEN=
+# Supabase-backed cache (optional local test bypass)
+CACHE_DISABLED=false
 
 # Polar.sh (payment gateway)
 POLAR_ACCESS_TOKEN=
@@ -70,7 +69,7 @@ Set `MOCK_SIGNALS=true` to skip all external signal API calls during development
 
 1. Authenticate the Clerk session or SHA-256-hashed API key and canonicalize the company domain
 2. Check user credits in `users` table
-3. Check Redis cache (personalized; skipped if Upstash is unset)
+3. Check the Supabase-backed cache (personalized; skipped when `CACHE_DISABLED=true`)
 4. Fetch signals in parallel (funding, hiring, news, technology, plus web/GitHub context)
 5. Compute weighted intent score 0–100 via `lib/scorer.ts`
 6. Generate AI summary + recommended action via `lib/reasoning.ts` (OpenRouter)
@@ -93,7 +92,7 @@ Score decays 15% per month from `latestSignalDate`. Bands: HOT ≥75, WARM ≥50
 - `lib/types.ts` — all shared types and plan constants (`PLAN_CREDITS`, `PLAN_WATCHLIST_LIMIT`, `PLAN_RATE_LIMIT`)
 - `lib/supabase.ts` — `createSupabaseAdmin()` (service role, bypasses RLS). There is no cookie Supabase auth client; identity is Clerk.
 - `lib/user-provisioning.ts` — creates the `users` row for a Clerk id; callers must handle `{ ok: false }`
-- `lib/redis.ts` — Upstash Redis wrapper; all cache operations are no-ops if `UPSTASH_REDIS_REST_URL` is not set
+- `lib/cache.ts` — Supabase-backed cache; all cache operations are no-ops when `CACHE_DISABLED=true`
 - `lib/reasoning.ts` — OpenRouter wrapper; falls back to a mock summary if `OPENROUTER_API_KEY` is not set
 - `lib/signals/mock.ts` — deterministic mock signals seeded by domain string (used when `MOCK_SIGNALS=true`)
 
@@ -123,7 +122,7 @@ Plans: `free | starter | growth | pro | agency`. Credits are reset on subscripti
 
 ### Bulk Jobs
 
-`app/api/v1/score/bulk/route.ts` creates a `bulk_jobs` row with status `queued`. The actual BullMQ worker processing is not yet wired up (marked as TODO). Max 1,000 companies per job, max 3 concurrent jobs per user.
+`app/api/v1/score/bulk/route.ts` creates a `bulk_jobs` row with status `queued`. The actual bulk processor is not yet wired up (marked as TODO). Max 1,000 companies per job, max 3 concurrent jobs per user.
 
 ### UI Components
 

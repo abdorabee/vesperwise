@@ -10,6 +10,7 @@
     "dead-code": "knip --production --include files,dependencies",
     "test": "vitest run",
     "test:scoring-db": "SCORING_V2_DB_TESTS=true vitest run supabase/migrations/scoring-v2-postgres.integration.test.ts",
+    "test:cache-queue-db": "REPLACE_REDIS_DB_TESTS=true vitest run --silent=false supabase/migrations/replace-redis-postgrest.integration.test.ts",
     "test:watch": "vitest",
     "generate:favicon": "node scripts/generate-favicon.mjs"
   },
@@ -25,9 +26,7 @@
     "@streamdown/math": "^1.0.2",
     "@streamdown/mermaid": "^1.0.2",
     "@supabase/supabase-js": "^2.98.0",
-    "@upstash/redis": "^1.36.3",
     "ai": "^7.0.93",
-    "bullmq": "^5.70.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",

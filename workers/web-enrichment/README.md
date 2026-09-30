@@ -1,7 +1,8 @@
 # Web enrichment worker
 
-This BullMQ worker maps and extracts dated evidence from public, company-owned
-web pages with Firecrawl. It writes `web-enrichment-v1` rows for hiring, news,
+This worker consumes Postgres-backed jobs, then maps and extracts dated evidence
+from public, company-owned web pages with Firecrawl. It writes
+`web-enrichment-v1` rows for hiring, news,
 technology, and meaningful web activity to `signal_evidence`. Funding is an
 explicit structured-provider fallback, not a default crawl target.
 
@@ -11,7 +12,6 @@ as alternative evidence sources and are never added to provider evidence.
 
 ## Required environment
 
-- `BULLMQ_REDIS_URL` — Redis TCP/TLS connection
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `FIRECRAWL_API_KEY`

@@ -13,11 +13,11 @@ Score bands: **HOT** (≥75) · **WARM** (50–74) · **COLD** (<50)
 - **Framework**: Next.js 16 (App Router, React 19)
 - **Auth**: Clerk
 - **Database**: Supabase (PostgreSQL + RLS)
-- **Cache / Rate limiting**: Upstash Redis
+- **Cache / background jobs**: Supabase Postgres
 - **Billing**: Polar.sh
 - **AI**: OpenRouter (Gemini score reasoning; Claude chat copilot and onboarding)
 - **Signal APIs**: Explorium (funding and hiring), GNews, BuiltWith, OpenPageRank, GitHub, Apollo.io (people)
-- **Hiring fallback**: BullMQ + Scrapling crawler for promoted first-party careers evidence
+- **Hiring fallback**: Postgres queue + Scrapling crawler for promoted first-party careers evidence
 - **UI**: Tailwind CSS 4, shadcn/ui, Recharts, GSAP
 
 ## Getting started
@@ -44,10 +44,6 @@ CLERK_SECRET_KEY=
 
 # OpenRouter (bounded score reasoning; deterministic fallback if unset)
 OPENROUTER_API_KEY=
-
-# Upstash Redis (cache/rate-limit skipped if unset)
-UPSTASH_REDIS_REST_URL=
-UPSTASH_REDIS_REST_TOKEN=
 
 # Polar.sh billing
 POLAR_ACCESS_TOKEN=
@@ -76,8 +72,10 @@ SCORING_V2_ENABLED=true
 SCORING_V3_ENABLED=false
 SCORING_V3_SHADOW_ENABLED=false
 
-# Optional hiring refresh worker; requires a Redis TCP/TLS URL, not Upstash REST
-BULLMQ_REDIS_URL=
+# Optional Postgres-backed cache/worker controls
+CACHE_DISABLED=false
+# Queue hiring/web-enrichment jobs in Postgres; enable only where a worker runs
+BACKGROUND_JOBS_ENABLED=false
 SCRAPLING_SHADOW_MODE=true
 SCRAPLING_PROMOTED_ADAPTERS=
 SCRAPLING_BROWSER_ENABLED=false
@@ -181,12 +179,12 @@ Important response fields include `scoring_version`, `scoring_policy_id`, `score
 
 - `lib/types.ts` — shared types, `PLAN_CREDITS`, `PLAN_WATCHLIST_LIMIT`, `PLAN_RATE_LIMIT`
 - `lib/supabase.ts` — `createSupabaseServerClient()` (cookie-based) and `createSupabaseAdmin()` (service role)
-- `lib/redis.ts` — Upstash wrapper; no-ops if env vars not set
+- `lib/cache.ts` — Supabase-backed cache; no-ops when `CACHE_DISABLED=true`
 - `lib/score-service.ts` — evidence reuse, personalized caching, idempotent runs, persistence, and charging
 - `lib/scorer.ts` — versioned linear intent model, freshness, coverage, and bands
 - `lib/reasoning.ts` — one bounded, schema-validated OpenRouter request with a deterministic fallback
 - `lib/signals/mock.ts` — deterministic mock signals for dev
-- `lib/hiring-refresh-queue.ts` — best-effort BullMQ producer for first-party hiring refreshes
+- `lib/hiring-refresh-queue.ts` — best-effort Postgres queue producer for first-party hiring refreshes
 - `proxy.ts` — Next.js 16 middleware (named export `proxy`); refreshes Clerk session, redirects unauthenticated users from dashboard paths
 
 ### Billing
@@ -217,11 +215,11 @@ The dashboard CSV flow scores up to 50 companies inline and relies on the same p
 
 ### Hiring refresh worker (Scrapling Phase 2)
 
-When Explorium hiring evidence is `unavailable`, `not_found`, or `stale`, the web app can enqueue a deduplicated `hiring-refresh` job. The worker crawls only the company's HTTPS careers pages and approved Greenhouse, Lever, Ashby, or Workable tenants, then stores `hiring-v2` evidence in `signal_evidence`.
+Background jobs are only written when `BACKGROUND_JOBS_ENABLED=true` on the web app; set it wherever a worker is deployed. When Explorium hiring evidence is `unavailable`, `not_found`, or `stale`, the web app can enqueue a deduplicated `hiring-refresh` job. The worker crawls only the company's HTTPS careers pages and approved Greenhouse, Lever, Ashby, or Workable tenants, then stores `hiring-v2` evidence in `signal_evidence`.
 
 Scrapling evidence is written in shadow mode by default. Only evidence deliberately promoted with `shadow=false` can affect scoring, and it is used as a fallback—never added to fresh Explorium hiring evidence. See [`workers/hiring-refresh/README.md`](workers/hiring-refresh/README.md) for deployment, safety constraints, and test commands.
 
-The worker requires `BULLMQ_REDIS_URL` with a Redis TCP/TLS connection. `UPSTASH_REDIS_REST_URL` is used by the web app cache and is not BullMQ-compatible.
+The worker uses the Postgres-backed `background_jobs` queue and requires only Supabase credentials plus its crawler settings.
 
 ### Fresh web enrichment worker (Firecrawl)
 
