@@ -319,24 +319,33 @@ export const MessageBranchPage = ({
   );
 };
 
-export type MessageResponseProps = ComponentProps<typeof Streamdown>;
+export type MessageResponseProps = ComponentProps<typeof Streamdown> & {
+  /** True only while this message is the one receiving deltas. */
+  streaming?: boolean;
+};
 
 const streamdownPlugins = { cjk, code, math, mermaid };
 
 export const MessageResponse = memo(
-  ({ className, ...props }: MessageResponseProps) => (
+  ({ className, streaming = false, animated, isAnimating, caret, ...props }: MessageResponseProps) => (
     <Streamdown
       className={cn(
         "size-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0",
         className
       )}
+      animated={animated ?? streaming}
+      caret={caret ?? (streaming ? "block" : undefined)}
+      isAnimating={isAnimating ?? streaming}
       plugins={streamdownPlugins}
       {...props}
     />
   ),
   (prevProps, nextProps) =>
     prevProps.children === nextProps.children &&
-    nextProps.isAnimating === prevProps.isAnimating
+    nextProps.isAnimating === prevProps.isAnimating &&
+    nextProps.streaming === prevProps.streaming &&
+    nextProps.animated === prevProps.animated &&
+    nextProps.caret === prevProps.caret
 );
 
 MessageResponse.displayName = "MessageResponse";

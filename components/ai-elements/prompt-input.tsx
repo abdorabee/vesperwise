@@ -1235,6 +1235,7 @@ export const PromptInputSubmit = ({
   } else if (status === "error") {
     Icon = <XIcon className="size-4" />;
   }
+  const iconKey = children ? "custom" : (status ?? "idle");
 
   const handleClick = useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -1258,7 +1259,9 @@ export const PromptInputSubmit = ({
       variant={variant}
       {...props}
     >
-      {children ?? Icon}
+      <span key={iconKey} className="score-submit-icon-swap inline-flex items-center justify-center">
+        {children ?? Icon}
+      </span>
     </InputGroupButton>
   );
 };

@@ -8,6 +8,7 @@ import DashboardHomeView from "@/components/dashboard/home/dashboard-home";
 import { HotAccounts, type HotAccountRow } from "@/components/dashboard/home/hot-accounts";
 import { GenUiWorkspace } from "@/components/score/gen-ui/workspace";
 import { ScoreResearchStatus } from "@/components/score/score-research-status";
+import { ToolTrace } from "@/components/score/tool-trace";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import type { UiBlock } from "@/lib/gen-ui";
 import { PLAN_CREDITS } from "@/lib/types";
@@ -23,7 +24,7 @@ import {
 /**
  * Preview-only (dev/preview deployments; auth-gated in production via lib/route-access.ts).
  * Renders the signed-in screens with fictional sample accounts so they can be reviewed without a login.
- * /dev/preview?view=home | score | research | first-run
+ * /dev/preview?view=home | score | research | chat | first-run
  */
 
 const NOW = Date.parse("2026-09-29T12:00:00Z");
@@ -127,12 +128,29 @@ function Shell({ children, title }: { children: React.ReactNode; title?: string 
 export default function DevPreviewPage({ searchParams }: { searchParams: Promise<{ view?: string }> }) {
   const { view = "home" } = use(searchParams);
 
+  if (view === "chat") {
+    return (
+      <Shell>
+        <div className="mx-auto w-full max-w-2xl space-y-8">
+          <div className="space-y-2">
+            <ScoreResearchStatus mode="chat" label="Using search scored companies…" />
+            <ToolTrace tools={[{ name: "search_scored_companies", status: "running" }]} />
+          </div>
+          <ToolTrace tools={[{ name: "search_scored_companies", status: "done" }, { name: "get_company_score", status: "done" }]} billing="0.25 credits" />
+        </div>
+      </Shell>
+    );
+  }
+
   if (view === "score" || view === "research") {
     return (
       <Shell>
         <div className="mx-auto w-full max-w-4xl">
           {view === "score" ? (
-            <GenUiWorkspace blocks={SCORE_BLOCKS} handlers={{ onPrompt: () => {} }} fresh />
+            // Same wrapper the score page puts around a newly generated result.
+            <div data-motion="generated">
+              <GenUiWorkspace blocks={SCORE_BLOCKS} handlers={{ onPrompt: () => {} }} fresh />
+            </div>
           ) : (
             <ScoreResearchStatus
               progress={{

@@ -8,7 +8,7 @@ import { CRUMB } from "@/components/dashboard/nav-config";
 import { focusWatchlistAdd } from "@/lib/watchlist-events";
 import { openScoreThreads, startNewScore } from "@/lib/score-workspace-events";
 import { Button } from "@/components/ui/button";
-import { BrandMark } from "@/components/dashboard/brand-mark";
+import VesperWiseLogo from "@/components/vesperwise-logo";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -85,10 +85,10 @@ export function SiteHeader({ creditsRemaining }: { creditsRemaining?: number }) 
         <Link
           href="/dashboard"
           data-slot="mobile-brand"
+          aria-label="VesperWise home"
           className="flex min-w-0 items-center gap-2 md:hidden"
         >
-          <BrandMark className="size-7" />
-          <span className="truncate font-semibold">VesperWise</span>
+          <VesperWiseLogo size={26} className="rounded-md" />
         </Link>
         <div className="ml-auto flex items-center gap-2">
           {isScore ? (

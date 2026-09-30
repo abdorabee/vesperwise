@@ -1,5 +1,6 @@
 import { Check, Loader2, Minus } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ThinkingOrb } from "@/components/score/thinking-orb";
 import type { ScoreProgressEvent } from "@/lib/score-progress";
 import { isMockSource, sourceLabel, stripMockMarker } from "@/lib/source-labels";
 import { daysSince, formatAbsoluteDate, formatDaysAgo } from "@/lib/time-ago";
@@ -70,20 +71,21 @@ function PendingRow({ label }: { label: string }) {
   );
 }
 
-export function ScoreResearchStatus({ mode = "score", progress }: { mode?: "score" | "chat"; progress?: ScoreResearchProgress }) {
+export function ScoreResearchStatus({ mode = "score", progress, label }: { mode?: "score" | "chat"; progress?: ScoreResearchProgress; label?: string }) {
   const signals = progress?.signals ?? {};
   const landed = TRIGGER_ROWS.filter(([key]) => signals[key]).length;
   const synthesising = progress?.reasoning === "running" || progress?.reasoning === "done";
   const headline = mode === "chat"
-    ? "Preparing a grounded response…"
+    ? label ?? "Thinking…"
     : synthesising ? "Synthesising why-now…" : "Verifying current signals and source dates…";
   const contextLanded = CONTEXT_ROWS.filter(([key]) => signals[key]);
 
   return (
     <div className="score-research">
       <p role="status" aria-live="polite" className="flex items-center gap-2 text-sm text-muted-foreground">
-        <span className="score-research-dot size-1.5 rounded-full bg-foreground/70" aria-hidden="true" />
-        <span>{headline}</span>
+        <ThinkingOrb label={headline} size={18} />
+        {/* Keyed so each new status blurs in rather than hard-swapping; the orb keeps its rhythm. */}
+        <span key={headline} className="text-swap-in headline-shimmer">{headline}</span>
         {mode === "score" && progress && !synthesising ? <span className="tabular-nums text-xs">{landed} of {TRIGGER_ROWS.length} checked</span> : null}
       </p>
       {mode === "score" ? (

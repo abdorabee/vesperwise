@@ -8,6 +8,7 @@ import { GoogleAnalytics } from "@/components/google-analytics";
 import { CookieBanner } from "@/components/cookie-banner";
 import "./globals.css";
 import "./theme-overrides.css";
+import "./motion.css";
 import "./responsive.css";
 import "./bulk-workspace.css";
 

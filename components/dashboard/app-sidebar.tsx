@@ -18,6 +18,7 @@ import {
 } from "@/components/dashboard/nav-config";
 import { NavUser, SidebarCredits } from "@/components/dashboard/nav-user";
 import { BrandMark } from "@/components/dashboard/brand-mark";
+import VesperWiseLogo from "@/components/vesperwise-logo";
 import { Badge } from "@/components/ui/badge";
 import {
   Collapsible,
@@ -179,14 +180,17 @@ export function AppSidebar({
               tooltip="VesperWise"
             >
               <Link href="/dashboard">
-                <BrandMark />
-                <span className="flex min-w-0 flex-1 flex-col gap-1 text-left leading-none">
-                  <span className="truncate font-semibold tracking-[-0.01em] text-sidebar-accent-foreground">
-                    VesperWise
-                  </span>
-                  <span className="truncate text-xs font-normal text-muted-foreground">
-                    {workspaceLabel}
-                  </span>
+                {/* Wordmark when expanded; the "VW" tile only in the collapsed icon rail. Visibility
+                    lives on wrappers: globals.css `img, svg { display: block }` is unlayered and
+                    would beat a `hidden` utility on the image or svg itself. */}
+                <span className="shrink-0 group-data-[collapsible=icon]:hidden">
+                  <VesperWiseLogo size={26} className="rounded-md" />
+                </span>
+                <span className="hidden shrink-0 group-data-[collapsible=icon]:inline-flex">
+                  <BrandMark />
+                </span>
+                <span className="min-w-0 flex-1 truncate text-left text-xs font-normal text-muted-foreground group-data-[collapsible=icon]:hidden">
+                  {workspaceLabel}
                 </span>
                 <Badge
                   variant="outline"

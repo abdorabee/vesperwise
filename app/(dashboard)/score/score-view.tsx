@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { AlertCircle, CheckCircle2, RotateCcw } from "lucide-react";
+import { AlertCircle, RotateCcw } from "lucide-react";
 
 import { Conversation, ConversationContent, ConversationScrollButton } from "@/components/ai-elements/conversation";
 import { MessageResponse } from "@/components/ai-elements/message";
@@ -15,6 +15,7 @@ import { applyResearchEvent, EMPTY_RESEARCH_PROGRESS, ScoreResearchStatus, type 
 import { Button } from "@/components/ui/button";
 import { ScorePageFrame, ScoreWorkspaceLayout } from "@/components/score/score-workspace-layout";
 import { ScoreThreadDrawer } from "@/components/score/score-thread-drawer";
+import { toolLabel, ToolTrace } from "@/components/score/tool-trace";
 import { extractDomain, loadChatSession, seedChatSession, streamChat } from "@/lib/chat-client";
 import { sanitizeUiBlocks, suggestionsFromBlocks, workspaceFromScore, type UiBlock } from "@/lib/gen-ui";
 import { parseIncompleteCoverage, type IncompleteCoverageResult } from "@/lib/score-coverage";
@@ -135,18 +136,6 @@ function billingLabel(result: ScorableIntentScore & { charged?: boolean; cached?
 
 function toolsOf(message: ThreadMessage): ToolChip[] {
   return message.role === "assistant" && "tools" in message ? message.tools : [];
-}
-
-function ToolTrace({ tools, billing }: { tools: ToolChip[]; billing?: string }) {
-  const completed = tools.filter((tool) => tool.status === "done");
-  if (completed.length === 0 && !billing) return null;
-  return (
-    <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-      {completed.length > 0 ? <><CheckCircle2 className="size-3.5" aria-hidden="true" /><span>{completed.map((tool) => tool.name.replaceAll("_", " ")).join(" · ")}</span></> : null}
-      {completed.length > 0 && billing ? <span aria-hidden="true">·</span> : null}
-      {billing ? <span>{billing}</span> : null}
-    </p>
-  );
 }
 
 function artifactLabel(blocks: UiBlock[]) {
@@ -401,19 +390,23 @@ export function ScoreView(props: ScoreViewProps) {
   const latestArtifactId = messages.findLast((message) => message.role === "assistant" && (message.kind === "ui" || message.kind === "coverage"))?.id;
   const suggestions = useMemo(() => uiMessages.length > 0 ? suggestionsFromBlocks(uiMessages.at(-1)!.blocks) : [], [uiMessages]);
   const active = messages.length > 0;
+  const activeStreamingMessageId = busy
+    ? messages.findLast((message) => message.role === "assistant" && (message.kind === "thinking" || message.kind === "text" || message.kind === "ui"))?.id ?? null
+    : null;
 
   const thread = (
     <Conversation className="score-chat-thread">
       <ConversationContent className="score-chat-col">
         {messages.map((message) => {
-          if (message.role === "user") return <div key={message.id} className="score-message score-message-user ml-auto max-w-[85%] rounded-2xl rounded-br-md bg-muted px-4 py-2.5 text-sm leading-5 text-foreground" data-motion={message.restored ? "restored" : "submitted"}>{message.content}</div>;
+          if (message.role === "user") return <div key={message.id} className="score-message score-message-user score-user-bubble-in ml-auto max-w-[85%] rounded-2xl rounded-br-md bg-muted px-4 py-2.5 text-sm leading-5 text-foreground" data-motion={message.restored ? "restored" : "submitted"}>{message.content}</div>;
           if (message.role === "error") {
             if (message.failure) return <div key={message.id} className="score-message"><ScoreErrorCard failure={message.failure} domain={message.domain} onRetry={(domain) => void runScore(domain, domain)} onReset={resetWorkspace} /></div>;
             return <div key={message.id} className="score-message flex items-start gap-2 text-sm text-destructive" role="alert"><AlertCircle className="mt-0.5 size-4 shrink-0" />{message.content}</div>;
           }
           if (message.kind === "thinking") {
             const running = message.tools.findLast((tool) => tool.status === "running");
-            return <div key={message.id} className="score-message"><ScoreResearchStatus mode={message.mode} progress={message.progress} />{running ? <p className="mt-2 text-xs text-muted-foreground">Using {running.name.replaceAll("_", " ")}…</p> : null}</div>;
+            const thinkingLabel = running ? `Using ${toolLabel(running.name)}…` : "Thinking…";
+            return <div key={message.id} className="score-message space-y-2"><ScoreResearchStatus mode={message.mode} progress={message.progress} label={message.mode === "chat" ? thinkingLabel : undefined} />{message.mode === "chat" ? <ToolTrace tools={message.tools} /> : null}</div>;
           }
           if (message.kind === "coverage") {
             const artifact = <ScoreCoverageIncomplete result={message.result} onRetry={(domain) => void runScore(domain, domain)} onReset={resetWorkspace} />;
@@ -422,8 +415,8 @@ export function ScoreView(props: ScoreViewProps) {
             }
             return <div key={message.id} className="score-message" data-motion="generated">{artifact}</div>;
           }
-          if (message.kind === "ui") return <div key={message.id} className="score-message space-y-4">{message.stored && message.id === latestUiId ? <StoredResultBar createdAt={message.stored.createdAt} busy={busy} onRescore={() => void runScore(message.stored!.domain, message.stored!.domain)} /> : <ToolTrace tools={message.tools} billing={message.billing} />}{message.content ? <MessageResponse className="text-sm leading-6 text-foreground/85">{message.content}</MessageResponse> : null}<ScoreArtifact message={message} current={message.id === latestUiId} handlers={{ onWatchlist: (company, domain) => void addToWatchlist(company, domain), watchlistByDomain, onPrompt: (prompt) => void submitMessage(prompt) }} /></div>;
-          return <div key={message.id} className="score-message space-y-3"><ToolTrace tools={message.tools} />{message.content ? <MessageResponse className="text-sm leading-6 text-foreground/85">{message.content}</MessageResponse> : null}</div>;
+          if (message.kind === "ui") return <div key={message.id} className="score-message space-y-4">{message.stored && message.id === latestUiId ? <StoredResultBar createdAt={message.stored.createdAt} busy={busy} onRescore={() => void runScore(message.stored!.domain, message.stored!.domain)} /> : <ToolTrace tools={message.tools} billing={message.billing} />}{message.content ? <MessageResponse streaming={message.id === activeStreamingMessageId} className="text-sm leading-6 text-foreground/85">{message.content}</MessageResponse> : null}<ScoreArtifact message={message} current={message.id === latestUiId} handlers={{ onWatchlist: (company, domain) => void addToWatchlist(company, domain), watchlistByDomain, onPrompt: (prompt) => void submitMessage(prompt) }} /></div>;
+          return <div key={message.id} className="score-message space-y-3"><ToolTrace tools={message.tools} />{message.content ? <MessageResponse streaming={message.id === activeStreamingMessageId} className="text-sm leading-6 text-foreground/85">{message.content}</MessageResponse> : null}</div>;
         })}
       </ConversationContent>
       <ConversationScrollButton />
