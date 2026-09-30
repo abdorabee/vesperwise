@@ -39,7 +39,7 @@ export function BillingPageHead({ renewAt, workspaceLabel, hasPortal, cancelSche
           </span>
         </div>
       </div>
-      <div style={{ display: "flex", gap: 6 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
         {hasPortal ? (
           <a href="/api/billing/portal" className="tb-btn outlined">
             Manage billing

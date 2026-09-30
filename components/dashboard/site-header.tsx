@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { History, Plus } from "lucide-react";
+import { History, Menu, PanelLeft, Plus } from "lucide-react";
 import { CRUMB } from "@/components/dashboard/nav-config";
 import { focusWatchlistAdd } from "@/lib/watchlist-events";
 import { openScoreThreads, startNewScore } from "@/lib/score-workspace-events";
@@ -18,10 +18,11 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Separator } from "@/components/ui/separator";
-import { SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 
 export function SiteHeader({ creditsRemaining }: { creditsRemaining?: number }) {
   const pathname = usePathname();
+  const { isMobile } = useSidebar();
   const isLists = pathname === "/lists" || pathname.startsWith("/lists/");
   const isWatchlist = pathname === "/watchlist";
   const isScore = pathname === "/score";
@@ -58,9 +59,11 @@ export function SiteHeader({ creditsRemaining }: { creditsRemaining?: number }) 
   }
 
   return (
-    <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 transition-[width,height] duration-200 ease-linear motion-reduce:transition-none">
+    <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 border-b bg-background px-4 transition-[width,height] duration-200 ease-linear motion-reduce:transition-none">
       <div className="flex min-w-0 w-full items-center gap-2">
-        <SidebarTrigger className="-ml-1 shrink-0" />
+        <SidebarTrigger className="-ml-1 size-11 shrink-0 md:size-7">
+          {isMobile ? <Menu /> : <PanelLeft />}
+        </SidebarTrigger>
         <Separator
           orientation="vertical"
           className="mr-2 hidden data-[orientation=vertical]:h-4 md:block"

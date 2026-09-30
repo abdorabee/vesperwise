@@ -170,9 +170,21 @@ export default function AuthLayout({
       }}
     >
       <style>{`
+        .auth-mobile-brand {
+          display: none;
+          width: fit-content;
+          text-decoration: none;
+          margin-bottom: 20px;
+        }
         @media (max-width: 768px) {
           .auth-left { display: none !important; }
-          .auth-right { padding: 32px 20px !important; }
+          .auth-right {
+            justify-content: flex-start !important;
+            padding: 24px 20px 32px !important;
+          }
+          .auth-mobile-brand {
+            display: inline-flex;
+          }
         }
         .auth-right > * {
           position: relative;
@@ -209,6 +221,9 @@ export default function AuthLayout({
             pointerEvents: "none",
           }}
         />
+        <Link href="/" className="auth-mobile-brand" aria-label="VesperWise home">
+          <VesperWiseLogo size={44} variant="wordmark" />
+        </Link>
         {children}
       </div>
     </div>

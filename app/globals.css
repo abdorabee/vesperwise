@@ -743,34 +743,23 @@ nav.primary .row {
   letter-spacing: -0.006em;
   padding: 0 14px; height: 32px;
   border-radius: var(--r-md);
-  transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.06s;
   white-space: nowrap;
 }
-.btn:active { transform: translateY(0.5px); }
 .btn-ghost {
   color: var(--text-secondary);
 }
-.btn-ghost:hover { color: var(--text-primary); background: var(--muted); }
 .btn-secondary {
   background: var(--background);
   color: var(--text-primary);
   border: 1px solid var(--border);
 }
-.btn-secondary:hover {
-  background: var(--muted); border-color: var(--border-strong);
-}
-.btn-primary {
+.btn.btn-primary {
   background: var(--text-primary); color: #0a0b0f;
 }
-.btn-primary:hover { background: #ffffff; }
 .btn-accent {
   background: var(--brand); color: #000000;
   border: 1px solid var(--brand);
   box-shadow: none;
-}
-.btn-accent:hover {
-  background: var(--brand-hover);
-  border-color: var(--brand-hover);
 }
 .btn-lg { height: 40px; padding: 0 18px; font-size: 14px; border-radius: var(--r-md); }
 .btn .arrow { width: 12px; height: 12px; transition: transform 0.18s; }
@@ -2206,16 +2195,6 @@ footer.site-footer {
 .crumb .current { color: var(--text-primary); font-weight: 500; }
 .crumb .ic { width: 14px; height: 14px; color: var(--text-tertiary); margin-right: 2px; }
 .spacer { flex: 1; }
-.tb-btn { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-secondary); padding: 4px 10px; border-radius: var(--r-md); border: 1px solid transparent; cursor: pointer; transition: all 0.12s; letter-spacing: -0.006em; }
-.tb-btn:hover { background: rgba(255,255,255,0.04); color: var(--text-primary); }
-.tb-btn.outlined { border-color: var(--border); }
-.tb-btn.outlined:hover { border-color: var(--border-strong); }
-.tb-btn .ic { width: 12px; height: 12px; opacity: 0.85; }
-.tb-btn .kbd { font-family: var(--font-mono); font-size: 11px; padding: 1px 5px; border-radius: 3px; background: rgba(255,255,255,0.06); color: var(--text-tertiary); }
-.btn-primary { background: var(--brand); color: #000000; padding: 4px 12px; border-radius: var(--r-md); font-size: 13px; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12), 0 1px 2px rgba(0,0,0,0.3); letter-spacing: -0.006em; }
-.btn-primary:hover { background: var(--brand-hover); }
-.btn-primary .ic { width: 12px; height: 12px; }
-
 .notif { position: relative; width: 28px; height: 28px; display: grid; place-items: center; color: var(--text-tertiary); border-radius: var(--r-sm); cursor: pointer; }
 .notif:hover { background: rgba(255,255,255,0.06); color: var(--text-primary); }
 .notif .dot { position: absolute; top: 6px; right: 7px; width: 6px; height: 6px; border-radius: 999px; background: var(--hot); box-shadow: 0 0 6px var(--hot), 0 0 0 2px #0e1011; }
@@ -4686,6 +4665,7 @@ button.signal-card.gen-axis.is-selected {
   position: fixed;
   top: 0; right: 0; bottom: 0;
   width: 560px;
+  max-width: 100vw;
   background: var(--bg);
   border-left: 1px solid var(--border);
   z-index: 90;
@@ -8592,14 +8572,10 @@ button.signal-card.gen-axis.is-selected {
     flex-wrap: wrap;
   }
 
-  .tb-btn,
-  .btn-primary,
-  .btn,
   .reply-btn,
   .billing-page .pc-cta,
   .billing-page .tu-cta,
-  .ap-coming-soon a,
-  [data-slot="button"] {
+  .ap-coming-soon a {
     min-height: var(--control-min);
     border-radius: var(--radius-md);
     padding: 8px 14px;
@@ -8613,10 +8589,7 @@ button.signal-card.gen-axis.is-selected {
       box-shadow 200ms ease;
   }
 
-  .tb-btn:hover,
-  .btn:hover,
-  .reply-btn:hover,
-  [data-slot="button"]:hover {
+  .reply-btn:hover {
     transform: none;
   }
 
@@ -8627,7 +8600,6 @@ button.signal-card.gen-axis.is-selected {
     border-color: var(--hairline);
   }
 
-  .btn-primary,
   .billing-page .pc-cta.solid {
     background: var(--brand, #dfff00);
     color: #050505;
@@ -8635,7 +8607,6 @@ button.signal-card.gen-axis.is-selected {
     box-shadow: none;
   }
 
-  .btn-primary:hover,
   .billing-page .pc-cta.solid:hover {
     background: var(--brand-hover, #e8ff40);
   }

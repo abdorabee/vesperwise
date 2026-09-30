@@ -6,7 +6,6 @@ import { EmptyState } from "@/components/app-ui/page-primitives";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { BRAND_BUTTON_CLASS } from "./home-ui";
 
 export const SAMPLE_DOMAINS = ["stripe.com", "ramp.com", "linear.app"] as const;
 
@@ -48,7 +47,7 @@ export function FirstRun({ hasWatchlist, hasBulkJob }: { hasWatchlist: boolean; 
                 placeholder="e.g. stripe.com"
                 className="h-10"
               />
-              <Button type="submit" className={cn(BRAND_BUTTON_CLASS, "h-10")}>
+              <Button type="submit" variant="brand" className="h-10">
                 Score
                 <ArrowRight aria-hidden strokeWidth={2} />
               </Button>

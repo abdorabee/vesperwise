@@ -69,7 +69,7 @@ export function ScoringRunScreen({ entries }: { entries: ScoringRunEntry[] }) {
           <div className="flex items-end justify-between gap-8">
             <div>
               <h1 className="m-0 font-sans text-[28px] font-semibold leading-[1.2] tracking-[-0.03em]">
-                Scoring <span className="text-[#dfff00]">{total}</span> {total === 1 ? "account" : "accounts"}.
+                Scoring <span className="text-[var(--brand)]">{total}</span> {total === 1 ? "account" : "accounts"}.
               </h1>
               <p className="mt-3 max-w-[520px] text-[13px] leading-[1.6] text-[#a0a0a0]">
                 Six sources, checked per account. Results appear as each one clears — you don&rsquo;t have to wait
@@ -92,7 +92,7 @@ export function ScoringRunScreen({ entries }: { entries: ScoringRunEntry[] }) {
               <span className="text-[12px] text-[#666]">{etaLabel}</span>
             </div>
             <div className="mt-3 h-1 overflow-hidden rounded-full bg-white/[0.08]">
-              <div className="h-1 rounded-full bg-[#dfff00] transition-all" style={{ width: `${pct}%` }} />
+              <div className="h-1 rounded-full bg-[var(--brand)] transition-all" style={{ width: `${pct}%` }} />
             </div>
           </div>
 

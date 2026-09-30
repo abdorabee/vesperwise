@@ -40,7 +40,7 @@ export function ResultsScreen({
             <div>
               <h1 className="m-0 font-sans text-[28px] font-semibold leading-[1.2] tracking-[-0.03em]">
                 {visible.length} {visible.length === 1 ? "account" : "accounts"} cleared{" "}
-                <span className="text-[#dfff00]">{threshold}</span>.
+                <span className="text-[var(--brand)]">{threshold}</span>.
               </h1>
               <p className="mt-3 max-w-[560px] text-[13px] leading-[1.6] text-[#a0a0a0]">
                 Out of {accounts.length} scored. Every score opens to the evidence that produced it — nothing here

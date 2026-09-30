@@ -28,8 +28,7 @@ const HT_GRID = "70px minmax(180px,1.2fr) 60px 70px 220px 1fr 90px 36px";
 const S = {
   activityStrip: {
     background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: "var(--r-lg)",
-    padding: "14px 18px", marginBottom: 14, display: "grid", gridTemplateColumns: "1fr 1px 220px",
-    gap: 18, alignItems: "stretch",
+    padding: "14px 18px", marginBottom: 14,
   } as CSSProperties,
   statStrip: { display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 14 } as CSSProperties,
   statCard: {
@@ -45,7 +44,7 @@ const S = {
   searchInput: {
     display: "flex", alignItems: "center", gap: 8, background: "var(--bg-elevated)",
     border: "1px solid var(--border)", borderRadius: "var(--r-md)", padding: "6px 12px",
-    width: 320, fontSize: 13, color: "var(--text-primary)",
+    width: "100%", maxWidth: 320, fontSize: 13, color: "var(--text-primary)",
   } as CSSProperties,
   histTable: {
     background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: "var(--r-lg)",
@@ -498,9 +497,9 @@ export function HistoryView({ stats }: HistoryViewProps) {
         </div>
       </div>
 
-      <div className="activity-strip" style={S.activityStrip}>
+      <div className="activity-strip history-activity-strip" style={S.activityStrip}>
         <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 12 }}>
+          <div className="history-activity-summary">
             <div style={{ fontFamily: "var(--font-mono)", fontWeight: 700, fontSize: 28, letterSpacing: "-0.034em", lineHeight: 1, color: "var(--text-primary)", fontVariantNumeric: "tabular-nums" }}>
               {stats.monthlyCount}
             </div>
@@ -510,7 +509,7 @@ export function HistoryView({ stats }: HistoryViewProps) {
                 ▲ {priorDelta} vs prior
               </div>
             )}
-            <div style={{ marginLeft: "auto", display: "inline-flex", gap: 12, fontSize: 11, color: "var(--text-tertiary)", fontFamily: "var(--font-mono)", letterSpacing: "0.02em" }}>
+            <div className="history-activity-legend" style={{ fontSize: 11, color: "var(--text-tertiary)", fontFamily: "var(--font-mono)", letterSpacing: "0.02em" }}>
               <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><span style={{ width: 8, height: 8, borderRadius: 2, background: "var(--hot)", display: "inline-block" }} />HOT</span>
               <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><span style={{ width: 8, height: 8, borderRadius: 2, background: "var(--warm)", display: "inline-block" }} />WARM</span>
               <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><span style={{ width: 8, height: 8, borderRadius: 2, background: "var(--cold)", opacity: 0.7, display: "inline-block" }} />COLD</span>
@@ -529,7 +528,7 @@ export function HistoryView({ stats }: HistoryViewProps) {
             <span>Today</span>
           </div>
         </div>
-        <div style={{ background: "var(--border-subtle)", width: 1 }} />
+        <div className="history-activity-divider" style={{ background: "var(--border-subtle)", width: 1 }} />
         <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", fontSize: 12 }}>
           {[
             { label: "HOT (≥75)", color: "var(--hot)", count: stats.hotCount, isRescores: false },

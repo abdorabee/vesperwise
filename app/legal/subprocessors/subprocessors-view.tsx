@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import LandingNav from "@/components/landing/LandingNav";
 import SiteFooter from "@/components/site-footer";
-import VesperWiseLogo from "@/components/vesperwise-logo";
 
 const T = {
   bg:           "var(--background)",
@@ -29,12 +29,6 @@ const TOC = [
   { id: "s2", num: "02", label: "Current subprocessors" },
   { id: "s3", num: "03", label: "Change notice" },
   { id: "s4", num: "04", label: "Security standards" },
-];
-
-const NAV_LINKS = [
-  { label: "Product",    href: "/#product"   },
-  { label: "Developers", href: "/docs"       },
-  { label: "Pricing",    href: "/pricing"    },
 ];
 
 function Section({ id, num, title, children, first }: {
@@ -73,8 +67,8 @@ function Strong({ children }: { children: React.ReactNode }) {
 
 function DocTable({ headers, rows }: { headers: string[]; rows: React.ReactNode[][] }) {
   return (
-    <div style={{ margin: "18px 0 24px", border: `1px solid ${T.border}`, borderRadius: "6px", overflow: "hidden", background: T.bgEl }}>
-      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
+    <div style={{ margin: "18px 0 24px", border: `1px solid ${T.border}`, borderRadius: "6px", overflowX: "auto", WebkitOverflowScrolling: "touch", background: T.bgEl }}>
+      <table style={{ width: "100%", minWidth: "560px", borderCollapse: "collapse", fontSize: "13px" }}>
         <thead>
           <tr>
             {headers.map((h, i) => (
@@ -117,31 +111,13 @@ export default function SubprocessorsView() {
         .toc-link:hover { color: var(--foreground) !important; background: var(--muted) !important; }
       `}</style>
 
-      <div style={{ position: "sticky", top: 0, zIndex: 100, height: "36px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "13px", color: T.txtSecondary, background: "var(--bg-translucent)", backdropFilter: "saturate(180%) blur(20px)", WebkitBackdropFilter: "saturate(180%) blur(20px)", borderBottom: `1px solid ${T.border}`, letterSpacing: "-0.011em", gap: 0 } as React.CSSProperties}>
+      <div className="legal-top-banner" style={{ position: "sticky", top: 0, zIndex: 100, height: "36px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "13px", color: T.txtSecondary, background: "var(--bg-translucent)", backdropFilter: "saturate(180%) blur(20px)", WebkitBackdropFilter: "saturate(180%) blur(20px)", borderBottom: `1px solid ${T.border}`, letterSpacing: "-0.011em", gap: 0 } as React.CSSProperties}>
         <strong style={{ color: T.txtPrimary, fontWeight: 500 }}>Subprocessors</strong>
       </div>
 
-      <nav style={{ position: "sticky", top: "36px", zIndex: 50, background: "var(--bg-translucent)", backdropFilter: "saturate(180%) blur(20px)", WebkitBackdropFilter: "saturate(180%) blur(20px)", borderBottom: `1px solid ${T.border}` } as React.CSSProperties}>
-        <div style={{ display: "flex", alignItems: "center", height: "56px", padding: "0 24px", maxWidth: "1320px", margin: "0 auto", gap: "28px" }}>
-          <Link href="/" aria-label="VesperWise home" style={{ display: "inline-flex", alignItems: "center", gap: "8px", fontWeight: 600, letterSpacing: "-0.022em", fontSize: "15px", color: T.txtPrimary, textDecoration: "none" }}>
-            <VesperWiseLogo size={42} variant="wordmark" />
-          </Link>
-          <div className="mkt-navlinks" style={{ display: "flex", gap: "4px", alignItems: "center" }}>
-            {NAV_LINKS.map(({ label, href }) => (
-              <Link key={label} href={href} style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "14px", color: T.txtSecondary, padding: "6px 10px", borderRadius: "6px", letterSpacing: "-0.011em", textDecoration: "none" }}>
-                {label}
-              </Link>
-            ))}
-          </div>
-          <div style={{ flex: 1 }} />
-          <Link href="/login" style={{ fontSize: "14px", fontWeight: 500, letterSpacing: "-0.006em", color: T.txtSecondary, padding: "6px 10px", borderRadius: "6px", textDecoration: "none" }}>Sign in</Link>
-          <Link href="/signup" style={{ display: "inline-flex", alignItems: "center", fontSize: "14px", fontWeight: 500, letterSpacing: "-0.006em", color: T.txtPrimary, padding: "0 14px", height: "32px", borderRadius: "6px", border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.05)", textDecoration: "none" }}>Start free</Link>
-          <Link href="/contact#contact-form" style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "14px", fontWeight: 500, letterSpacing: "-0.006em", color: "#000000", padding: "0 14px", height: "32px", borderRadius: "6px", background: T.accent, boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.12), 0 1px 2px rgba(0,0,0,0.3)", textDecoration: "none" }}>
-            Talk to us
-            <svg style={{ width: "12px", height: "12px" }} viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 6h6M7 4l2 2-2 2"/></svg>
-          </Link>
-        </div>
-      </nav>
+      <div className="legal-nav-wrap">
+        <LandingNav />
+      </div>
 
       <section style={{ position: "relative", padding: "88px 0 64px", overflow: "hidden", borderBottom: `1px solid ${T.border}` }}>
         <div style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden" }} aria-hidden="true">

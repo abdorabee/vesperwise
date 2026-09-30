@@ -31,7 +31,7 @@ export function EmptyStateScreen({
     <>
       <div className="overflow-y-auto p-12 pb-0">
         <h1 className="m-0 font-sans text-[28px] font-semibold leading-[1.2] tracking-[-0.03em]">
-            Nothing cleared {threshold}. Here&rsquo;s what <span className="text-[#dfff00]">did</span>.
+            Nothing cleared {threshold}. Here&rsquo;s what <span className="text-[var(--brand)]">did</span>.
           </h1>
           <p className="mt-3 max-w-[600px] text-[13px] leading-[1.6] text-[#a0a0a0]">
             The run worked — {accounts.length} {accounts.length === 1 ? "account" : "accounts"} scored, six sources
@@ -89,7 +89,7 @@ export function EmptyStateScreen({
             <button
               type="button"
               onClick={() => onLowerThreshold(suggestedThreshold)}
-              className="flex h-10 items-center justify-center rounded-lg bg-[#dfff00] px-5 font-sans text-[13px] font-semibold text-black hover:bg-[#e8ff40]"
+              className="flex h-10 items-center justify-center rounded-lg bg-[var(--brand)] px-5 font-sans text-[13px] font-semibold text-[var(--on-brand)] hover:bg-[var(--brand-hover)] active:bg-[var(--brand-active)]"
             >
               Lower the threshold to {suggestedThreshold}
             </button>

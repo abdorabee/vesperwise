@@ -1,15 +1,18 @@
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
+import { Loader2 } from "lucide-react"
 import { Slot } from "radix-ui"
 
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium tracking-normal transition-[transform,color,background-color,border-color,box-shadow] duration-150 outline-none active:scale-[0.97] focus-visible:ring-[3px] focus-visible:ring-ring/25 disabled:pointer-events-none disabled:opacity-45 motion-reduce:transition-none aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium tracking-normal transition-[transform,color,background-color,border-color,box-shadow] duration-150 outline-none active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-45 motion-reduce:transition-none motion-reduce:active:scale-100 aria-disabled:pointer-events-none aria-disabled:opacity-45 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
         default: "border border-primary bg-primary text-primary-foreground shadow-xs hover:bg-primary/90",
+        brand:
+          "border border-transparent bg-[var(--brand)] text-[var(--on-brand)] shadow-xs hover:bg-[var(--brand-hover)] active:bg-[var(--brand-active)] focus-visible:ring-[var(--brand)]/55 dark:focus-visible:ring-[var(--brand)]/65",
         destructive:
           "bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:bg-destructive/70 dark:focus-visible:ring-destructive/40",
         outline:
@@ -43,21 +46,53 @@ function Button({
   variant = "default",
   size = "default",
   asChild = false,
+  loading = false,
+  disabled,
+  children,
+  "aria-busy": ariaBusy,
+  "aria-disabled": ariaDisabled,
   ...props
 }: React.ComponentProps<"button"> &
   VariantProps<typeof buttonVariants> & {
     asChild?: boolean
+    loading?: boolean
   }) {
-  const Comp = asChild ? Slot.Root : "button"
+  const isDisabled = Boolean(disabled || loading)
+  const busy = loading ? true : ariaBusy
+  const disabledState = isDisabled ? true : ariaDisabled
+
+  if (asChild) {
+    return (
+      <Slot.Root
+        data-slot="button"
+        data-variant={variant}
+        data-size={size}
+        aria-busy={busy}
+        aria-disabled={disabledState}
+        className={cn(buttonVariants({ variant, size, className }))}
+        {...props}
+      >
+        {children}
+      </Slot.Root>
+    )
+  }
 
   return (
-    <Comp
+    <button
       data-slot="button"
       data-variant={variant}
       data-size={size}
+      aria-busy={busy}
+      aria-disabled={disabledState}
+      disabled={isDisabled}
       className={cn(buttonVariants({ variant, size, className }))}
       {...props}
-    />
+    >
+      {loading ? (
+        <Loader2 aria-hidden="true" data-icon="inline-start" className="animate-spin motion-reduce:animate-none" />
+      ) : null}
+      {children}
+    </button>
   )
 }
 

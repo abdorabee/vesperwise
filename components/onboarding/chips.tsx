@@ -28,7 +28,7 @@ export function ChipMultiSelect({
             role="checkbox"
             aria-checked={on}
             onClick={() => onToggle(option)}
-            className={`flex h-8 items-center rounded-lg border px-3 font-sans text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#dfff00] ${
+            className={`flex h-8 items-center rounded-lg border px-3 font-sans text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)] ${
               on
                 ? "border-white/[0.13] bg-white/[0.06] text-white"
                 : "border-white/[0.08] bg-transparent text-[#a0a0a0] hover:border-white/[0.15] hover:bg-white/[0.04]"
@@ -84,7 +84,7 @@ export function SegmentedControl({
             role="radio"
             aria-checked={on}
             onClick={() => onChange(option)}
-            className={`flex min-h-9 min-w-0 flex-1 items-center justify-center border-r border-white/[0.08] px-2 py-1 text-center font-sans text-[11.5px] leading-[1.25] font-medium last:border-r-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#dfff00] ${
+            className={`flex min-h-9 min-w-0 flex-1 items-center justify-center border-r border-white/[0.08] px-2 py-1 text-center font-sans text-[11.5px] leading-[1.25] font-medium last:border-r-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)] ${
               on ? "bg-white/[0.06] text-white" : "text-[#a0a0a0] hover:bg-white/[0.03]"
             }`}
           >

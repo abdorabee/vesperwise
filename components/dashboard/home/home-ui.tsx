@@ -5,13 +5,9 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { RANGE_DAYS, type RangeKey } from "@/lib/dashboard-home";
 
-/** Lime is a highlighter: primary CTA only, always with ink text on it. */
-export const BRAND_BUTTON_CLASS =
-  "border border-transparent bg-[var(--brand)] text-[var(--on-brand)] hover:bg-[var(--brand-hover)] active:translate-y-0 active:scale-[0.96]";
-
 export function ScoreCompanyButton({ className }: { className?: string }) {
   return (
-    <Button asChild size="sm" className={cn(BRAND_BUTTON_CLASS, className)}>
+    <Button asChild size="sm" variant="brand" className={className}>
       <Link href="/score">
         <Plus aria-hidden strokeWidth={2} />
         Score company
@@ -33,7 +29,7 @@ export function RangeToggle({ value }: { value: RangeKey }) {
             aria-current={active ? "page" : undefined}
             className={cn(
               "inline-flex h-full min-w-11 items-center justify-center rounded-md px-2.5 text-xs font-medium uppercase tabular-nums transition-[background-color,color] duration-150 motion-reduce:transition-none",
-              "outline-none focus-visible:ring-[3px] focus-visible:ring-ring/25",
+              "outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
               active ? "bg-card text-foreground shadow-xs ring-1 ring-border dark:bg-white/10" : "text-muted-foreground hover:text-foreground",
             )}
           >

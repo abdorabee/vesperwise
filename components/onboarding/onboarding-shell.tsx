@@ -19,12 +19,12 @@ function StepLedger({ phase }: { phase: number }) {
           <div
             key={p.n}
             className={`flex h-8 items-center gap-2 border-b px-3 ${
-              current ? "border-[#dfff00]" : "border-transparent"
+              current ? "border-[color:var(--brand)]" : "border-transparent"
             }`}
           >
             <span
               className={`font-mono text-[11px] tabular-nums ${
-                current ? "text-[#dfff00]" : done ? "text-[#666]" : "text-[#4a4a4a]"
+                current ? "text-[var(--brand)]" : done ? "text-[#666]" : "text-[#4a4a4a]"
               }`}
             >
               {p.n}
@@ -59,7 +59,7 @@ export function OnboardingHeader({
     <div className="flex h-[56px] flex-none items-center justify-between border-b border-white/[0.08] px-6">
       <div className="flex items-center gap-8">
         <div className="text-[15px] font-semibold tracking-[-0.03em]">
-          VESPERWISE<span className="text-[#dfff00]">.</span>
+          VESPERWISE<span className="text-[var(--brand)]">.</span>
         </div>
         {showLedger && <StepLedger phase={phase} />}
       </div>
@@ -112,7 +112,7 @@ export function OnboardingFooter({
             type="button"
             onClick={back.onClick}
             disabled={back.disabled}
-            className="flex h-10 items-center justify-center rounded-lg border border-white/[0.08] bg-transparent px-4 text-[13px] font-medium text-[#a0a0a0] hover:border-white/[0.15] hover:bg-white/[0.04] disabled:cursor-not-allowed disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#dfff00]"
+            className="flex h-10 items-center justify-center rounded-lg border border-white/[0.08] bg-transparent px-4 text-[13px] font-medium text-[#a0a0a0] hover:border-white/[0.15] hover:bg-white/[0.04] disabled:cursor-not-allowed disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]"
           >
             {back.label}
           </button>
@@ -140,7 +140,7 @@ export function PrimaryButton({
       type={type}
       onClick={onClick}
       disabled={disabled}
-      className="flex h-10 items-center justify-center rounded-lg bg-[#dfff00] px-5 text-[13px] font-semibold text-black hover:bg-[#e8ff40] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#dfff00] focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+      className="flex h-10 items-center justify-center rounded-lg bg-[var(--brand)] px-5 text-[13px] font-semibold text-[var(--on-brand)] hover:bg-[var(--brand-hover)] active:bg-[var(--brand-active)] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)] focus-visible:ring-offset-2 focus-visible:ring-offset-black"
     >
       {children}
     </button>
@@ -165,7 +165,7 @@ export function SecondaryButton({
       onClick={inert ? undefined : onClick}
       disabled={disabled}
       title={inert ? "Coming soon" : undefined}
-      className="flex h-10 items-center justify-center rounded-lg border border-white/[0.08] bg-transparent px-4 text-[13px] font-medium text-[#a0a0a0] hover:border-white/[0.15] hover:bg-white/[0.04] disabled:cursor-not-allowed disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#dfff00]"
+      className="flex h-10 items-center justify-center rounded-lg border border-white/[0.08] bg-transparent px-4 text-[13px] font-medium text-[#a0a0a0] hover:border-white/[0.15] hover:bg-white/[0.04] disabled:cursor-not-allowed disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]"
     >
       {children}
     </button>

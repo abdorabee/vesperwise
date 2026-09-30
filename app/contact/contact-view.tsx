@@ -207,7 +207,7 @@ export default function ContactView() {
     borderRadius: "6px",
     background: T.bg,
     color: T.txtPrimary,
-    fontSize: "14px",
+    fontSize: "16px",
     fontFamily: T.fontSans,
     letterSpacing: "-0.006em",
     outline: "none",
@@ -247,7 +247,7 @@ export default function ContactView() {
       </section>
 
       {/* ── Contact shell: 2-col grid ── */}
-      <div id="contact-form" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "56px", padding: "64px 24px 96px", maxWidth: "1200px", margin: "0 auto" }}>
+      <div id="contact-form" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 280px), 1fr))", gap: "56px", padding: "64px 24px 96px", maxWidth: "1200px", margin: "0 auto" }}>
 
         {/* LEFT: channels */}
         <div style={{ display: "flex", flexDirection: "column" }}>
@@ -271,8 +271,8 @@ export default function ContactView() {
                 <div style={{ fontSize: "15px", fontWeight: 500, color: T.txtPrimary, letterSpacing: "-0.011em", marginBottom: "4px" }}>{ch.name}</div>
                 <div style={{ fontSize: "13px", color: T.txtTertiary, letterSpacing: "-0.006em", lineHeight: 1.4 }}>{ch.desc}</div>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <span style={{ fontFamily: T.fontMono, fontSize: "12px", color: T.txtSecondary, letterSpacing: "-0.006em", whiteSpace: "nowrap" }}>{ch.email}</span>
+              <div className="ch-contact-meta" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <span className="ch-email" style={{ fontFamily: T.fontMono, fontSize: "12px", color: T.txtSecondary, letterSpacing: "-0.006em", whiteSpace: "nowrap" }}>{ch.email}</span>
                 <svg className="ch-arrow" style={{ width: "14px", height: "14px", color: T.txtQuaternary, transition: "transform 0.2s, color 0.2s", flexShrink: 0 }} viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5">
                   <path d="M3 7h8M8 4l3 3-3 3"/>
                 </svg>
@@ -282,7 +282,7 @@ export default function ContactView() {
 
 
           {/* Offices */}
-          <div style={{ marginTop: "32px", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "12px" }}>
+          <div style={{ marginTop: "32px", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 280px), 1fr))", gap: "12px" }}>
             {[
               { city: "Cairo · HQ", flag: "EG", addr: "5 Sherif Pasha St.\nDowntown Cairo, 11511" },
             ].map((o) => (
@@ -298,7 +298,7 @@ export default function ContactView() {
         </div>
 
         {/* RIGHT: form card */}
-        <div style={{ border: `1px solid ${T.border}`, borderRadius: "12px", background: T.bgEl, padding: "32px 36px", position: "relative", overflow: "hidden" }}>
+        <div style={{ border: `1px solid ${T.border}`, borderRadius: "12px", background: T.bgEl, padding: "clamp(22px, 5vw, 32px) clamp(18px, 5vw, 36px)", position: "relative", overflow: "hidden" }}>
           {/* Decorative glow */}
           <div style={{ position: "absolute", top: "-100px", right: "-100px", width: "400px", height: "400px", background: "radial-gradient(circle, rgba(223,255,0,0.12), transparent 60%)", filter: "blur(40px)", pointerEvents: "none" }} aria-hidden="true" />
 
@@ -327,7 +327,7 @@ export default function ContactView() {
 
           <form onSubmit={handleSubmit} noValidate>
             {/* Row 1: name + email */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "12px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 280px), 1fr))", gap: "12px" }}>
               <div style={{ marginBottom: "16px" }}>
                 <label htmlFor="contact-name" style={{ display: "block", fontSize: "12px", fontWeight: 500, color: T.txtTertiary, letterSpacing: "-0.006em", marginBottom: "6px" }}>
                   Full name <span style={{ color: "#f87171" }}>*</span>
@@ -369,7 +369,7 @@ export default function ContactView() {
             </div>
 
             {/* Row 2: company + team size */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "12px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 280px), 1fr))", gap: "12px" }}>
               <div style={{ marginBottom: "16px" }}>
                 <label style={{ display: "block", fontSize: "12px", fontWeight: 500, color: T.txtTertiary, letterSpacing: "-0.006em", marginBottom: "6px" }}>Company</label>
                 <input

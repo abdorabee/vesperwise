@@ -183,7 +183,7 @@ function ParamRow({ name, type, badge, children, isLast }: {
   };
   const bs = badge ? badgeStyles[badge] : null;
   return (
-    <div style={{
+    <div className="docs-param-row" style={{
       display: "grid", gridTemplateColumns: "196px 1fr", gap: "28px",
       padding: "16px", borderBottom: isLast ? "none" : `1px solid ${T.borderSubtle}`,
       fontSize: "13px", lineHeight: "1.55",
@@ -419,6 +419,9 @@ export default function DocsView() {
           .docs-shell { grid-template-columns: 1fr; gap: 24px; }
           .docs-rail { position: static; max-height: none; }
         }
+        @media (max-width: 640px) {
+          .docs-param-row { grid-template-columns: 1fr !important; gap: 8px !important; }
+        }
       `}</style>
 
       <LandingNav />
@@ -455,7 +458,7 @@ export default function DocsView() {
               placeholder="Search the API"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              style={{ width: "100%", fontFamily: "inherit", fontSize: "13px", color: T.txt, background: T.bgEl, border: `1px solid ${T.border}`, borderRadius: T.r.md, padding: "7px 36px 7px 30px", outline: "none", boxSizing: "border-box" as const }}
+              style={{ width: "100%", fontFamily: "inherit", fontSize: "16px", color: T.txt, background: T.bgEl, border: `1px solid ${T.border}`, borderRadius: T.r.md, padding: "7px 36px 7px 30px", outline: "none", boxSizing: "border-box" as const }}
             />
             <kbd style={{ position: "absolute", right: "8px", top: "50%", transform: "translateY(-50%)", fontFamily: T.mono, fontSize: "10px", fontWeight: 500, padding: "1px 5px", border: `1px solid ${T.border}`, borderRadius: "3px", color: T.txtQ }}>⌘K</kbd>
           </div>

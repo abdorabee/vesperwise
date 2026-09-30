@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import LandingNav from "@/components/landing/LandingNav";
 import SiteFooter from "@/components/site-footer";
-import VesperWiseLogo from "@/components/vesperwise-logo";
 
 /* ── Design tokens ───────────────────────────────────────────── */
 const T = {
@@ -40,13 +40,6 @@ const TOC = [
   { id: "s12", num: "12", label: "Liability & term"          },
   { id: "a1",  num: "A1", label: "Annex I · Details"         },
   { id: "a2",  num: "A2", label: "Annex II · TOMs"           },
-];
-
-const NAV_LINKS = [
-  { label: "Product",    href: "/#product"   },
-  { label: "Developers", href: "/docs"       },
-  { label: "Pricing",    href: "/pricing"    },
-  { label: "About",      href: "/about"      },
 ];
 
 /* ── Shared primitives ───────────────────────────────────────── */
@@ -202,7 +195,7 @@ export default function DpaView() {
       `}</style>
 
       {/* ── Sticky banner ── */}
-      <div style={{ position: "sticky", top: 0, zIndex: 100, height: "36px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "13px", color: T.txtSecondary, background: "var(--bg-translucent)", backdropFilter: "saturate(180%) blur(20px)", WebkitBackdropFilter: "saturate(180%) blur(20px)", borderBottom: `1px solid ${T.border}`, letterSpacing: "-0.011em", gap: 0 } as React.CSSProperties}>
+      <div className="legal-top-banner" style={{ position: "sticky", top: 0, zIndex: 100, height: "36px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "13px", color: T.txtSecondary, background: "var(--bg-translucent)", backdropFilter: "saturate(180%) blur(20px)", WebkitBackdropFilter: "saturate(180%) blur(20px)", borderBottom: `1px solid ${T.border}`, letterSpacing: "-0.011em", gap: 0 } as React.CSSProperties}>
         <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", marginRight: "10px", fontSize: "11px", fontWeight: 600, color: T.ink, background: T.cyanSoft, padding: "1px 8px", borderRadius: "999px" }}>v1.6</span>
         <strong style={{ color: T.txtPrimary, fontWeight: 500 }}>Data Processing Agreement</strong>
         <span style={{ margin: "0 6px", color: T.txtQuaternary }}>·</span>
@@ -213,28 +206,9 @@ export default function DpaView() {
         SCCs 2021/914
       </div>
 
-      {/* ── Sticky nav ── */}
-      <nav style={{ position: "sticky", top: "36px", zIndex: 50, background: "var(--bg-translucent)", backdropFilter: "saturate(180%) blur(20px)", WebkitBackdropFilter: "saturate(180%) blur(20px)", borderBottom: `1px solid ${T.border}` } as React.CSSProperties}>
-        <div style={{ display: "flex", alignItems: "center", height: "56px", padding: "0 24px", maxWidth: "1320px", margin: "0 auto", gap: "28px" }}>
-          <Link href="/" aria-label="VesperWise home" style={{ display: "inline-flex", alignItems: "center", gap: "8px", fontWeight: 600, letterSpacing: "-0.022em", fontSize: "15px", color: T.txtPrimary, textDecoration: "none" }}>
-            <VesperWiseLogo size={42} variant="wordmark" />
-          </Link>
-          <div className="mkt-navlinks" style={{ display: "flex", gap: "4px", alignItems: "center" }}>
-            {NAV_LINKS.map(({ label, href }) => (
-              <Link key={label} href={href} style={{ display: "inline-flex", alignItems: "center", fontSize: "14px", color: T.txtSecondary, padding: "6px 10px", borderRadius: "6px", letterSpacing: "-0.011em", textDecoration: "none" }}>
-                {label}
-              </Link>
-            ))}
-          </div>
-          <div style={{ flex: 1 }} />
-          <Link href="/login" style={{ fontSize: "14px", fontWeight: 500, color: T.txtSecondary, padding: "6px 10px", borderRadius: "6px", textDecoration: "none" }}>Sign in</Link>
-          <Link href="/signup" style={{ display: "inline-flex", alignItems: "center", fontSize: "14px", fontWeight: 500, color: T.txtPrimary, padding: "0 14px", height: "32px", borderRadius: "6px", border: `1px solid ${T.border}`, background: "rgba(255,255,255,0.05)", textDecoration: "none" }}>Start free</Link>
-          <Link href="/contact" style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "14px", fontWeight: 500, color: "#000000", padding: "0 14px", height: "32px", borderRadius: "6px", background: T.accent, boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.12), 0 1px 2px rgba(0,0,0,0.3)", textDecoration: "none" }}>
-            Talk to us
-            <svg style={{ width: "12px", height: "12px" }} viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 6h6M7 4l2 2-2 2"/></svg>
-          </Link>
-        </div>
-      </nav>
+      <div className="legal-nav-wrap">
+        <LandingNav />
+      </div>
 
       {/* ── Hero ── */}
       <section style={{ position: "relative", padding: "88px 0 64px", overflow: "hidden", borderBottom: `1px solid ${T.border}` }}>

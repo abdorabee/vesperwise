@@ -20,7 +20,7 @@ export function SignalSourcesScreen({ seedCount }: { seedCount: number }) {
     <>
       <div className="overflow-y-auto p-12 pb-0">
         <h1 className="m-0 font-sans text-[28px] font-semibold leading-[1.2] tracking-[-0.03em]">
-          Six sources, already <span className="text-[#dfff00]">watching</span>.
+          Six sources, already <span className="text-[var(--brand)]">watching</span>.
         </h1>
         <p className="mt-3 max-w-[560px] text-[13px] leading-[1.6] text-[#a0a0a0]">
           Nothing to connect — we crawl these ourselves. Weighting is fixed for every workspace; the weight column

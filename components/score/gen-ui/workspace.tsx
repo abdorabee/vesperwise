@@ -259,8 +259,8 @@ function NextMove({ block, company, onPrompt }: { block: ThesisBlock; company?: 
           <Button
             type="button"
             size="sm"
+            variant="brand"
             onClick={() => onPrompt(draftOutreachPrompt(company))}
-            className="border-transparent bg-[var(--brand)] text-[var(--on-brand)] transition-[background-color,scale] duration-150 hover:bg-[var(--brand-hover)] active:scale-[0.96] motion-reduce:transition-none"
           >
             <PenLine className="size-4" aria-hidden="true" />Draft outreach
           </Button>
