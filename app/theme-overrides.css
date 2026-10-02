@@ -26,9 +26,9 @@
   --card-foreground: #0a0e1a;
   --popover: #ffffff;
   --popover-foreground: #0a0e1a;
-  /* Near-white primary; lime stays --brand signature only */
-  --primary: #17191c;
-  --primary-foreground: #fafafa;
+  /* Primary actions are the lime brand, with ink text on the fill */
+  --primary: var(--brand);
+  --primary-foreground: var(--on-brand);
   --secondary: #eef1f6;
   --secondary-foreground: #0a0e1a;
   --muted: #eef1f6;
@@ -122,9 +122,9 @@
   --card-foreground: #f4f4f5;
   --popover: #17191d;
   --popover-foreground: #f4f4f5;
-  /* Near-white primary; lime stays --brand signature only */
-  --primary: #f7f8f8;
-  --primary-foreground: #08090a;
+  /* Primary actions are the lime brand, with ink text on the fill */
+  --primary: var(--brand);
+  --primary-foreground: var(--on-brand);
   --secondary: rgba(255, 255, 255, 0.06);
   --secondary-foreground: #f4f4f5;
   --muted: rgba(255, 255, 255, 0.06);
@@ -464,7 +464,7 @@ html:not(.dark) .cmd-palette .kbd {
 }
 
 .btn.btn-primary:hover {
-  background: #ffffff;
+  background: var(--brand-hover);
 }
 
 .btn-accent:hover {
@@ -620,4 +620,11 @@ html:not(.dark) .cmd-palette .kbd {
 .billing-page .pc-cta,
 .billing-page .tu-cta {
   border-radius: var(--radius-lg);
+}
+
+/* Unlayered so this beats the utilities-layer bg-primary fill. */
+[data-slot="button"][data-variant="default"]:hover,
+[data-slot="button"][data-variant="brand"]:hover {
+  background: var(--brand-hover);
+  border-color: var(--brand-hover);
 }

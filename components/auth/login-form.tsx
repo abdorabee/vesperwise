@@ -263,7 +263,7 @@ function LoginFormInner() {
           <Button
             type="submit"
             disabled={busy}
-            className="h-[42px] w-full rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
+            className="h-[42px] w-full rounded-md bg-primary text-primary-foreground hover:bg-[var(--brand-hover)]"
           >
             {busy ? "Signing in…" : "Continue"}
           </Button>
@@ -293,7 +293,7 @@ function LoginFormInner() {
           <Button
             type="submit"
             disabled={busy}
-            className="h-[42px] w-full rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
+            className="h-[42px] w-full rounded-md bg-primary text-primary-foreground hover:bg-[var(--brand-hover)]"
           >
             {busy ? "Checking…" : "Verify code"}
           </Button>
@@ -336,7 +336,7 @@ function LoginFormInner() {
           <Button
             type="submit"
             disabled={busy}
-            className="h-[42px] w-full rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
+            className="h-[42px] w-full rounded-md bg-primary text-primary-foreground hover:bg-[var(--brand-hover)]"
           >
             {busy ? "Saving…" : "Update password"}
           </Button>
@@ -366,7 +366,7 @@ function LoginFormInner() {
           <Button
             type="submit"
             disabled={busy}
-            className="h-[42px] w-full rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
+            className="h-[42px] w-full rounded-md bg-primary text-primary-foreground hover:bg-[var(--brand-hover)]"
           >
             {busy ? "Verifying…" : "Verify"}
           </Button>
