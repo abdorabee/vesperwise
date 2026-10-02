@@ -621,3 +621,10 @@ html:not(.dark) .cmd-palette .kbd {
 .billing-page .tu-cta {
   border-radius: var(--radius-lg);
 }
+
+/* Unlayered so this beats the utilities-layer bg-primary fill. */
+[data-slot="button"][data-variant="default"]:hover,
+[data-slot="button"][data-variant="brand"]:hover {
+  background: var(--brand-hover);
+  border-color: var(--brand-hover);
+}
