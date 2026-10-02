@@ -461,7 +461,7 @@ export function PeopleView({ totalCount, hotCount, initialScores }: PeopleViewPr
                   {result.person_linkedin && (
                     <a
                       className="btn-primary"
-                      style={{ height: 30, padding: "0 12px", display: "inline-flex", alignItems: "center", textDecoration: "none", borderRadius: "var(--r-sm)", fontSize: 13, background: "var(--accent)", color: "#fff" }}
+                      style={{ height: 30, padding: "0 12px", display: "inline-flex", alignItems: "center", textDecoration: "none", borderRadius: "var(--r-sm)", fontSize: 13 }}
                       href={result.person_linkedin}
                       target="_blank"
                       rel="noopener noreferrer"

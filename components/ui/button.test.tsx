@@ -7,8 +7,9 @@ describe("Button", () => {
   it("exposes the VesperWise brand variant", () => {
     const classes = buttonVariants({ variant: "brand" });
 
-    expect(classes).toContain("bg-[var(--brand)]");
-    expect(classes).toContain("text-[var(--on-brand)]");
+    expect(classes).toContain("bg-primary");
+    expect(classes).toContain("text-primary-foreground");
+    expect(classes).not.toContain("bg-[var(--brand)]");
     expect(classes).toContain("hover:bg-[var(--brand-hover)]");
     expect(classes).toContain("active:bg-[var(--brand-active)]");
   });

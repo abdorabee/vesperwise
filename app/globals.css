@@ -754,7 +754,7 @@ nav.primary .row {
   border: 1px solid var(--border);
 }
 .btn.btn-primary {
-  background: var(--text-primary); color: #0a0b0f;
+  background: var(--brand); color: var(--on-brand);
 }
 .btn-accent {
   background: var(--brand); color: #000000;
@@ -2600,8 +2600,8 @@ footer.site-footer {
 .prompt-go .kbd-inline {
   font-family: var(--font-mono); font-size: 10px;
   padding: 0 4px; border-radius: 3px;
-  background: rgba(255,255,255,0.18);
-  color: rgba(255,255,255,0.85);
+  background: rgba(10, 11, 12, 0.12);
+  color: var(--on-brand);
 }
 
 .prompt-meta {
@@ -8602,7 +8602,7 @@ button.signal-card.gen-axis.is-selected {
 
   .billing-page .pc-cta.solid {
     background: var(--brand, #dfff00);
-    color: #050505;
+    color: var(--on-brand);
     border: 1px solid var(--brand, #dfff00);
     box-shadow: none;
   }
@@ -8619,7 +8619,7 @@ button.signal-card.gen-axis.is-selected {
   }
 
   [data-slot="button"][data-variant="default"]:hover {
-    background: color-mix(in oklab, var(--primary) 90%, transparent);
+    background: var(--brand-hover);
   }
 
   .range-tabs,
