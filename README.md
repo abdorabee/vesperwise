@@ -2,7 +2,11 @@
 
 B2B sales intelligence platform that scores companies by purchase intent using time-bound evidence and AI reasoning.
 
+The wiki expands every section below. Start at the [wiki index](docs/wiki/README.md).
+
 ## What it does
+
+[Wiki](docs/wiki/what-it-does.md)
 
 VesperWise scores four purchase-intent triggers—funding, hiring, news, and technology changes—and keeps web authority and GitHub activity as supporting context. The versioned scoring model returns a 0–100 score, source coverage, freshness-adjusted contributions, and an AI-generated buying-stage analysis. A separate `icp_fit_score` measures fit against a verified workspace business profile without changing purchase intent.
 
@@ -10,17 +14,23 @@ Score bands: **HOT** (≥75) · **WARM** (50–74) · **COLD** (<50)
 
 ## Tech stack
 
+[Wiki](docs/wiki/tech-stack.md)
+
 - **Framework**: Next.js 16 (App Router, React 19)
-- **Auth**: Clerk
+- **Auth**: Clerk. Identity is a Clerk `user_*` id. There is no cookie-based Supabase auth client.
 - **Database**: Supabase (PostgreSQL + RLS)
-- **Cache / background jobs**: Supabase Postgres
+- **Cache / background jobs**: Supabase Postgres (`background_jobs`, not Redis)
 - **Billing**: Polar.sh
-- **AI**: OpenRouter (Gemini score reasoning; Claude chat copilot and onboarding)
-- **Signal APIs**: Explorium (funding and hiring), GNews, BuiltWith, OpenPageRank, GitHub, Apollo.io (people)
+- **AI**: OpenRouter (Gemini score reasoning; Claude chat copilot)
+- **Email**: Resend for the contact form (logs to the console if unset)
+- **Signal APIs**: Explorium (funding and hiring), GNews, BuiltWith, OpenPageRank, GitHub
 - **Hiring fallback**: Postgres queue + Scrapling crawler for promoted first-party careers evidence
-- **UI**: Tailwind CSS 4, shadcn/ui, Recharts, GSAP
+- **Web evidence**: Firecrawl worker for dated public-page evidence
+- **UI**: Tailwind CSS 4, shadcn/ui, Radix, Lucide, Streamdown
 
 ## Getting started
+
+[Wiki](docs/wiki/getting-started.md)
 
 ### 1. Install dependencies
 
@@ -44,6 +54,8 @@ CLERK_SECRET_KEY=
 
 # OpenRouter (bounded score reasoning; deterministic fallback if unset)
 OPENROUTER_API_KEY=
+# Chat model override (default anthropic/claude-sonnet-4)
+# COPILOT_MODEL=
 
 # Polar.sh billing
 POLAR_ACCESS_TOKEN=
@@ -62,6 +74,9 @@ GNEWS_API_KEY=
 BUILTWITH_API_KEY=
 OPEN_PAGE_RANK_API_KEY=
 GITHUB_TOKEN=
+
+# Contact form (optional; logs to the console if unset)
+RESEND_API_KEY=
 
 # Skip real API calls during development
 MOCK_SIGNALS=true
@@ -102,12 +117,18 @@ npm run build    # production build
 npm run lint     # ESLint
 npm test         # Vitest, one run
 npm run test:scoring-db # destructive only to an explicitly confirmed disposable Postgres database
+npm run test:cache-queue-db # same class of reset, for the Postgres cache and queue
 npm run test:watch
+npm run dead-code # Knip production file and dependency check
 ```
 
 ## Architecture
 
+[Wiki](docs/wiki/architecture.md)
+
 ### Scoring pipeline (`app/api/v1/score/route.ts`)
+
+[Wiki](docs/wiki/scoring-pipeline.md)
 
 1. Authenticate the Clerk session or SHA-256-hashed API key and canonicalize the company domain.
 2. Check the personalized result cache, isolated by workspace, domain, business-profile hash, and scoring version. Successful results live for 6 hours and cache hits are free.
@@ -119,6 +140,8 @@ npm run test:watch
 8. Cache the personalized result for 6 hours and run eligible automations after persistence succeeds.
 
 ### Signal weights
+
+[Wiki](docs/wiki/signal-weights.md)
 
 | Source | Base weight | Composite role |
 |--------|------------:|----------------|
@@ -151,6 +174,8 @@ There is no sigmoid or cross-signal boost. The freshness curve retains 85% of a 
 
 ### Score API
 
+[Wiki](docs/wiki/score-api.md)
+
 `POST /api/v1/score` is the canonical interface. Supply a domain and optionally the display name; use `Idempotency-Key` when a client may retry the same request.
 
 ```bash
@@ -165,55 +190,84 @@ curl -X POST http://localhost:3000/api/v1/score \
 
 Important response fields include `scoring_version`, `scoring_policy_id`, `score_status`, `data_coverage`, `signal_coverage`, `contributions`, `source_status`, `cached`, and `charged`. Each contribution records raw strength, recency, effective weight, score points, source, confidence, reason codes, and evidence URLs. `icp_fit_score` is returned separately when the workspace has a verified business profile; it is never blended into `intent_score`.
 
+The in-app reference is [`/docs`](app/docs/docs-view.tsx).
+
 ### Route groups
+
+[Wiki](docs/wiki/routes.md)
+
+`lib/route-access.ts` is the auth allow-list. Unknown pages 404. API routes deny by default except `/api/v1/*`, `/api/chat`, `/api/billing/webhook`, and `/api/contact`.
 
 | Group | Path | Purpose |
 |-------|------|---------|
 | `(auth)` | `/login`, `/signup` | Unauthenticated layout |
-| `(dashboard)` | `/score`, `/people`, `/bulk`, `/watchlist`, `/pipeline`, `/history`, `/autopilot`, `/settings`, `/billing`, `/api-keys` | Authenticated layout |
-| `api/v1/` | `/score`, `/score/bulk`, `/score/person`, `/watchlist`, `/prioritize` | Public REST API |
-| `api/billing/` | `/checkout`, `/topup`, `/webhook` | Polar.sh integration |
-| `api/user/` | `/keys` | API key management |
+| Marketing | `/`, `/pricing`, `/about`, `/contact`, `/docs`, `/privacy`, `/terms` | Public pages |
+| `(dashboard)` | `/dashboard`, `/score`, `/analyze`, `/people`, `/bulk`, `/watchlist`, `/lists`, `/pipeline`, `/history`, `/inbox`, `/autopilot`, `/settings`, `/billing`, `/api-keys` | Authenticated layout |
+| `api/v1/` | `/score`, `/score/bulk`, `/score/bulk-inline`, `/score/person`, `/score/history`, `/watchlist`, `/prioritize` | Public REST API (key or session checked in the handler) |
+| `api/billing/` | `/checkout`, `/topup`, `/portal`, `/webhook` | Polar.sh integration |
+| `api/user/` | `/api-keys`, `/profile`, `/account`, `/scoring-policy` | Account, profile, and policy |
+| `api/autopilot/` | `/workflows`, `/runs`, `/execute`, `/test` | Workflow engine |
+| `api/chat/` | `/`, `/sessions` | Copilot |
+
+`/onboarding` and `/dev` are public only when `VERCEL_ENV` is not `production`.
 
 ### Key modules
 
+[Wiki](docs/wiki/key-modules.md)
+
 - `lib/types.ts` — shared types, `PLAN_CREDITS`, `PLAN_WATCHLIST_LIMIT`, `PLAN_RATE_LIMIT`
-- `lib/supabase.ts` — `createSupabaseServerClient()` (cookie-based) and `createSupabaseAdmin()` (service role)
+- `lib/plan-features.ts` — plan prices, top-up packs, and marketing feature lines
+- `lib/supabase.ts` — `createSupabaseAdmin()` (service role). Callers use the service role; Clerk is the identity provider.
+- `lib/user-provisioning.ts` — `ensureUserRecord` upserts the `users` row for a Clerk id. Callers must handle `{ ok: false }`.
 - `lib/cache.ts` — Supabase-backed cache; no-ops when `CACHE_DISABLED=true`
 - `lib/score-service.ts` — evidence reuse, personalized caching, idempotent runs, persistence, and charging
 - `lib/scorer.ts` — versioned linear intent model, freshness, coverage, and bands
 - `lib/reasoning.ts` — one bounded, schema-validated OpenRouter request with a deterministic fallback
 - `lib/signals/mock.ts` — deterministic mock signals for dev
 - `lib/hiring-refresh-queue.ts` — best-effort Postgres queue producer for first-party hiring refreshes
-- `proxy.ts` — Next.js 16 middleware (named export `proxy`); refreshes Clerk session, redirects unauthenticated users from dashboard paths
+- `lib/web-enrichment-queue.ts` — best-effort Postgres queue producer for Firecrawl evidence
+- `lib/route-access.ts` — private page and public API rules used by middleware
+- `proxy.ts` — Next.js 16 middleware (named export `proxy`); refreshes the Clerk session and protects dashboard paths
 
 ### Billing
 
+[Wiki](docs/wiki/billing.md)
+
 Plans: `free` · `starter` · `growth` · `pro` · `agency`
 
-Credits reset on subscription change (Polar webhook `subscription.created` / `subscription.updated`). One-time top-ups increment credits without changing plan (`order.paid`). Bulk jobs deduct credits equal to the company count upfront.
+Credits reset on subscription change (Polar webhook `subscription.created` / `subscription.updated`). One-time top-ups increment credits without changing plan (`order.paid`). A single company score reserves one credit. Prices are `PLAN_PRICE` in `lib/plan-features.ts`.
 
-| Plan    | Credits/mo |
-|---------|-----------|
-| Free    | 20        |
-| Starter | 500       |
-| Growth  | 2,500     |
-| Pro     | 8,000     |
-| Agency  | 25,000    |
+| Plan | Price | Credits/mo | Watchlist |
+|------|------:|-----------:|-----------|
+| Free | $0 | 20 | 5 |
+| Starter | $29 | 500 | 50 |
+| Growth | $79 | 2,500 | 250 |
+| Pro | $199 | 8,000 | 1,000 |
+| Agency | $499 | 25,000 | unlimited |
+
+Top-ups: 100 credits for $10, 500 for $36, 1,000 for $65.
 
 ### Autopilot
 
-Workflow engine with conditional triggers (score thresholds, band changes, signal spikes) and actions (email drafts, webhooks, Slack notifications, pipeline stage updates). Supports AND/OR condition logic, daily/weekly schedules, and full run history.
+[Wiki](docs/wiki/autopilot.md)
+
+Workflow engine with conditional triggers (`score_above`, `score_below`, `score_change`, `band_change`, `signal_spike`) and actions (`email_draft`, `webhook`, `slack`, `pipeline_stage`, `notification`). Condition logic is `any` or `all`. Schedules are daily or weekly. Run history is stored on the workflow.
 
 ### Person scoring (`/people`)
 
-Scores individuals by email, LinkedIn URL, or name. Signals: career trajectory (30 pts), seniority fit (20 pts), company intent (20 pts), news mentions (15 pts), social presence (15 pts). Enriched via Apollo.io with PDL as fallback.
+[Wiki](docs/wiki/person-scoring.md)
+
+Scores individuals by email, LinkedIn URL, or name. Signals: career change (30 pts), seniority fit (20 pts), company intent (20 pts), news mentions (15 pts), social presence (15 pts). The live path builds the profile from those submitted fields in `lib/pdl.ts`. It does not call Apollo or People Data Labs. `lib/apollo.ts` still has an Apollo People Match client, and the person-score service does not use it.
 
 ### Bulk scoring
 
-The dashboard CSV flow scores up to 50 companies inline and relies on the same per-company cache and atomic charging behavior. The public queued bulk endpoint accepts up to 1,000 companies and allows three concurrent `bulk_jobs`; it still requires a separate bulk processor. The hiring-refresh worker below does not process bulk scoring jobs.
+[Wiki](docs/wiki/bulk-scoring.md)
+
+The dashboard CSV flow (`POST /api/v1/score/bulk-inline`) scores up to 50 companies inline and uses the same per-company cache and atomic charging behavior. The public queued bulk endpoint accepts up to 1,000 companies, allows three concurrent `bulk_jobs`, and checks that the workspace has enough credits. It does not debit them: the route only inserts a `queued` row, and the worker that would drain `bulk_jobs` is not wired up. The hiring-refresh and web-enrichment workers do not process bulk scoring jobs.
 
 ### Hiring refresh worker (Scrapling Phase 2)
+
+[Wiki](docs/wiki/hiring-refresh.md)
 
 Background jobs are only written when `BACKGROUND_JOBS_ENABLED=true` on the web app; set it wherever a worker is deployed. When Explorium hiring evidence is `unavailable`, `not_found`, or `stale`, the web app can enqueue a deduplicated `hiring-refresh` job. The worker crawls only the company's HTTPS careers pages and approved Greenhouse, Lever, Ashby, or Workable tenants, then stores `hiring-v2` evidence in `signal_evidence`.
 
@@ -222,6 +276,8 @@ Scrapling evidence is written in shadow mode by default. Only evidence deliberat
 The worker uses the Postgres-backed `background_jobs` queue and requires only Supabase credentials plus its crawler settings.
 
 ### Fresh web enrichment worker (Firecrawl)
+
+[Wiki](docs/wiki/web-enrichment.md)
 
 Every company score best-effort enqueues a deduplicated `web-enrichment` job.
 The Firecrawl worker extracts dated hiring, company-announcement, and
@@ -246,6 +302,8 @@ deployment, promotion, and safety constraints.
 
 ### Scoring v3 rollout and outcomes
 
+[Wiki](docs/wiki/scoring-v3.md)
+
 V3 uses funding 25%, hiring 25%, news 20%, technology change 20%, and meaningful
 web activity 10%, with per-signal half-lives of 180, 45, 30, 90, and 14 days.
 It requires four signal-equivalents and 75% weighted coverage. Keep v2 active
@@ -260,9 +318,13 @@ these labels are stored in `score_outcomes`.
 
 ### Chat copilot
 
-Real-time chat with embedded score cards. Claude is routed through OpenRouter. Conversation history is persisted to `chat_sessions` / `chat_messages`. Chats cost 0.25 credits per message.
+[Wiki](docs/wiki/chat-copilot.md)
+
+Real-time chat with embedded score cards. Claude is routed through OpenRouter (`COPILOT_MODEL`, default `anthropic/claude-sonnet-4`). Conversation history is persisted to `chat_sessions` / `chat_messages`. Chats cost 0.25 credits per message.
 
 ## Database migrations
+
+[Wiki](docs/wiki/database-migrations.md)
 
 Located in `supabase/migrations/`. Run via Supabase CLI:
 
@@ -291,15 +353,19 @@ job every five minutes; it refunds reservations left `running` for more than 15
 minutes. If Cron is intentionally disabled, invoke
 `reap_stale_score_runs(100)` from a service-role scheduler at the same cadence.
 
-Notable migrations:
+The wiki lists every migration file. Notable ones:
+
 - Auth migration to Clerk
 - Business profile + ICP fit scoring
 - Scoring v2 evidence, idempotent score runs, coverage metadata, and atomic credit lifecycle
-- Person scoring
-- Autopilot workflows
+- Scoring v3 shadow results, policies, and outcomes
+- Postgres cache and `background_jobs` (Redis replacement)
+- Person scoring, autopilot, lists, and inbox
 - Polar.sh billing
 - RLS hardening on autopilot and person_scores tables
 
 ## Deployment
 
-Deploy to Vercel. Set all environment variables in the Vercel dashboard. The Polar webhook endpoint (`/api/billing/webhook`) must be registered in the Polar dashboard with the correct signing secret.
+[Wiki](docs/wiki/deployment.md)
+
+Deploy to Vercel. Set all environment variables in the Vercel dashboard. The Polar webhook endpoint (`/api/billing/webhook`) must be registered in the Polar dashboard with the correct signing secret. Enable `BACKGROUND_JOBS_ENABLED` only on a deployment that runs the [hiring refresh](workers/hiring-refresh/README.md) or [web enrichment](workers/web-enrichment/README.md) worker. Leave both workers in shadow mode until an adapter or signal is explicitly promoted.
