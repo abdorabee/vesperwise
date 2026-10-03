@@ -37,8 +37,8 @@ const blocks: UiBlock[] = [
   { type: "action_rail", company: "Stripe", domain: "stripe.com" },
 ];
 
-const render = (input: UiBlock[] = blocks, fresh = false) =>
-  renderToStaticMarkup(<GenUiWorkspace blocks={input} handlers={{ onPrompt: () => {} }} fresh={fresh} />);
+const render = (input: UiBlock[] = blocks, fresh = false, include?: UiBlock["type"][]) =>
+  renderToStaticMarkup(<GenUiWorkspace blocks={input} handlers={{ onPrompt: () => {} }} fresh={fresh} include={include} />);
 
 describe("GenUiWorkspace", () => {
   it("renders a legible hero with band, meter and the so-what meta row", () => {
@@ -97,6 +97,18 @@ describe("GenUiWorkspace", () => {
   it("only marks the band to land on fresh scores", () => {
     expect(render(blocks, true)).toContain("score-band-land");
     expect(render(blocks, false)).not.toContain("score-band-land");
+  });
+
+  it("can render a subset while deriving sample data from the full block list", () => {
+    const mock = blocks.map((block) => block.type === "signal_explorer"
+      ? { ...block, axes: block.axes.map((axis) => ({ ...axis, source: "mock", detail: axis.detail === "Unavailable" ? axis.detail : `${axis.detail} — MOCK` })) }
+      : block);
+    const html = render(mock, false, ["intent_hero"]);
+
+    expect(html).toContain("Stripe");
+    expect(html).toContain("Sample data");
+    expect(html).not.toContain("Evidence");
+    expect(html).not.toContain("Hiring for platform roles");
   });
 
   it("does not render the retired ring or axis cards", () => {

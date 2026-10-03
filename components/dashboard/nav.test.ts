@@ -89,7 +89,7 @@ describe("dashboard profile navigation cleanup", () => {
 
   it("keeps Score workspace actions in the approved shell header", () => {
     expect(siteHeaderSource).toContain("Threads");
-    expect(siteHeaderSource).toContain("credits left");
+    expect(siteHeaderSource).not.toContain("credits left");
     expect(siteHeaderSource).toContain("New score");
     expect(siteHeaderSource).toContain("openScoreThreads");
     expect(siteHeaderSource).toContain("startNewScore");

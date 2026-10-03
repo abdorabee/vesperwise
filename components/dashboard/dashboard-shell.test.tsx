@@ -113,6 +113,7 @@ describe("DashboardShell", () => {
     expect(html).toContain('data-slot="dashboard-status-bar"');
     expect(html).toContain('href="/billing"');
     expect(html).toContain("42 credits");
+    expect(html).not.toContain("credits left");
     expect(html).toContain(">Growth<");
     expect(html).toContain(">Top up<");
     expect(html).toContain("Mock signals");

@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { Plus } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { WatchlistListTab } from "@/lib/watchlist-stats";
 
 interface WatchlistListTabsProps {
@@ -11,27 +13,33 @@ interface WatchlistListTabsProps {
 
 export function WatchlistListTabs({ tabs, activeId, onChange }: WatchlistListTabsProps) {
   return (
-    <div className="wl-tabs">
-      {tabs.map((tab) => (
-        <button
-          key={tab.id}
-          type="button"
-          className={`wl-tab${activeId === tab.id ? " active" : ""}`}
-          onClick={() => onChange(tab.id)}
-        >
-          {tab.id !== "all" && tab.color && (
-            <span className="swatch" style={{ background: tab.color }} />
-          )}
-          {tab.name}
-          <span className="pill">{tab.count}</span>
-        </button>
-      ))}
-      <Link href="/lists" className="wl-tab" style={{ marginLeft: "auto", color: "var(--text-tertiary)" }}>
-        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" width="11" height="11" aria-hidden>
-          <path d="M6 2v8M2 6h8" />
-        </svg>
-        New list
-      </Link>
-    </div>
+    <Tabs value={activeId} onValueChange={onChange} className="block">
+      <TabsList
+        aria-label="Watchlist lists"
+        className="wl-tabs h-auto w-full justify-start rounded-none bg-transparent p-0 text-inherit"
+      >
+        {tabs.map((tab) => {
+          const active = activeId === tab.id;
+          return (
+            <TabsTrigger
+              key={tab.id}
+              value={tab.id}
+              className={`wl-tab${active ? " active" : ""}`}
+              style={{ borderBottom: active ? "1px solid var(--text-primary)" : "1px solid transparent" }}
+            >
+              {tab.id !== "all" && tab.color ? (
+                <span className="swatch" style={{ background: tab.color }} />
+              ) : null}
+              {tab.name}
+              <span className="pill">{tab.count}</span>
+            </TabsTrigger>
+          );
+        })}
+        <Link href="/lists" className="wl-tab" style={{ marginLeft: "auto", color: "var(--text-tertiary)" }}>
+          <Plus className="size-3" aria-hidden="true" />
+          New list
+        </Link>
+      </TabsList>
+    </Tabs>
   );
 }
