@@ -322,13 +322,14 @@ function orderBlocks(blocks: UiBlock[]): UiBlock[] {
   return blocks.map((block, index) => ({ block, index })).sort((a, b) => rank(a.block) - rank(b.block) || a.index - b.index).map((item) => item.block);
 }
 
-export function GenUiWorkspace({ blocks, handlers, fresh = false }: { blocks: UiBlock[]; handlers: GenUiHandlers; fresh?: boolean }) {
+export function GenUiWorkspace({ blocks, handlers, fresh = false, include }: { blocks: UiBlock[]; handlers: GenUiHandlers; fresh?: boolean; include?: UiBlock["type"][] }) {
   const hero = blocks.find((block): block is HeroBlock => block.type === "intent_hero");
   const company = hero?.company ?? blocks.find((block) => block.type === "action_rail")?.company;
   const sampleData = blocks.some((block) => block.type === "signal_explorer" && block.axes.some((axis) => isMockSource(axis.source)));
+  const visibleBlocks = include ? blocks.filter((block) => include.includes(block.type)) : blocks;
   return (
     <div data-slot="score-artifact" className="score-artifact space-y-7">
-      {orderBlocks(blocks).map((block, index) => {
+      {orderBlocks(visibleBlocks).map((block, index) => {
         const key = `${block.type}-${index}`;
         switch (block.type) {
           case "intent_hero": return <IntentHero key={key} block={block} sampleData={sampleData} fresh={fresh} />;
