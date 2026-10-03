@@ -161,7 +161,7 @@ describe("getEvidenceSnapshot treg fallback integration", () => {
     mocks.cacheGet.mockResolvedValue(null);
     mocks.cacheSet.mockResolvedValue(undefined);
     setPrimaryFunding("unavailable");
-    mocks.fetchHiringSignal.mockResolvedValue(signal("hiring", { status: "no_signal", score: 0 }));
+    mocks.fetchHiringSignal.mockResolvedValue(signal("hiring"));
     mocks.fetchNewsSignal.mockResolvedValue(signal("news", { status: "no_signal", score: 0 }));
     mocks.fetchTechnologySignal.mockResolvedValue(signal("technology", { status: "no_signal", score: 0 }));
     mocks.fetchWebSignal.mockResolvedValue(signal("web", { status: "no_signal", score: 0 }));
@@ -290,6 +290,50 @@ describe("getEvidenceSnapshot treg fallback integration", () => {
 
     expect(mocks.fetchTregFallbackSignal).not.toHaveBeenCalled();
     expect(snapshot.signals.funding.score).toBe(20);
+  });
+
+  it("asks treg for hiring when the primary reports no_signal, without changing scores in shadow", async () => {
+    vi.stubEnv("TREG_TOKEN", "token");
+    mocks.fetchHiringSignal.mockResolvedValue(signal("hiring", { status: "no_signal", score: 0 }));
+    mocks.fetchTregFallbackSignal.mockImplementation(async (key: string) =>
+      signal(key, { source: "treg-predictleads", status: "ok", score: 20 })
+    );
+
+    const snapshot = await snapshotFor();
+    const tregRow = snapshot.rows.find((row) => row.source === "treg-predictleads" && row.signal_type === "hiring");
+
+    expect(mocks.fetchTregFallbackSignal).toHaveBeenCalledWith("hiring", "acme.com", expect.anything());
+    expect(tregRow?.shadow).toBe(true);
+    expect(snapshot.signals.hiring).toMatchObject({ status: "no_signal", score: 0, source: "explorium-events" });
+  });
+
+  it("lets promoted treg hiring outrank a primary no_signal", async () => {
+    vi.stubEnv("TREG_TOKEN", "token");
+    vi.stubEnv("TREG_FALLBACK_SHADOW_MODE", "false");
+    vi.stubEnv("TREG_PROMOTED_SIGNALS", "hiring");
+    mocks.fetchHiringSignal.mockResolvedValue(signal("hiring", { status: "no_signal", score: 0 }));
+    mocks.fetchTregFallbackSignal.mockImplementation(async (key: string) =>
+      signal(key, { source: "treg-predictleads", status: "ok", score: 20 })
+    );
+
+    const snapshot = await snapshotFor();
+    const hiringTregRows = snapshot.rows.filter(
+      (row) => row.source === "treg-predictleads" && row.signal_type === "hiring"
+    );
+
+    expect(snapshot.signals.hiring.score).toBe(20);
+    expect(snapshot.signals.hiring.metadata?.selected_source).toBe("treg-predictleads");
+    expect(hiringTregRows).toHaveLength(1);
+    expect(hiringTregRows[0].shadow).toBe(false);
+  });
+
+  it("does not ask treg for hiring when the primary reports ok", async () => {
+    vi.stubEnv("TREG_TOKEN", "token");
+    setPrimaryFunding("ok");
+
+    await snapshotFor();
+
+    expect(mocks.fetchTregFallbackSignal).not.toHaveBeenCalled();
   });
 
   it("keeps resolving when treg throws", async () => {

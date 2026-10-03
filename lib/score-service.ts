@@ -683,8 +683,24 @@ export async function getEvidenceSnapshot(
     const refreshedRow = evidenceRowForSignal(domain, key, refreshed, SOURCE_BY_SIGNAL[key]);
     rows.push(refreshedRow);
 
+    const tregRow = await resolveTregSignalRow({
+      key,
+      domain,
+      primaryStatus: refreshed.status,
+      attempts: databaseRows.tregAttempts.get(key) ?? [],
+      buildRow: (signal, source) => evidenceRowForSignal(domain, key, signal, source),
+      freshnessMs: SCORE_EVIDENCE_TTL_SECONDS * 1000,
+    });
+    if (tregRow) rows.push(tregRow);
+
     if (refreshed.status === "ok" || refreshed.status === "no_signal") {
-      const selectedRow = chooseBestSignalEvidence([refreshedRow, ...usableStoredRows]);
+      // A promoted treg row only reaches here for signals whose primary
+      // no_signal is not trusted (hiring); a verified positive outranks it.
+      const selectedRow = chooseBestSignalEvidence([
+        refreshedRow,
+        ...(tregRow ? [tregRow] : []),
+        ...usableStoredRows,
+      ]);
       const selectedSignal = selectedRow ? signalFromEvidenceRow(selectedRow) : null;
       resolved[key] = selectedSignal
         ? {
@@ -696,19 +712,9 @@ export async function getEvidenceSnapshot(
             },
           }
         : refreshed;
-      if (selectedRow && selectedRow !== refreshedRow) rows.push(selectedRow);
+      if (selectedRow && selectedRow !== refreshedRow && selectedRow !== tregRow) rows.push(selectedRow);
       return;
     }
-
-    const tregRow = await resolveTregSignalRow({
-      key,
-      domain,
-      primaryStatus: refreshed.status,
-      attempts: databaseRows.tregAttempts.get(key) ?? [],
-      buildRow: (signal, source) => evidenceRowForSignal(domain, key, signal, source),
-      freshnessMs: SCORE_EVIDENCE_TTL_SECONDS * 1000,
-    });
-    if (tregRow) rows.push(tregRow);
 
     // Promoted crawl evidence is selected as one alternative source; it is
     // never added to provider evidence.

@@ -84,7 +84,7 @@ export async function resolveTregSignalRow(input: {
   freshnessMs: number;
 }): Promise<SignalEvidenceRow | null> {
   if (!isTregFallbackEnabled() || !isTregSignalKey(input.key)) return null;
-  if (!shouldFallBackToTreg(input.primaryStatus)) return null;
+  if (!shouldFallBackToTreg(input.primaryStatus, input.key)) return null;
 
   const shadow = !isTregSignalPromoted(input.key);
   const reusable = findFreshTregRow(

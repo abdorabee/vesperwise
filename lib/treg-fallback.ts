@@ -59,6 +59,12 @@ export function isTregSignalPromoted(
     && parsePromotedSignals(env.TREG_PROMOTED_SIGNALS).includes(key);
 }
 
-export function shouldFallBackToTreg(status: SignalStatus | undefined): boolean {
-  return status === "unavailable" || status === "not_found";
+// Signals whose primary "no_signal" is not trusted as a real answer. On
+// 2026-10-03 Explorium hiring returned no events for all 11 of 26 watchlist
+// domains it answered, while PredictLeads found active postings on 16 of 26.
+const NO_SIGNAL_FALLBACK_KEYS: ReadonlySet<string> = new Set(["hiring"]);
+
+export function shouldFallBackToTreg(status: SignalStatus | undefined, key?: string): boolean {
+  if (status === "unavailable" || status === "not_found") return true;
+  return status === "no_signal" && key !== undefined && NO_SIGNAL_FALLBACK_KEYS.has(key);
 }

@@ -140,4 +140,16 @@ describe("treg fallback policy", () => {
   ])("falls back to treg only for unavailable or not_found status: %s", (status, expected) => {
     expect(shouldFallBackToTreg(status as SignalStatus | undefined)).toBe(expected);
   });
+
+  it.each([
+    ["hiring", "no_signal", true],
+    ["hiring", "unavailable", true],
+    ["hiring", "ok", false],
+    ["hiring", "stale", false],
+    ["funding", "no_signal", false],
+    ["news", "no_signal", false],
+    ["technology", "no_signal", false],
+  ])("for %s also treats a primary %s as a fallback trigger: %s", (key, status, expected) => {
+    expect(shouldFallBackToTreg(status as SignalStatus, key)).toBe(expected);
+  });
 });
