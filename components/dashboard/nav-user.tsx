@@ -37,20 +37,19 @@ import {
 import { useTheme } from "@/components/theme-provider";
 import { cn } from "@/lib/utils";
 import type { DbUser } from "@/lib/types";
+import {
+  LOW_CREDIT_PCT,
+  creditPercent,
+  getCreditStatus,
+} from "@/lib/credits-status";
+
+export { LOW_CREDIT_PCT, creditPercent };
 
 interface NavUserProps {
   creditsRemaining: number;
   creditCap: number;
+  variant?: "sidebar" | "rail";
 }
-
-/** Share of the plan allowance left, 0–100. Top-ups can push credits above the cap. */
-export function creditPercent(creditsRemaining: number, creditCap: number): number {
-  if (creditCap <= 0) return 0;
-  return Math.max(0, Math.min(100, Math.round((creditsRemaining / creditCap) * 100)));
-}
-
-/** Below this share of the allowance the meter turns into a call to action. */
-export const LOW_CREDIT_PCT = 20;
 
 function CreditBar({ pct, low }: { pct: number; low: boolean }) {
   return (
@@ -99,10 +98,11 @@ export function SidebarCredits({
   creditCap,
   plan,
 }: NavUserProps & { plan: DbUser["plan"] }) {
-  const pct = creditPercent(creditsRemaining, creditCap);
-  const low = pct < LOW_CREDIT_PCT;
-  const cta = plan === "free" ? "Upgrade" : "Top up";
-  const summary = `${creditsRemaining.toLocaleString()} of ${creditCap.toLocaleString()} credits remaining`;
+  const { pct, isLow: low, cta, summary } = getCreditStatus({
+    creditsRemaining,
+    creditCap,
+    plan,
+  });
 
   return (
     <SidebarMenu data-slot="sidebar-credits">
@@ -137,7 +137,7 @@ export function SidebarCredits({
   );
 }
 
-export function NavUser({ creditsRemaining, creditCap }: NavUserProps) {
+export function NavUser({ creditsRemaining, creditCap, variant = "sidebar" }: NavUserProps) {
   const { user } = useUser();
   const { theme, toggleTheme } = useTheme();
   const { open: openSearch } = useDashboardSearch();
@@ -149,94 +149,121 @@ export function NavUser({ creditsRemaining, creditCap }: NavUserProps) {
       email.slice(0, 2).toUpperCase() ||
       "VW").slice(0, 2);
   const avatarUrl = user?.imageUrl;
+  const contentSide = variant === "rail" ? "right" : "bottom";
+  const contentOffset = variant === "rail" ? 8 : 4;
+
+  function renderAvatar() {
+    return (
+      <Avatar className="h-8 w-8 rounded-lg">
+        {avatarUrl ? <AvatarImage src={avatarUrl} alt={displayName} /> : null}
+        <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
+      </Avatar>
+    );
+  }
+
+  const dropdown = (
+    <DropdownMenu>
+      {variant === "rail" ? (
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            data-slot="nav-user-rail-trigger"
+            className="dashboard-nav-user-rail-trigger"
+            aria-label={`${displayName} account menu`}
+          >
+            {renderAvatar()}
+            <span className="sr-only">
+              {creditsRemaining.toLocaleString()} of {creditCap.toLocaleString()} credits remaining
+            </span>
+          </button>
+        </DropdownMenuTrigger>
+      ) : (
+        <DropdownMenuTrigger asChild>
+          <SidebarMenuButton
+            size="lg"
+            className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+          >
+            {renderAvatar()}
+            <div className="grid flex-1 text-left text-sm leading-tight">
+              <span className="truncate font-medium">{displayName}</span>
+              <span className="truncate text-xs text-muted-foreground">{email}</span>
+            </div>
+            <span className="sr-only">
+              {creditsRemaining.toLocaleString()} of {creditCap.toLocaleString()} credits remaining
+            </span>
+            <ChevronsUpDown className="ml-auto size-4" />
+          </SidebarMenuButton>
+        </DropdownMenuTrigger>
+      )}
+      <DropdownMenuContent
+        className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
+        side={contentSide}
+        align="end"
+        sideOffset={contentOffset}
+      >
+        <DropdownMenuLabel className="p-0 font-normal">
+          <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+            {renderAvatar()}
+            <div className="grid flex-1 text-left text-sm leading-tight">
+              <span className="truncate font-medium">{displayName}</span>
+              <span className="truncate text-xs text-muted-foreground">{email}</span>
+            </div>
+          </div>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <AccountCredits creditsRemaining={creditsRemaining} creditCap={creditCap} />
+        <DropdownMenuSeparator />
+        <DropdownMenuGroup>
+          <DropdownMenuItem onClick={openSearch}>
+            <Search />
+            Search
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link href="/settings">
+              <Settings />
+              Settings
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link href="/billing">
+              <CreditCard />
+              Billing
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link href="/api-keys">
+              <Key />
+              API Keys
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link href="/docs">
+              <CircleHelp />
+              Get Help
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={toggleTheme}>
+            {theme === "dark" ? <Sun /> : <Moon />}
+            {theme === "dark" ? "Light mode" : "Dark mode"}
+          </DropdownMenuItem>
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+        <SignOutButton redirectUrl="/">
+          <DropdownMenuItem>
+            <LogOut />
+            Sign out
+          </DropdownMenuItem>
+        </SignOutButton>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
+  if (variant === "rail") return dropdown;
 
   return (
     <SidebarMenu>
       <SidebarMenuItem>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <SidebarMenuButton
-              size="lg"
-              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-            >
-              <Avatar className="h-8 w-8 rounded-lg">
-                {avatarUrl ? <AvatarImage src={avatarUrl} alt={displayName} /> : null}
-                <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
-              </Avatar>
-              <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">{displayName}</span>
-                <span className="truncate text-xs text-muted-foreground">{email}</span>
-              </div>
-              <span className="sr-only">
-                {creditsRemaining.toLocaleString()} of {creditCap.toLocaleString()} credits remaining
-              </span>
-              <ChevronsUpDown className="ml-auto size-4" />
-            </SidebarMenuButton>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
-            side="bottom"
-            align="end"
-            sideOffset={4}
-          >
-            <DropdownMenuLabel className="p-0 font-normal">
-              <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                <Avatar className="h-8 w-8 rounded-lg">
-                  {avatarUrl ? <AvatarImage src={avatarUrl} alt={displayName} /> : null}
-                  <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
-                </Avatar>
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">{displayName}</span>
-                  <span className="truncate text-xs text-muted-foreground">{email}</span>
-                </div>
-              </div>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <AccountCredits creditsRemaining={creditsRemaining} creditCap={creditCap} />
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem onClick={openSearch}>
-                <Search />
-                Search
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/settings">
-                  <Settings />
-                  Settings
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/billing">
-                  <CreditCard />
-                  Billing
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/api-keys">
-                  <Key />
-                  API Keys
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/docs">
-                  <CircleHelp />
-                  Get Help
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={toggleTheme}>
-                {theme === "dark" ? <Sun /> : <Moon />}
-                {theme === "dark" ? "Light mode" : "Dark mode"}
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <SignOutButton redirectUrl="/">
-              <DropdownMenuItem>
-                <LogOut />
-                Sign out
-              </DropdownMenuItem>
-            </SignOutButton>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {dropdown}
       </SidebarMenuItem>
     </SidebarMenu>
   );

@@ -11,6 +11,23 @@ const appSidebarSource = readFileSync(
   new URL("./app-sidebar.tsx", import.meta.url),
   "utf8"
 );
+const appFrameSource = readFileSync(
+  new URL("./shell/app-frame.tsx", import.meta.url),
+  "utf8"
+);
+const iconRailSource = readFileSync(
+  new URL("./shell/icon-rail.tsx", import.meta.url),
+  "utf8"
+);
+const statusBarSource = readFileSync(
+  new URL("./shell/status-bar.tsx", import.meta.url),
+  "utf8"
+);
+const rootLayoutSource = readFileSync(
+  new URL("../../app/layout.tsx", import.meta.url),
+  "utf8"
+);
+const shellCssSource = readFileSync(new URL("../../app/shell.css", import.meta.url), "utf8");
 const dashboardLayoutSource = readFileSync(
   new URL("../../app/(dashboard)/layout.tsx", import.meta.url),
   "utf8"
@@ -28,12 +45,29 @@ describe("dashboard profile navigation cleanup", () => {
     expect(navConfigSource).not.toMatch(/label:\s*["']Profile["']/);
   });
 
-  it("uses SidebarProvider chrome for expanded, collapsed, and mobile drawer modes", () => {
+  it("uses the app-frame rail on desktop while keeping the mobile AppSidebar drawer", () => {
     expect(shellSource).toContain("SidebarProvider");
     expect(shellSource).toContain("AppSidebar");
-    expect(shellSource).toContain("SidebarInset");
+    expect(shellSource).toContain("AppFrame");
+    expect(shellSource).toContain("IconRail");
+    expect(shellSource).toContain("StatusBar");
     expect(shellSource).toContain("SiteHeader");
     expect(appSidebarSource).toContain('collapsible="icon"');
+    expect(appFrameSource).toContain('data-slot="app-frame-list"');
+    expect(appFrameSource).toContain('data-slot="app-frame-panel"');
+    expect(iconRailSource).toContain('data-slot="icon-rail"');
+    expect(statusBarSource).toContain('data-slot="dashboard-status-bar"');
+  });
+
+  it("loads shell.css after theme overrides and defines shell geometry tokens outside globals.css", () => {
+    const themeImport = rootLayoutSource.indexOf('import "./theme-overrides.css"');
+    const shellImport = rootLayoutSource.indexOf('import "./shell.css"');
+
+    expect(themeImport).toBeGreaterThan(-1);
+    expect(shellImport).toBeGreaterThan(themeImport);
+    for (const token of ["--rail-w: 3rem", "--list-w: 16rem", "--panel-w: 22rem", "--statusbar-h: 28px"]) {
+      expect(shellCssSource).toContain(token);
+    }
   });
 
   it("keeps Score as a normal destination without a Quick Score shortcut row", () => {
@@ -93,5 +127,11 @@ describe("dashboard profile navigation cleanup", () => {
     expect(dashboardLayoutSource).toContain("storedWorkspaceName");
     expect(shellSource).toContain("workspaceName={workspaceName}");
     expect(appSidebarSource).toContain("workspaceName");
+  });
+
+  it("passes the server mock-signal flag into the dashboard shell", () => {
+    expect(dashboardLayoutSource).toContain('process.env.MOCK_SIGNALS === "true"');
+    expect(dashboardLayoutSource).toContain("isMockSignals={isMockSignals}");
+    expect(shellSource).toContain("isMockSignals");
   });
 });

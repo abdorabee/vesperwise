@@ -2,6 +2,9 @@
 
 import { usePathname } from "next/navigation";
 import { AppSidebar } from "@/components/dashboard/app-sidebar";
+import { AppFrame } from "@/components/dashboard/shell/app-frame";
+import { IconRail } from "@/components/dashboard/shell/icon-rail";
+import { StatusBar } from "@/components/dashboard/shell/status-bar";
 import { SiteHeader } from "@/components/dashboard/site-header";
 import { SearchProvider } from "@/components/dashboard/search-provider";
 import {
@@ -9,7 +12,7 @@ import {
   type PageContainerSize,
 } from "@/components/app-ui/page-primitives";
 import type { DbUser } from "@/lib/types";
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 
 interface DashboardShellProps {
   children: React.ReactNode;
@@ -18,6 +21,7 @@ interface DashboardShellProps {
   workspaceName?: string | null;
   watchlistCount?: number;
   pipelineHotCount?: number;
+  isMockSignals?: boolean;
 }
 
 function pageContainerSize(pathname: string): PageContainerSize {
@@ -53,6 +57,7 @@ export default function DashboardShell({
   workspaceName,
   watchlistCount,
   pipelineHotCount,
+  isMockSignals = false,
 }: DashboardShellProps) {
   const pathname = usePathname();
   const containerSize = pageContainerSize(pathname);
@@ -68,17 +73,35 @@ export default function DashboardShell({
           } as React.CSSProperties
         }
       >
-        <AppSidebar
-          creditsRemaining={creditsRemaining}
-          plan={plan}
-          workspaceName={workspaceName}
-          watchlistCount={watchlistCount}
-          pipelineHotCount={pipelineHotCount}
-        />
-        <SidebarInset className="min-h-svh overflow-x-clip">
+        <div className="md:hidden">
+          <AppSidebar
+            creditsRemaining={creditsRemaining}
+            plan={plan}
+            workspaceName={workspaceName}
+            watchlistCount={watchlistCount}
+            pipelineHotCount={pipelineHotCount}
+          />
+        </div>
+        <AppFrame
+          rail={
+            <IconRail
+              creditsRemaining={creditsRemaining}
+              plan={plan}
+              watchlistCount={watchlistCount}
+              pipelineHotCount={pipelineHotCount}
+            />
+          }
+          statusBar={
+            <StatusBar
+              creditsRemaining={creditsRemaining}
+              plan={plan}
+              isMockSignals={isMockSignals}
+            />
+          }
+        >
           <SiteHeader creditsRemaining={creditsRemaining} />
           <PageContainer size={containerSize}>{children}</PageContainer>
-        </SidebarInset>
+        </AppFrame>
       </SidebarProvider>
     </SearchProvider>
   );
