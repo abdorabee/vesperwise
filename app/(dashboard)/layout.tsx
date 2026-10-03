@@ -29,6 +29,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   const onboardingRedirect = getOnboardingRedirect(onboardingCompleted, "dashboard");
   if (onboardingRedirect) redirect(onboardingRedirect);
+  const isMockSignals = process.env.MOCK_SIGNALS === "true";
 
   const [{ count: watchlistCount }, { count: pipelineHotCount }] = await Promise.all([
     admin
@@ -51,6 +52,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       workspaceName={storedWorkspaceName(profile)}
       watchlistCount={watchlistCount ?? 0}
       pipelineHotCount={pipelineHotCount ?? 0}
+      isMockSignals={isMockSignals}
     >
       {children}
     </DashboardShell>

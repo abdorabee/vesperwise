@@ -61,12 +61,12 @@ export function SiteHeader({ creditsRemaining }: { creditsRemaining?: number }) 
   return (
     <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 border-b bg-background px-4 transition-[width,height] duration-200 ease-linear motion-reduce:transition-none">
       <div className="flex min-w-0 w-full items-center gap-2">
-        <SidebarTrigger className="-ml-1 size-11 shrink-0 md:size-7">
+        <SidebarTrigger className="-ml-1 size-11 shrink-0 md:hidden">
           {isMobile ? <Menu /> : <PanelLeft />}
         </SidebarTrigger>
         <Separator
           orientation="vertical"
-          className="mr-2 hidden data-[orientation=vertical]:h-4 md:block"
+          className="mr-2 hidden data-[orientation=vertical]:h-4"
         />
         <Breadcrumb className="hidden min-w-0 md:block">
           <BreadcrumbList className="flex-nowrap">

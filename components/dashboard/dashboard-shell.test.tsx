@@ -1,5 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { NAV_LIBRARY, NAV_MAIN, NAV_SECONDARY } from "./nav-config";
 
 let pathname = "/score";
 
@@ -36,20 +37,23 @@ describe("DashboardShell", () => {
         workspaceName="Cairo Sales"
         watchlistCount={8}
         pipelineHotCount={2}
+        isMockSignals
       >
         <p>Route content</p>
       </DashboardShell>
     );
   }
 
-  it("uses the application-shell geometry with a stable scrollable navigation footer", () => {
+  it("uses the app-frame geometry with reserved rail, list, main, panel, and status slots", () => {
     const html = renderShell();
 
-    expect(html).toContain('data-variant="sidebar"');
-    expect(html).toContain("--sidebar-width:16rem");
+    expect(html).toContain('data-slot="app-frame"');
+    expect(html).toContain('data-has-list="false"');
+    expect(html).toContain('data-has-panel="false"');
+    expect(html).toContain('data-slot="app-frame-rail"');
+    expect(html).toContain('data-slot="app-frame-main"');
+    expect(html).toContain('data-slot="app-frame-statusbar"');
     expect(html).toContain("h-16");
-    expect(html).toContain('data-slot="scroll-area"');
-    expect(html).toContain('data-slot="sidebar-footer"');
   });
 
   it("maps Score to a full-height workspace with one outer gutter", () => {
@@ -84,35 +88,35 @@ describe("DashboardShell", () => {
     expect(renderShell()).toContain('href="/api-keys"');
   });
 
-  it("uses the reference navigation hierarchy with tailored nested library sections", () => {
+  it("renders the desktop rail with every finished nav destination and the active route", () => {
     const html = renderShell();
 
-    for (const label of ["Overview", "Library", "Workspace"]) {
-      expect(html).toContain(`>${label}<`);
+    for (const item of [...NAV_MAIN, ...NAV_LIBRARY, ...NAV_SECONDARY]) {
+      expect(html).toContain(`aria-label="${item.label}"`);
     }
-    expect(html).not.toContain(">Accounts<");
-    expect(html).toContain("Saved accounts");
-    expect(html).toContain("Score activity");
-    expect(html).toContain('data-slot="sidebar-menu-sub"');
+
+    const scoreLink = html.match(/<a[^>]+aria-label="Score"[^>]*>/)?.[0] ?? "";
+    expect(scoreLink).toContain('href="/score"');
+    expect(scoreLink).toContain('aria-current="page"');
   });
 
-  it("shows an always-visible credits meter above the user row", () => {
+  it("renders rail badges for hot pipeline accounts and watchlist accounts", () => {
     const html = renderShell();
 
-    expect(html).toContain('data-slot="sidebar-credits"');
-    expect(html).toContain("42 of 2,500 credits remaining");
-    expect(html.indexOf('data-slot="sidebar-credits"')).toBeLessThan(html.indexOf("Abdo Rabee"));
-    // 42 / 2,500 is under 20%, so the meter becomes a Top up prompt on a paid plan.
-    expect(html).toContain(">Top up<");
-    expect(html).toContain('data-slot="sidebar-rail"');
+    expect(html).toMatch(/data-slot="rail-badge"[^>]*>\s*2\s*</);
+    expect(html).toMatch(/data-slot="rail-badge"[^>]*>\s*8\s*</);
   });
 
-  it("shows the plan as a capitalized badge next to the brand glyph", () => {
+  it("shows credits, plan, low-credit prompt, mock mode, and search hint in the status bar", () => {
     const html = renderShell();
 
-    expect(html).toContain('data-slot="plan-badge"');
+    expect(html).toContain('data-slot="dashboard-status-bar"');
+    expect(html).toContain('href="/billing"');
+    expect(html).toContain("42 credits");
     expect(html).toContain(">Growth<");
-    expect(html).not.toContain("· growth");
+    expect(html).toContain(">Top up<");
+    expect(html).toContain("Mock signals");
+    expect(html).toContain("⌘K Search");
   });
 
   it("renders the reference mobile brand treatment instead of a route-title substitute", () => {
