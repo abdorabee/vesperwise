@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-interface ScoreWorkspaceLayoutProps { thread: ReactNode; composer: ReactNode; className?: string }
+interface ScoreWorkspaceLayoutProps { thread: ReactNode; composer: ReactNode; header?: ReactNode; className?: string }
 interface ScorePageFrameProps { children: ReactNode; mode: "entry" | "workspace"; className?: string }
 
 export function ScorePageFrame({ children, mode, className }: ScorePageFrameProps) {
@@ -14,9 +14,10 @@ export function ScorePageFrame({ children, mode, className }: ScorePageFrameProp
   );
 }
 
-export function ScoreWorkspaceLayout({ thread, composer, className }: ScoreWorkspaceLayoutProps) {
+export function ScoreWorkspaceLayout({ thread, composer, header, className }: ScoreWorkspaceLayoutProps) {
   return (
     <section aria-label="Score conversation" className={cn("flex min-h-0 flex-1 flex-col", className)}>
+      {header ? <div data-slot="score-workspace-header" className="shrink-0 pb-3">{header}</div> : null}
       <div data-slot="score-thread" className="min-h-0 flex-1">{thread}</div>
       <div data-slot="score-composer" className="sticky bottom-0 z-10 shrink-0 bg-gradient-to-t from-background via-background to-transparent pt-6 pb-1">{composer}</div>
     </section>
