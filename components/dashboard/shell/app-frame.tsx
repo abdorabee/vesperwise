@@ -1,6 +1,7 @@
 "use client";
 
 import type { CSSProperties, ReactNode } from "react";
+import { shellPanelWidth, useShellPanelFrame } from "@/components/dashboard/shell/shell-panel";
 import { cn } from "@/lib/utils";
 
 interface AppFrameProps extends React.ComponentProps<"div"> {
@@ -25,9 +26,13 @@ export function AppFrame({
   style,
   ...props
 }: AppFrameProps) {
+  const shellPanel = useShellPanelFrame();
+  const panelOpen = shellPanel.managed ? shellPanel.open : Boolean(panel);
   const frameStyle: FrameStyle = {
     "--app-frame-list-w": list ? "var(--list-w)" : "0px",
-    "--app-frame-panel-w": panel ? "var(--panel-w)" : "0px",
+    "--app-frame-panel-w": shellPanel.managed
+      ? shellPanelWidth(shellPanel.open, shellPanel.size)
+      : shellPanelWidth(Boolean(panel)),
     ...style,
   };
 
@@ -35,7 +40,7 @@ export function AppFrame({
     <div
       data-slot="app-frame"
       data-has-list={Boolean(list)}
-      data-has-panel={Boolean(panel)}
+      data-has-panel={panelOpen}
       className={cn("dashboard-app-frame", className)}
       style={frameStyle}
       {...props}

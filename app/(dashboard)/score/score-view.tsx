@@ -2,28 +2,27 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { AlertCircle, RotateCcw } from "lucide-react";
 
-import { Conversation, ConversationContent, ConversationScrollButton } from "@/components/ai-elements/conversation";
-import { MessageResponse } from "@/components/ai-elements/message";
-import { GenUiWorkspace } from "@/components/score/gen-ui/workspace";
+import { ShellPanel } from "@/components/dashboard/shell/shell-panel";
 import { ScoreComposer } from "@/components/score/score-composer";
-import { ScoreCoverageIncomplete } from "@/components/score/score-coverage-incomplete";
+import { ScoreConversationThread } from "@/components/score/score-conversation-thread";
 import { ScoreEmptyState } from "@/components/score/score-empty-state";
-import { ScoreErrorCard, type ScoreFailure } from "@/components/score/score-error-card";
-import { applyResearchEvent, EMPTY_RESEARCH_PROGRESS, ScoreResearchStatus, type ScoreResearchProgress } from "@/components/score/score-research-status";
-import { Button } from "@/components/ui/button";
+import type { ScoreFailure } from "@/components/score/score-error-card";
+import { buildScoreReport, ScoreReportPanel } from "@/components/score/score-report-panel";
+import type { ScoreReport } from "@/components/score/score-report-model";
+import { applyResearchEvent, EMPTY_RESEARCH_PROGRESS } from "@/components/score/score-research-status";
+import type { ScoreUiThreadMessage, ThreadMessage } from "@/components/score/score-thread-types";
+import { ScoreWorkspaceReportHeader } from "@/components/score/score-workspace-report-header";
 import { ScorePageFrame, ScoreWorkspaceLayout } from "@/components/score/score-workspace-layout";
 import { ScoreThreadDrawer } from "@/components/score/score-thread-drawer";
-import { toolLabel, ToolTrace } from "@/components/score/tool-trace";
+import { useScoreReportState } from "@/components/score/use-score-report-state";
 import { extractDomain, loadChatSession, seedChatSession, streamChat } from "@/lib/chat-client";
-import { sanitizeUiBlocks, suggestionsFromBlocks, workspaceFromScore, type UiBlock } from "@/lib/gen-ui";
+import { sanitizeUiBlocks, suggestionsFromBlocks, workspaceFromScore } from "@/lib/gen-ui";
 import { parseIncompleteCoverage, type IncompleteCoverageResult } from "@/lib/score-coverage";
 import { parsePersistedPresentation, type ToolChip } from "@/lib/score-presentation";
 import { createSseParser, type ScoreProgressEvent } from "@/lib/score-progress";
 import { SCORE_NEW_EVENT, SCORE_OPEN_THREADS_EVENT } from "@/lib/score-workspace-events";
 import type { StoredWorkspaceScore } from "@/lib/stored-score";
-import { formatAbsoluteDate, formatRelativeTime } from "@/lib/time-ago";
 import { CHAT_CREDIT_COST, type IntentScore, type ScoreBand } from "@/lib/types";
 
 type ScorableIntentScore = IntentScore & { intent_score: number; score_band: ScoreBand };
@@ -37,14 +36,6 @@ export interface RecentScore {
 }
 
 interface ScoreViewProps { creditsRemaining: number; recentScores: RecentScore[] }
-
-type ThreadMessage =
-  | { id: string; role: "user"; content: string; restored?: boolean }
-  | { id: string; role: "assistant"; kind: "ui"; blocks: UiBlock[]; content: string; tools: ToolChip[]; billing?: string; restored?: boolean; stored?: { domain: string; createdAt: string } }
-  | { id: string; role: "assistant"; kind: "text"; content: string; tools: ToolChip[]; restored?: boolean }
-  | { id: string; role: "assistant"; kind: "coverage"; result: IncompleteCoverageResult }
-  | { id: string; role: "assistant"; kind: "thinking"; mode: "score" | "chat"; tools: ToolChip[]; progress?: ScoreResearchProgress }
-  | { id: string; role: "error"; content: string; failure?: ScoreFailure; domain?: string };
 
 function nextId() { return crypto.randomUUID(); }
 
@@ -138,36 +129,6 @@ function toolsOf(message: ThreadMessage): ToolChip[] {
   return message.role === "assistant" && "tools" in message ? message.tools : [];
 }
 
-function artifactLabel(blocks: UiBlock[]) {
-  const hero = blocks.find((block) => block.type === "intent_hero");
-  if (hero?.type === "intent_hero") return `${hero.company} · ${hero.intent_score} ${hero.score_band}`;
-  if (blocks.some((block) => block.type === "comparison")) return "Account comparison";
-  if (blocks.some((block) => block.type === "outreach_studio")) return "Outreach draft";
-  return "Earlier result";
-}
-
-function StoredResultBar({ createdAt, busy, onRescore }: { createdAt: string; busy: boolean; onRescore: () => void }) {
-  return (
-    <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/70 bg-muted/25 px-3 py-2 text-xs text-muted-foreground">
-      <span suppressHydrationWarning title={formatAbsoluteDate(createdAt) ?? undefined}>Stored result · scored {formatRelativeTime(createdAt) ?? "earlier"}</span>
-      <Button type="button" size="xs" variant="outline" disabled={busy} onClick={onRescore}><RotateCcw className="size-3.5" aria-hidden="true" />Rescore · 1 credit</Button>
-    </div>
-  );
-}
-
-function ScoreArtifact({ message, current, handlers }: { message: Extract<ThreadMessage, { role: "assistant"; kind: "ui" }>; current: boolean; handlers: Parameters<typeof GenUiWorkspace>[0]["handlers"] }) {
-  const body = <GenUiWorkspace blocks={message.blocks} handlers={handlers} fresh={current && !message.restored} />;
-  if (!current) {
-    return (
-      <details className="score-artifact-archive rounded-lg border border-border/70 bg-muted/20">
-        <summary className="cursor-pointer list-none px-3 py-2.5 text-sm font-medium text-muted-foreground outline-none transition-colors duration-150 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none">{artifactLabel(message.blocks)}</summary>
-        <div className="border-t border-border/70 p-4">{body}</div>
-      </details>
-    );
-  }
-  return <div data-motion={message.restored ? "restored" : "generated"}>{body}</div>;
-}
-
 export function ScoreView(props: ScoreViewProps) {
   const { creditsRemaining, recentScores } = props;
   const searchParams = useSearchParams();
@@ -209,13 +170,15 @@ export function ScoreView(props: ScoreViewProps) {
       setSessionId(null);
       pendingSeedRef.current = null;
       autoScoredRef.current = null;
+      setReportPanelOpen(false);
+      setSelectedReportId(null);
       setTransitioning(false);
     }, 180);
   }
 
   async function runScore(raw: string, domain: string) {
     const thinkingId = nextId();
-    setMessages((current) => [...current, { id: nextId(), role: "user", content: raw }, { id: thinkingId, role: "assistant", kind: "thinking", mode: "score", tools: [], progress: EMPTY_RESEARCH_PROGRESS }]);
+    setMessages((current) => [...current, { id: nextId(), role: "user", content: raw }, { id: thinkingId, role: "assistant", kind: "thinking", mode: "score", tools: [], progress: EMPTY_RESEARCH_PROGRESS, domain }]);
     setBusy(true);
     const onProgress = (event: ScoreProgressEvent) => {
       setMessages((current) => current.map((message) => message.id === thinkingId && message.role === "assistant" && message.kind === "thinking"
@@ -389,44 +352,46 @@ export function ScoreView(props: ScoreViewProps) {
   const latestUiId = uiMessages.at(-1)?.id;
   const latestArtifactId = messages.findLast((message) => message.role === "assistant" && (message.kind === "ui" || message.kind === "coverage"))?.id;
   const suggestions = useMemo(() => uiMessages.length > 0 ? suggestionsFromBlocks(uiMessages.at(-1)!.blocks) : [], [uiMessages]);
+  const reportSources = useMemo(() => messages.filter((message): message is Extract<ThreadMessage, { role: "assistant"; kind: "ui" | "thinking" }> => (
+    message.role === "assistant" && (message.kind === "ui" || (message.kind === "thinking" && message.mode === "score"))
+  )), [messages]);
+  const { reports, selectedReport, setSelectedReportId, reportPanelOpen, setReportPanelOpen } = useScoreReportState(reportSources);
+  const reportHandlers = {
+    onWatchlist: (company: string, domain: string) => void addToWatchlist(company, domain),
+    watchlistByDomain,
+    onPrompt: (prompt: string) => void submitMessage(prompt),
+  };
   const active = messages.length > 0;
   const activeStreamingMessageId = busy
     ? messages.findLast((message) => message.role === "assistant" && (message.kind === "thinking" || message.kind === "text" || message.kind === "ui"))?.id ?? null
     : null;
 
-  const thread = (
-    <Conversation className="score-chat-thread">
-      <ConversationContent className="score-chat-col">
-        {messages.map((message) => {
-          if (message.role === "user") return <div key={message.id} className="score-message score-message-user score-user-bubble-in ml-auto max-w-[85%] rounded-2xl rounded-br-md bg-muted px-4 py-2.5 text-sm leading-5 text-foreground" data-motion={message.restored ? "restored" : "submitted"}>{message.content}</div>;
-          if (message.role === "error") {
-            if (message.failure) return <div key={message.id} className="score-message"><ScoreErrorCard failure={message.failure} domain={message.domain} onRetry={(domain) => void runScore(domain, domain)} onReset={resetWorkspace} /></div>;
-            return <div key={message.id} className="score-message flex items-start gap-2 text-sm text-destructive" role="alert"><AlertCircle className="mt-0.5 size-4 shrink-0" />{message.content}</div>;
-          }
-          if (message.kind === "thinking") {
-            const running = message.tools.findLast((tool) => tool.status === "running");
-            const thinkingLabel = running ? `Using ${toolLabel(running.name)}…` : "Thinking…";
-            return <div key={message.id} className="score-message space-y-2"><ScoreResearchStatus mode={message.mode} progress={message.progress} label={message.mode === "chat" ? thinkingLabel : undefined} />{message.mode === "chat" ? <ToolTrace tools={message.tools} /> : null}</div>;
-          }
-          if (message.kind === "coverage") {
-            const artifact = <ScoreCoverageIncomplete result={message.result} onRetry={(domain) => void runScore(domain, domain)} onReset={resetWorkspace} />;
-            if (message.id !== latestArtifactId) {
-              return <details key={message.id} className="score-artifact-archive rounded-lg border border-border/70 bg-muted/20"><summary className="cursor-pointer list-none px-3 py-2.5 text-sm font-medium text-muted-foreground outline-none transition-colors duration-150 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none">{message.result.domain} · coverage incomplete</summary><div className="border-t border-border/70 p-4">{artifact}</div></details>;
-            }
-            return <div key={message.id} className="score-message" data-motion="generated">{artifact}</div>;
-          }
-          if (message.kind === "ui") return <div key={message.id} className="score-message space-y-4">{message.stored && message.id === latestUiId ? <StoredResultBar createdAt={message.stored.createdAt} busy={busy} onRescore={() => void runScore(message.stored!.domain, message.stored!.domain)} /> : <ToolTrace tools={message.tools} billing={message.billing} />}{message.content ? <MessageResponse streaming={message.id === activeStreamingMessageId} className="text-sm leading-6 text-foreground/85">{message.content}</MessageResponse> : null}<ScoreArtifact message={message} current={message.id === latestUiId} handlers={{ onWatchlist: (company, domain) => void addToWatchlist(company, domain), watchlistByDomain, onPrompt: (prompt) => void submitMessage(prompt) }} /></div>;
-          return <div key={message.id} className="score-message space-y-3"><ToolTrace tools={message.tools} />{message.content ? <MessageResponse streaming={message.id === activeStreamingMessageId} className="text-sm leading-6 text-foreground/85">{message.content}</MessageResponse> : null}</div>;
-        })}
-      </ConversationContent>
-      <ConversationScrollButton />
-    </Conversation>
-  );
+  function reportForMessage(message: ScoreUiThreadMessage) {
+    return reports.find((report): report is Extract<ScoreReport, { kind: "ui" }> => report.kind === "ui" && report.messageId === message.id)
+      ?? buildScoreReport(message.id, message.blocks, { current: message.id === latestUiId, restored: message.restored, stored: message.stored });
+  }
+
+  function openReport(report: Extract<ScoreReport, { kind: "ui" }>) {
+    const target = reports.find((item) => item.id === report.id)
+      ?? (report.domain ? reports.find((item) => item.domain?.toLowerCase() === report.domain?.toLowerCase()) : null);
+    if (!target) return;
+    setSelectedReportId(target.id);
+    setReportPanelOpen(true);
+  }
+
+  const workspaceHeader = <ScoreWorkspaceReportHeader reports={reports} selectedReport={selectedReport} onSelect={setSelectedReportId} onOpen={() => selectedReport && setReportPanelOpen(true)} />;
+
+  const thread = <ScoreConversationThread messages={messages} latestArtifactId={latestArtifactId} activeStreamingMessageId={activeStreamingMessageId} reportForMessage={reportForMessage} onOpenReport={openReport} onRetryScore={(domain) => void runScore(domain, domain)} onReset={resetWorkspace} />;
 
   return (
     <div className={`score-chat transition-opacity duration-200 motion-reduce:transition-none ${transitioning ? "opacity-0" : "opacity-100"}`}>
-      {!active ? <ScorePageFrame mode="entry"><ScoreEmptyState onSubmit={(value) => void submitMessage(value)} onOpenRecent={(domain) => void openLastScore(domain)} recentScores={recentScores} creditsRemaining={creditsRemaining} busy={busy} /></ScorePageFrame> : <ScorePageFrame mode="workspace"><ScoreWorkspaceLayout thread={thread} composer={<ScoreComposer busy={busy} suggestions={suggestions} onSubmit={(value) => void submitMessage(value)} />} /></ScorePageFrame>}
+      {!active ? <ScorePageFrame mode="entry"><ScoreEmptyState onSubmit={(value) => void submitMessage(value)} onOpenRecent={(domain) => void openLastScore(domain)} recentScores={recentScores} creditsRemaining={creditsRemaining} busy={busy} /></ScorePageFrame> : <ScorePageFrame mode="workspace"><ScoreWorkspaceLayout header={workspaceHeader} thread={thread} composer={<ScoreComposer busy={busy} suggestions={suggestions} onSubmit={(value) => void submitMessage(value)} />} /></ScorePageFrame>}
       <ScoreThreadDrawer open={threadsOpen} onOpenChange={setThreadsOpen} onSelect={(id) => void restoreThread(id)} activeId={sessionId} />
+      {selectedReport ? (
+        <ShellPanel open={reportPanelOpen} size="wide" label="Score report" onClose={() => setReportPanelOpen(false)}>
+          <ScoreReportPanel report={selectedReport} handlers={reportHandlers} busy={busy} onClose={() => setReportPanelOpen(false)} onRescore={(domain) => void runScore(domain, domain)} />
+        </ShellPanel>
+      ) : null}
     </div>
   );
 }
