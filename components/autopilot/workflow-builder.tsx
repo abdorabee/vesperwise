@@ -297,7 +297,7 @@ export default function WorkflowBuilder({ workflow, onSave, onCancel }: Workflow
                 size="sm"
                 disabled={!canNext()}
                 onClick={() => setStep(step + 1)}
-                className="bg-cyan-500 hover:bg-cyan-400 text-white border-0 gap-1 cursor-pointer"
+                className="gap-1 cursor-pointer"
               >
                 Next <ChevronRight className="h-4 w-4" />
               </Button>
@@ -306,7 +306,7 @@ export default function WorkflowBuilder({ workflow, onSave, onCancel }: Workflow
                 size="sm"
                 disabled={saving}
                 onClick={handleSave}
-                className="bg-cyan-500 hover:bg-cyan-400 text-white border-0 gap-1.5 cursor-pointer"
+                className="gap-1.5 cursor-pointer"
               >
                 <Check className="h-4 w-4" />
                 {saving ? "Saving…" : workflow ? "Update Workflow" : "Create Workflow"}
