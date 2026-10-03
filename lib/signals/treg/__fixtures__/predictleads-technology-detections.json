@@ -1,0 +1,90 @@
+{
+  "data": [
+    {
+      "id": "9d831fab-d925-4ce8-97d7-73c057e65c33",
+      "type": "technology_detection",
+      "attributes": {
+        "first_seen_at": "2026-10-01T18:40:15Z",
+        "last_seen_at": "2026-10-01T18:40:15Z",
+        "behind_firewall": false,
+        "score": 0.5,
+        "source_count": 1
+      },
+      "relationships": {
+        "technology": { "data": { "id": "ad11caee-f3a7-5759-8e50-77cdb6041166", "type": "technology" } },
+        "company": { "data": { "id": "a0383c53-8142-5e7c-8ca3-9980289a3ccc", "type": "company" } },
+        "seen_on_subpages": { "data": [{ "id": "01a0fbb0-6085-7f59-9e91-2b397d36dd05", "type": "detection_on_subpage" }] },
+        "seen_on_job_openings": { "data": [] }
+      }
+    },
+    {
+      "id": "a63c4510-f2dc-4176-b063-b7fc15c06814",
+      "type": "technology_detection",
+      "attributes": {
+        "first_seen_at": "2026-09-30T20:00:00Z",
+        "last_seen_at": "2026-09-30T20:00:00Z",
+        "behind_firewall": true,
+        "score": 0.25,
+        "source_count": 1
+      },
+      "relationships": {
+        "technology": { "data": { "id": "9731640e-477b-5232-8f6c-aba61c89467b", "type": "technology" } },
+        "company": { "data": { "id": "a0383c53-8142-5e7c-8ca3-9980289a3ccc", "type": "company" } },
+        "seen_on_subpages": { "data": [] },
+        "seen_on_job_openings": { "data": [{ "id": "852b6d23-b102-40c3-9b8e-34de478d3672", "type": "job_opening" }] }
+      }
+    },
+    {
+      "id": "ca599019-b459-43de-afc3-c5f94b3e9c41",
+      "type": "technology_detection",
+      "attributes": {
+        "first_seen_at": "2026-09-20T08:00:00Z",
+        "last_seen_at": "2026-09-20T08:00:00Z",
+        "behind_firewall": true,
+        "score": 0.25,
+        "source_count": 1
+      },
+      "relationships": {
+        "technology": { "data": { "id": "bf58c065-e0b9-5ccb-a020-c974c2471e30", "type": "technology" } },
+        "company": { "data": { "id": "a0383c53-8142-5e7c-8ca3-9980289a3ccc", "type": "company" } },
+        "seen_on_subpages": { "data": [] },
+        "seen_on_job_openings": { "data": [{ "id": "09c8a02b-1bc5-4536-b012-5d69d5ab5c2e", "type": "job_opening" }] }
+      }
+    }
+  ],
+  "included": [
+    { "id": "bf58c065-e0b9-5ccb-a020-c974c2471e30", "type": "technology", "attributes": { "name": "ON24" } },
+    {
+      "id": "a0383c53-8142-5e7c-8ca3-9980289a3ccc",
+      "type": "company",
+      "attributes": { "domain": "stripe.com", "company_name": "Stripe, Inc.", "ticker": null }
+    },
+    {
+      "id": "09c8a02b-1bc5-4536-b012-5d69d5ab5c2e",
+      "type": "job_opening",
+      "attributes": {
+        "url": "https://www.linkedin.com/jobs/view/4468649210/",
+        "first_seen_at": "2026-09-20T08:00:00Z",
+        "last_seen_at": "2026-09-20T08:00:00Z"
+      }
+    },
+    { "id": "9731640e-477b-5232-8f6c-aba61c89467b", "type": "technology", "attributes": { "name": "HackerRank" } },
+    { "id": "ad11caee-f3a7-5759-8e50-77cdb6041166", "type": "technology", "attributes": { "name": "ZURB Foundation" } },
+    {
+      "id": "01a0fbb0-6085-7f59-9e91-2b397d36dd05",
+      "type": "detection_on_subpage",
+      "attributes": {
+        "first_seen_at": "2026-10-01T18:40:15Z",
+        "last_seen_at": "2026-10-01T18:40:15Z",
+        "subpage_url": "https://stripe.com"
+      }
+    }
+  ],
+  "meta": {
+    "schema_version": "3.3",
+    "record_state": "active",
+    "message_type": "ok",
+    "redirects_to_domain": null,
+    "parent_company_domain": null
+  }
+}

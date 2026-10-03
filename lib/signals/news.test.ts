@@ -77,3 +77,50 @@ describe("scoreNewsArticles", () => {
     expect(result.evidence).toHaveLength(2);
   });
 });
+
+describe("buildNewsSignal", () => {
+  it("stamps a custom source on the news signal and evidence", async () => {
+    const { buildNewsSignal } = await import("./news");
+
+    const result = buildNewsSignal([
+      {
+        title: "Acme launches new product",
+        description: "Acme introduces its workflow platform.",
+        publishedAt: "2026-07-14T12:00:00.000Z",
+        url: "https://example.com/acme-product",
+      },
+    ], NOW, NOW.toISOString(), "treg-akta");
+
+    expect(result).toMatchObject({
+      status: "ok",
+      score: 5,
+      observed_at: "2026-07-14T12:00:00.000Z",
+      source: "treg-akta",
+    });
+    expect(result.evidence).toHaveLength(1);
+    expect(result.evidence?.[0]).toMatchObject({
+      source: "treg-akta",
+      fetched_at: NOW.toISOString(),
+      source_url: "https://example.com/acme-product",
+    });
+  });
+
+  it("returns no-signal for an empty article list", async () => {
+    const { buildNewsSignal } = await import("./news");
+
+    const result = buildNewsSignal([], NOW, NOW.toISOString());
+
+    expect(result).toMatchObject({
+      status: "no_signal",
+      score: 0,
+      observed_at: null,
+      source: "gnews",
+      detail: "No significant non-funding trigger events detected",
+      metadata: {
+        duplicate_articles_ignored: 0,
+        funding_only_articles_ignored: 0,
+      },
+    });
+    expect(result.evidence).toEqual([]);
+  });
+});

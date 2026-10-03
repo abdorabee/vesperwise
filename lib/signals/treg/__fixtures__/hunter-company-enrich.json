@@ -1,0 +1,39 @@
+{
+  "data": {
+    "id": "c60603a0-001c-5ca3-86a2-c571c6d43c25",
+    "name": "Stripe",
+    "legalName": "Stripe",
+    "domain": "stripe.com",
+    "domainAliases": [],
+    "category": {
+      "sector": "Information Technology",
+      "industryGroup": "Software & Services",
+      "industry": "Internet Software & Services",
+      "subIndustry": "Internet Software & Services",
+      "gicsCode": "45103010",
+      "sicCode": "36",
+      "naicsCode": "51"
+    },
+    "tags": ["financial services", "payment processing", "saas"],
+    "description": "Stripe is a financial services platform that enables businesses to accept payments and manage money movement with flexible billing solutions.",
+    "foundedYear": 2010,
+    "location": "Oyster Point Blvd, 94080, South San Francisco, California, United States",
+    "geo": { "city": "South San Francisco", "state": "California", "country": "United States", "countryCode": "US" },
+    "type": "private",
+    "companyType": "privately held",
+    "metrics": {
+      "trafficRank": "very_high",
+      "employees": "10K-50K",
+      "employeesCount": 16784,
+      "marketCap": null,
+      "raised": 7708000000,
+      "annualRevenue": null
+    },
+    "indexedAt": "2026-06-03",
+    "fundingRounds": [
+      { "date": "2021-03-14", "type": "Series H", "amount": "$600000000", "investors": [] },
+      { "date": "2023-04-15", "type": "Series I", "amount": "$6500000000", "investors": [] }
+    ]
+  },
+  "meta": { "domain": "stripe.com" }
+}

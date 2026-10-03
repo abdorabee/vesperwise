@@ -11,6 +11,10 @@ describe("sourceLabel", () => {
     ["open-page-rank", "Open PageRank"],
     ["github", "GitHub"],
     ["firecrawl", "Company website"],
+    ["treg-aviato", "Aviato funding data"],
+    ["treg-predictleads", "PredictLeads company data"],
+    ["treg-akta", "News coverage"],
+    ["treg-hunter", "Hunter company data"],
     ["mock", "Sample data"],
   ])("maps %s to %s", (id, label) => {
     expect(sourceLabel(id)).toBe(label);

@@ -27,6 +27,13 @@ Used when `MOCK_SIGNALS` is not `true`:
 | GitHub context | GitHub | `GITHUB_TOKEN` |
 | Hiring fallback | Scrapling worker | see [hiring refresh](hiring-refresh.md) |
 | Public-web evidence | Firecrawl worker | `FIRECRAWL_API_KEY` |
+| Funding, hiring, news, technology, firmographics fallback | treg (Aviato, PredictLeads, Akta, Hunter) | `TREG_TOKEN` |
+
+### treg fallback
+
+`lib/treg.ts` calls `https://treg.to/call/<endpoint_id>` with one `TREG_TOKEN`; treg injects the provider key and bills per call. The fallback runs only when the primary provider returns `unavailable` or `not_found`, never on `no_signal`.
+
+Evidence is stored in `signal_evidence` under `treg-*` source ids. Rows are shadowed (`shadow=true`, excluded from scoring) unless `TREG_FALLBACK_SHADOW_MODE=false` and the signal is listed in `TREG_PROMOTED_SIGNALS`. A fresh treg row, shadowed or not, suppresses a repeat call for the same domain and signal.
 
 `lib/apollo.ts` can call Apollo People Match when `APOLLO_API_KEY` is set. The person-score path does not use it. See [person scoring](person-scoring.md).
 

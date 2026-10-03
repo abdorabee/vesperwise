@@ -1,0 +1,37 @@
+{
+  "fundingRounds": [
+    {
+      "id": 88308,
+      "announcedOn": "2023-02-03T00:00:00.000Z",
+      "moneyRaised": 6500000000,
+      "name": "Series I - Stripe",
+      "stage": "Series I",
+      "valuation": {
+        "exact": 43500000000
+      },
+      "companyID": "OYClaZ4jscaMd-JHzdbItcb2o3wRHoY"
+    },
+    {
+      "id": 88311,
+      "announcedOn": "2021-03-14T00:00:00.000Z",
+      "moneyRaised": 600000000,
+      "name": "Series H - Stripe",
+      "stage": "Series H",
+      "valuation": {
+        "exact": 94400000000
+      },
+      "companyID": "OYClaZ4jscaMd-JHzdbItcb2o3wRHoY"
+    },
+    {
+      "id": 88314,
+      "announcedOn": "2023-04-25T00:00:00.000Z",
+      "moneyRaised": 11087947,
+      "name": "Grant - Stripe",
+      "stage": "Grant",
+      "valuation": null,
+      "companyID": "OYClaZ4jscaMd-JHzdbItcb2o3wRHoY"
+    }
+  ],
+  "pages": 7,
+  "totalResults": 19
+}

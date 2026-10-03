@@ -2,12 +2,14 @@ import type { SignalEvidence, SignalResult } from "@/lib/types";
 
 const SOURCE = "gnews";
 
-interface GNewsArticle {
+export interface NewsArticleInput {
   title: string;
   description?: string;
   publishedAt: string;
   url?: string;
 }
+
+export type GNewsArticle = NewsArticleInput;
 
 interface GNewsResponse {
   articles: GNewsArticle[];
@@ -53,9 +55,10 @@ interface NewsScoreResult {
 }
 
 export function scoreNewsArticles(
-  articles: GNewsArticle[],
+  articles: NewsArticleInput[],
   now = new Date(),
-  fetchedAt = now.toISOString()
+  fetchedAt = now.toISOString(),
+  source: string = SOURCE
 ): NewsScoreResult {
   let totalScore = 0;
   let duplicateCount = 0;
@@ -106,7 +109,7 @@ export function scoreNewsArticles(
     evidence.push({
       label: article.title,
       observed_at: publishedAt.toISOString(),
-      source: SOURCE,
+      source,
       fetched_at: fetchedAt,
       source_url: article.url,
       metadata: {
@@ -130,6 +133,32 @@ export function scoreNewsArticles(
     observedAt: score > 0 ? latestPositiveDate?.toISOString() ?? null : null,
     duplicateCount,
     fundingOnlyCount,
+  };
+}
+
+export function buildNewsSignal(
+  articles: NewsArticleInput[],
+  now: Date,
+  fetchedAt: string,
+  source: string = SOURCE
+): SignalResult {
+  const result = scoreNewsArticles(articles, now, fetchedAt, source);
+
+  return {
+    score: result.score,
+    max: 20,
+    detail: result.details.length > 0
+      ? result.details.join(", ")
+      : "No significant non-funding trigger events detected",
+    status: result.score > 0 && result.observedAt ? "ok" : "no_signal",
+    observed_at: result.observedAt,
+    fetched_at: fetchedAt,
+    source,
+    evidence: result.evidence,
+    metadata: {
+      duplicate_articles_ignored: result.duplicateCount,
+      funding_only_articles_ignored: result.fundingOnlyCount,
+    },
   };
 }
 
@@ -162,24 +191,7 @@ export async function fetchNewsSignal(
     if (!res.ok) throw new Error(`GNews ${res.status}`);
 
     const data = (await res.json()) as GNewsResponse;
-    const result = scoreNewsArticles(data.articles ?? [], now, fetchedAt);
-
-    return {
-      score: result.score,
-      max: 20,
-      detail: result.details.length > 0
-        ? result.details.join(", ")
-        : "No significant non-funding trigger events detected",
-      status: result.score > 0 && result.observedAt ? "ok" : "no_signal",
-      observed_at: result.observedAt,
-      fetched_at: fetchedAt,
-      source: SOURCE,
-      evidence: result.evidence,
-      metadata: {
-        duplicate_articles_ignored: result.duplicateCount,
-        funding_only_articles_ignored: result.fundingOnlyCount,
-      },
-    };
+    return buildNewsSignal(data.articles ?? [], now, fetchedAt, SOURCE);
   } catch (error) {
     return {
       score: 0,

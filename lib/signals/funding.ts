@@ -19,7 +19,14 @@ interface ExploriumFundingResponse extends ExploriumFundingFields {
   data?: ExploriumFundingFields;
 }
 
-function parseEventDate(value: string | undefined, now: Date): Date | null {
+export interface FundingRoundSummary {
+  lastRoundDate?: string | null;
+  roundType?: string | null;
+  totalValue?: number | null;
+  rounds?: number | null;
+}
+
+function parseEventDate(value: string | null | undefined, now: Date): Date | null {
   if (!value) return null;
   const date = new Date(value);
   if (!Number.isFinite(date.getTime())) return null;
@@ -29,6 +36,90 @@ function parseEventDate(value: string | undefined, now: Date): Date | null {
 
 function daysSince(now: Date, eventDate: Date): number {
   return Math.max(0, Math.floor((now.getTime() - eventDate.getTime()) / 86_400_000));
+}
+
+export function scoreFundingRounds(
+  summary: FundingRoundSummary,
+  now: Date,
+  fetchedAt: string,
+  source: string = SOURCE
+): SignalResult {
+  const eventDate = parseEventDate(summary.lastRoundDate, now);
+  const totalValue = Number.isFinite(summary.totalValue) ? summary.totalValue ?? 0 : 0;
+  const rounds = Number.isFinite(summary.rounds) ? Math.max(0, summary.rounds ?? 0) : 0;
+  const roundType = summary.roundType ?? "Funding";
+
+  // Undated historical totals remain useful context but cannot be fresh intent.
+  if (!eventDate) {
+    const historical = totalValue > 0
+      ? `$${(totalValue / 1_000_000).toFixed(0)}M total raised; latest round date unavailable`
+      : "No recent funding activity detected";
+    return {
+      score: 0,
+      max: 25,
+      detail: historical,
+      status: "no_signal",
+      observed_at: null,
+      fetched_at: fetchedAt,
+      source,
+      evidence: [],
+      metadata: {
+        total_funding_value: totalValue,
+        funding_rounds: rounds,
+      },
+    };
+  }
+
+  const age = daysSince(now, eventDate);
+  let score = 0;
+  const details: string[] = [];
+
+  if (age <= 90) {
+    score += 20;
+    details.push(`${roundType} closed ${age}d ago`);
+  } else if (age <= 365) {
+    score += 10;
+    details.push(`${roundType} within last year`);
+  } else if (totalValue > 0) {
+    score += 5;
+    details.push(`$${(totalValue / 1_000_000).toFixed(0)}M total raised`);
+  }
+
+  if (rounds >= 3) {
+    score += 5;
+    details.push(`${rounds} funding rounds`);
+  }
+
+  score = Math.min(score, 25);
+  const evidence: SignalEvidence[] = score > 0
+    ? [{
+        label: `${roundType} funding event`,
+        observed_at: eventDate.toISOString(),
+        source,
+        fetched_at: fetchedAt,
+        metadata: {
+          age_days: age,
+          total_funding_value: totalValue,
+          funding_rounds: rounds,
+        },
+      }]
+    : [];
+
+  return {
+    score,
+    max: 25,
+    detail: details.join("; ") || "No recent funding activity detected",
+    status: score > 0 ? "ok" : "no_signal",
+    observed_at: score > 0 ? eventDate.toISOString() : null,
+    fetched_at: fetchedAt,
+    source,
+    evidence,
+    metadata: {
+      total_funding_value: totalValue,
+      last_funding_round_type: roundType,
+      funding_rounds: rounds,
+    },
+  };
 }
 
 export async function fetchFundingSignal(
@@ -101,86 +192,12 @@ export async function fetchFundingSignal(
 
     const raw = (await fundingRes.json()) as ExploriumFundingResponse;
     const funding: ExploriumFundingFields = raw.data ?? raw;
-    const eventDate = parseEventDate(funding.last_funding_round_date, now);
-    const totalValue = Number.isFinite(funding.known_funding_total_value)
-      ? funding.known_funding_total_value ?? 0
-      : 0;
-    const rounds = Number.isFinite(funding.number_of_funding_rounds)
-      ? Math.max(0, funding.number_of_funding_rounds ?? 0)
-      : 0;
-    const roundType = funding.last_funding_round_type ?? "Funding";
-
-    // Undated historical totals remain useful context but cannot be fresh intent.
-    if (!eventDate) {
-      const historical = totalValue > 0
-        ? `$${(totalValue / 1_000_000).toFixed(0)}M total raised; latest round date unavailable`
-        : "No recent funding activity detected";
-      return {
-        score: 0,
-        max: 25,
-        detail: historical,
-        status: "no_signal",
-        observed_at: null,
-        fetched_at: fetchedAt,
-        source: SOURCE,
-        evidence: [],
-        metadata: {
-          total_funding_value: totalValue,
-          funding_rounds: rounds,
-        },
-      };
-    }
-
-    const age = daysSince(now, eventDate);
-    let score = 0;
-    const details: string[] = [];
-
-    if (age <= 90) {
-      score += 20;
-      details.push(`${roundType} closed ${age}d ago`);
-    } else if (age <= 365) {
-      score += 10;
-      details.push(`${roundType} within last year`);
-    } else if (totalValue > 0) {
-      score += 5;
-      details.push(`$${(totalValue / 1_000_000).toFixed(0)}M total raised`);
-    }
-
-    if (rounds >= 3) {
-      score += 5;
-      details.push(`${rounds} funding rounds`);
-    }
-
-    score = Math.min(score, 25);
-    const evidence: SignalEvidence[] = score > 0
-      ? [{
-          label: `${roundType} funding event`,
-          observed_at: eventDate.toISOString(),
-          source: SOURCE,
-          fetched_at: fetchedAt,
-          metadata: {
-            age_days: age,
-            total_funding_value: totalValue,
-            funding_rounds: rounds,
-          },
-        }]
-      : [];
-
-    return {
-      score,
-      max: 25,
-      detail: details.join("; ") || "No recent funding activity detected",
-      status: score > 0 ? "ok" : "no_signal",
-      observed_at: score > 0 ? eventDate.toISOString() : null,
-      fetched_at: fetchedAt,
-      source: SOURCE,
-      evidence,
-      metadata: {
-        total_funding_value: totalValue,
-        last_funding_round_type: roundType,
-        funding_rounds: rounds,
-      },
-    };
+    return scoreFundingRounds({
+      lastRoundDate: funding.last_funding_round_date,
+      roundType: funding.last_funding_round_type,
+      totalValue: funding.known_funding_total_value,
+      rounds: funding.number_of_funding_rounds,
+    }, now, fetchedAt, SOURCE);
   } catch (error) {
     return {
       score: 0,

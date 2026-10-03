@@ -245,3 +245,39 @@ describe("buildHiringSignalFromJobs", () => {
     });
   });
 });
+
+describe("buildHiringSignalFromJobs provider source", () => {
+  it("stamps a custom source on job signal result, evidence, and metadata", () => {
+    const result = buildHiringSignalFromJobs([
+      {
+        title: "VP Sales",
+        department: "Sales",
+        location: "Cairo",
+        posted_at: "2026-07-14T12:00:00.000Z",
+        source_url: "https://acme.com/jobs/vp-sales",
+      },
+    ], NOW.toISOString(), "treg-predictleads");
+
+    expect(result).toMatchObject({
+      status: "ok",
+      source: "treg-predictleads",
+      metadata: { source: "treg-predictleads" },
+    });
+    expect(result.evidence).toHaveLength(1);
+    expect(result.evidence?.[0]).toMatchObject({
+      source: "treg-predictleads",
+      fetched_at: NOW.toISOString(),
+    });
+  });
+
+  it("keeps the default Scrapling source when no source is passed", () => {
+    const result = buildHiringSignalFromJobs([], NOW.toISOString());
+
+    expect(result).toMatchObject({
+      status: "no_signal",
+      source: "scrapling",
+      metadata: { source: "scrapling" },
+    });
+    expect(result.evidence).toEqual([]);
+  });
+});

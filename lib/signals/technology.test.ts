@@ -87,3 +87,41 @@ describe("fetchTechnologySignal", () => {
     });
   });
 });
+
+describe("buildTechnologySignal", () => {
+  it("stamps a custom source on the technology signal and evidence", async () => {
+    const { buildTechnologySignal } = await import("./technology");
+
+    const result = buildTechnologySignal([
+      { Name: "HubSpot", FirstDetected: epochDaysAgo(20), LastDetected: epochDaysAgo(1) },
+    ], NOW, NOW.toISOString(), "treg-predictleads");
+
+    expect(result).toMatchObject({
+      status: "ok",
+      score: 15,
+      source: "treg-predictleads",
+      observed_at: "2026-06-25T12:00:00.000Z",
+    });
+    expect(result.evidence).toHaveLength(1);
+    expect(result.evidence?.[0]).toMatchObject({
+      source: "treg-predictleads",
+      fetched_at: NOW.toISOString(),
+    });
+  });
+
+  it("returns the fallback no-signal result for an empty technology list", async () => {
+    const { buildTechnologySignal } = await import("./technology");
+
+    const result = buildTechnologySignal([], NOW, NOW.toISOString());
+
+    expect(result).toMatchObject({
+      status: "no_signal",
+      score: 0,
+      observed_at: null,
+      source: "builtwith",
+      detail: "No dated tech stack changes detected",
+      metadata: { active_tools: [] },
+    });
+    expect(result.evidence).toEqual([]);
+  });
+});

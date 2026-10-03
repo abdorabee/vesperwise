@@ -16,6 +16,7 @@ import { fetchNewsSignal } from "@/lib/signals/news";
 import { fetchTechnologySignal } from "@/lib/signals/technology";
 import { fetchWebSignal } from "@/lib/signals/web";
 import { fetchGitHubSignal } from "@/lib/signals/github";
+import { TREG_HUNTER_SOURCE, type TregFirmographicsResult } from "@/lib/signals/treg";
 import { getMockSignals } from "@/lib/signals/mock";
 import {
   enqueueHiringRefresh,
@@ -53,6 +54,15 @@ import {
   signalFromEvidenceRow,
   type SignalEvidenceRow,
 } from "./score-evidence";
+import {
+  isTregFallbackSignalKey,
+  isTregSignalPromoted,
+  isTregSource,
+} from "@/lib/treg-fallback";
+import {
+  resolveTregFirmographicsRow,
+  resolveTregSignalRow,
+} from "./treg-evidence";
 import type {
   BusinessProfile,
   IntentScore,
@@ -206,6 +216,11 @@ export class UnscorableDomainError extends ScoreServiceError {
 interface EvidenceSnapshot {
   signals: SignalSet;
   rows: SignalEvidenceRow[];
+}
+
+interface LoadedDatabaseEvidence {
+  candidates: Map<SignalKey, SignalEvidenceRow[]>;
+  tregAttempts: Map<SignalKey, SignalEvidenceRow[]>;
 }
 
 interface FirmographicsData {
@@ -439,6 +454,14 @@ function isFreshEvidence(row: SignalEvidenceRow, nowMs = Date.now()): boolean {
   return evidenceAgeMs(row, nowMs) <= SCORE_EVIDENCE_TTL_SECONDS * 1000;
 }
 
+function appendEvidenceRow(
+  map: Map<SignalKey, SignalEvidenceRow[]>,
+  key: SignalKey,
+  row: SignalEvidenceRow
+): void {
+  map.set(key, [...(map.get(key) ?? []), row]);
+}
+
 function staleSignal(signal: SignalResult, metadata: Record<string, unknown> = {}): SignalResult {
   return {
     ...signal,
@@ -454,7 +477,7 @@ function staleSignal(signal: SignalResult, metadata: Record<string, unknown> = {
 async function loadDatabaseEvidence(
   supabase: SupabaseAdmin,
   domain: string
-): Promise<Map<SignalKey, SignalEvidenceRow[]>> {
+): Promise<LoadedDatabaseEvidence> {
   const { data, error } = await supabase
     .from("signal_evidence")
     .select("canonical_domain, signal_type, source, schema_version, status, observed_at, fetched_at, expires_at, evidence, raw_payload, shadow")
@@ -464,24 +487,30 @@ async function loadDatabaseEvidence(
       HIRING_EVIDENCE_SCHEMA_VERSION,
       WEB_ENRICHMENT_SCHEMA_VERSION,
     ])
-    .eq("shadow", false)
     .gt("expires_at", new Date().toISOString())
     .order("fetched_at", { ascending: false });
 
   if (error) {
     console.warn("[score-service] evidence lookup failed; fetching sources", error);
-    return new Map();
+    return { candidates: new Map(), tregAttempts: new Map() };
   }
 
-  const selected = new Map<SignalKey, SignalEvidenceRow[]>();
+  const candidates = new Map<SignalKey, SignalEvidenceRow[]>();
+  const tregAttempts = new Map<SignalKey, SignalEvidenceRow[]>();
   for (const candidate of (data ?? []) as SignalEvidenceRow[]) {
     if (!SIGNAL_KEYS.includes(candidate.signal_type as SignalKey)) continue;
-    if (!signalFromEvidenceRow(candidate)) continue;
     const key = candidate.signal_type as SignalKey;
-    selected.set(key, [...(selected.get(key) ?? []), candidate]);
+    if (isTregSource(candidate.source)) {
+      appendEvidenceRow(tregAttempts, key, candidate);
+      // Demoting a signal takes effect immediately: a row stored while it was
+      // promoted stops being a scoring candidate.
+      if (!isTregFallbackSignalKey(key) || !isTregSignalPromoted(key)) continue;
+    }
+    if (candidate.shadow || !signalFromEvidenceRow(candidate)) continue;
+    appendEvidenceRow(candidates, key, candidate);
   }
 
-  return selected;
+  return { candidates, tregAttempts };
 }
 
 async function fetchSignal(key: SignalKey, domain: string): Promise<SignalResult> {
@@ -624,7 +653,7 @@ export async function getEvidenceSnapshot(
   const rows: SignalEvidenceRow[] = [];
 
   const resolveKey = async (key: SignalKey) => {
-    const candidates = databaseRows.get(key) ?? [];
+    const candidates = databaseRows.candidates.get(key) ?? [];
     const usableStoredRows = candidates.filter((row) =>
       isUsableEvidenceStatus(row.status) && signalFromEvidenceRow(row) !== null
     );
@@ -671,23 +700,40 @@ export async function getEvidenceSnapshot(
       return;
     }
 
+    const tregRow = await resolveTregSignalRow({
+      key,
+      domain,
+      primaryStatus: refreshed.status,
+      attempts: databaseRows.tregAttempts.get(key) ?? [],
+      buildRow: (signal, source) => evidenceRowForSignal(domain, key, signal, source),
+      freshnessMs: SCORE_EVIDENCE_TTL_SECONDS * 1000,
+    });
+    if (tregRow) rows.push(tregRow);
+
     // Promoted crawl evidence is selected as one alternative source; it is
     // never added to provider evidence.
-    if (bestStoredRow && bestStoredSignal) {
-      resolved[key] = isFreshEvidence(bestStoredRow) && bestStoredRow.status !== "stale"
+    const selectedFallbackRow = chooseBestSignalEvidence([
+      ...(tregRow ? [tregRow] : []),
+      ...usableStoredRows,
+    ]);
+    const selectedFallbackSignal = selectedFallbackRow
+      ? signalFromEvidenceRow(selectedFallbackRow)
+      : null;
+    if (selectedFallbackRow && selectedFallbackSignal) {
+      resolved[key] = isFreshEvidence(selectedFallbackRow) && selectedFallbackRow.status !== "stale"
         ? {
-            ...bestStoredSignal,
+            ...selectedFallbackSignal,
             metadata: {
-              ...bestStoredSignal.metadata,
-              fallback_source: bestStoredRow.source,
+              ...selectedFallbackSignal.metadata,
+              fallback_source: selectedFallbackRow.source,
               primary_status: refreshed.status ?? "unavailable",
             },
           }
-        : staleSignal(bestStoredSignal, {
-            fallback_source: bestStoredRow.source,
+        : staleSignal(selectedFallbackSignal, {
+            fallback_source: selectedFallbackRow.source,
             primary_status: refreshed.status ?? "unavailable",
           });
-      rows.push(bestStoredRow);
+      if (selectedFallbackRow !== tregRow) rows.push(selectedFallbackRow);
       return;
     }
 
@@ -739,12 +785,14 @@ function firmographicsRow(
   status: SignalStatus,
   fetchedAt: string,
   data: FirmographicsData | null,
-  rawPayload: unknown
+  rawPayload: unknown,
+  source = "explorium",
+  shadow = false
 ): SignalEvidenceRow {
   return {
     canonical_domain: domain,
     signal_type: "firmographics",
-    source: "explorium",
+    source,
     schema_version: FIRMOGRAPHICS_SCHEMA_VERSION,
     status,
     observed_at: status === "ok" ? fetchedAt : null,
@@ -764,8 +812,44 @@ function firmographicsRow(
         }]
       : [],
     raw_payload: rawPayload,
-    shadow: false,
+    shadow,
   };
+}
+
+function firmographicsDataFromTreg(result: TregFirmographicsResult): FirmographicsData | null {
+  return result.status === "ok" && result.industry && result.employeeRange
+    ? {
+        business_id: "",
+        industry: result.industry,
+        employee_range: result.employeeRange,
+      }
+    : null;
+}
+
+function tregFirmographicsRow(domain: string, result: TregFirmographicsResult): SignalEvidenceRow {
+  const fetchedAt = new Date().toISOString();
+  const data = firmographicsDataFromTreg(result);
+  return firmographicsRow(
+    domain,
+    result.status,
+    fetchedAt,
+    data,
+    {
+      business_id: data?.business_id ?? "",
+      industry: result.industry,
+      employee_range: result.employeeRange,
+      treg_call_id: result.callId,
+      treg_cost_micro: result.costMicro,
+      fallback_for: "explorium",
+      ...(result.reason ? { reason: result.reason } : {}),
+    },
+    TREG_HUNTER_SOURCE
+  );
+}
+
+function promotedTregFirmographicsData(row: SignalEvidenceRow | null): FirmographicsData | null {
+  if (!row || row.shadow || row.status !== "ok" || row.source !== TREG_HUNTER_SOURCE) return null;
+  return isFirmographicsData(row.raw_payload) ? row.raw_payload : null;
 }
 
 function extractString(value: unknown): string | null {
@@ -898,23 +982,21 @@ async function fetchFirmographics(
 async function loadFirmographicsRow(
   supabase: SupabaseAdmin,
   domain: string
-): Promise<SignalEvidenceRow | null> {
+): Promise<SignalEvidenceRow[]> {
   const { data, error } = await supabase
     .from("signal_evidence")
     .select("canonical_domain, signal_type, source, schema_version, status, observed_at, fetched_at, expires_at, evidence, raw_payload, shadow")
     .eq("canonical_domain", domain)
     .eq("signal_type", "firmographics")
-    .eq("source", "explorium")
     .eq("schema_version", FIRMOGRAPHICS_SCHEMA_VERSION)
-    .eq("shadow", false)
     .gt("expires_at", new Date().toISOString())
-    .maybeSingle();
+    .order("fetched_at", { ascending: false });
 
   if (error) {
     console.warn("[score-service] firmographics lookup failed; refreshing", error);
-    return null;
+    return [];
   }
-  return data as SignalEvidenceRow | null;
+  return (data ?? []) as SignalEvidenceRow[];
 }
 
 async function getFirmographics(
@@ -933,7 +1015,9 @@ async function getFirmographics(
     return cached;
   }
 
-  const existingRow = await loadFirmographicsRow(supabase, domain);
+  const existingRows = await loadFirmographicsRow(supabase, domain);
+  const existingRow = existingRows.find((row) => row.source === "explorium" && !row.shadow) ?? null;
+  const tregAttempts = existingRows.filter((row) => row.source === TREG_HUNTER_SOURCE);
   const existingData = existingRow && isFirmographicsData(existingRow.raw_payload)
     ? existingRow.raw_payload
     : null;
@@ -963,10 +1047,29 @@ async function getFirmographics(
     return snapshot;
   }
 
+  const tregRow = await resolveTregFirmographicsRow({
+    domain,
+    primaryStatus: refreshed.row.status,
+    attempts: tregAttempts,
+    buildRow: (result) => tregFirmographicsRow(domain, result),
+    freshnessMs: SCORE_EVIDENCE_TTL_SECONDS * 1000,
+  });
+  const tregRows = tregRow ? [tregRow] : [];
+  const tregData = promotedTregFirmographicsData(tregRow);
+  if (tregData) {
+    const snapshot: FirmographicsSnapshot = {
+      data: tregData,
+      rows: [refreshed.row, ...tregRows],
+      status: "ok",
+    };
+    await cacheSet(cacheKey, snapshot, SCORE_EVIDENCE_TTL_SECONDS);
+    return snapshot;
+  }
+
   if (existingRow && existingData && isUsableEvidenceStatus(existingRow.status)) {
     const snapshot: FirmographicsSnapshot = {
       data: existingData,
-      rows: [refreshed.row, existingRow],
+      rows: [refreshed.row, ...tregRows, existingRow],
       status: "stale",
     };
     await cacheSet(cacheKey, snapshot, FAILED_EVIDENCE_RETRY_TTL_SECONDS);
@@ -975,7 +1078,7 @@ async function getFirmographics(
 
   const snapshot: FirmographicsSnapshot = {
     data: null,
-    rows: [refreshed.row],
+    rows: [refreshed.row, ...tregRows],
     status: refreshed.row.status,
   };
   await cacheSet(cacheKey, snapshot, FAILED_EVIDENCE_RETRY_TTL_SECONDS);
