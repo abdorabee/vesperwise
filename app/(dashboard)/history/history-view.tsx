@@ -4,7 +4,10 @@ import type { CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { BandPill } from "@/components/score/band";
 import { toCSV, downloadCSV as triggerDownload, csvFilename, formatSignal } from "@/lib/csv";
-import type { DbScore, IntentSignalKey, ScoreBand, SignalSet } from "@/lib/types";
+import type { DbScore, ScoreBand } from "@/lib/types";
+import { AccountPanel } from "@/components/account-panel/account-panel";
+import { useAccountParam } from "@/components/account-panel/use-account-param";
+import { HistoryRunTab, deltaColor, runId, stageLabel, urgencyLabel, urgencyStyle } from "@/components/history/history-run-tab";
 import type { HistoryStats, ActivityBucket } from "./page";
 
 interface HistoryViewProps { stats: HistoryStats; }
@@ -91,12 +94,6 @@ const S = {
     textTransform: "uppercase", letterSpacing: "0.06em", fontFamily: "var(--font-mono)",
     fontWeight: 500, margin: "16px 0 6px", padding: "0 4px",
   } as CSSProperties,
-  drawerHero: {
-    display: "grid", gridTemplateColumns: "130px 1fr", gap: 18, padding: 16,
-    background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: "var(--r-lg)", marginBottom: 14,
-  } as CSSProperties,
-  dheroMeta: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px 16px" } as CSSProperties,
-  actionGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 } as CSSProperties,
 };
 
 const AV_COLORS = [
@@ -108,19 +105,6 @@ const AV_COLORS = [
   "linear-gradient(135deg,#dfff00,#4ade80)",
   "linear-gradient(135deg,#dfff00,#dfff00)",
   "linear-gradient(135deg,#8a8f98,#f87171)",
-];
-
-const SIGNAL_META: { key: IntentSignalKey; abbr: string; color: string }[] = [
-  { key: "funding", abbr: "FU", color: "#f5b544" },
-  { key: "hiring", abbr: "HI", color: "#4ade80" },
-  { key: "news", abbr: "NE", color: "#8a8f98" },
-  { key: "technology", abbr: "TE", color: "#e8ff40" },
-  { key: "web_activity", abbr: "WA", color: "#a855f7" },
-];
-
-const CONTEXT_META = [
-  { key: "web" as const, label: "Web authority" },
-  { key: "github" as const, label: "GitHub activity" },
 ];
 
 function avColor(name: string) { return AV_COLORS[(name?.charCodeAt(0) ?? 0) % AV_COLORS.length]; }
@@ -149,13 +133,6 @@ function fmtRowTime(iso: string) {
   if (sameDay(d, now) || sameDay(d, yesterday)) return time;
   const date = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
   return `${date} · ${time}`;
-}
-
-function fmtScoredWhen(iso: string) {
-  const d = new Date(iso);
-  const date = d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
-  const time = d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
-  return `Scored ${date} · ${time}`;
 }
 
 function getDateGroupKey(iso: string) {
@@ -200,18 +177,6 @@ function computeDeltas(rows: DbScore[]): Map<string, { direction: "up" | "down" 
   return result;
 }
 
-function urgencyLabel(u: string | null): { label: string; cls: string } {
-  if (u === "act-now") return { label: "Strike now", cls: "strike" };
-  if (u === "this-week") return { label: "Engage", cls: "engage" };
-  return { label: "Nurture", cls: "nurture" };
-}
-
-function stageLabel(s: string | null) {
-  if (s === "decision") return "Decision";
-  if (s === "consideration") return "Consideration";
-  return "Awareness";
-}
-
 function stageSwatch(s: string | null) {
   if (s === "decision") return "var(--hot)";
   if (s === "consideration") return "var(--warm)";
@@ -222,13 +187,6 @@ function bandColor(band: string) {
   if (band === "HOT") return "var(--hot)";
   if (band === "WARM") return "var(--warm)";
   return "var(--cold)";
-}
-
-function urgencyStyle(u: string | null): CSSProperties {
-  const base: CSSProperties = { padding: "1px 7px", borderRadius: 4, fontFamily: "var(--font-mono)", fontSize: 10, textTransform: "uppercase", letterSpacing: "0.04em", fontWeight: 500 };
-  if (u === "act-now") return { ...base, background: "var(--hot-bg)", color: "var(--hot)" };
-  if (u === "this-week") return { ...base, background: "var(--warm-bg)", color: "var(--warm)" };
-  return { ...base, background: "rgba(223,255,0,0.10)", color: "var(--cyan)" };
 }
 
 function bandChipStyle(band: "hot" | "warm" | "cold", inactive: boolean): CSSProperties {
@@ -249,74 +207,6 @@ function bandDotStyle(band: "hot" | "warm" | "cold"): CSSProperties {
   return { ...base, background: "var(--cold)" };
 }
 
-function htBandStyle(band: string): CSSProperties {
-  const base: CSSProperties = {
-    display: "inline-flex", alignItems: "center", gap: 5, padding: "2px 9px", borderRadius: 999,
-    fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase",
-  };
-  if (band === "HOT") return { ...base, background: "var(--hot-bg)", border: "1px solid var(--hot-border)", color: "var(--hot)" };
-  if (band === "WARM") return { ...base, background: "var(--warm-bg)", border: "1px solid var(--warm-border)", color: "var(--warm)" };
-  return { ...base, background: "var(--cold-bg)", border: "1px solid var(--cold-border)", color: "var(--text-secondary)" };
-}
-
-function htBandDotStyle(band: string): CSSProperties {
-  if (band === "HOT") return { width: 5, height: 5, borderRadius: 999, background: "var(--hot)", boxShadow: "0 0 4px var(--hot)", display: "inline-block" };
-  if (band === "WARM") return { width: 5, height: 5, borderRadius: 999, background: "var(--warm)", display: "inline-block" };
-  return { width: 5, height: 5, borderRadius: 999, background: "var(--cold)", display: "inline-block" };
-}
-
-function deltaColor(direction: string) {
-  if (direction === "up") return "var(--hot)";
-  if (direction === "down") return "var(--red)";
-  return "var(--text-tertiary)";
-}
-
-function urgencyWindow(u: string | null) {
-  if (u === "act-now") return "~2 weeks";
-  if (u === "this-week") return "~4 weeks";
-  return "~8 weeks";
-}
-
-function runId(id: string) {
-  return id.slice(-4).toUpperCase();
-}
-
-function countFiringSignals(signals: SignalSet | null | undefined) {
-  if (!signals) return 0;
-  return SIGNAL_META.filter(m => (signals[m.key]?.score ?? 0) > 0).length;
-}
-
-function DrawerRing({ score, band }: { score: number; band: string }) {
-  const r = 55;
-  const circ = 2 * Math.PI * r;
-  const offset = circ * (1 - score / 100);
-  const g = band === "HOT" ? ["#4ade80", "#dfff00", "#e8ff40"] : band === "WARM" ? ["#f5b544", "#8a8f98", "#e8ff40"] : ["var(--text-tertiary)", "var(--text-tertiary)", "var(--text-tertiary)"];
-  return (
-    <div style={{ position: "relative", width: 130, height: 130 }}>
-      <svg viewBox="0 0 130 130" style={{ display: "block" }}>
-        <defs>
-          <linearGradient id="dRingGrad" x1="0" y1="0" x2="130" y2="130" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stopColor={g[0]} />
-            <stop offset="55%" stopColor={g[1]} />
-            <stop offset="100%" stopColor={g[2]} />
-          </linearGradient>
-        </defs>
-        <circle cx="65" cy="65" r={r} stroke="rgba(255,255,255,0.05)" strokeWidth="8" fill="none" />
-        <circle cx="65" cy="65" r={r} stroke="url(#dRingGrad)" strokeWidth="8" fill="none"
-          strokeLinecap="round" strokeDasharray={circ} strokeDashoffset={offset}
-          style={{ transform: "rotate(-90deg)", transformOrigin: "65px 65px" }} />
-      </svg>
-      <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ fontFamily: "var(--font-mono)", fontWeight: 700, fontSize: 32, letterSpacing: "-0.034em", color: "var(--text-primary)", lineHeight: 1 }}>{score}</div>
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-quaternary)", marginTop: 2 }}>/ 100</div>
-        <div style={{ ...htBandStyle(band), marginTop: 6, fontSize: 9 }}>
-          <span style={htBandDotStyle(band)} />{band}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export function HistoryView({ stats }: HistoryViewProps) {
   const [rows, setRows] = useState<DbScore[]>([]);
   // The query string whose response is on screen; anything else means a request is in flight.
@@ -329,9 +219,8 @@ export function HistoryView({ stats }: HistoryViewProps) {
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [bandFilter, setBandFilter] = useState<ScoreBand | null>(null);
-  const [drawerRow, setDrawerRow] = useState<DbScore | null>(null);
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [openRunId, setOpenRunId] = useState<string | null>(null);
+  const { account, openAccount, closeAccount } = useAccountParam();
   const router = useRouter();
 
   const requestRef = useRef<AbortController | null>(null);
@@ -371,12 +260,6 @@ export function HistoryView({ stats }: HistoryViewProps) {
     return () => controller.abort();
   }, [requestKey]);
 
-  useEffect(() => {
-    if (!drawerOpen) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setDrawerOpen(false); };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [drawerOpen]);
 
   function handleSearch(val: string) { setQuery(val); setPage(1); }
   function handleRange(next: RangeId) { setRange(next); setPage(1); }
@@ -469,7 +352,8 @@ export function HistoryView({ stats }: HistoryViewProps) {
   }, []);
 
   const today = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" });
-  const drawerDelta = drawerRow ? deltas.get(drawerRow.id) : null;
+  // The clicked run, while its domain is the open account (a deep link has no run).
+  const openRun = account ? rows.find((r) => r.id === openRunId && r.domain.toLowerCase() === account) ?? null : null;
 
   return (
     <div className="hist-page">
@@ -641,14 +525,14 @@ export function HistoryView({ stats }: HistoryViewProps) {
                 </div>
                 {groupRows.map(row => {
                   const delta = deltas.get(row.id) ?? { direction: "first" as const, diff: 0, from: 0 };
-                  const isOpen = drawerRow?.id === row.id && drawerOpen;
+                  const isOpen = openRun?.id === row.id;
                   const scoreColor = bandColor(row.score_band);
                   const urg = urgencyLabel(row.urgency);
                   const flatSameDay = delta.direction === "flat" && delta.prevTime && sameDay(new Date(row.created_at), new Date(delta.prevTime));
                   return (
                     <div key={row.id} style={S.htRow(isOpen)} role="button" tabIndex={0} aria-label={`${row.company_name}, ${row.score} ${row.score_band}. Show details`}
-                      onClick={() => { setDrawerRow(row); setDrawerOpen(true); }}
-                      onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setDrawerRow(row); setDrawerOpen(true); } }}>
+                      onClick={() => { setOpenRunId(row.id); openAccount(row.domain); }}
+                      onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setOpenRunId(row.id); openAccount(row.domain); } }}>
                       <div style={S.htTime}>
                         {fmtRowTime(row.created_at)}
                         <span style={S.htAgo}>{relTime(row.created_at)}</span>
@@ -733,197 +617,17 @@ export function HistoryView({ stats }: HistoryViewProps) {
         </div>
       )}
 
-      <div className={`drawer-mask${drawerOpen ? " open" : ""}`} onClick={() => setDrawerOpen(false)} />
-
-      <div className={`drawer${drawerOpen ? " open" : ""}`}>
-        {drawerRow && (
-          <>
-            <div className="drawer-head" style={{ display: "grid", gridTemplateColumns: "40px 1fr auto", gap: 12, alignItems: "center", padding: "18px 22px", borderBottom: "1px solid var(--border)" }}>
-              <div style={{ background: avColor(drawerRow.company_name), width: 40, height: 40, borderRadius: 8, display: "grid", placeItems: "center", fontSize: 14, fontWeight: 700, color: "var(--bg)" }}>
-                {drawerRow.company_name[0]}
-              </div>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 16, fontWeight: 500, color: "var(--text-primary)", letterSpacing: "-0.022em" }}>{drawerRow.company_name}</div>
-                <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-tertiary)" }}>{drawerRow.domain}</div>
-              </div>
-              <button type="button" aria-label="Close details" style={{ width: 28, height: 28, display: "grid", placeItems: "center", borderRadius: "var(--r-sm)", color: "var(--text-tertiary)", cursor: "pointer" }} onClick={() => setDrawerOpen(false)}>
-                <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" width="14" height="14" aria-hidden="true"><path d="M3 3l8 8M11 3l-8 8" /></svg>
-              </button>
-            </div>
-
-            <div className="drawer-body" style={{ flex: 1, overflowY: "auto", padding: "18px 22px 24px" }}>
-              <div style={S.drawerHero}>
-                <DrawerRing score={drawerRow.score} band={drawerRow.score_band} />
-                <div>
-                  <div style={S.dheroMeta}>
-                    <div>
-                      <div style={{ fontSize: 11, color: "var(--text-tertiary)", marginBottom: 4 }}>Stage</div>
-                      <div style={{ fontSize: 13, fontWeight: 500, color: "var(--text-primary)" }}>{stageLabel(drawerRow.buying_stage)}</div>
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 11, color: "var(--text-tertiary)", marginBottom: 4 }}>Urgency</div>
-                      <div><span style={urgencyStyle(drawerRow.urgency)}>{urgencyLabel(drawerRow.urgency).label}</span></div>
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 11, color: "var(--text-tertiary)", marginBottom: 4 }}>Δ vs previous</div>
-                      <div style={{ fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 500, color: drawerDelta ? deltaColor(drawerDelta.direction) : "var(--text-tertiary)" }}>
-                        {!drawerDelta || drawerDelta.direction === "first"
-                          ? "—"
-                          : `${drawerDelta.direction === "up" ? "▲" : drawerDelta.direction === "down" ? "▼" : "="} ${drawerDelta.diff} from ${drawerDelta.from}`}
-                      </div>
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 11, color: "var(--text-tertiary)", marginBottom: 4 }}>Window</div>
-                      <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>{urgencyWindow(drawerRow.urgency)}</div>
-                    </div>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 12, fontSize: 11, color: "var(--text-tertiary)" }}>
-                    <span>{fmtScoredWhen(drawerRow.created_at)}</span>
-                    <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, background: "rgba(255,255,255,0.04)", border: "1px solid var(--border)", padding: "2px 8px", borderRadius: 999 }}>
-                      Run #{runId(drawerRow.id)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {drawerRow.ai_summary && (
-                <>
-                  <div className="section-label" style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, fontSize: 11, color: "var(--text-tertiary)" }}>
-                    <span style={{ width: 6, height: 6, borderRadius: 999, background: "var(--accent-2)", display: "inline-block" }} />
-                    <strong style={{ color: "var(--text-secondary)", fontWeight: 500 }}>AI summary</strong>
-                    <span style={{ flex: 1, height: 1, background: "var(--border-subtle)" }} />
-                    <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-quaternary)" }}>
-                      {drawerRow.model_fallback ? "deterministic fallback" : "schema-validated AI"}
-                    </span>
-                  </div>
-                  <div style={{ background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: "var(--r-md)", padding: "12px 14px", marginBottom: 14, fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.55 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "var(--text-tertiary)", marginBottom: 8 }}>
-                      <span style={{ width: 5, height: 5, borderRadius: 999, background: "var(--accent-2)", display: "inline-block" }} />
-                      Generated by VesperWise
-                    </div>
-                    {drawerRow.ai_summary}
-                  </div>
-                </>
-              )}
-
-              {(drawerRow.why_now || drawerRow.recommended_action) && (
-                <>
-                  <div className="section-label" style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, fontSize: 11, color: "var(--text-tertiary)" }}>
-                    <span style={{ width: 6, height: 6, borderRadius: 999, background: "var(--warm)", boxShadow: "0 0 4px var(--warm)", display: "inline-block" }} />
-                    <strong style={{ color: "var(--text-secondary)", fontWeight: 500 }}>Why now &amp; recommended action</strong>
-                    <span style={{ flex: 1, height: 1, background: "var(--border-subtle)" }} />
-                  </div>
-                  <div style={S.actionGrid}>
-                    {drawerRow.why_now && (
-                      <div style={{ background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: "var(--r-md)", padding: "12px 14px" }}>
-                        <div style={{ fontSize: 10, color: "var(--text-tertiary)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Why now</div>
-                        <div style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.5 }}>{drawerRow.why_now}</div>
-                      </div>
-                    )}
-                    {drawerRow.recommended_action && (
-                      <div style={{ background: "rgba(223,255,0,0.08)", border: "1px solid rgba(223,255,0,0.2)", borderRadius: "var(--r-md)", padding: "12px 14px" }}>
-                        <div style={{ fontSize: 10, color: "var(--text-tertiary)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Recommended action</div>
-                        <div style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.5 }}>{drawerRow.recommended_action}</div>
-                      </div>
-                    )}
-                  </div>
-                </>
-              )}
-
-              {drawerRow.signals && (
-                <>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, fontSize: 11, color: "var(--text-tertiary)" }}>
-                    <span style={{ width: 6, height: 6, borderRadius: 999, background: "var(--hot)", boxShadow: "0 0 4px var(--hot)", display: "inline-block" }} />
-                    <strong style={{ color: "var(--text-secondary)", fontWeight: 500 }}>Key triggers</strong>
-                    <span style={{ flex: 1, height: 1, background: "var(--border-subtle)" }} />
-                    <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-quaternary)" }}>
-                      {countFiringSignals(drawerRow.signals)} of 4 firing
-                    </span>
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14 }}>
-                    {SIGNAL_META.map(({ key, abbr, color }) => {
-                      const sig = drawerRow.signals[key];
-                      if (!sig) return null;
-                      return (
-                        <div key={key} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: "var(--r-md)", fontSize: 12 }}>
-                          <div style={{ width: 24, height: 24, borderRadius: 4, background: color, display: "grid", placeItems: "center", fontFamily: "var(--font-mono)", fontSize: 9, fontWeight: 700, color: "var(--bg)", flexShrink: 0 }}>{abbr}</div>
-                          <div style={{ flex: 1, color: "var(--text-secondary)", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{sig.detail || key}</div>
-                          <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-tertiary)", flexShrink: 0 }}>{sig.score} / {sig.max}</div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, fontSize: 11, color: "var(--text-tertiary)" }}>
-                    <strong style={{ color: "var(--text-secondary)", fontWeight: 500 }}>Account context</strong>
-                    <span>· excluded from intent score</span>
-                    <span style={{ flex: 1, height: 1, background: "var(--border-subtle)" }} />
-                  </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 14 }}>
-                    {CONTEXT_META.map(({ key, label }) => {
-                      const signal = drawerRow.signals[key];
-                      return (
-                        <div key={key} style={{ padding: "8px 10px", background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: "var(--r-md)", fontSize: 12 }}>
-                          <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginBottom: 4 }}>
-                            <strong style={{ color: "var(--text-secondary)", fontWeight: 500 }}>{label}</strong>
-                            <span style={{ fontFamily: "var(--font-mono)", color: "var(--text-tertiary)" }}>{signal.score}/{signal.max}</span>
-                          </div>
-                          <div style={{ color: "var(--text-tertiary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{signal.detail}</div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </>
-              )}
-
-              {(drawerRow.email_subject || drawerRow.talk_track) && (
-                <>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, fontSize: 11, color: "var(--text-tertiary)" }}>
-                    <span style={{ width: 6, height: 6, borderRadius: 999, background: "var(--accent-2)", display: "inline-block" }} />
-                    <strong style={{ color: "var(--text-secondary)", fontWeight: 500 }}>Sales tools</strong>
-                    <span style={{ flex: 1, height: 1, background: "var(--border-subtle)" }} />
-                  </div>
-                  {drawerRow.email_subject && (
-                    <div style={{ background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: "var(--r-md)", marginBottom: 8, overflow: "hidden" }}>
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", borderBottom: "1px solid var(--border-subtle)", fontSize: 11, color: "var(--text-tertiary)" }}>
-                        Email subject line
-                        <div style={{ cursor: "pointer", color: "var(--text-tertiary)" }} onClick={() => { navigator.clipboard.writeText(drawerRow.email_subject!); setCopiedField("subject"); setTimeout(() => setCopiedField(null), 2000); }}>
-                          {copiedField === "subject" ? "✓" : (
-                            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" width="11" height="11"><rect x="2" y="2" width="6" height="8" rx="1" /><path d="M4 4h4" /></svg>
-                          )}
-                        </div>
-                      </div>
-                      <div style={{ padding: "10px 12px", fontSize: 13, color: "var(--text-primary)" }}>{drawerRow.email_subject}</div>
-                    </div>
-                  )}
-                  {drawerRow.talk_track && (
-                    <div style={{ background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: "var(--r-md)", overflow: "hidden" }}>
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", borderBottom: "1px solid var(--border-subtle)", fontSize: 11, color: "var(--text-tertiary)" }}>
-                        Talk track
-                        <div style={{ cursor: "pointer" }} onClick={() => { navigator.clipboard.writeText(drawerRow.talk_track!); setCopiedField("track"); setTimeout(() => setCopiedField(null), 2000); }}>
-                          {copiedField === "track" ? "✓" : (
-                            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" width="11" height="11"><rect x="2" y="2" width="6" height="8" rx="1" /><path d="M4 4h4" /></svg>
-                          )}
-                        </div>
-                      </div>
-                      <div style={{ padding: "10px 12px", fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.55, fontFamily: "var(--font-mono)" }}>{drawerRow.talk_track}</div>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-
-            <div className="drawer-foot" style={{ display: "flex", gap: 8, alignItems: "center", padding: "14px 22px", borderTop: "1px solid var(--border)" }}>
-              <div style={{ flex: 1, fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-tertiary)" }}>
-                Run <strong style={{ color: "var(--text-secondary)", fontWeight: 500 }}>#{runId(drawerRow.id)}</strong> · {drawerRow.scoring_version} · 6h personalized cache
-              </div>
-              <button type="button" className="btn-primary" onClick={() => { setDrawerOpen(false); router.push(lastScoreHref(drawerRow.domain)); }}>
-                Open last score
-                <svg className="ic" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><path d="M3 6h6M6 3l3 3-3 3" /></svg>
-              </button>
-            </div>
-          </>
-        )}
-      </div>
+      {account ? (
+        <AccountPanel
+          domain={account}
+          onClose={() => { closeAccount(); setOpenRunId(null); }}
+          extraTab={openRun ? {
+            value: "run",
+            label: `Run #${runId(openRun.id)}`,
+            content: <HistoryRunTab row={openRun} delta={deltas.get(openRun.id)} lastScoreHref={lastScoreHref(openRun.domain)} />,
+          } : undefined}
+        />
+      ) : null}
     </div>
   );
 }

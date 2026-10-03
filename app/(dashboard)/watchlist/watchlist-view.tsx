@@ -9,6 +9,9 @@ import { WatchlistPageHead } from "@/components/watchlist/watchlist-page-head";
 import { WatchlistAlertStrip } from "@/components/watchlist/watchlist-alert-strip";
 import { WatchlistListTabs } from "@/components/watchlist/watchlist-list-tabs";
 import { lastScoreHref, WatchlistTable } from "@/components/watchlist/watchlist-table";
+import { AccountPanel } from "@/components/account-panel/account-panel";
+import { useAccountParam } from "@/components/account-panel/use-account-param";
+import { WatchlistAccountsColumn } from "@/components/watchlist/watchlist-accounts-column";
 import {
   WatchlistQuickAdd,
   type WatchlistQuickAddHandle,
@@ -24,6 +27,7 @@ export function WatchlistView({ initial }: WatchlistViewProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const quickAddRef = useRef<WatchlistQuickAddHandle>(null);
+  const { account, openAccount, closeAccount } = useAccountParam();
 
   const [entries, setEntries] = useState(initial.entries);
   const [lists, setLists] = useState(initial.lists);
@@ -251,9 +255,19 @@ export function WatchlistView({ initial }: WatchlistViewProps) {
         filtered={entries.length > 0}
         showAll={showAll}
         onShowAll={() => setShowAll(true)}
+        onOpen={openAccount}
+        openDomain={account}
       />
 
       <WatchlistQuickAdd ref={quickAddRef} onAdd={handleAdd} adding={adding} error={addError} />
+
+      <WatchlistAccountsColumn
+        entries={entries}
+        selectedDomain={account}
+        onSelect={openAccount}
+        onFocusAdd={() => quickAddRef.current?.focus()}
+      />
+      {account ? <AccountPanel domain={account} onClose={closeAccount} /> : null}
     </div>
   );
 }

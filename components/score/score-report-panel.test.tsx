@@ -41,4 +41,34 @@ describe("ScoreReportPanel", () => {
     expect(html.indexOf("Stored result")).toBeLessThan(html.indexOf("Overview"));
     expect(html).toContain("Rescore · 1 credit");
   });
+
+  it("shows a page-specific extra tab first and selects it by default", () => {
+    const report = buildScoreReport("m2", blocks, { current: false, restored: true });
+    const html = renderToStaticMarkup(
+      <ScoreReportPanel
+        report={report}
+        handlers={{}}
+        busy={false}
+        onClose={() => {}}
+        onRescore={() => {}}
+        extraTab={{ value: "pipeline", label: "Pipeline", content: <p>Stage controls</p> }}
+        closeLabel="Close account panel"
+      />,
+    );
+
+    const labels = [...html.matchAll(/role="tab"[^>]*>([^<]+)</g)].map((match) => match[1]);
+    expect(labels).toEqual(["Pipeline", "Overview", "Evidence", "Outreach"]);
+    expect(html).toContain("Stage controls");
+    expect(html).toContain('aria-label="Close account panel"');
+  });
+
+  it("renders the extra tab alone when the report has no tab content", () => {
+    const report = buildScoreReport("m3", [blocks[4]], { current: false });
+    const html = renderToStaticMarkup(
+      <ScoreReportPanel report={report} handlers={{}} busy={false} onClose={() => {}} onRescore={() => {}} extraTab={{ value: "run", label: "Run #A1B2", content: <p>Run snapshot</p> }} />,
+    );
+
+    expect(html).toContain("Run snapshot");
+    expect(html).not.toContain('role="tablist"');
+  });
 });

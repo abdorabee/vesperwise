@@ -5,14 +5,19 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { ListDetailData } from "@/lib/lists-types";
 import { ruleToDisplayParts } from "@/lib/lists-evaluator";
+import { isInnerInteractiveClick } from "@/lib/row-click";
 import { deltaLabel, formatRelativeTime } from "@/lib/lists-display";
 import { toCSV, downloadCSV, csvFilename } from "@/lib/csv";
 
 interface ListDetailViewProps {
   detail: ListDetailData;
+  /** Opens a row in the shared account panel. */
+  onOpenAccount?: (domain: string) => void;
+  /** Domain open in the account panel, highlighted in the table. */
+  openDomain?: string | null;
 }
 
-export function ListDetailView({ detail }: ListDetailViewProps) {
+export function ListDetailView({ detail, onOpenAccount, openDomain = null }: ListDetailViewProps) {
   const router = useRouter();
   const { list, stats, bandMix, accounts } = detail;
   const [search, setSearch] = useState("");
@@ -189,7 +194,23 @@ export function ListDetailView({ detail }: ListDetailViewProps) {
           <div className="ld-empty">No accounts match this list yet.</div>
         ) : (
           filtered.map((row) => (
-            <div key={row.domain} className="ld-trow">
+            <div
+              key={row.domain}
+              className="ld-trow"
+              data-selected={row.domain.toLowerCase() === openDomain ? "true" : undefined}
+              role={onOpenAccount ? "button" : undefined}
+              tabIndex={onOpenAccount ? 0 : undefined}
+              aria-label={onOpenAccount ? `Show details for ${row.company_name}` : undefined}
+              aria-pressed={onOpenAccount ? row.domain.toLowerCase() === openDomain : undefined}
+              onClick={onOpenAccount ? (event) => {
+                if (isInnerInteractiveClick(event.target, event.currentTarget)) return;
+                onOpenAccount(row.domain);
+              } : undefined}
+              onKeyDown={onOpenAccount ? (event) => {
+                if (event.target !== event.currentTarget || event.key !== "Enter") return;
+                onOpenAccount(row.domain);
+              } : undefined}
+            >
               <div className="ld-co">
                 <div className={`av ${row.avatarClass}`}>{row.initial}</div>
                 <div className="ld-co-text">

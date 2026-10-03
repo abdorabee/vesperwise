@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { RotateCcw, X } from "lucide-react";
 import { GenUiWorkspace, type GenUiHandlers } from "@/components/score/gen-ui/workspace";
 import { ScoreResearchStatus } from "@/components/score/score-research-status";
@@ -11,6 +11,9 @@ import type { UiBlock } from "@/lib/gen-ui";
 import { formatAbsoluteDate, formatRelativeTime } from "@/lib/time-ago";
 
 type ReportTab = { value: string; label: string; include: UiBlock["type"][] };
+
+/** A page-specific tab (e.g. Pipeline stage controls) shown before the report tabs. */
+export interface ReportExtraTab { value: string; label: string; content: ReactNode }
 
 const REPORT_TABS: ReportTab[] = [
   { value: "overview", label: "Overview", include: ["intent_hero", "thesis", "comparison", "markdown"] },
@@ -33,7 +36,7 @@ function StoredResultBar({ createdAt, busy, onRescore }: { createdAt: string; bu
   );
 }
 
-function PanelHeader({ report, onClose }: { report: ScoreReport; onClose: () => void }) {
+function PanelHeader({ report, onClose, closeLabel }: { report: ScoreReport; onClose: () => void; closeLabel: string }) {
   const title = report.kind === "pending" ? report.domain : report.company ?? report.domain ?? report.label;
   const domain = report.kind === "pending" ? report.domain : report.domain;
   return (
@@ -42,7 +45,7 @@ function PanelHeader({ report, onClose }: { report: ScoreReport; onClose: () => 
         <h2 className="truncate text-sm font-semibold text-foreground">{title}</h2>
         {domain && domain !== title ? <p className="mt-0.5 truncate text-xs text-muted-foreground">{domain}</p> : null}
       </div>
-      <Button type="button" variant="ghost" size="icon-xs" aria-label="Close report panel" onClick={onClose}>
+      <Button type="button" variant="ghost" size="icon-xs" aria-label={closeLabel} onClick={onClose}>
         <X className="size-4" aria-hidden="true" />
       </Button>
     </header>
@@ -63,21 +66,26 @@ export function ScoreReportPanel({
   busy,
   onClose,
   onRescore,
+  extraTab,
+  closeLabel = "Close report panel",
 }: {
   report: ScoreReport;
   handlers: GenUiHandlers;
   busy: boolean;
   onClose: () => void;
   onRescore: (domain: string) => void;
+  extraTab?: ReportExtraTab;
+  closeLabel?: string;
 }) {
   const groups = useMemo(() => report.kind === "ui" ? tabGroupsForBlocks(report.blocks) : [], [report]);
-  const [activeTab, setActiveTab] = useState(groups[0]?.value ?? "overview");
-  const activeValue = groups.some((group) => group.value === activeTab) ? activeTab : groups[0]?.value ?? "overview";
+  const tabValues = extraTab ? [extraTab.value, ...groups.map((group) => group.value)] : groups.map((group) => group.value);
+  const [activeTab, setActiveTab] = useState(tabValues[0] ?? "overview");
+  const activeValue = tabValues.includes(activeTab) ? activeTab : tabValues[0] ?? "overview";
   const actionRail = report.kind === "ui" && report.blocks.some((block) => block.type === "action_rail");
 
   return (
     <div className="score-report-panel flex h-full min-h-0 flex-col bg-background">
-      <PanelHeader report={report} onClose={onClose} />
+      <PanelHeader report={report} onClose={onClose} closeLabel={closeLabel} />
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
         {report.kind === "pending" ? (
           <div className="space-y-4">
@@ -87,13 +95,15 @@ export function ScoreReportPanel({
         ) : (
           <div className="space-y-4">
             {report.stored ? <StoredResultBar createdAt={report.stored.createdAt} busy={busy} onRescore={() => onRescore(report.stored!.domain)} /> : null}
-            {groups.length <= 1 ? (
-              groups[0] ? <ReportBlocks report={report} include={groups[0].include} handlers={handlers} /> : null
+            {tabValues.length <= 1 ? (
+              groups[0] ? <ReportBlocks report={report} include={groups[0].include} handlers={handlers} /> : extraTab?.content ?? null
             ) : (
               <Tabs value={activeValue} onValueChange={setActiveTab} className="min-h-0">
                 <TabsList>
+                  {extraTab ? <TabsTrigger value={extraTab.value}>{extraTab.label}</TabsTrigger> : null}
                   {groups.map((group) => <TabsTrigger key={group.value} value={group.value}>{group.label}</TabsTrigger>)}
                 </TabsList>
+                {extraTab ? <TabsContent value={extraTab.value}>{extraTab.content}</TabsContent> : null}
                 {groups.map((group) => (
                   <TabsContent key={group.value} value={group.value}>
                     <ReportBlocks report={report} include={group.include} handlers={handlers} />
