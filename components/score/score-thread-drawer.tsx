@@ -1,46 +1,59 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Clock3 } from "lucide-react";
-import { listChatSessions, type ChatSessionSummary } from "@/lib/chat-client";
+import { Plus } from "lucide-react";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { ScoreThreadList } from "@/components/score/score-thread-list";
 
-export function ScoreThreadDrawer({ open, onOpenChange, onSelect, activeId }: { open: boolean; onOpenChange: (open: boolean) => void; onSelect: (id: string) => void; activeId: string | null }) {
-  const [sessions, setSessions] = useState<ChatSessionSummary[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    if (!open) return;
-    let cancelled = false;
-    async function load() {
-      await Promise.resolve();
-      if (cancelled) return;
-      setLoading(true);
-      setError("");
-      try {
-        const next = await listChatSessions();
-        if (!cancelled) setSessions(next);
-      } catch (reason) {
-        if (!cancelled) setError((reason as Error).message);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-    void load();
-    return () => { cancelled = true; };
-  }, [open]);
-
+export function ScoreThreadDrawer({
+  open,
+  onOpenChange,
+  onSelect,
+  onNewScore,
+  activeId,
+  busy = false,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSelect: (id: string) => void;
+  onNewScore: () => void;
+  activeId: string | null;
+  busy?: boolean;
+}) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="duration-200 data-[state=open]:duration-200 data-[state=closed]:duration-200 sm:max-w-md">
-        <SheetHeader className="border-b"><SheetTitle>Score threads</SheetTitle><SheetDescription>Restore a saved conversation without rescoring the account.</SheetDescription></SheetHeader>
+        <SheetHeader className="border-b">
+          {/* pr-8 keeps the action clear of the sheet's close button */}
+          <div className="flex items-start justify-between gap-3 pr-8">
+            <div className="min-w-0">
+              <SheetTitle>Score threads</SheetTitle>
+              <SheetDescription>Restore a saved conversation without rescoring the account.</SheetDescription>
+            </div>
+            <Button
+              type="button"
+              size="xs"
+              variant="ghost"
+              onClick={() => {
+                onNewScore();
+                onOpenChange(false);
+              }}
+            >
+              <Plus className="size-3" />
+              New score
+            </Button>
+          </div>
+        </SheetHeader>
         <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-4">
-          {loading ? <div className="space-y-3 p-2">{[0, 1, 2].map((item) => <Skeleton key={item} className="h-16 w-full" />)}</div> : null}
-          {error ? <p className="p-3 text-sm text-destructive" role="alert">{error}</p> : null}
-          {!loading && !error && sessions.length === 0 ? <p className="p-3 text-sm text-muted-foreground">No saved score threads yet.</p> : null}
-          {sessions.map((session) => <button key={session.id} type="button" className="flex w-full items-start gap-3 rounded-lg px-3 py-3 text-left transition-colors duration-150 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none" aria-current={session.id === activeId ? "page" : undefined} onClick={() => { onSelect(session.id); onOpenChange(false); }}><Clock3 className="mt-0.5 size-4 shrink-0 text-muted-foreground" /><span className="min-w-0"><span className="block truncate text-sm font-medium text-foreground">{session.title}</span><span className="mt-1 block text-xs text-muted-foreground">{new Date(session.updated_at).toLocaleDateString()}</span></span></button>)}
+          <ScoreThreadList
+            activeId={activeId}
+            busy={busy}
+            enabled={open}
+            onSelect={(id) => {
+              onSelect(id);
+              onOpenChange(false);
+            }}
+          />
         </div>
       </SheetContent>
     </Sheet>

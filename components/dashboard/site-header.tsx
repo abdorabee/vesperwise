@@ -20,7 +20,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 
-export function SiteHeader({ creditsRemaining }: { creditsRemaining?: number }) {
+export function SiteHeader() {
   const pathname = usePathname();
   const { isMobile } = useSidebar();
   const isLists = pathname === "/lists" || pathname.startsWith("/lists/");
@@ -96,13 +96,10 @@ export function SiteHeader({ creditsRemaining }: { creditsRemaining?: number }) 
         <div className="ml-auto flex items-center gap-2">
           {isScore ? (
             <>
-              <Button type="button" variant="ghost" size="sm" className="rounded-lg" aria-label="Open score threads" onClick={() => openScoreThreads()}>
+              <Button type="button" variant="ghost" size="sm" className="rounded-lg md:hidden" aria-label="Open score threads" onClick={() => openScoreThreads()}>
                 <History className="size-4" />
                 <span className="hidden sm:inline">Threads</span>
               </Button>
-              <span className="hidden text-xs text-muted-foreground md:inline">
-                <strong className="font-semibold tabular-nums text-foreground">{creditsRemaining ?? 0}</strong> credits left
-              </span>
               <Button type="button" size="sm" className="rounded-lg" aria-label="Start a new score" onClick={() => startNewScore()}>
                 <Plus className="size-4" />
                 <span className="hidden sm:inline">New score</span>

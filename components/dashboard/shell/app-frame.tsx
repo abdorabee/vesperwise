@@ -1,6 +1,8 @@
 "use client";
 
 import type { CSSProperties, ReactNode } from "react";
+import { useOptionalSidebar } from "@/components/ui/sidebar";
+import { useShellListFrame } from "@/components/dashboard/shell/shell-list";
 import { shellPanelWidth, useShellPanelFrame } from "@/components/dashboard/shell/shell-panel";
 import { cn } from "@/lib/utils";
 
@@ -26,10 +28,14 @@ export function AppFrame({
   style,
   ...props
 }: AppFrameProps) {
+  const shellList = useShellListFrame();
   const shellPanel = useShellPanelFrame();
+  const sidebar = useOptionalSidebar();
+  const hasListContent = shellList.managed ? shellList.open : Boolean(list);
+  const listOpen = hasListContent && (sidebar?.open ?? true);
   const panelOpen = shellPanel.managed ? shellPanel.open : Boolean(panel);
   const frameStyle: FrameStyle = {
-    "--app-frame-list-w": list ? "var(--list-w)" : "0px",
+    "--app-frame-list-w": listOpen ? "var(--list-w)" : "0px",
     "--app-frame-panel-w": shellPanel.managed
       ? shellPanelWidth(shellPanel.open, shellPanel.size)
       : shellPanelWidth(Boolean(panel)),
@@ -39,7 +45,7 @@ export function AppFrame({
   return (
     <div
       data-slot="app-frame"
-      data-has-list={Boolean(list)}
+      data-has-list={listOpen}
       data-has-panel={panelOpen}
       className={cn("dashboard-app-frame", className)}
       style={frameStyle}

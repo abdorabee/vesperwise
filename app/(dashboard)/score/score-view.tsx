@@ -1,8 +1,6 @@
 "use client";
-
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-
 import { ShellPanel } from "@/components/dashboard/shell/shell-panel";
 import { ScoreComposer } from "@/components/score/score-composer";
 import { ScoreConversationThread } from "@/components/score/score-conversation-thread";
@@ -15,6 +13,7 @@ import type { ScoreUiThreadMessage, ThreadMessage } from "@/components/score/sco
 import { ScoreWorkspaceReportHeader } from "@/components/score/score-workspace-report-header";
 import { ScorePageFrame, ScoreWorkspaceLayout } from "@/components/score/score-workspace-layout";
 import { ScoreThreadDrawer } from "@/components/score/score-thread-drawer";
+import { ScoreThreadsColumn } from "@/components/score/score-threads-column";
 import { useScoreReportState } from "@/components/score/use-score-report-state";
 import { extractDomain, loadChatSession, seedChatSession, streamChat } from "@/lib/chat-client";
 import { sanitizeUiBlocks, suggestionsFromBlocks, workspaceFromScore } from "@/lib/gen-ui";
@@ -24,7 +23,6 @@ import { createSseParser, type ScoreProgressEvent } from "@/lib/score-progress";
 import { SCORE_NEW_EVENT, SCORE_OPEN_THREADS_EVENT } from "@/lib/score-workspace-events";
 import type { StoredWorkspaceScore } from "@/lib/stored-score";
 import { CHAT_CREDIT_COST, type IntentScore, type ScoreBand } from "@/lib/types";
-
 type ScorableIntentScore = IntentScore & { intent_score: number; score_band: ScoreBand };
 
 export interface RecentScore {
@@ -36,7 +34,6 @@ export interface RecentScore {
 }
 
 interface ScoreViewProps { creditsRemaining: number; recentScores: RecentScore[] }
-
 function nextId() { return crypto.randomUUID(); }
 
 function requireScorableResult(value: IntentScore): ScorableIntentScore {
@@ -133,6 +130,7 @@ export function ScoreView(props: ScoreViewProps) {
   const { creditsRemaining, recentScores } = props;
   const searchParams = useSearchParams();
   const autoScoredRef = useRef<string | null>(null);
+  const resetWorkspaceRef = useRef<() => void>(() => {});
   const [messages, setMessages] = useState<ThreadMessage[]>([]);
   const [busy, setBusy] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -141,15 +139,6 @@ export function ScoreView(props: ScoreViewProps) {
   const [watchlistByDomain, setWatchlistByDomain] = useState<Record<string, "adding" | "added">>({});
   // A restored result has no chat session yet; seed one lazily on the first follow-up.
   const pendingSeedRef = useRef<Parameters<typeof seedChatSession>[0] | null>(null);
-
-  useEffect(() => {
-    const openThreads = () => setThreadsOpen(true);
-    const newScore = () => resetWorkspace();
-    window.addEventListener(SCORE_OPEN_THREADS_EVENT, openThreads);
-    window.addEventListener(SCORE_NEW_EVENT, newScore);
-    return () => { window.removeEventListener(SCORE_OPEN_THREADS_EVENT, openThreads); window.removeEventListener(SCORE_NEW_EVENT, newScore); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [busy]);
 
   useEffect(() => {
     const domain = searchParams.get("domain")?.trim();
@@ -175,6 +164,16 @@ export function ScoreView(props: ScoreViewProps) {
       setTransitioning(false);
     }, 180);
   }
+
+  resetWorkspaceRef.current = resetWorkspace;
+
+  useEffect(() => {
+    const openThreads = () => setThreadsOpen(true);
+    const newScore = () => resetWorkspaceRef.current();
+    window.addEventListener(SCORE_OPEN_THREADS_EVENT, openThreads);
+    window.addEventListener(SCORE_NEW_EVENT, newScore);
+    return () => { window.removeEventListener(SCORE_OPEN_THREADS_EVENT, openThreads); window.removeEventListener(SCORE_NEW_EVENT, newScore); };
+  }, []);
 
   async function runScore(raw: string, domain: string) {
     const thinkingId = nextId();
@@ -384,14 +383,17 @@ export function ScoreView(props: ScoreViewProps) {
   const thread = <ScoreConversationThread messages={messages} latestArtifactId={latestArtifactId} activeStreamingMessageId={activeStreamingMessageId} reportForMessage={reportForMessage} onOpenReport={openReport} onRetryScore={(domain) => void runScore(domain, domain)} onReset={resetWorkspace} />;
 
   return (
-    <div className={`score-chat transition-opacity duration-200 motion-reduce:transition-none ${transitioning ? "opacity-0" : "opacity-100"}`}>
-      {!active ? <ScorePageFrame mode="entry"><ScoreEmptyState onSubmit={(value) => void submitMessage(value)} onOpenRecent={(domain) => void openLastScore(domain)} recentScores={recentScores} creditsRemaining={creditsRemaining} busy={busy} /></ScorePageFrame> : <ScorePageFrame mode="workspace"><ScoreWorkspaceLayout header={workspaceHeader} thread={thread} composer={<ScoreComposer busy={busy} suggestions={suggestions} onSubmit={(value) => void submitMessage(value)} />} /></ScorePageFrame>}
-      <ScoreThreadDrawer open={threadsOpen} onOpenChange={setThreadsOpen} onSelect={(id) => void restoreThread(id)} activeId={sessionId} />
-      {selectedReport ? (
-        <ShellPanel open={reportPanelOpen} size="wide" label="Score report" onClose={() => setReportPanelOpen(false)}>
-          <ScoreReportPanel report={selectedReport} handlers={reportHandlers} busy={busy} onClose={() => setReportPanelOpen(false)} onRescore={(domain) => void runScore(domain, domain)} />
-        </ShellPanel>
-      ) : null}
-    </div>
+    <>
+      <ScoreThreadsColumn activeId={sessionId} busy={busy} onNewScore={resetWorkspace} onSelect={(id) => void restoreThread(id)} />
+      <div className={`score-chat transition-opacity duration-200 motion-reduce:transition-none ${transitioning ? "opacity-0" : "opacity-100"}`}>
+        {!active ? <ScorePageFrame mode="entry"><ScoreEmptyState onSubmit={(value) => void submitMessage(value)} onOpenRecent={(domain) => void openLastScore(domain)} recentScores={recentScores} creditsRemaining={creditsRemaining} busy={busy} /></ScorePageFrame> : <ScorePageFrame mode="workspace"><ScoreWorkspaceLayout header={workspaceHeader} thread={thread} composer={<ScoreComposer busy={busy} suggestions={suggestions} onSubmit={(value) => void submitMessage(value)} />} /></ScorePageFrame>}
+        <ScoreThreadDrawer open={threadsOpen} onOpenChange={setThreadsOpen} onSelect={(id) => void restoreThread(id)} onNewScore={resetWorkspace} activeId={sessionId} busy={busy} />
+        {selectedReport ? (
+          <ShellPanel open={reportPanelOpen} size="wide" label="Score report" onClose={() => setReportPanelOpen(false)}>
+            <ScoreReportPanel report={selectedReport} handlers={reportHandlers} busy={busy} onClose={() => setReportPanelOpen(false)} onRescore={(domain) => void runScore(domain, domain)} />
+          </ShellPanel>
+        ) : null}
+      </div>
+    </>
   );
 }
