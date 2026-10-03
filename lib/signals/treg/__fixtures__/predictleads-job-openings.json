@@ -1,0 +1,136 @@
+{
+  "data": [
+    {
+      "id": "836161f3-7032-4337-903f-c60a2d84998e",
+      "type": "job_opening",
+      "attributes": {
+        "title": "Data Analyst, Intern",
+        "translated_title": null,
+        "normalized_title": "Data Analyst",
+        "description": "# Data Analyst, Intern\n\n(trimmed: live descriptions run to several kilobytes each)",
+        "url": "https://stripe.com/careers/listing/data-analyst-intern/8194291",
+        "first_seen_at": "2026-10-01T18:49:04Z",
+        "last_seen_at": "2026-10-02T07:59:00Z",
+        "last_processed_at": "2026-10-02T07:59:00Z",
+        "contract_types": ["internship", "hybrid"],
+        "categories": ["data_analysis", "internship"],
+        "onet_data": {
+          "code": "15-2051.00",
+          "family": "Computer and Mathematical",
+          "occupation_name": "Data Scientists"
+        },
+        "posted_at": null,
+        "seniority": "junior",
+        "status": null,
+        "language": "en",
+        "location": "New York, New York, United States, Northern America, Americas"
+      },
+      "relationships": {
+        "company": { "data": { "id": "a0383c53-8142-5e7c-8ca3-9980289a3ccc", "type": "company" } }
+      }
+    },
+    {
+      "id": "f62f1311-be67-4f68-a8f2-93d3ca0f1bdf",
+      "type": "job_opening",
+      "attributes": {
+        "title": "PhD Data Scientist, Intern",
+        "translated_title": null,
+        "normalized_title": "Data Scientist Intern",
+        "description": "# PhD Data Scientist, Intern\n\n(trimmed)",
+        "url": "https://stripe.com/careers/listing/phd-data-scientist-intern/8194283",
+        "first_seen_at": "2026-10-01T18:49:04Z",
+        "last_seen_at": "2026-10-02T07:59:39Z",
+        "last_processed_at": "2026-10-02T07:59:39Z",
+        "contract_types": ["internship", "hybrid"],
+        "categories": ["data_analysis", "internship"],
+        "onet_data": {
+          "code": "19-1029.04",
+          "family": "Life, Physical, and Social Science",
+          "occupation_name": "Biologists"
+        },
+        "posted_at": null,
+        "seniority": "junior",
+        "status": null,
+        "language": "en",
+        "location": "New York, New York, United States, Northern America, Americas"
+      },
+      "relationships": {
+        "company": { "data": { "id": "a0383c53-8142-5e7c-8ca3-9980289a3ccc", "type": "company" } }
+      }
+    },
+    {
+      "id": "dc6712ed-8720-4b2e-bc15-517df4b0441e",
+      "type": "job_opening",
+      "attributes": {
+        "title": "Data Analyst, Intern",
+        "translated_title": null,
+        "normalized_title": "Data Analyst",
+        "description": "# Data Analyst, Intern\n\n(trimmed: same role, second location)",
+        "url": "https://stripe.com/careers/listing/data-analyst-intern/8194287",
+        "first_seen_at": "2026-10-01T18:49:04Z",
+        "last_seen_at": "2026-10-02T10:37:41Z",
+        "last_processed_at": "2026-10-02T07:59:33Z",
+        "contract_types": ["internship", "hybrid"],
+        "categories": ["data_analysis", "internship"],
+        "onet_data": {
+          "code": "15-2051.00",
+          "family": "Computer and Mathematical",
+          "occupation_name": "Data Scientists"
+        },
+        "posted_at": null,
+        "seniority": "junior",
+        "status": null,
+        "language": "en",
+        "location": "Toronto, Canada, Northern America, Americas"
+      },
+      "relationships": {
+        "company": { "data": { "id": "a0383c53-8142-5e7c-8ca3-9980289a3ccc", "type": "company" } }
+      }
+    },
+    {
+      "id": "68a7da8d-6578-44e2-8b95-0d0cff85c62b",
+      "type": "job_opening",
+      "attributes": {
+        "title": "Account Executive, Platforms (Nordic Region)",
+        "translated_title": null,
+        "normalized_title": "Account Executive",
+        "description": "# Account Executive, Platforms (Nordic Region)\n\n(trimmed)",
+        "url": "https://stripe.com/careers/listing/account-executive-platforms-nordic-region/8241304",
+        "first_seen_at": "2026-10-01T15:39:11Z",
+        "last_seen_at": "2026-10-02T11:16:49Z",
+        "last_processed_at": "2026-10-02T11:16:49Z",
+        "contract_types": ["full_time", "hybrid"],
+        "categories": ["sales"],
+        "onet_data": {
+          "code": "41-3011.00",
+          "family": "Sales and Related",
+          "occupation_name": "Advertising Sales Agents"
+        },
+        "posted_at": null,
+        "seniority": "mid_senior",
+        "status": null,
+        "language": "en",
+        "location": "Dublin, Ireland, Northern Europe, Europe"
+      },
+      "relationships": {
+        "company": { "data": { "id": "a0383c53-8142-5e7c-8ca3-9980289a3ccc", "type": "company" } }
+      }
+    }
+  ],
+  "included": [
+    {
+      "id": "a0383c53-8142-5e7c-8ca3-9980289a3ccc",
+      "type": "company",
+      "attributes": { "domain": "stripe.com", "company_name": "Stripe, Inc.", "ticker": null }
+    }
+  ],
+  "meta": {
+    "schema_version": "3.3",
+    "record_state": "active",
+    "message_type": "ok",
+    "redirects_to_domain": null,
+    "parent_company_domain": null,
+    "crawler_potentially_blocked": false,
+    "no_active_openings_confirmed": null
+  }
+}

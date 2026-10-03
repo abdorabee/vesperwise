@@ -117,3 +117,76 @@ describe("fetchFundingSignal", () => {
     expect(result.score).toBe(0);
   });
 });
+
+describe("scoreFundingRounds", () => {
+  it("stamps a custom source on capped recent round evidence", async () => {
+    const { scoreFundingRounds } = await import("./funding");
+
+    const result = scoreFundingRounds({
+      lastRoundDate: "2026-06-15T12:00:00.000Z",
+      roundType: "Seed",
+      totalValue: 15_000_000,
+      rounds: 3,
+    }, NOW, NOW.toISOString(), "treg-aviato");
+
+    expect(result).toMatchObject({
+      status: "ok",
+      score: 25,
+      observed_at: "2026-06-15T12:00:00.000Z",
+      source: "treg-aviato",
+      detail: "Seed closed 30d ago; 3 funding rounds",
+    });
+    expect(result.evidence).toHaveLength(1);
+    expect(result.evidence?.[0]).toMatchObject({
+      source: "treg-aviato",
+      observed_at: "2026-06-15T12:00:00.000Z",
+      fetched_at: NOW.toISOString(),
+      metadata: {
+        age_days: 30,
+        total_funding_value: 15_000_000,
+        funding_rounds: 3,
+      },
+    });
+  });
+
+  it("keeps undated historical totals as no-signal context", async () => {
+    const { scoreFundingRounds } = await import("./funding");
+
+    const result = scoreFundingRounds({
+      totalValue: 100_000_000,
+      rounds: 4,
+    }, NOW, NOW.toISOString());
+
+    expect(result).toMatchObject({
+      status: "no_signal",
+      score: 0,
+      observed_at: null,
+      source: "explorium",
+      detail: "$100M total raised; latest round date unavailable",
+      metadata: {
+        total_funding_value: 100_000_000,
+        funding_rounds: 4,
+      },
+    });
+    expect(result.evidence).toEqual([]);
+  });
+
+  it("treats an invalid round date as no-signal", async () => {
+    const { scoreFundingRounds } = await import("./funding");
+
+    const result = scoreFundingRounds({
+      lastRoundDate: "not-a-date",
+      roundType: "Series A",
+      totalValue: 0,
+      rounds: 2,
+    }, NOW, NOW.toISOString());
+
+    expect(result).toMatchObject({
+      status: "no_signal",
+      score: 0,
+      observed_at: null,
+      detail: "No recent funding activity detected",
+    });
+    expect(result.evidence).toEqual([]);
+  });
+});

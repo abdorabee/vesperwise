@@ -119,7 +119,8 @@ function scoreUniqueTitles(titles: Iterable<string>): {
 /** Convert a verified current-job crawl into the v2 hiring signal contract. */
 export function buildHiringSignalFromJobs(
   jobs: ReadonlyArray<HiringJob>,
-  fetchedAt: string
+  fetchedAt: string,
+  source: string = SCRAPLING_SOURCE
 ): SignalResult {
   const fetchedDate = new Date(fetchedAt);
   if (!Number.isFinite(fetchedDate.getTime())) {
@@ -130,9 +131,9 @@ export function buildHiringSignalFromJobs(
       status: "unavailable",
       observed_at: null,
       fetched_at: new Date().toISOString(),
-      source: SCRAPLING_SOURCE,
+      source,
       evidence: [],
-      metadata: { reason: "invalid_fetched_at", source: SCRAPLING_SOURCE },
+      metadata: { reason: "invalid_fetched_at", source },
     };
   }
 
@@ -176,7 +177,7 @@ export function buildHiringSignalFromJobs(
     evidence.push({
       label: `${job.title}${job.location ? ` — ${job.location}` : ""}`,
       observed_at: postedDate?.toISOString() ?? null,
-      source: SCRAPLING_SOURCE,
+      source,
       fetched_at: canonicalFetchedAt,
       ...(job.source_url ? { source_url: job.source_url } : {}),
       metadata: {
@@ -209,10 +210,10 @@ export function buildHiringSignalFromJobs(
     status: score > 0 ? "ok" : "no_signal",
     observed_at: score > 0 ? latestContributingDate?.toISOString() ?? null : null,
     fetched_at: canonicalFetchedAt,
-    source: SCRAPLING_SOURCE,
+    source,
     evidence,
     metadata: {
-      source: SCRAPLING_SOURCE,
+      source,
       total_job_count: jobCount,
       contributing_job_count: contributingJobCount,
       unique_job_titles: allUniqueTitles.size,

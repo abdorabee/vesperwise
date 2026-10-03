@@ -105,6 +105,13 @@ WEB_ENRICHMENT_WATCHLIST_INTERVAL_MS=21600000
 WEB_ENRICHMENT_DAILY_PAGE_BUDGET=1500
 # Crawl funding only when the structured provider is missing/stale.
 WEB_ENRICHMENT_FUNDING_FALLBACK=false
+
+# treg fallback data layer (pay-per-call; shadow mode by default)
+# Called only when a primary provider returns unavailable/not_found.
+TREG_TOKEN=
+TREG_FALLBACK_SHADOW_MODE=true
+# Comma list of: funding,hiring,news,technology,firmographics
+TREG_PROMOTED_SIGNALS=
 ```
 
 Set `MOCK_SIGNALS=true` to use deterministic mock signals seeded by domain — no external API keys required for local dev.

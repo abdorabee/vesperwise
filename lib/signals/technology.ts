@@ -2,11 +2,13 @@ import type { SignalEvidence, SignalResult } from "@/lib/types";
 
 const SOURCE = "builtwith";
 
-interface BuiltWithTechnology {
+export interface DatedTechnology {
   Name: string;
   FirstDetected?: number;
   LastDetected?: number;
 }
+
+export type BuiltWithTechnology = DatedTechnology;
 
 interface BuiltWithResult {
   Results?: Array<{
@@ -55,11 +57,12 @@ interface TechnologyScoreResult {
 }
 
 export function scoreTechnologyChanges(
-  input: BuiltWithTechnology[],
+  input: DatedTechnology[],
   now = new Date(),
-  fetchedAt = now.toISOString()
+  fetchedAt = now.toISOString(),
+  source: string = SOURCE
 ): TechnologyScoreResult {
-  const deduplicated = new Map<string, BuiltWithTechnology>();
+  const deduplicated = new Map<string, DatedTechnology>();
 
   for (const technology of input) {
     if (!technology.Name || !isRelevantTechnology(technology.Name)) continue;
@@ -98,7 +101,7 @@ export function scoreTechnologyChanges(
       evidence.push({
         label: `Adopted ${technology.Name}`,
         observed_at: firstDetected.toISOString(),
-        source: SOURCE,
+        source,
         fetched_at: fetchedAt,
         metadata: { change: "adopted", points: 15 },
       });
@@ -111,7 +114,7 @@ export function scoreTechnologyChanges(
       evidence.push({
         label: `Last detected ${technology.Name}`,
         observed_at: lastDetected.toISOString(),
-        source: SOURCE,
+        source,
         fetched_at: fetchedAt,
         metadata: { change: "removed", points: 10 },
       });
@@ -133,6 +136,32 @@ export function scoreTechnologyChanges(
     evidence,
     observedAt: cappedScore > 0 ? latestEvidence?.toISOString() ?? null : null,
     activeTools,
+  };
+}
+
+export function buildTechnologySignal(
+  technologies: DatedTechnology[],
+  now: Date,
+  fetchedAt: string,
+  source: string = SOURCE
+): SignalResult {
+  const result = scoreTechnologyChanges(technologies, now, fetchedAt, source);
+  const context = result.activeTools.length > 0
+    ? `; active stack: ${result.activeTools.slice(0, 3).join(", ")}`
+    : "";
+
+  return {
+    score: result.score,
+    max: 20,
+    detail: result.details.length > 0
+      ? `${result.details.join("; ")}${context}`
+      : `No dated tech stack changes detected${context}`,
+    status: result.score > 0 && result.observedAt ? "ok" : "no_signal",
+    observed_at: result.observedAt,
+    fetched_at: fetchedAt,
+    source,
+    evidence: result.evidence,
+    metadata: { active_tools: result.activeTools },
   };
 }
 
@@ -195,24 +224,7 @@ export async function fetchTechnologySignal(
     }
     const technologies =
       matchedResult.Paths?.flatMap((path) => path.Technologies ?? []) ?? [];
-    const result = scoreTechnologyChanges(technologies, now, fetchedAt);
-    const context = result.activeTools.length > 0
-      ? `; active stack: ${result.activeTools.slice(0, 3).join(", ")}`
-      : "";
-
-    return {
-      score: result.score,
-      max: 20,
-      detail: result.details.length > 0
-        ? `${result.details.join("; ")}${context}`
-        : `No dated tech stack changes detected${context}`,
-      status: result.score > 0 && result.observedAt ? "ok" : "no_signal",
-      observed_at: result.observedAt,
-      fetched_at: fetchedAt,
-      source: SOURCE,
-      evidence: result.evidence,
-      metadata: { active_tools: result.activeTools },
-    };
+    return buildTechnologySignal(technologies, now, fetchedAt, SOURCE);
   } catch (error) {
     return {
       score: 0,

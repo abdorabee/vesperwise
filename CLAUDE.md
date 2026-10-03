@@ -52,6 +52,11 @@ OPEN_PAGE_RANK_API_KEY=
 APIFY_API_KEY=
 GITHUB_TOKEN=
 
+# treg fallback data layer (shadow by default; see docs/wiki/tech-stack.md)
+TREG_TOKEN=
+TREG_FALLBACK_SHADOW_MODE=true
+TREG_PROMOTED_SIGNALS=
+
 # Resend (contact form — logs to console if unset)
 RESEND_API_KEY=
 

@@ -12,6 +12,10 @@ const SOURCE_LABELS: Record<string, string> = {
   github: "GitHub",
   firecrawl: "Company website",
   "firecrawl-change-tracking": "Company website changes",
+  "treg-aviato": "Aviato funding data",
+  "treg-predictleads": "PredictLeads company data",
+  "treg-akta": "News coverage",
+  "treg-hunter": "Hunter company data",
   mock: "Sample data",
 };
 

@@ -1,0 +1,63 @@
+{
+  "total": 2417,
+  "limit": 3,
+  "offset": 0,
+  "count": 3,
+  "data": [
+    {
+      "id": 39510961,
+      "title": "Palestine Action crowdfunder for UK supreme court challenge blocked due to US sanctions",
+      "url": "https://www.theguardian.com/uk-news/2026/oct/02/palestine-action-crowdfunder-supreme-court-challenge-blocked-us-sanctions",
+      "publisher": "The Guardian",
+      "published_date": "2026-10-02T14:00:10",
+      "sentiment": "Negative",
+      "sentiment_score": 0.001,
+      "ai_summary": "(trimmed) A fundraiser was blocked because the payment processor cannot support the transactions.",
+      "original_language": "EN",
+      "company_mentions": [
+        { "uuid": "0000031", "name": "Stripe", "website": "https://stripe.com", "is_primary": true },
+        { "uuid": "0002nv2", "name": "CrowdJustice", "website": "https://www.crowdjustice.com", "is_primary": true }
+      ],
+      "newsworthiness_score": 1,
+      "group_id": 13132633,
+      "full_text": "(trimmed: live articles carry the full body text)"
+    },
+    {
+      "id": 39511140,
+      "title": "AI Agents Are Starting to Shop and Pay for Us",
+      "url": "https://www.forbes.com/sites/ariredbord/2026/10/02/i-sent-my-ai-agent-to-find-caitlin-clarks-new-shoe/",
+      "publisher": "Forbes",
+      "published_date": "2026-10-02T10:57:47",
+      "sentiment": "Neutral",
+      "sentiment_score": 0.5266,
+      "ai_summary": "(trimmed) Explainer on agentic commerce that mentions the company in passing.",
+      "original_language": "EN",
+      "company_mentions": [
+        { "uuid": "0000031", "name": "Stripe", "website": "https://stripe.com", "is_primary": false },
+        { "uuid": "00000r9", "name": "Google", "website": "https://www.google.com", "is_primary": true },
+        { "uuid": "00000jr", "name": "Nike", "website": "https://www.nike.com", "is_primary": true }
+      ],
+      "newsworthiness_score": 0.9335,
+      "group_id": 13132672,
+      "full_text": "(trimmed)"
+    },
+    {
+      "id": 39503139,
+      "title": "Three major transformation directions in the post-financial technology era",
+      "url": "https://www.chaincatcher.com/article/2293710",
+      "publisher": "ChainCatcher",
+      "published_date": "2026-10-02T10:24:20",
+      "sentiment": "Neutral",
+      "sentiment_score": 0.5238,
+      "ai_summary": "(trimmed) Industry analysis naming the company among AI-native financial firms.",
+      "original_language": "ZH",
+      "company_mentions": [
+        { "uuid": "0000031", "name": "Stripe", "website": "https://stripe.com", "is_primary": true },
+        { "uuid": "00005tn", "name": "Revolut", "website": "http://www.revolut.com", "is_primary": true }
+      ],
+      "newsworthiness_score": 1,
+      "group_id": 13124453,
+      "full_text": "(trimmed)"
+    }
+  ]
+}
