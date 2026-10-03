@@ -112,7 +112,9 @@ export function AccountPanel({ domain, onClose, extraTab }: AccountPanelProps) {
     <ShellPanel open size="wide" label={`${domain} account details`} onClose={onClose}>
       {report ? (
         <ScoreReportPanel
-          key={domain}
+          // Remount when the page's extra tab arrives (e.g. after pipeline data loads)
+          // so it becomes the selected tab, as it is when opened by a click.
+          key={`${domain}:${extraTab?.value ?? ""}`}
           report={report}
           handlers={handlers}
           busy={false}
