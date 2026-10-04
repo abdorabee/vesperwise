@@ -194,6 +194,8 @@ export interface DbUser {
   /** Portion of credits_remaining bought as one-time top-ups; survives renewals. */
   topup_credits: number;
   subscription_period_start: string | null;
+  /** When the free monthly allowance was last refilled. */
+  credits_reset_at: string;
   product_category: string | null;
   business_profile: BusinessProfile | null;
   workspace_name: string | null;

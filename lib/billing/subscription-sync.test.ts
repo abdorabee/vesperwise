@@ -41,9 +41,11 @@ describe("computeBillingPatch", () => {
   });
 
   it("downgrades to free on revoke while keeping purchased top-ups", () => {
-    const patch = computeBillingPatch("subscription.revoked", sub({ status: "canceled" }), "growth", growthUser);
+    const now = new Date("2026-11-01T00:00:00Z");
+    const patch = computeBillingPatch("subscription.revoked", sub({ status: "canceled" }), "growth", growthUser, now);
 
     expect(patch.plan).toBe("free");
+    expect(patch.credits_reset_at).toBe(now.toISOString());
     expect(patch.credits_remaining).toBe(20 + 1000);
     expect(patch.polar_subscription_id).toBeNull();
   });
