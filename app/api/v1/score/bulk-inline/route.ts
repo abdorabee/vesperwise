@@ -1,3 +1,4 @@
+import { parseCsvRecords } from "@/lib/csv-parse";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { createSupabaseAdmin } from "@/lib/supabase";
@@ -20,7 +21,7 @@ export async function POST(req: NextRequest) {
   }
 
   const text = await file.text();
-  const rows = parseCSV(text);
+  const rows = parseCsvRecords(text);
 
   if (rows.length === 0) {
     return NextResponse.json({ error: "No rows found in CSV" }, { status: 400 });
@@ -150,19 +151,4 @@ export async function POST(req: NextRequest) {
     results,
     errors: errors.length > 0 ? errors : undefined,
   });
-}
-
-// ── CSV parser ───────────────────────────────────────────────────────────────
-
-function parseCSV(text: string): Array<Record<string, string>> {
-  const lines = text.trim().split("\n");
-  if (lines.length < 2) return [];
-
-  const headers = lines[0].split(",").map((h) => h.trim().replace(/^"|"$/g, "").toLowerCase());
-  return lines.slice(1)
-    .filter((line) => line.trim() !== "")
-    .map((line) => {
-      const values = line.split(",").map((v) => v.trim().replace(/^"|"$/g, ""));
-      return Object.fromEntries(headers.map((h, i) => [h, values[i] ?? ""]));
-    });
 }

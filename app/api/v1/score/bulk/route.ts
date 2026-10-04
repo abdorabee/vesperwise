@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { errorResponse } from "@/lib/api-errors";
 import { createSupabaseAdmin } from "@/lib/supabase";
 import type { BulkScoreRequest } from "@/lib/types";
 
@@ -6,10 +7,10 @@ export async function POST(req: NextRequest) {
   const body = (await req.json()) as BulkScoreRequest;
 
   if (!body.companies || body.companies.length === 0) {
-    return NextResponse.json({ error: "No companies provided" }, { status: 400 });
+    return errorResponse(400, "invalid_request", "No companies provided");
   }
   if (body.companies.length > 1000) {
-    return NextResponse.json({ error: "Max 1,000 companies per job" }, { status: 400 });
+    return errorResponse(400, "invalid_request", "Max 1,000 companies per job");
   }
 
   // ── Auth ────────────────────────────────────────────────────────────────────
@@ -29,13 +30,13 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (!keyRow?.is_active) {
-      return NextResponse.json({ error: "Invalid or inactive API key" }, { status: 401 });
+      return errorResponse(401, "unauthorized", "Invalid or inactive API key");
     }
     userId = keyRow.user_id;
   }
 
   if (!userId) {
-    return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    return errorResponse(401, "unauthorized", "Authentication required");
   }
 
   // ── Credit check ────────────────────────────────────────────────────────────
@@ -46,10 +47,7 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (!user || user.credits_remaining < body.companies.length) {
-    return NextResponse.json(
-      { error: `Insufficient credits. Need ${body.companies.length}, have ${user?.credits_remaining ?? 0}` },
-      { status: 402 }
-    );
+    return errorResponse(402, "insufficient_credits", `Insufficient credits. Need ${body.companies.length}, have ${user?.credits_remaining ?? 0}`);
   }
 
   // ── Check concurrent job limit (max 3) ──────────────────────────────────────
@@ -60,10 +58,7 @@ export async function POST(req: NextRequest) {
     .in("status", ["queued", "processing"]);
 
   if ((count ?? 0) >= 3) {
-    return NextResponse.json(
-      { error: "Max 3 concurrent bulk jobs allowed" },
-      { status: 429 }
-    );
+    return errorResponse(429, "too_many_jobs", "Max 3 concurrent bulk jobs allowed");
   }
 
   // ── Create job ───────────────────────────────────────────────────────────────
@@ -81,7 +76,7 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (error || !job) {
-    return NextResponse.json({ error: "Failed to create job" }, { status: 500 });
+    return errorResponse(500, "internal_error", "Failed to create job");
   }
 
   // TODO: Hand off to the bulk scoring processor.
@@ -97,7 +92,7 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const jobId = searchParams.get("job_id");
   if (!jobId) {
-    return NextResponse.json({ error: "job_id required" }, { status: 400 });
+    return errorResponse(400, "invalid_request", "job_id required");
   }
 
   // ── Auth ────────────────────────────────────────────────────────────────────
@@ -117,13 +112,13 @@ export async function GET(req: NextRequest) {
       .single();
 
     if (!keyRow?.is_active) {
-      return NextResponse.json({ error: "Invalid or inactive API key" }, { status: 401 });
+      return errorResponse(401, "unauthorized", "Invalid or inactive API key");
     }
     userId = keyRow.user_id;
   }
 
   if (!userId) {
-    return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    return errorResponse(401, "unauthorized", "Authentication required");
   }
 
   // ── Fetch job with user_id filter ───────────────────────────────────────────
@@ -134,6 +129,6 @@ export async function GET(req: NextRequest) {
     .eq("user_id", userId)
     .single();
 
-  if (!job) return NextResponse.json({ error: "Job not found" }, { status: 404 });
+  if (!job) return errorResponse(404, "not_found", "Job not found");
   return NextResponse.json(job);
 }

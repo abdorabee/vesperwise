@@ -4,7 +4,8 @@ import { createSseParser } from "@/lib/score-progress";
 
 const scoreCompany = vi.fn();
 
-vi.mock("@clerk/nextjs/server", () => ({ auth: vi.fn(async () => ({ userId: "user_test" })) }));
+const clerkAuth = vi.fn(async (): Promise<{ userId: string | null }> => ({ userId: "user_test" }));
+vi.mock("@clerk/nextjs/server", () => ({ auth: () => clerkAuth() }));
 vi.mock("@/lib/dev-credit-bypass", () => ({ isDevCreditBypassEnabled: () => false }));
 const keyUpdate = vi.fn();
 
@@ -148,4 +149,32 @@ describe("POST /api/v1/score", () => {
     expect(response.status).toBe(402);
     expect(await response.json()).toMatchObject({ code: "insufficient_credits", credits_remaining: 3 });
   });
+});
+
+describe("POST /api/v1/score without credentials", () => {
+  beforeEach(() => {
+    scoreCompany.mockReset();
+    clerkAuth.mockResolvedValueOnce({ userId: null });
+  });
+
+  function anonymous(body: string) {
+    return new NextRequest("http://localhost/api/v1/score", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body,
+    });
+  }
+
+  it.each([["an empty object", "{}"], ["malformed JSON", "{not json"]])(
+    "returns 401 before validating %s",
+    async (_label, body) => {
+      const { POST } = await import("./route");
+
+      const response = await POST(anonymous(body));
+
+      expect(response.status).toBe(401);
+      expect(await response.json()).toMatchObject({ type: "error", code: "unauthorized" });
+      expect(scoreCompany).not.toHaveBeenCalled();
+    }
+  );
 });
