@@ -191,6 +191,9 @@ export interface DbUser {
   subscription_cancel_at_period_end: boolean;
   plan: "free" | "starter" | "growth" | "pro" | "agency";
   credits_remaining: number;
+  /** Portion of credits_remaining bought as one-time top-ups; survives renewals. */
+  topup_credits: number;
+  subscription_period_start: string | null;
   product_category: string | null;
   business_profile: BusinessProfile | null;
   workspace_name: string | null;
