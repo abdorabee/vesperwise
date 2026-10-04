@@ -2,9 +2,20 @@
   "redirects": [
     {
       "source": "/:path*",
-      "has": [{ "type": "host", "value": "vesperwise.com" }],
+      "has": [
+        {
+          "type": "host",
+          "value": "vesperwise.com"
+        }
+      ],
       "destination": "https://www.vesperwise.com/:path*",
       "permanent": true
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/reset-free-credits",
+      "schedule": "0 3 * * *"
     }
   ]
 }

@@ -50,4 +50,9 @@ describe("requiresAuth", () => {
       expect(PRIVATE_PAGE_SECTIONS_FOR_TEST, `app/(dashboard)/${s} missing from route-access`).toContain(s);
     }
   });
+
+  it("lets Vercel Cron routes through to their own CRON_SECRET check", () => {
+    expect(requiresAuth("/api/cron/reset-free-credits", prod)).toBe(false);
+    expect(requiresAuth("/api/cronx", prod)).toBe(true);
+  });
 });
