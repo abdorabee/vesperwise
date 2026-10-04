@@ -36,6 +36,7 @@ export type BillingPatch = Partial<{
   subscription_renews_at: string | null;
   subscription_cancel_at_period_end: boolean;
   subscription_period_start: string | null;
+  credits_reset_at: string;
 }>;
 
 export function isPlan(value: string | undefined): value is Plan {
@@ -83,7 +84,8 @@ export function computeBillingPatch(
   type: SubscriptionEventType,
   sub: SubscriptionSnapshot,
   plan: Plan | null,
-  stored: StoredBilling
+  stored: StoredBilling,
+  now: Date = new Date()
 ): BillingPatch {
   switch (type) {
     case "subscription.revoked":
@@ -94,6 +96,8 @@ export function computeBillingPatch(
         subscription_renews_at: null,
         subscription_cancel_at_period_end: false,
         subscription_period_start: null,
+        // Start the free monthly allowance cycle from the downgrade.
+        credits_reset_at: now.toISOString(),
       };
 
     case "subscription.canceled":

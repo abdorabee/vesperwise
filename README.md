@@ -68,6 +68,9 @@ POLAR_PRODUCT_TOPUP_100=
 POLAR_PRODUCT_TOPUP_500=
 POLAR_PRODUCT_TOPUP_1000=
 
+# Vercel Cron (daily free-plan credit refill; the route returns 503 if unset)
+CRON_SECRET=
+
 # Signal sources (only needed when MOCK_SIGNALS=false)
 EXPLORIUM_API_KEY=
 GNEWS_API_KEY=
