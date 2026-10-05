@@ -240,9 +240,9 @@ export function resolveListMembers(
 }
 
 export function stripeColorForBand(band: ScoreBand | null, fallback: string): string {
-  if (band === "HOT") return "var(--hot)";
-  if (band === "WARM") return "var(--warm)";
-  if (band === "COLD") return "var(--cold)";
+  if (band === "HOT") return "var(--band-hot-fill)";
+  if (band === "WARM") return "var(--band-warm-fill)";
+  if (band === "COLD") return "var(--band-cold-fill)";
   return fallback;
 }
 

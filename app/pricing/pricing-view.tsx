@@ -62,7 +62,7 @@ export default function PricingView() {
         .pp-btn:hover { background: var(--surface-wash, rgba(127,127,127,0.08)); }
         .pp-btn:active { transform: scale(0.97); }
         .pp-btn.primary { background: var(--brand); border-color: transparent; color: var(--on-brand, #000); }
-        .pp-btn.primary:hover { background: var(--brand-hover); }
+        .pp-btn.primary:hover { background: var(--brand); box-shadow: 0 0 0 3px var(--brand-soft); }
         .pp-note { text-align: center; margin: 20px auto 0; max-width: 640px; font-size: 13px; color: var(--muted-foreground); line-height: 1.55; }
         .pp-section-title { font-size: 20px; font-weight: 600; letter-spacing: -0.02em; margin: 0 0 6px; }
         .pp-section-sub { font-size: 14px; color: var(--muted-foreground); margin: 0 0 20px; }

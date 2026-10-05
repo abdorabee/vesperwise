@@ -219,15 +219,15 @@ function stageSwatch(s: string | null) {
 }
 
 function bandColor(band: string) {
-  if (band === "HOT") return "var(--hot)";
-  if (band === "WARM") return "var(--warm)";
-  return "var(--cold)";
+  if (band === "HOT") return "var(--band-hot)";
+  if (band === "WARM") return "var(--band-warm)";
+  return "var(--band-cold)";
 }
 
 function urgencyStyle(u: string | null): CSSProperties {
   const base: CSSProperties = { padding: "1px 7px", borderRadius: 4, fontFamily: "var(--font-mono)", fontSize: 10, textTransform: "uppercase", letterSpacing: "0.04em", fontWeight: 500 };
-  if (u === "act-now") return { ...base, background: "var(--hot-bg)", color: "var(--hot)" };
-  if (u === "this-week") return { ...base, background: "var(--warm-bg)", color: "var(--warm)" };
+  if (u === "act-now") return { ...base, background: "var(--band-hot-bg)", color: "var(--band-hot)" };
+  if (u === "this-week") return { ...base, background: "var(--band-warm-bg)", color: "var(--band-warm)" };
   return { ...base, background: "rgba(223,255,0,0.10)", color: "var(--cyan)" };
 }
 
@@ -237,16 +237,16 @@ function bandChipStyle(band: "hot" | "warm" | "cold", inactive: boolean): CSSPro
     fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 500, letterSpacing: "0.02em",
     cursor: "pointer", border: "1px solid transparent", opacity: inactive ? 0.45 : 1,
   };
-  if (band === "hot") return { ...base, background: "var(--hot-bg)", borderColor: "var(--hot-border)", color: "var(--hot)" };
-  if (band === "warm") return { ...base, background: "var(--warm-bg)", borderColor: "var(--warm-border)", color: "var(--warm)" };
-  return { ...base, background: "var(--cold-bg)", borderColor: "var(--cold-border)", color: "var(--text-secondary)" };
+  if (band === "hot") return { ...base, background: "var(--band-hot-fill)", borderColor: "transparent", color: "var(--band-hot-ink)" };
+  if (band === "warm") return { ...base, background: "var(--band-warm-fill)", borderColor: "transparent", color: "var(--band-warm-ink)" };
+  return { ...base, background: "var(--band-cold-fill)", borderColor: "transparent", color: "var(--band-cold-ink)" };
 }
 
 function bandDotStyle(band: "hot" | "warm" | "cold"): CSSProperties {
   const base: CSSProperties = { width: 6, height: 6, borderRadius: 999, display: "inline-block", flexShrink: 0 };
-  if (band === "hot") return { ...base, background: "var(--hot)", boxShadow: "0 0 4px var(--hot)" };
-  if (band === "warm") return { ...base, background: "var(--warm)" };
-  return { ...base, background: "var(--cold)" };
+  if (band === "hot") return { ...base, background: "var(--band-hot-ink)" };
+  if (band === "warm") return { ...base, background: "var(--band-warm-ink)" };
+  return { ...base, background: "var(--band-cold-ink)" };
 }
 
 function htBandStyle(band: string): CSSProperties {
@@ -254,15 +254,15 @@ function htBandStyle(band: string): CSSProperties {
     display: "inline-flex", alignItems: "center", gap: 5, padding: "2px 9px", borderRadius: 999,
     fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase",
   };
-  if (band === "HOT") return { ...base, background: "var(--hot-bg)", border: "1px solid var(--hot-border)", color: "var(--hot)" };
-  if (band === "WARM") return { ...base, background: "var(--warm-bg)", border: "1px solid var(--warm-border)", color: "var(--warm)" };
-  return { ...base, background: "var(--cold-bg)", border: "1px solid var(--cold-border)", color: "var(--text-secondary)" };
+  if (band === "HOT") return { ...base, background: "var(--band-hot-fill)", border: "1px solid transparent", color: "var(--band-hot-ink)" };
+  if (band === "WARM") return { ...base, background: "var(--band-warm-fill)", border: "1px solid transparent", color: "var(--band-warm-ink)" };
+  return { ...base, background: "var(--band-cold-fill)", border: "1px solid transparent", color: "var(--band-cold-ink)" };
 }
 
 function htBandDotStyle(band: string): CSSProperties {
-  if (band === "HOT") return { width: 5, height: 5, borderRadius: 999, background: "var(--hot)", boxShadow: "0 0 4px var(--hot)", display: "inline-block" };
-  if (band === "WARM") return { width: 5, height: 5, borderRadius: 999, background: "var(--warm)", display: "inline-block" };
-  return { width: 5, height: 5, borderRadius: 999, background: "var(--cold)", display: "inline-block" };
+  if (band === "HOT") return { width: 5, height: 5, borderRadius: 999, background: "var(--band-hot-ink)", display: "inline-block" };
+  if (band === "WARM") return { width: 5, height: 5, borderRadius: 999, background: "var(--band-warm-ink)", display: "inline-block" };
+  return { width: 5, height: 5, borderRadius: 999, background: "var(--band-cold-ink)", display: "inline-block" };
 }
 
 function deltaColor(direction: string) {
@@ -290,7 +290,7 @@ function DrawerRing({ score, band }: { score: number; band: string }) {
   const r = 55;
   const circ = 2 * Math.PI * r;
   const offset = circ * (1 - score / 100);
-  const g = band === "HOT" ? ["#4ade80", "#dfff00", "#e8ff40"] : band === "WARM" ? ["#f5b544", "#8a8f98", "#e8ff40"] : ["var(--text-tertiary)", "var(--text-tertiary)", "var(--text-tertiary)"];
+  const g = band === "HOT" ? ["var(--band-hot-fill)", "var(--band-hot-fill)", "var(--band-hot-fill)"] : band === "WARM" ? ["var(--band-warm-fill)", "var(--band-warm-fill)", "var(--band-warm-fill)"] : ["var(--band-cold-fill)", "var(--band-cold-fill)", "var(--band-cold-fill)"];
   return (
     <div style={{ position: "relative", width: 130, height: 130 }}>
       <svg viewBox="0 0 130 130" style={{ display: "block" }}>
@@ -441,9 +441,9 @@ export function HistoryView({ stats }: HistoryViewProps) {
     return (
       <div title={`${bucket.date}: ${bucket.hot + bucket.warm + bucket.cold} scored`}
         style={{ display: "flex", flexDirection: "column-reverse", gap: 1, height: "100%", justifyContent: "flex-start", position: "relative", cursor: "pointer" }}>
-        {bucket.cold > 0 && <span style={{ display: "block", width: "100%", borderRadius: 1, height: coldH, background: "var(--cold)", opacity: 0.55 }} />}
-        {bucket.warm > 0 && <span style={{ display: "block", width: "100%", borderRadius: 1, height: warmH, background: "var(--warm)" }} />}
-        {bucket.hot > 0 && <span style={{ display: "block", width: "100%", borderRadius: 1, height: hotH, background: "var(--hot)" }} />}
+        {bucket.cold > 0 && <span style={{ display: "block", width: "100%", borderRadius: 1, height: coldH, background: "var(--band-cold-fill)" }} />}
+        {bucket.warm > 0 && <span style={{ display: "block", width: "100%", borderRadius: 1, height: warmH, background: "var(--band-warm-fill)" }} />}
+        {bucket.hot > 0 && <span style={{ display: "block", width: "100%", borderRadius: 1, height: hotH, background: "var(--band-hot-fill)" }} />}
         {isToday && (
           <span style={{ position: "absolute", bottom: -10, left: "50%", transform: "translateX(-50%)", width: 3, height: 3, borderRadius: 999, background: "var(--text-primary)" }} />
         )}
@@ -510,9 +510,9 @@ export function HistoryView({ stats }: HistoryViewProps) {
               </div>
             )}
             <div className="history-activity-legend" style={{ fontSize: 11, color: "var(--text-tertiary)", fontFamily: "var(--font-mono)", letterSpacing: "0.02em" }}>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><span style={{ width: 8, height: 8, borderRadius: 2, background: "var(--hot)", display: "inline-block" }} />HOT</span>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><span style={{ width: 8, height: 8, borderRadius: 2, background: "var(--warm)", display: "inline-block" }} />WARM</span>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><span style={{ width: 8, height: 8, borderRadius: 2, background: "var(--cold)", opacity: 0.7, display: "inline-block" }} />COLD</span>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><span style={{ width: 8, height: 8, borderRadius: 2, background: "var(--band-hot-fill)", display: "inline-block" }} />HOT</span>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><span style={{ width: 8, height: 8, borderRadius: 2, background: "var(--band-warm-fill)", display: "inline-block" }} />WARM</span>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><span style={{ width: 8, height: 8, borderRadius: 2, background: "var(--band-cold-fill)", display: "inline-block" }} />COLD</span>
             </div>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(30, 1fr)", gap: 3, alignItems: "end", height: 64 }}>
@@ -531,9 +531,9 @@ export function HistoryView({ stats }: HistoryViewProps) {
         <div className="history-activity-divider" style={{ background: "var(--border-subtle)", width: 1 }} />
         <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", fontSize: 12 }}>
           {[
-            { label: "HOT (≥75)", color: "var(--hot)", count: stats.hotCount, isRescores: false },
-            { label: "WARM (50–74)", color: "var(--warm)", count: stats.warmCount, isRescores: false },
-            { label: "COLD (<50)", color: "var(--cold)", count: stats.coldCount, isRescores: false },
+            { label: "HOT (≥75)", color: "var(--band-hot)", count: stats.hotCount, isRescores: false },
+            { label: "WARM (50–74)", color: "var(--band-warm)", count: stats.warmCount, isRescores: false },
+            { label: "COLD (<50)", color: "var(--band-cold)", count: stats.coldCount, isRescores: false },
             { label: "Re-scores", color: "var(--text-tertiary)", count: stats.rescoreCount, isRescores: true },
           ].map(({ label, color, count, isRescores }, idx) => (
             <div key={label} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "4px 0", borderTop: idx > 0 ? "1px solid var(--border-subtle)" : undefined }}>
@@ -563,7 +563,7 @@ export function HistoryView({ stats }: HistoryViewProps) {
         ].map(({ label, num, delta, hot, flat }) => (
           <div key={label} style={S.statCard}>
             <div style={S.statLabel}>{label}</div>
-            <div style={{ ...S.statNum, ...(hot ? { color: "var(--hot)" } : {}) }}>{num}</div>
+            <div style={{ ...S.statNum, ...(hot ? { color: "var(--band-hot)" } : {}) }}>{num}</div>
             {delta && <div style={{ ...S.statDelta, ...(flat ? { color: "var(--text-tertiary)" } : {}) }}>{delta}</div>}
           </div>
         ))}
@@ -809,7 +809,7 @@ export function HistoryView({ stats }: HistoryViewProps) {
               {(drawerRow.why_now || drawerRow.recommended_action) && (
                 <>
                   <div className="section-label" style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, fontSize: 11, color: "var(--text-tertiary)" }}>
-                    <span style={{ width: 6, height: 6, borderRadius: 999, background: "var(--warm)", boxShadow: "0 0 4px var(--warm)", display: "inline-block" }} />
+                    <span style={{ width: 6, height: 6, borderRadius: 999, background: "var(--band-warm-fill)", display: "inline-block" }} />
                     <strong style={{ color: "var(--text-secondary)", fontWeight: 500 }}>Why now &amp; recommended action</strong>
                     <span style={{ flex: 1, height: 1, background: "var(--border-subtle)" }} />
                   </div>
@@ -833,7 +833,7 @@ export function HistoryView({ stats }: HistoryViewProps) {
               {drawerRow.signals && (
                 <>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, fontSize: 11, color: "var(--text-tertiary)" }}>
-                    <span style={{ width: 6, height: 6, borderRadius: 999, background: "var(--hot)", boxShadow: "0 0 4px var(--hot)", display: "inline-block" }} />
+                    <span style={{ width: 6, height: 6, borderRadius: 999, background: "var(--band-hot-fill)", display: "inline-block" }} />
                     <strong style={{ color: "var(--text-secondary)", fontWeight: 500 }}>Key triggers</strong>
                     <span style={{ flex: 1, height: 1, background: "var(--border-subtle)" }} />
                     <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-quaternary)" }}>

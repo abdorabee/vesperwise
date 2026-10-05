@@ -32,7 +32,7 @@ interface WorkflowDetailPaneProps {
 }
 
 function statusBand(status: ReturnType<typeof workflowStatus>) {
-  if (status === "active") return { cls: "band-hot", label: "Active", dot: "var(--hot)" };
+  if (status === "active") return { cls: "status-active", label: "Active", dot: "var(--success)" };
   if (status === "paused") return { cls: "band-cold", label: "Paused", dot: "var(--text-quaternary)" };
   return { cls: "band-warm", label: "Draft", dot: "var(--warm)" };
 }

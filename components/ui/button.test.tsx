@@ -9,8 +9,9 @@ describe("Button", () => {
 
     expect(classes).toContain("bg-primary");
     expect(classes).toContain("text-primary-foreground");
-    expect(classes).not.toContain("bg-[var(--brand)]");
-    expect(classes).toContain("hover:bg-[var(--brand-hover)]");
+    expect(classes).toContain("hover:bg-[var(--brand)]");
+    expect(classes).toContain("hover:shadow-[0_0_0_3px_var(--brand-soft)]");
+    expect(classes).not.toContain("hover:bg-[var(--brand-hover)]");
     expect(classes).toContain("active:bg-[var(--brand-active)]");
   });
 

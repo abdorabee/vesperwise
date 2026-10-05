@@ -58,7 +58,7 @@ export default function AboutView() {
         .about-btn { display: inline-flex; align-items: center; height: 44px; padding: 0 20px; border-radius: 10px; font-size: 14px; font-weight: 500; text-decoration: none; border: 1px solid var(--border); color: var(--foreground); transition: background-color 150ms ease, transform 160ms ease-out; }
         .about-btn:active { transform: scale(0.97); }
         .about-btn.primary { background: var(--brand); color: var(--on-brand, #000); border-color: transparent; }
-        .about-btn.primary:hover { background: var(--brand-hover); }
+        .about-btn.primary:hover { background: var(--brand); box-shadow: 0 0 0 3px var(--brand-soft); }
         @media (max-width: 640px) { .about-hero h1 { font-size: 32px; } }
         @media (max-width: 560px) { .about-founder { grid-template-columns: 1fr; } }
       `}</style>

@@ -27,6 +27,7 @@ interface InboxListProps {
 
 function tagClass(tag: string) {
   if (tag === "HOT") return "tag hot";
+  if (tag === "COLD") return "tag cold";
   if (tag === "funding" || tag === "news" || tag === "autopilot") return "tag blue";
   if (tag === "WARM" || tag === "hiring" || tag === "tech" || tag === "web") return "tag warm";
   return "tag";
@@ -102,7 +103,7 @@ export function InboxList({
               >
                 <div
                   className="indicator"
-                  style={hotTag ? { background: "var(--hot)", boxShadow: "0 0 6px var(--hot)" } : undefined}
+                  style={hotTag ? { background: "var(--band-hot-fill)" } : undefined}
                 />
                 <div className="body">
                   <div className="top">

@@ -49,22 +49,22 @@ const STAGE_CONFIG: Record<StageKey, {
     label: "Cold",
     desc: "Nurture",
     action: "Send awareness content",
-    color: "var(--text-tertiary)",
-    badgeClass: "bg-slate-500/20 text-slate-400 border border-slate-500/30",
+    color: "var(--band-cold)",
+    badgeClass: "bg-[var(--band-cold-fill)] text-[var(--band-cold-ink)] border border-transparent",
   },
   warming: {
     label: "Warming",
     desc: "Follow Up",
     action: "Reference their recent signal",
-    color: "#f5b544",
-    badgeClass: "bg-amber-500/20 text-amber-400 border border-amber-500/30",
+    color: "var(--band-warm)",
+    badgeClass: "bg-[var(--band-warm-fill)] text-[var(--band-warm-ink)] border border-transparent",
   },
   hot: {
     label: "Hot",
     desc: "Act Now",
     action: "Book a call — use trigger in pitch",
-    color: "#4ade80",
-    badgeClass: "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30",
+    color: "var(--band-hot)",
+    badgeClass: "bg-[var(--band-hot-fill)] text-[var(--band-hot-ink)] border border-transparent",
   },
   engaged: {
     label: "Engaged",
@@ -686,7 +686,8 @@ export default function PipelinePage() {
 
                 <div className="flex gap-2 flex-wrap pt-1">
                   <Button
-                    className="flex-1 cursor-pointer gap-1.5 border-0 bg-[var(--brand)] text-[var(--on-brand)] hover:bg-[var(--brand-hover)]"
+                    variant="brand"
+                    className="flex-1 cursor-pointer gap-1.5 border-0"
                     onClick={handleCopyDialogEmail}
                     disabled={!selected.email_subject && !selected.talk_track}
                   >

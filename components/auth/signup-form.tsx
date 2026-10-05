@@ -170,7 +170,7 @@ export function SignupForm() {
           <Button
             type="submit"
             disabled={busy}
-            className="h-[42px] w-full rounded-md bg-primary text-primary-foreground hover:bg-[var(--brand-hover)]"
+            className="h-[42px] w-full rounded-md bg-primary text-primary-foreground hover:bg-[var(--brand)] hover:shadow-[0_0_0_3px_var(--brand-soft)]"
           >
             {busy ? "Verifying…" : "Verify email"}
           </Button>
@@ -292,7 +292,7 @@ export function SignupForm() {
           <Button
             type="submit"
             disabled={busy}
-            className="h-[42px] w-full rounded-md bg-primary text-primary-foreground hover:bg-[var(--brand-hover)]"
+            className="h-[42px] w-full rounded-md bg-primary text-primary-foreground hover:bg-[var(--brand)] hover:shadow-[0_0_0_3px_var(--brand-soft)]"
           >
             {busy ? "Creating account…" : "Create account"}
           </Button>

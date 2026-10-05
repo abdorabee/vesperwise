@@ -1,9 +1,9 @@
 import type { ScoreBand } from "@/lib/types";
 
 export const BAND_COLOR: Record<ScoreBand, string> = {
-  HOT: "#4ade80",
-  WARM: "#f5b544",
-  COLD: "#8a8f98",
+  HOT: "var(--band-hot)",
+  WARM: "var(--band-warm)",
+  COLD: "var(--band-cold)",
 };
 
 export function bandFromScore(score: number): ScoreBand {

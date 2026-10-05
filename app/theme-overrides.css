@@ -85,6 +85,21 @@
   --cold: #8a8f98;
   --cold-bg: rgba(138, 143, 152, 0.10);
   --cold-border: rgba(138, 143, 152, 0.22);
+  --band-hot: #b42318;
+  --band-hot-fill: #ff7a6b;
+  --band-hot-ink: #24100d;
+  --band-hot-bg: rgba(180, 35, 24, 0.10);
+  --band-hot-border: rgba(180, 35, 24, 0.28);
+  --band-warm: #9a5b00;
+  --band-warm-fill: #f5b544;
+  --band-warm-ink: #2b1d00;
+  --band-warm-bg: rgba(180, 83, 9, 0.10);
+  --band-warm-border: rgba(180, 83, 9, 0.28);
+  --band-cold: #64748b;
+  --band-cold-fill: #a7b4c5;
+  --band-cold-ink: #131a22;
+  --band-cold-bg: rgba(100, 116, 139, 0.10);
+  --band-cold-border: rgba(100, 116, 139, 0.24);
   --cool: #8a8f98;
   --cool-bg: rgba(138, 143, 152, 0.10);
   --cyan: var(--brand);
@@ -181,6 +196,21 @@
   --cold: #8a8f98;
   --cold-bg: rgba(138, 143, 152, 0.1);
   --cold-border: rgba(138, 143, 152, 0.22);
+  --band-hot: #ff8b7d;
+  --band-hot-fill: #ff7a6b;
+  --band-hot-ink: #24100d;
+  --band-hot-bg: rgba(255, 122, 107, 0.12);
+  --band-hot-border: rgba(255, 122, 107, 0.32);
+  --band-warm: #f5b544;
+  --band-warm-fill: #f5b544;
+  --band-warm-ink: #2b1d00;
+  --band-warm-bg: rgba(245, 181, 68, 0.12);
+  --band-warm-border: rgba(245, 181, 68, 0.30);
+  --band-cold: #a7b4c5;
+  --band-cold-fill: #a7b4c5;
+  --band-cold-ink: #131a22;
+  --band-cold-bg: rgba(167, 180, 197, 0.14);
+  --band-cold-border: rgba(167, 180, 197, 0.30);
   --cool: #8a8f98;
   --cool-bg: rgba(138, 143, 152, 0.08);
   --cyan: var(--brand);
@@ -297,7 +327,8 @@ html:not(.dark) .prompt-go {
   background: var(--primary);
 }
 html:not(.dark) .prompt-go:hover {
-  background: var(--accent-2);
+  background: var(--brand);
+  box-shadow: 0 0 0 3px var(--brand-soft);
 }
 html:not(.dark) .prompt-bg::before {
   background:
@@ -464,12 +495,14 @@ html:not(.dark) .cmd-palette .kbd {
 }
 
 .btn.btn-primary:hover {
-  background: var(--brand-hover);
+  background: var(--brand);
+  box-shadow: 0 0 0 3px var(--brand-soft);
 }
 
 .btn-accent:hover {
-  background: var(--brand-hover);
-  border-color: var(--brand-hover);
+  background: var(--brand);
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px var(--brand-soft);
 }
 
 .btn:active,
@@ -488,8 +521,9 @@ html:not(.dark) .cmd-palette .kbd {
 }
 
 .btn-primary:hover {
-  background: var(--brand-hover);
-  border-color: var(--brand-hover);
+  background: var(--brand);
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px var(--brand-soft);
 }
 
 .btn-primary:active {
@@ -625,6 +659,7 @@ html:not(.dark) .cmd-palette .kbd {
 /* Unlayered so this beats the utilities-layer bg-primary fill. */
 [data-slot="button"][data-variant="default"]:hover,
 [data-slot="button"][data-variant="brand"]:hover {
-  background: var(--brand-hover);
-  border-color: var(--brand-hover);
+  background: var(--brand);
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px var(--brand-soft);
 }

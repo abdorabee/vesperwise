@@ -84,7 +84,7 @@ function actionIconStyle(type: AutopilotAction["type"]) {
     case "pipeline_stage":
       return { background: "rgba(223,255,0,0.15)", color: "#dfff00" };
     case "email_draft":
-      return { background: "rgba(74,222,128,0.15)", color: "var(--hot)" };
+      return { background: "var(--band-hot-bg)", color: "var(--band-hot)" };
     case "slack":
       return { background: "rgba(245,181,68,0.15)", color: "var(--warm)" };
     default:

@@ -93,7 +93,7 @@ function NavRow({
         <SidebarMenuBadge
           className={cn(
             "tabular-nums",
-            item.hotCount && "bg-[var(--hot-bg)] text-[var(--hot)]"
+            item.hotCount && "bg-[var(--band-hot-bg)] text-[var(--band-hot)]"
           )}
         >
           {count}
@@ -191,7 +191,7 @@ export function AppSidebar({
                     lives on wrappers: globals.css `img, svg { display: block }` is unlayered and
                     would beat a `hidden` utility on the image or svg itself. */}
                 <span className="shrink-0 group-data-[collapsible=icon]:hidden">
-                  <VesperWiseLogo size={26} className="rounded-md" />
+                  <VesperWiseLogo size={36} className="rounded-md" />
                 </span>
                 <span className="hidden shrink-0 group-data-[collapsible=icon]:inline-flex">
                   <BrandMark />

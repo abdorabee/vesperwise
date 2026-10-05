@@ -7,7 +7,7 @@ The founder is showing VesperWise to an investor who judges on UI. Seven section
 
 The founder chose:
 - **Scope:** Phase 1 (remove fake/broken) + B1–B4 (the scoring "wow" moment and the Home page).
-- **Direction:** "Field instrument": precise and ink-first, with lime `#DFFF00` used only as a highlighter (HOT pill, primary CTA, active nav). Never lime text on a light background.
+- **Direction:** "Field instrument": precise and ink-first, with lime `#DFFF00` reserved for brand and primary actions. Score bands use distinct coral HOT, amber WARM, and slate COLD colors. Never lime text on a light background.
 - **Stub pages:** hide People, Inbox and Autopilot from the nav. Their routes still work by URL.
 
 ## What's done (all merged on this branch)

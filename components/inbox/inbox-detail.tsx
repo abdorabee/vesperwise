@@ -27,7 +27,7 @@ function EventCard({ n }: { n: InboxNotification }) {
   const scoreBefore = (meta.score_before as number) ?? 0;
   const scoreDelta = scoreAfter - scoreBefore;
 
-  const bandClass = scoreBand === "HOT" ? "hot" : scoreBand === "WARM" ? "warm" : "blue";
+  const bandClass = scoreBand === "HOT" ? "hot" : scoreBand === "WARM" ? "warm" : "cold";
 
   return (
     <div className="event-card" style={{ marginBottom: 20 }}>

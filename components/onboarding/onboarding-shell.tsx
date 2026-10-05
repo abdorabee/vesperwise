@@ -140,7 +140,7 @@ export function PrimaryButton({
       type={type}
       onClick={onClick}
       disabled={disabled}
-      className="flex h-10 items-center justify-center rounded-lg bg-[var(--brand)] px-5 text-[13px] font-semibold text-[var(--on-brand)] hover:bg-[var(--brand-hover)] active:bg-[var(--brand-active)] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)] focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+      className="flex h-10 items-center justify-center rounded-lg bg-[var(--brand)] px-5 text-[13px] font-semibold text-[var(--on-brand)] hover:bg-[var(--brand)] hover:shadow-[0_0_0_3px_var(--brand-soft)] active:bg-[var(--brand-active)] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)] focus-visible:ring-offset-2 focus-visible:ring-offset-black"
     >
       {children}
     </button>

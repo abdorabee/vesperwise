@@ -632,21 +632,21 @@
 }
 
 .bulk-band.is-hot {
-  border-color: var(--hot-border);
-  background: var(--hot-bg);
-  color: var(--hot);
+  border-color: transparent;
+  background: var(--band-hot-fill);
+  color: var(--band-hot-ink);
 }
 
 .bulk-band.is-warm {
-  border-color: var(--warm-border);
-  background: var(--warm-bg);
-  color: var(--warm);
+  border-color: transparent;
+  background: var(--band-warm-fill);
+  color: var(--band-warm-ink);
 }
 
 .bulk-band.is-cold {
-  border-color: var(--cold-border);
-  background: var(--cold-bg);
-  color: var(--cold);
+  border-color: transparent;
+  background: var(--band-cold-fill);
+  color: var(--band-cold-ink);
 }
 
 .bulk-coverage {

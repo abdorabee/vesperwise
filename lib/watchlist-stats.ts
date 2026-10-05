@@ -96,9 +96,9 @@ export function getAvatarInitial(name: string): string {
 }
 
 function bandColor(band: ScoreBand | null): string {
-  if (band === "HOT") return "var(--hot)";
-  if (band === "WARM") return "var(--warm)";
-  return "var(--cold)";
+  if (band === "HOT") return "var(--band-hot)";
+  if (band === "WARM") return "var(--band-warm)";
+  return "var(--band-cold)";
 }
 
 function formatRelativeTime(iso: string | null): string {

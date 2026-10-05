@@ -90,7 +90,7 @@ export function InboxSidebar({
         onClick={() => onSelect("subscribed", "hot_crossing", null)}
         onKeyDown={(e) => e.key === "Enter" && onSelect("subscribed", "hot_crossing", null)}
       >
-        <span className="swatch" style={{ background: "var(--hot)", boxShadow: "0 0 6px var(--hot)" }} />
+        <span className="swatch" style={{ background: "var(--band-hot-fill)" }} />
         HOT crossings
         {byType("hot_crossing") > 0 && <span className="count hot">{byType("hot_crossing")}</span>}
       </div>
@@ -114,7 +114,7 @@ export function InboxSidebar({
         onClick={() => onSelect("subscribed", "stage_change", null)}
         onKeyDown={(e) => e.key === "Enter" && onSelect("subscribed", "stage_change", null)}
       >
-        <span className="swatch" style={{ background: "var(--warm)" }} />
+        <span className="swatch" style={{ background: "var(--band-warm-fill)" }} />
         Signal events
         {byType("stage_change") > 0 && <span className="count">{byType("stage_change")}</span>}
       </div>
@@ -138,7 +138,7 @@ export function InboxSidebar({
         onClick={() => onSelect("subscribed", "score_drop", null)}
         onKeyDown={(e) => e.key === "Enter" && onSelect("subscribed", "score_drop", null)}
       >
-        <span className="swatch" style={{ background: "var(--cold)" }} />
+        <span className="swatch" style={{ background: "var(--band-cold-fill)" }} />
         Score drops
         {byType("score_drop") > 0 && <span className="count">{byType("score_drop")}</span>}
       </div>

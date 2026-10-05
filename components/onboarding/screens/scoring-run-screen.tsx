@@ -77,7 +77,7 @@ export function ScoringRunScreen({ entries }: { entries: ScoringRunEntry[] }) {
               </p>
             </div>
             <div className="flex-none text-right">
-              <div className="font-mono text-[44px] font-medium leading-none tracking-[-0.03em] text-[#4ade80] tabular-nums">
+              <div className="font-mono text-[44px] font-medium leading-none tracking-[-0.03em] text-[var(--band-hot)] tabular-nums">
                 {cleared}
               </div>
               <div className="mt-2 font-mono text-[11px] uppercase tracking-[0.07em] text-[#666]">cleared 75 so far</div>
@@ -139,7 +139,7 @@ export function ScoringRunScreen({ entries }: { entries: ScoringRunEntry[] }) {
           <div className="mt-auto flex flex-col gap-2 pt-6">
             <div className="font-mono text-[11px] uppercase tracking-[0.09em] text-[#666]">First to clear</div>
             <div className="flex items-baseline gap-2.5">
-              <span className="font-mono text-[17px] font-medium tabular-nums text-[#4ade80]">
+              <span className="font-mono text-[17px] font-medium tabular-nums text-[var(--band-hot)]">
                 {firstHot.result!.intent_score}
               </span>
               <span className="font-mono text-[12.5px] text-white">{firstHot.domain}</span>

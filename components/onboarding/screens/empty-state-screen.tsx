@@ -89,7 +89,7 @@ export function EmptyStateScreen({
             <button
               type="button"
               onClick={() => onLowerThreshold(suggestedThreshold)}
-              className="flex h-10 items-center justify-center rounded-lg bg-[var(--brand)] px-5 font-sans text-[13px] font-semibold text-[var(--on-brand)] hover:bg-[var(--brand-hover)] active:bg-[var(--brand-active)]"
+              className="flex h-10 items-center justify-center rounded-lg bg-[var(--brand)] px-5 font-sans text-[13px] font-semibold text-[var(--on-brand)] hover:bg-[var(--brand)] hover:shadow-[0_0_0_3px_var(--brand-soft)] active:bg-[var(--brand-active)]"
             >
               Lower the threshold to {suggestedThreshold}
             </button>

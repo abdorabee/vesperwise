@@ -43,14 +43,14 @@ export function ListCard({ summary, onClick }: ListCardProps) {
         </div>
       </div>
       <div className="lc-mixbar">
-        <div className="seg" style={{ background: "var(--hot)", flex: Math.max(bandMix.hot, 0) }} />
-        <div className="seg" style={{ background: "var(--warm)", flex: Math.max(bandMix.warm, 0) }} />
-        <div className="seg" style={{ background: "var(--cold)", opacity: 0.7, flex: Math.max(bandMix.cold, 0) }} />
+        <div className="seg" style={{ background: "var(--band-hot-fill)", flex: Math.max(bandMix.hot, 0) }} />
+        <div className="seg" style={{ background: "var(--band-warm-fill)", flex: Math.max(bandMix.warm, 0) }} />
+        <div className="seg" style={{ background: "var(--band-cold-fill)", flex: Math.max(bandMix.cold, 0) }} />
       </div>
       <div className="lc-mixbar-leg">
-        <span><span className="sw" style={{ background: "var(--hot)" }} />HOT {bandMix.hot}</span>
-        <span><span className="sw" style={{ background: "var(--warm)" }} />WARM {bandMix.warm}</span>
-        <span><span className="sw" style={{ background: "var(--cold)", opacity: 0.7 }} />COLD {bandMix.cold}</span>
+        <span><span className="sw" style={{ background: "var(--band-hot-fill)" }} />HOT {bandMix.hot}</span>
+        <span><span className="sw" style={{ background: "var(--band-warm-fill)" }} />WARM {bandMix.warm}</span>
+        <span><span className="sw" style={{ background: "var(--band-cold-fill)" }} />COLD {bandMix.cold}</span>
         <span className="avg">avg {summary.avgScore || "—"}</span>
       </div>
       <div className="list-card-foot">

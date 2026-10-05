@@ -12,7 +12,7 @@ import {
 import { BULK_MAX_PER_JOB, MARKETING_PLANS, formatCount, getMarketingPlan } from "@/lib/plan-features";
 import { PLAN_CREDITS } from "@/lib/types";
 
-const BAND_VAR: Record<DemoBand, string> = { HOT: "var(--hot)", WARM: "var(--warm)", COLD: "var(--cold)" };
+const BAND_VAR: Record<DemoBand, string> = { HOT: "var(--band-hot)", WARM: "var(--band-warm)", COLD: "var(--band-cold)" };
 const BAND_CLASS: Record<DemoBand, string> = { HOT: "band-hot", WARM: "band-warm", COLD: "band-cold" };
 const AVATAR_CLASSES = ["av-1", "av-4", "av-2", "av-7", "av-3", "av-5", "av-6"];
 

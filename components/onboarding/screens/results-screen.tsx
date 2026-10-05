@@ -8,9 +8,9 @@ import { OnboardingRail, RailRow } from "@/components/onboarding/onboarding-shel
 import { Slider } from "@/components/ui/slider";
 
 const BAND_CHIP: { label: string; color: string }[] = [
-  { label: "HOT", color: "#4ade80" },
-  { label: "WARM", color: "#f5b544" },
-  { label: "COLD", color: "#8a8f98" },
+  { label: "HOT", color: "var(--band-hot-fill)" },
+  { label: "WARM", color: "var(--band-warm-fill)" },
+  { label: "COLD", color: "var(--band-cold-fill)" },
 ];
 
 export function ResultsScreen({
@@ -52,9 +52,9 @@ export function ResultsScreen({
                 <span
                   key={c.label}
                   className="flex h-7 items-center gap-1.5 rounded-full px-2.5 font-mono text-[11px] tracking-[0.02em]"
-                  style={{ background: `${c.color}1a`, border: `1px solid ${c.color}40`, color: c.color }}
+                  style={{ background: c.color, border: "1px solid transparent", color: `var(--band-${c.label.toLowerCase()}-ink)` }}
                 >
-                  <span className="h-1.5 w-1.5 rounded-full" style={{ background: c.color }} />
+                  <span className="h-1.5 w-1.5 rounded-full" style={{ background: `var(--band-${c.label.toLowerCase()}-ink)` }} />
                   {c.label} {counts[c.label]}
                 </span>
               ))}

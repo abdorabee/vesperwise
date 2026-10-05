@@ -9,16 +9,16 @@ import { BANDS, TREND_MIN_DAYS, type BandCounts, type TrendDay } from "@/lib/das
 import type { ScoreBand } from "@/lib/types";
 
 /**
- * Band colours match ScoreMeter: HOT is ink (lime stays a highlighter for the
- * pill/CTA and is ~1.1:1 on white), WARM/COLD use the band tokens. Checked with
+ * Band colors match ScoreMeter. Identity is never color alone: legend,
+ * tooltip and table all name the band. Checked with
  * the dataviz validator in both modes: adjacent CVD ΔE ≥ 15 and every mark
  * ≥ 3:1 against the card surface. Identity is never colour alone: legend,
  * tooltip and table all name the band.
  */
 const MARK: Record<ScoreBand, string> = {
-  HOT: "bg-foreground",
-  WARM: "bg-[var(--warm)]",
-  COLD: "bg-[var(--cold)]",
+  HOT: "bg-[var(--band-hot-fill)]",
+  WARM: "bg-[var(--band-warm-fill)]",
+  COLD: "bg-[var(--band-cold-fill)]",
 };
 
 const LABEL: Record<ScoreBand, string> = { HOT: "HOT", WARM: "Warm", COLD: "Cold" };

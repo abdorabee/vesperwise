@@ -91,7 +91,7 @@ export function SiteHeader({ creditsRemaining }: { creditsRemaining?: number }) 
           aria-label="VesperWise home"
           className="flex min-w-0 items-center gap-2 md:hidden"
         >
-          <VesperWiseLogo size={26} className="rounded-md" />
+          <VesperWiseLogo size={36} className="rounded-md" />
         </Link>
         <div className="ml-auto flex items-center gap-2">
           {isScore ? (

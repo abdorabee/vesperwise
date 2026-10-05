@@ -220,8 +220,8 @@ export function PeopleView({ totalCount, hotCount, initialScores }: PeopleViewPr
               {paged.map(s => {
                 const signals = s.signals as { seniority_fit?: { score?: number } } | null;
                 const icpPct = Math.round((signals?.seniority_fit?.score ?? 0) / 20 * 100);
-                const icpColor = icpPct >= 75 ? "var(--hot)" : icpPct >= 50 ? "var(--warm)" : "var(--cold)";
-                const scoreColor = s.score_band === "HOT" ? "var(--hot)" : s.score_band === "WARM" ? "var(--warm)" : "var(--cold)";
+                const icpColor = icpPct >= 75 ? "var(--band-hot)" : icpPct >= 50 ? "var(--band-warm)" : "var(--band-cold)";
+                const scoreColor = s.score_band === "HOT" ? "var(--band-hot)" : s.score_band === "WARM" ? "var(--band-warm)" : "var(--band-cold)";
                 const keyTriggers = s.key_triggers as string[] | null;
                 return (
                   <div key={s.id} className="pl-row" onClick={() => { setInput(s.person_email ?? s.person_name); setPageState("score"); }}>
@@ -478,7 +478,7 @@ export function PeopleView({ totalCount, hotCount, initialScores }: PeopleViewPr
                   const circ = 2 * Math.PI * r;
                   const offset = circ * (1 - result.intent_score / 100);
                   const band = result.score_band;
-                  const g = band === "HOT" ? ["#4ade80", "#dfff00", "#e8ff40"] : band === "WARM" ? ["#f5b544", "#8a8f98", "#e8ff40"] : ["var(--text-tertiary)", "var(--text-tertiary)", "var(--text-tertiary)"];
+                  const g = band === "HOT" ? ["var(--band-hot-fill)", "var(--band-hot-fill)", "var(--band-hot-fill)"] : band === "WARM" ? ["var(--band-warm-fill)", "var(--band-warm-fill)", "var(--band-warm-fill)"] : ["var(--band-cold-fill)", "var(--band-cold-fill)", "var(--band-cold-fill)"];
                   return (
                     <div className="score-ring">
                       <svg viewBox="0 0 100 100">
