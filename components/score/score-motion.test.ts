@@ -17,6 +17,10 @@ const research = readFileSync(
   new URL("./score-research-status.tsx", import.meta.url),
   "utf8",
 );
+const thread = readFileSync(
+  new URL("./score-conversation-thread.tsx", import.meta.url),
+  "utf8",
+);
 
 function reducedMotionBlock() {
   const match = motionCss.match(
@@ -59,10 +63,10 @@ describe("Score motion contract", () => {
   it("keeps the orb mounted while chat thinking labels blur-swap", () => {
     expect(research).toContain("<ThinkingOrb label={headline}");
     expect(research).toContain('<span key={headline} className="text-swap-in headline-shimmer">');
-    expect(view).toContain("const thinkingLabel = running");
-    expect(view).toContain("`Using ${toolLabel(running.name)}…`");
-    expect(view).toContain('"Thinking…"');
-    expect(view).not.toContain(
+    expect(thread).toContain("const thinkingLabel = running");
+    expect(thread).toContain("`Using ${toolLabel(running.name)}…`");
+    expect(thread).toContain('"Thinking…"');
+    expect(thread).not.toContain(
       "<ScoreResearchStatus mode={message.mode} progress={message.progress} />{running",
     );
   });

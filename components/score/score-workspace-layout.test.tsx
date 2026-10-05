@@ -18,12 +18,14 @@ describe("ScorePageFrame", () => {
 describe("ScoreWorkspaceLayout", () => {
   it("renders one conversation canvas with an anchored composer", () => {
     const html = renderToStaticMarkup(
-      <ScoreWorkspaceLayout thread={<p>Conversation history</p>} composer={<form>Composer</form>} />
+      <ScoreWorkspaceLayout header={<nav>Reports</nav>} thread={<p>Conversation history</p>} composer={<form>Composer</form>} />
     );
 
     expect(html).toContain('aria-label="Score conversation"');
+    expect(html).toContain('data-slot="score-workspace-header"');
     expect(html).toContain('data-slot="score-thread"');
     expect(html).toContain('data-slot="score-composer"');
+    expect(html).toContain("Reports");
     expect(html).toContain("Conversation history");
     expect(html).toContain("Composer");
     expect(html).not.toContain('aria-label="Score evidence"');

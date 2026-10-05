@@ -4,6 +4,9 @@ import { usePathname } from "next/navigation";
 import { AppSidebar } from "@/components/dashboard/app-sidebar";
 import { AppFrame } from "@/components/dashboard/shell/app-frame";
 import { IconRail } from "@/components/dashboard/shell/icon-rail";
+import { ShellListProvider, ShellListSlot } from "@/components/dashboard/shell/shell-list";
+import { ShellPanelProvider, ShellPanelSlot } from "@/components/dashboard/shell/shell-panel";
+import { ShellStatusProvider } from "@/components/dashboard/shell/shell-status";
 import { StatusBar } from "@/components/dashboard/shell/status-bar";
 import { SiteHeader } from "@/components/dashboard/site-header";
 import { SearchProvider } from "@/components/dashboard/search-provider";
@@ -64,45 +67,53 @@ export default function DashboardShell({
 
   return (
     <SearchProvider>
-      <SidebarProvider
-        className="bg-background"
-        style={
-          {
-            "--sidebar-width": "16rem",
-            "--header-height": "4rem",
-          } as React.CSSProperties
-        }
-      >
-        <div className="md:hidden">
-          <AppSidebar
-            creditsRemaining={creditsRemaining}
-            plan={plan}
-            workspaceName={workspaceName}
-            watchlistCount={watchlistCount}
-            pipelineHotCount={pipelineHotCount}
-          />
-        </div>
-        <AppFrame
-          rail={
-            <IconRail
-              creditsRemaining={creditsRemaining}
-              plan={plan}
-              watchlistCount={watchlistCount}
-              pipelineHotCount={pipelineHotCount}
-            />
-          }
-          statusBar={
-            <StatusBar
-              creditsRemaining={creditsRemaining}
-              plan={plan}
-              isMockSignals={isMockSignals}
-            />
-          }
-        >
-          <SiteHeader creditsRemaining={creditsRemaining} />
-          <PageContainer size={containerSize}>{children}</PageContainer>
-        </AppFrame>
-      </SidebarProvider>
+      <ShellStatusProvider>
+        <ShellPanelProvider>
+          <ShellListProvider>
+            <SidebarProvider
+              className="bg-background"
+              style={
+                {
+                  "--sidebar-width": "16rem",
+                  "--header-height": "4rem",
+                } as React.CSSProperties
+              }
+            >
+              <div className="md:hidden">
+                <AppSidebar
+                  creditsRemaining={creditsRemaining}
+                  plan={plan}
+                  workspaceName={workspaceName}
+                  watchlistCount={watchlistCount}
+                  pipelineHotCount={pipelineHotCount}
+                />
+              </div>
+              <AppFrame
+                rail={
+                  <IconRail
+                    creditsRemaining={creditsRemaining}
+                    plan={plan}
+                    watchlistCount={watchlistCount}
+                    pipelineHotCount={pipelineHotCount}
+                  />
+                }
+                list={<ShellListSlot />}
+                panel={<ShellPanelSlot />}
+                statusBar={
+                  <StatusBar
+                    creditsRemaining={creditsRemaining}
+                    plan={plan}
+                    isMockSignals={isMockSignals}
+                  />
+                }
+              >
+                <SiteHeader />
+                <PageContainer size={containerSize}>{children}</PageContainer>
+              </AppFrame>
+            </SidebarProvider>
+          </ShellListProvider>
+        </ShellPanelProvider>
+      </ShellStatusProvider>
     </SearchProvider>
   );
 }

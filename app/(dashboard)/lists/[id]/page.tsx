@@ -1,6 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { notFound } from "next/navigation";
-import { buildListDetailForId } from "@/lib/lists-data";
+import { buildListDetailForId, buildListsOverview } from "@/lib/lists-data";
 import { ListDetailClient } from "./list-detail-client";
 
 export const metadata = { title: "List" };
@@ -12,8 +12,11 @@ export default async function ListDetailPage({ params }: PageProps) {
   if (!userId) return null;
 
   const { id } = await params;
-  const detail = await buildListDetailForId(userId, id);
+  const [detail, overview] = await Promise.all([
+    buildListDetailForId(userId, id),
+    buildListsOverview(userId),
+  ]);
   if (!detail) notFound();
 
-  return <ListDetailClient detail={detail} />;
+  return <ListDetailClient detail={detail} summaries={overview.summaries} />;
 }
