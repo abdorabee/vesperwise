@@ -176,10 +176,6 @@ button, a, [role="button"] { touch-action: manipulation; }
     flex-wrap: wrap;
   }
 
-  .drawer {
-    width: 100%;
-  }
-
   .history-activity-strip {
     grid-template-columns: 1fr;
   }

@@ -5,8 +5,11 @@ import type { UiBlock } from "@/lib/gen-ui";
 import { buildScoreReports, getNextCompanyTabIndex } from "./score-report-model";
 import { ScoreCompanyTabs } from "./score-company-tabs";
 
+type HeroBlock = Extract<UiBlock, { type: "intent_hero" }>;
+
+const rampHero: HeroBlock = { type: "intent_hero", company: "Ramp", domain: "ramp.com", intent_score: 78, score_band: "HOT" };
 const rampBlocks: UiBlock[] = [
-  { type: "intent_hero", company: "Ramp", domain: "ramp.com", intent_score: 78, score_band: "HOT" },
+  rampHero,
   { type: "action_rail", company: "Ramp", domain: "ramp.com" },
 ];
 
@@ -20,11 +23,12 @@ describe("ScoreCompanyTabs", () => {
     const reports = buildScoreReports([
       { id: "old-ramp", role: "assistant", kind: "ui", blocks: rampBlocks, restored: true },
       { id: "stripe", role: "assistant", kind: "ui", blocks: stripeBlocks },
-      { id: "new-ramp", role: "assistant", kind: "ui", blocks: [{ ...rampBlocks[0], intent_score: 84 }, rampBlocks[1]] },
+      { id: "new-ramp", role: "assistant", kind: "ui", blocks: [{ ...rampHero, intent_score: 84 }, rampBlocks[1]] },
     ]);
 
     expect(reports.map((report) => report.id)).toEqual(["stripe", "new-ramp"]);
-    expect(reports.at(-1)?.score).toBe(84);
+    const latest = reports.at(-1);
+    expect(latest?.kind === "ui" ? latest.score : undefined).toBe(84);
     expect(reports.at(-1)?.id).toBe("new-ramp");
   });
 
