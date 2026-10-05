@@ -31,6 +31,10 @@ interface WatchlistTableProps {
   onShowAll: () => void;
   /** True when a list or search filter hides accounts that do exist. */
   filtered?: boolean;
+  /** Opens a row in the shared account panel; without it rows link to the last score. */
+  onOpen?: (domain: string) => void;
+  /** Domain open in the account panel, highlighted in the table. */
+  openDomain?: string | null;
 }
 
 const PAGE_SIZE = 12;
@@ -80,6 +84,8 @@ export function WatchlistTable({
   showAll,
   onShowAll,
   filtered = false,
+  onOpen,
+  openDomain = null,
 }: WatchlistTableProps) {
   const router = useRouter();
   const visible = showAll ? rows : rows.slice(0, PAGE_SIZE);
@@ -113,16 +119,19 @@ export function WatchlistTable({
         const sparkline = sparklineForRange(row.scoreHistory, range);
         const maxSpark = Math.max(...sparkline, 1);
         const isChecked = selected.has(row.domain);
-        const open = () => router.push(lastScoreHref(row.domain));
+        const open = () => (onOpen ? onOpen(row.domain) : router.push(lastScoreHref(row.domain)));
+        const isOpen = row.domain.toLowerCase() === openDomain;
 
         return (
           <div
             key={row.id}
             className="wl-row"
             onClick={open}
-            role="link"
+            role={onOpen ? "button" : "link"}
             tabIndex={0}
-            aria-label={`Open last score for ${row.company_name}`}
+            aria-pressed={onOpen ? isOpen : undefined}
+            data-selected={isOpen ? "true" : undefined}
+            aria-label={onOpen ? `Show details for ${row.company_name}` : `Open last score for ${row.company_name}`}
             onKeyDown={(e) => {
               if (e.target !== e.currentTarget) return;
               if (e.key === "Enter") open();

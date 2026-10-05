@@ -396,3 +396,15 @@
     animation: none !important;
   }
 }
+
+/* Rows whose account is open in the shared account panel. */
+.kcard[data-selected="true"],
+.wl-row[data-selected="true"],
+.ld-trow[data-selected="true"] {
+  background: color-mix(in srgb, var(--iq-accent) 7%, transparent);
+  box-shadow: inset 2px 0 0 var(--iq-accent);
+}
+
+.ld-trow[role="button"] {
+  cursor: pointer;
+}

@@ -2,85 +2,19 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  TrendingUp,
-  TrendingDown,
-  Minus,
-  Mail,
-  RefreshCw,
-  ExternalLink,
-  Check,
-  Activity,
-} from "lucide-react";
+import { Activity } from "lucide-react";
+import { AccountPanel } from "@/components/account-panel/account-panel";
+import { useAccountParam } from "@/components/account-panel/use-account-param";
+import { PipelineAccountTab } from "@/components/pipeline/pipeline-account-tab";
+import { PipelineAccountsColumn } from "@/components/pipeline/pipeline-accounts-column";
 import type { PipelineCompany, PipelineSignals } from "@/app/api/dashboard/pipeline/route";
-import { BandPill, CompanyMark, bandForScore } from "@/components/score/band";
+import { BandPill, CompanyMark } from "@/components/score/band";
 import { EmptyState } from "@/components/app-ui/page-primitives";
 import type { ScoreBand } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-type StageKey = "cold" | "warming" | "hot" | "engaged" | "converted";
-type OutcomeKey = "closed_won" | "closed_lost" | "no_decision" | "disqualified";
-
-const OUTCOME_LABELS: Record<OutcomeKey, string> = {
-  closed_won: "Closed won",
-  closed_lost: "Closed lost",
-  no_decision: "No decision",
-  disqualified: "Disqualified",
-};
-
-const STAGE_ORDER: StageKey[] = ["cold", "warming", "hot", "engaged", "converted"];
-
-const STAGE_CONFIG: Record<StageKey, {
-  label: string;
-  desc: string;
-  action: string;
-  color: string;
-  badgeClass: string;
-}> = {
-  cold: {
-    label: "Cold",
-    desc: "Nurture",
-    action: "Send awareness content",
-    color: "var(--text-tertiary)",
-    badgeClass: "bg-slate-500/20 text-slate-400 border border-slate-500/30",
-  },
-  warming: {
-    label: "Warming",
-    desc: "Follow Up",
-    action: "Reference their recent signal",
-    color: "#f5b544",
-    badgeClass: "bg-amber-500/20 text-amber-400 border border-amber-500/30",
-  },
-  hot: {
-    label: "Hot",
-    desc: "Act Now",
-    action: "Book a call — use trigger in pitch",
-    color: "#4ade80",
-    badgeClass: "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30",
-  },
-  engaged: {
-    label: "Engaged",
-    desc: "In Outreach",
-    action: "Send proposal or follow up",
-    color: "var(--foreground)",
-    badgeClass: "border border-[var(--brand-border)] bg-[var(--brand-soft)] text-[var(--brand-ink)]",
-  },
-  converted: {
-    label: "Converted",
-    desc: "Won",
-    action: "Request a referral",
-    color: "#a78bfa",
-    badgeClass: "bg-violet-500/20 text-violet-400 border border-violet-500/30",
-  },
-};
+import { STAGE_CONFIG, STAGE_ORDER, bandOf, type OutcomeKey, type StageKey } from "@/components/pipeline/pipeline-config";
 
 function relTime(iso: string | null | undefined): string {
   if (!iso) return "—";
@@ -147,37 +81,6 @@ function PriorityIcon({ level }: { level: PriorityLevel }) {
   );
 }
 
-function TrendBadge({ trend }: { trend: number | null }) {
-  if (trend === null) return null;
-  if (trend > 0) return (
-    <span className="flex items-center gap-0.5 text-xs text-emerald-400 font-medium">
-      <TrendingUp className="h-3 w-3" />+{trend}
-    </span>
-  );
-  if (trend < 0) return (
-    <span className="flex items-center gap-0.5 text-xs text-red-400 font-medium">
-      <TrendingDown className="h-3 w-3" />{trend}
-    </span>
-  );
-  return (
-    <span className="flex items-center gap-0.5 text-xs text-slate-500 font-medium">
-      <Minus className="h-3 w-3" />0
-    </span>
-  );
-}
-
-/** Colour comes from the score, never from the kanban column the card sits in. */
-function bandOf(company: Pick<PipelineCompany, "score" | "score_band">): ScoreBand | null {
-  if (company.score_band) return company.score_band;
-  return company.score == null ? null : bandForScore(company.score);
-}
-
-function urgencyConfig(urgency: string | null): string {
-  if (urgency === "act-now") return "bg-red-500/15 text-red-400 border-red-500/30";
-  if (urgency === "this-week") return "bg-orange-500/15 text-orange-400 border-orange-500/30";
-  if (urgency === "this-month") return "bg-blue-500/15 text-blue-400 border-blue-500/30";
-  return "bg-slate-500/15 text-slate-400 border-slate-500/30";
-}
 
 const SIGNAL_LABELS: Array<{ key: keyof PipelineSignals; label: string }> = [
   { key: "funding", label: "fund" },
@@ -209,9 +112,11 @@ function SignalPills({ signals }: { signals: PipelineSignals }) {
 
 function KanbanCard({
   company,
+  selected,
   onSelect,
 }: {
   company: PipelineCompany;
+  selected: boolean;
   onSelect: (c: PipelineCompany) => void;
 }) {
   const priorityLevel = priorityFromUrgency(company.urgency);
@@ -222,6 +127,8 @@ function KanbanCard({
       className="kcard outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       role="button"
       tabIndex={0}
+      aria-pressed={selected}
+      data-selected={selected}
       aria-label={`${company.company_name}${company.score != null ? `, score ${company.score}` : ""}${band ? `, ${band}` : ""}. Open details`}
       draggable
       onDragStart={(e) => {
@@ -266,11 +173,13 @@ function KanbanCard({
 function KanbanColumn({
   stage,
   companies,
+  selectedDomain,
   onSelect,
   onStageChange,
 }: {
   stage: StageKey;
   companies: PipelineCompany[];
+  selectedDomain: string | null;
   onSelect: (c: PipelineCompany) => void;
   onStageChange: (domain: string, stage: StageKey) => void;
 }) {
@@ -314,7 +223,7 @@ function KanbanColumn({
           </div>
         ) : (
           companies.map((company) => (
-            <KanbanCard key={company.id} company={company} onSelect={onSelect} />
+            <KanbanCard key={company.id} company={company} selected={company.domain.toLowerCase() === selectedDomain} onSelect={onSelect} />
           ))
         )}
       </div>
@@ -329,11 +238,11 @@ export default function PipelinePage() {
   const [bandFilter, setBandFilter] = useState<BandFilter>("ALL");
   const [companies, setCompanies] = useState<PipelineCompany[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState<PipelineCompany | null>(null);
   const [rescoring, setRescoring] = useState<string | null>(null);
-  const [dialogEmailCopied, setDialogEmailCopied] = useState(false);
   const [outcomeSaving, setOutcomeSaving] = useState(false);
   const [outcomeError, setOutcomeError] = useState<string | null>(null);
+  const { account, openAccount, closeAccount } = useAccountParam();
+  const selected = account ? companies.find((c) => c.domain.toLowerCase() === account) ?? null : null;
 
   const fetchPipeline = useCallback(async () => {
     setLoading(true);
@@ -378,43 +287,28 @@ export default function PipelinePage() {
             : c
         )
       );
-      setSelected((prev) =>
-        prev?.domain === domain
-          ? {
-              ...prev,
-              score: data.intent_score,
-              score_band: data.score_band,
-              trend: prev.score != null ? data.intent_score - prev.score : null,
-              email_subject: data.email_subject ?? prev.email_subject,
-              talk_track: data.talk_track ?? prev.talk_track,
-              ai_summary: data.ai_summary ?? prev.ai_summary,
-              key_triggers: data.key_triggers ?? prev.key_triggers,
-              urgency: data.urgency ?? prev.urgency,
-              score_id: data.score_id ?? prev.score_id,
-              score_status: data.score_status ?? prev.score_status,
-              data_coverage: data.data_coverage ?? prev.data_coverage,
-              outcome: data.score_id && data.score_id !== prev.score_id ? null : prev.outcome,
-            }
-          : prev
-      );
     } finally {
       setRescoring(null);
     }
   }
 
   async function handleStageChange(domain: string, stage: StageKey) {
+    const previous = companies.find((c) => c.domain === domain)?.pipeline_stage ?? "cold";
+    const setStage = (next: string) => setCompanies((prev) =>
+      prev.map((c) => (c.domain === domain ? { ...c, pipeline_stage: next } : c))
+    );
+    // Optimistic so the card and the open account panel move together; roll back on failure.
+    setStage(stage);
     try {
       const res = await fetch("/api/dashboard/pipeline/stages", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ domain, stage }),
       });
-      if (res.ok) {
-        setCompanies((prev) =>
-          prev.map((c) => (c.domain === domain ? { ...c, pipeline_stage: stage } : c))
-        );
-      }
-    } catch { /* ignore */ }
+      if (!res.ok) setStage(previous);
+    } catch {
+      setStage(previous);
+    }
   }
 
   async function handleOutcome(outcome: OutcomeKey | null) {
@@ -439,7 +333,6 @@ export default function PipelinePage() {
             reason: data.outcome?.reason ?? null,
           }
         : null;
-      setSelected((current) => current ? { ...current, outcome: nextOutcome } : current);
       setCompanies((current) => current.map((company) =>
         company.score_id === selected.score_id
           ? { ...company, outcome: nextOutcome }
@@ -452,13 +345,6 @@ export default function PipelinePage() {
     }
   }
 
-  function handleCopyDialogEmail() {
-    if (!selected) return;
-    const text = [selected.email_subject, selected.talk_track].filter(Boolean).join("\n\n");
-    navigator.clipboard.writeText(text);
-    setDialogEmailCopied(true);
-    setTimeout(() => setDialogEmailCopied(false), 2000);
-  }
 
   const bandCounts = { HOT: 0, WARM: 0, COLD: 0 } as Record<ScoreBand, number>;
   for (const c of companies) {
@@ -480,9 +366,6 @@ export default function PipelinePage() {
     grouped[stage].sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
   }
 
-  const selectedStage = selected ? ((selected.pipeline_stage ?? "cold") as StageKey) : "cold";
-  const selectedCfg = selected ? STAGE_CONFIG[selectedStage] : null;
-  const selectedBand = selected ? bandOf(selected) : null;
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
@@ -545,7 +428,8 @@ export default function PipelinePage() {
                 key={stage}
                 stage={stage}
                 companies={grouped[stage]}
-                onSelect={setSelected}
+                selectedDomain={account}
+                onSelect={(company) => openAccount(company.domain)}
                 onStageChange={handleStageChange}
               />
             ))}
@@ -553,174 +437,29 @@ export default function PipelinePage() {
         </div>
       )}
 
-      {/* Detail dialog */}
-      <Dialog open={!!selected} onOpenChange={(open) => { if (!open) { setSelected(null); setDialogEmailCopied(false); setOutcomeError(null); } }}>
-        <DialogContent className="border-slate-200 dark:border-foreground/[0.08] bg-white dark:bg-[#0c1122] max-w-lg">
-          {selected && selectedCfg && (
-            <>
-              <DialogHeader>
-                <div className="flex items-center justify-between gap-3 flex-wrap pr-6">
-                  <DialogTitle className="text-slate-800 dark:text-slate-100 text-lg">{selected.company_name}</DialogTitle>
-                  <div className="flex items-center gap-2">
-                    <Badge className={`${selectedCfg.badgeClass}`}>{selectedCfg.label}</Badge>
-                    <span className="text-2xl font-semibold tabular-nums text-foreground">{selected.score ?? "—"}</span>
-                    {selectedBand ? <BandPill band={selectedBand} /> : null}
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 text-sm text-slate-500 mt-1">
-                  <span>{selected.domain}</span>
-                  <TrendBadge trend={selected.trend} />
-                  {selected.urgency && (
-                    <span className={`text-[10px] px-2 py-0.5 border font-medium ${urgencyConfig(selected.urgency)}`}>
-                      {selected.urgency}
-                    </span>
-                  )}
-                  {selected.score_status && (
-                    <span className="text-[10px] border border-slate-200 dark:border-foreground/[0.10] px-2 py-0.5 text-slate-500">
-                      {selected.score_status}
-                      {selected.data_coverage != null
-                        ? ` · ${Math.round(selected.data_coverage * 100)}% coverage`
-                        : ""}
-                    </span>
-                  )}
-                </div>
-              </DialogHeader>
+      <PipelineAccountsColumn companies={companies} selectedDomain={account} onSelect={openAccount} />
 
-              <div className="space-y-4 mt-2">
-                {/* Stage selector */}
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Pipeline Stage</p>
-                  <div className="flex gap-1.5 flex-wrap">
-                    {STAGE_ORDER.map((s) => {
-                      const sCfg = STAGE_CONFIG[s];
-                      const isActive = selectedStage === s;
-                      return (
-                        <button
-                          key={s}
-                          onClick={() => {
-                            handleStageChange(selected.domain, s);
-                            setSelected({ ...selected, pipeline_stage: s });
-                          }}
-                          className={`text-[10px] px-2.5 py-1 border transition-colors cursor-pointer ${
-                            isActive ? sCfg.badgeClass : "border-slate-200 dark:border-foreground/[0.08] text-slate-600 hover:text-slate-600 dark:hover:text-slate-400 hover:border-slate-300 dark:hover:border-foreground/[0.15]"
-                          }`}
-                        >
-                          {sCfg.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">
-                    Score outcome
-                  </p>
-                  <div className="flex gap-1.5 flex-wrap">
-                    {(Object.keys(OUTCOME_LABELS) as OutcomeKey[]).map((outcome) => {
-                      const active = selected.outcome?.outcome === outcome;
-                      return (
-                        <button
-                          key={outcome}
-                          disabled={!selected.score_id || outcomeSaving}
-                          onClick={() => handleOutcome(outcome)}
-                          className={`text-[10px] px-2.5 py-1 border transition-colors disabled:opacity-50 ${
-                            active
-                              ? "border-[var(--brand-border)] bg-[var(--brand-soft)] text-[var(--brand-ink)]"
-                              : "border-slate-200 dark:border-foreground/[0.08] text-slate-500 hover:border-slate-400"
-                          }`}
-                        >
-                          {OUTCOME_LABELS[outcome]}
-                        </button>
-                      );
-                    })}
-                    {selected.outcome && (
-                      <button
-                        disabled={outcomeSaving}
-                        onClick={() => handleOutcome(null)}
-                        className="text-[10px] px-2.5 py-1 border border-slate-200 dark:border-foreground/[0.08] text-slate-500"
-                      >
-                        Clear
-                      </button>
-                    )}
-                  </div>
-                  {!selected.score_id && (
-                    <p className="mt-1 text-[10px] text-slate-500">
-                      Re-score this account to attach an outcome to an exact score snapshot.
-                    </p>
-                  )}
-                  {outcomeError && <p className="mt-1 text-[10px] text-red-400">{outcomeError}</p>}
-                </div>
-
-                {selected.ai_summary && (
-                  <div className="bg-slate-50 dark:bg-foreground/[0.04] border border-slate-200 dark:border-foreground/[0.07] px-4 py-3">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1.5">AI Analysis</p>
-                    <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">{selected.ai_summary}</p>
-                  </div>
-                )}
-
-                {selected.key_triggers && selected.key_triggers.length > 0 && (
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Key Triggers</p>
-                    <div className="flex flex-wrap gap-2">
-                      {selected.key_triggers.map((t, i) => (
-                        <span key={i} className="text-xs bg-slate-100 dark:bg-foreground/[0.06] text-slate-600 dark:text-slate-300 px-2.5 py-1 border border-slate-200 dark:border-foreground/[0.08]">{t}</span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {selected.email_subject && (
-                  <div className="border border-slate-200 dark:border-foreground/[0.08] bg-slate-50 dark:bg-foreground/[0.03] px-4 py-3">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">Email Subject</p>
-                    <p className="text-sm font-mono text-slate-600 dark:text-slate-300">{selected.email_subject}</p>
-                  </div>
-                )}
-
-                {selected.talk_track && (
-                  <div className="border border-slate-200 dark:border-foreground/[0.08] bg-slate-50 dark:bg-foreground/[0.03] px-4 py-3">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">Talk Track</p>
-                    <p className="text-sm italic text-slate-400">{selected.talk_track}</p>
-                  </div>
-                )}
-
-                <div className="flex gap-2 flex-wrap pt-1">
-                  <Button
-                    className="flex-1 cursor-pointer gap-1.5 border-0 bg-[var(--brand)] text-[var(--on-brand)] hover:bg-[var(--brand-hover)]"
-                    onClick={handleCopyDialogEmail}
-                    disabled={!selected.email_subject && !selected.talk_track}
-                  >
-                    {dialogEmailCopied ? <><Check className="h-4 w-4" />Copied!</> : <><Mail className="h-4 w-4" />Copy Email + Talk Track</>}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => handleRescore(selected.domain)}
-                    disabled={rescoring === selected.domain}
-                    className="border-slate-200 dark:border-foreground/[0.10] text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-foreground/[0.05] cursor-pointer gap-1.5"
-                  >
-                    <RefreshCw className={`h-3.5 w-3.5 ${rescoring === selected.domain ? "animate-spin" : ""}`} />
-                    {rescoring === selected.domain ? "Scoring…" : "Re-score"}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="border-slate-200 dark:border-foreground/[0.10] text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-foreground/[0.05] cursor-pointer gap-1.5"
-                    asChild
-                  >
-                    <a
-                      href={`https://www.linkedin.com/search/results/companies/?keywords=${encodeURIComponent(selected.company_name)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <ExternalLink className="h-3.5 w-3.5" />
-                      LinkedIn
-                    </a>
-                  </Button>
-                </div>
-              </div>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
+      {account ? (
+        <AccountPanel
+          domain={account}
+          onClose={() => { closeAccount(); setOutcomeError(null); }}
+          extraTab={selected ? {
+            value: "pipeline",
+            label: "Pipeline",
+            content: (
+              <PipelineAccountTab
+                company={selected}
+                rescoring={rescoring === selected.domain}
+                outcomeSaving={outcomeSaving}
+                outcomeError={outcomeError}
+                onStageChange={handleStageChange}
+                onOutcome={handleOutcome}
+                onRescore={handleRescore}
+              />
+            ),
+          } : undefined}
+        />
+      ) : null}
     </div>
   );
 }
