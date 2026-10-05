@@ -17,6 +17,7 @@ import {
   globalError,
   oauthLabel,
   socialStrategiesFromClerk,
+  distinctGlobalError,
 } from "./clerk-helpers";
 import { useAuthAvatar } from "./use-auth-avatar";
 
@@ -40,6 +41,8 @@ export function SignupForm() {
   const needsLastName = signUp.requiredFields.includes("last_name");
 
   const hookError = globalError(errors);
+
+  const fieldMessages = ["code", "emailAddress", "firstName", "lastName", "password"].map((key) => fieldError(errors, key));
 
   function fail(message?: string | null) {
     if (message) setLocalError(message);
@@ -153,6 +156,8 @@ export function SignupForm() {
             <label htmlFor="signup-code">Verification code</label>
             <Input
               id="signup-code"
+              aria-invalid={!!fieldError(errors, "code")}
+              aria-describedby={fieldError(errors, "code") ? "signup-code-error" : undefined}
               inputMode="numeric"
               autoComplete="one-time-code"
               value={code}
@@ -164,9 +169,9 @@ export function SignupForm() {
                 avatar.watch("code").onChange(event);
               }}
             />
-            <AuthFieldError message={fieldError(errors, "code")} />
+            <AuthFieldError id="signup-code-error" message={fieldError(errors, "code")} />
           </div>
-          <AuthGlobalError message={localError ?? hookError} />
+          <AuthGlobalError message={distinctGlobalError(localError ?? hookError, fieldMessages)} />
           <Button
             type="submit"
             disabled={busy}
@@ -207,6 +212,8 @@ export function SignupForm() {
               <label htmlFor="signup-first-name">First name</label>
               <Input
                 id="signup-first-name"
+                aria-invalid={!!fieldError(errors, "firstName")}
+                aria-describedby={fieldError(errors, "firstName") ? "signup-first-name-error" : undefined}
                 autoComplete="given-name"
                 value={firstName}
                 required
@@ -217,7 +224,7 @@ export function SignupForm() {
                   avatar.watch("name").onChange(event);
                 }}
               />
-              <AuthFieldError message={fieldError(errors, "firstName")} />
+              <AuthFieldError id="signup-first-name-error" message={fieldError(errors, "firstName")} />
             </div>
           ) : null}
 
@@ -226,6 +233,8 @@ export function SignupForm() {
               <label htmlFor="signup-last-name">Last name</label>
               <Input
                 id="signup-last-name"
+                aria-invalid={!!fieldError(errors, "lastName")}
+                aria-describedby={fieldError(errors, "lastName") ? "signup-last-name-error" : undefined}
                 autoComplete="family-name"
                 value={lastName}
                 required
@@ -236,7 +245,7 @@ export function SignupForm() {
                   avatar.watch("name").onChange(event);
                 }}
               />
-              <AuthFieldError message={fieldError(errors, "lastName")} />
+              <AuthFieldError id="signup-last-name-error" message={fieldError(errors, "lastName")} />
             </div>
           ) : null}
 
@@ -244,6 +253,8 @@ export function SignupForm() {
             <label htmlFor="signup-email">Email</label>
             <Input
               id="signup-email"
+              aria-invalid={!!fieldError(errors, "emailAddress")}
+              aria-describedby={fieldError(errors, "emailAddress") ? "signup-email-error" : undefined}
               type="email"
               autoComplete="email"
               value={email}
@@ -255,7 +266,7 @@ export function SignupForm() {
                 avatar.watch("email").onChange(event);
               }}
             />
-            <AuthFieldError message={fieldError(errors, "emailAddress")} />
+            <AuthFieldError id="signup-email-error" message={fieldError(errors, "emailAddress")} />
           </div>
 
           <div className="auth-field">
@@ -263,6 +274,8 @@ export function SignupForm() {
             <div className="auth-password-wrap">
               <Input
                 id="signup-password"
+                aria-invalid={!!fieldError(errors, "password")}
+                aria-describedby={fieldError(errors, "password") ? "signup-password-error" : undefined}
                 type={avatar.passwordVisible ? "text" : "password"}
                 autoComplete="new-password"
                 value={password}
@@ -283,11 +296,11 @@ export function SignupForm() {
                 {avatar.passwordVisible ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
-            <AuthFieldError message={fieldError(errors, "password")} />
+            <AuthFieldError id="signup-password-error" message={fieldError(errors, "password")} />
           </div>
 
           <div id="clerk-captcha" />
-          <AuthGlobalError message={localError ?? hookError} />
+          <AuthGlobalError message={distinctGlobalError(localError ?? hookError, fieldMessages)} />
 
           <Button
             type="submit"
@@ -296,6 +309,11 @@ export function SignupForm() {
           >
             {busy ? "Creating account…" : "Create account"}
           </Button>
+          {/* Covers the social sign-up buttons above too: any path that creates an account. */}
+          <p className="auth-form-caption">
+            By creating an account, you agree to our <Link href="/terms">Terms of Service</Link> and
+            acknowledge our <Link href="/privacy">Privacy Policy</Link>.
+          </p>
         </form>
       )}
     </AuthCard>

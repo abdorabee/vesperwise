@@ -186,7 +186,7 @@ export default function PrivacyView() {
         <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", marginRight: "10px", fontSize: "11px", fontWeight: 600, color: T.ink, background: T.cyanSoft, padding: "1px 8px", borderRadius: "999px" }}>v2.4</span>
         <strong style={{ color: T.txtPrimary, fontWeight: 500 }}>Privacy Policy</strong>
         <span style={{ margin: "0 6px", color: T.txtQuaternary }}>·</span>
-        last updated May 12, 2026
+        last updated October 4, 2026
       </div>
 
       <div className="legal-nav-wrap">
@@ -236,7 +236,7 @@ export default function PrivacyView() {
         </aside>
 
         {/* Doc body */}
-        <main style={{ maxWidth: "720px", fontSize: "15px", lineHeight: 1.65, color: T.txtSecondary, letterSpacing: "-0.006em" }}>
+        <main id="main" style={{ maxWidth: "720px", fontSize: "15px", lineHeight: 1.65, color: T.txtSecondary, letterSpacing: "-0.006em" }}>
 
           {/* Doc meta strip */}
           <div style={{ display: "flex", gap: "18px", alignItems: "center", flexWrap: "wrap", marginBottom: "32px", paddingBottom: "24px", borderBottom: `1px solid ${T.border}`, fontSize: "12px", color: T.txtTertiary, fontFamily: T.fontMono, letterSpacing: "0.02em" }}>
@@ -315,7 +315,10 @@ export default function PrivacyView() {
               headers={["Cookie / storage", "Purpose", "Lifetime"]}
               rows={[
                 [<Code key="c1">__session</Code>, "Clerk authentication session (essential)", "Session / up to 7 days"],
-                [<Code key="c2">__client_uat</Code>, "Clerk sign-in state (essential)", "1 year"],
+                [<Code key="c2">__client_uat, __client_uat_*</Code>, "Clerk sign-in state (essential)", "1 year"],
+                [<Code key="c6">__client</Code>, "Clerk client token, set on our Clerk sign-in domain (essential)", "1 year"],
+                [<Code key="c7">__cf_bm, _cfuvid</Code>, "Cloudflare bot protection on our Clerk sign-in domain (essential)", "30 minutes / session"],
+                [<Code key="c8">__clerk_environment</Code>, "Clerk configuration cache (local storage, essential)", "Until cleared"],
                 [<Code key="c3">vw-cookie-consent</Code>, "Remembers your cookie choice (local storage, essential)", "Until cleared"],
                 [<Code key="c4">intentiq-theme</Code>, "UI theme preference (local storage)", "Until cleared"],
                 [<Code key="c5">_ga, _ga_*</Code>, "Google Analytics visitor and session IDs — only with consent", "Up to 2 years"],
@@ -326,7 +329,7 @@ export default function PrivacyView() {
 
           {/* ── 05 ── */}
           <Section id="s5" num="05" title="Sharing & subprocessors">
-            <P>We share data only with the subprocessors listed on our <A href="/legal/subprocessors">Subprocessors page</A>. These are companies that help us operate the Service (cloud infrastructure, auth, payments, email delivery, analytics). We give each subprocessor only the minimum data they need to perform their service.</P>
+            <P>We share data only with the subprocessors listed on our <A href="/legal/subprocessors">Subprocessors page</A>. These are companies that help us operate the Service (cloud infrastructure, auth, payments, email delivery, analytics) and the data enrichment providers that look up public signals about the companies and people you score. We give each subprocessor only the minimum data they need to perform their service.</P>
             <P>We will notify you at least <Strong>30 days before</Strong> adding a new subprocessor that processes personal data, via the email on your account and a notice in the product. You may object by terminating per Section&nbsp;10 of the Terms.</P>
           </Section>
 

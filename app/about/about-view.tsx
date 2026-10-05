@@ -64,6 +64,7 @@ export default function AboutView() {
       `}</style>
 
       <LandingNav />
+      <main id="main">
 
       <section className="about-hero">
         <div className="about-wrap">
@@ -143,6 +144,7 @@ export default function AboutView() {
         </div>
       </section>
 
+      </main>
       <SiteFooter />
     </div>
   );

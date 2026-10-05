@@ -13,7 +13,7 @@ export default function ThankYouPage() {
   return (
     <>
       <LandingNav />
-      <main className="status-page">
+      <main id="main" className="status-page">
         <p className="status-page-code status-page-check" aria-hidden="true">✓</p>
         <h1>Thanks — we got your message.</h1>
         <p className="lead">

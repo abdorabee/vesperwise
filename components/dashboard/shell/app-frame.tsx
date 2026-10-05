@@ -48,7 +48,7 @@ export function AppFrame({
           {list}
         </aside>
       ) : null}
-      <main data-slot="app-frame-main" className="dashboard-app-frame__main">
+      <main id="main" data-slot="app-frame-main" className="dashboard-app-frame__main">
         {children}
       </main>
       {panel ? (

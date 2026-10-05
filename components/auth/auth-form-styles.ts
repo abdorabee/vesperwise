@@ -138,6 +138,11 @@ export const AUTH_FORM_CSS = `
     font-family: var(--font-sans);
     letter-spacing: 0.06em;
   }
+  .auth-form-caption a {
+    color: var(--foreground);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
   .auth-text-button {
     background: none;
     border: 0;

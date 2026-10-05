@@ -13,7 +13,7 @@ export default function NotFound() {
   return (
     <>
       <LandingNav />
-      <main className="status-page">
+      <main id="main" className="status-page">
         <p className="status-page-code" aria-hidden="true">404</p>
         <h1>This page scored a 0.</h1>
         <p className="lead">

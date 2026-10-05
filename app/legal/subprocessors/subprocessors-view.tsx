@@ -65,6 +65,10 @@ function Strong({ children }: { children: React.ReactNode }) {
   return <strong style={{ color: T.txtPrimary, fontWeight: 500 }}>{children}</strong>;
 }
 
+function H3({ children }: { children: React.ReactNode }) {
+  return <h3 style={{ margin: "28px 0 10px", fontSize: "16px", fontWeight: 500, letterSpacing: "-0.011em", color: T.txtPrimary }}>{children}</h3>;
+}
+
 function DocTable({ headers, rows }: { headers: string[]; rows: React.ReactNode[][] }) {
   return (
     <div style={{ margin: "18px 0 24px", border: `1px solid ${T.border}`, borderRadius: "6px", overflowX: "auto", WebkitOverflowScrolling: "touch", background: T.bgEl }}>
@@ -158,11 +162,11 @@ export default function SubprocessorsView() {
           </ol>
         </aside>
 
-        <main style={{ maxWidth: "720px", fontSize: "15px", lineHeight: 1.65, color: T.txtSecondary, letterSpacing: "-0.006em" }}>
+        <main id="main" style={{ maxWidth: "720px", fontSize: "15px", lineHeight: 1.65, color: T.txtSecondary, letterSpacing: "-0.006em" }}>
 
           <Section id="s1" num="01" title="Overview" first>
             <P>VesperWise uses a small number of third-party service providers (&ldquo;subprocessors&rdquo;) to help us operate the Service.</P>
-            <P>We give each subprocessor only the minimum data required to perform their service. No subprocessor receives access to API keys, billing data (except Polar for payment processing), or raw customer lists.</P>
+            <P>We give each subprocessor only the minimum data required to perform their service. No subprocessor receives access to API keys or billing data (except Polar for payment processing). Enrichment providers receive only the company domain or person identifiers needed for each lookup, never your uploaded lists as a whole.</P>
           </Section>
 
           <Section id="s2" num="02" title="Current subprocessors">
@@ -172,7 +176,7 @@ export default function SubprocessorsView() {
               rows={[
                 [
                   <Strong key="name">Clerk</Strong>,
-                  "Authentication, MFA, session management",
+                  "Authentication, MFA, session management (bot protection on sign-up runs on Cloudflare)",
                   "United States"
                 ],
                 [
@@ -205,6 +209,20 @@ export default function SubprocessorsView() {
                   "Website usage analytics — only after cookie consent",
                   "United States"
                 ],
+              ]}
+            />
+            <H3>Data enrichment providers</H3>
+            <P>When you score a company or a person, we look up public signals with these providers. They receive the identifiers listed, not your account details.</P>
+            <DocTable
+              headers={["Provider", "Data they receive", "Purpose"]}
+              rows={[
+                [<Strong key="name">Apollo</Strong>, "Name, work email or LinkedIn URL, and company of the person being scored", "Person enrichment"],
+                [<Strong key="name">Explorium</Strong>, "Company domain and name", "Funding and firmographic signals"],
+                [<Strong key="name">GNews</Strong>, "Company name", "News signals"],
+                [<Strong key="name">BuiltWith</Strong>, "Company domain", "Technology signals"],
+                [<Strong key="name">Open PageRank</Strong>, "Company domain", "Web authority signals"],
+                [<Strong key="name">GitHub</Strong>, "Company name", "Open-source activity signals"],
+                [<Strong key="name">treg</Strong>, "Company domain", "Fallback data for hiring and other signals"],
               ]}
             />
             <P><Strong>Card data:</Strong> VesperWise never receives or stores raw card data. Polar.sh collects payment details and stores them with Stripe. We receive only metadata (last 4 digits, brand, expiry) via webhook.</P>

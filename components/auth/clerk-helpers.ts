@@ -46,6 +46,15 @@ export function globalError(
   return errors?.global?.[0]?.message;
 }
 
+/** Hide a form-level error that only repeats a message already shown under a field. */
+export function distinctGlobalError(
+  message: string | null | undefined,
+  fieldMessages: Array<string | null | undefined>
+): string | undefined {
+  if (!message || fieldMessages.includes(message)) return undefined;
+  return message;
+}
+
 type FinalizeNavigate = (params: {
   navigate?: (args: {
     session?: { currentTask?: { key?: string } | null } | null;

@@ -36,12 +36,13 @@ export function AuthCard({
   );
 }
 
-export function AuthFieldError({ message }: { message?: string | null }) {
+/** Field-level error. Pair `id` with the input's aria-describedby. */
+export function AuthFieldError({ id, message }: { id: string; message?: string | null }) {
   if (!message) return null;
-  return <p className="auth-field-error">{message}</p>;
+  return <p id={id} className="auth-field-error" role="alert">{message}</p>;
 }
 
 export function AuthGlobalError({ message }: { message?: string | null }) {
   if (!message) return null;
-  return <p className="auth-global-error">{message}</p>;
+  return <p className="auth-global-error" role="alert">{message}</p>;
 }

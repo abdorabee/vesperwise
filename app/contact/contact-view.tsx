@@ -229,6 +229,7 @@ export default function ContactView() {
       `}</style>
 
       <LandingNav />
+      <main id="main">
 
       {/* ── Hero ── */}
       <section style={{ position: "relative", padding: "88px 0 64px", overflow: "hidden", borderBottom: `1px solid ${T.border}` }}>
@@ -371,9 +372,11 @@ export default function ContactView() {
             {/* Row 2: company + team size */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 280px), 1fr))", gap: "12px" }}>
               <div style={{ marginBottom: "16px" }}>
-                <label style={{ display: "block", fontSize: "12px", fontWeight: 500, color: T.txtTertiary, letterSpacing: "-0.006em", marginBottom: "6px" }}>Company</label>
+                <label style={{ display: "block", fontSize: "12px", fontWeight: 500, color: T.txtTertiary, letterSpacing: "-0.006em", marginBottom: "6px" }} htmlFor="contact-company">Company</label>
                 <input
+                  id="contact-company"
                   type="text"
+                  autoComplete="organization"
                   placeholder="Acme Corp"
                   value={company}
                   onChange={(e) => setCompany(e.target.value)}
@@ -382,8 +385,9 @@ export default function ContactView() {
                 />
               </div>
               <div style={{ marginBottom: "16px" }}>
-                <label style={{ display: "block", fontSize: "12px", fontWeight: 500, color: T.txtTertiary, letterSpacing: "-0.006em", marginBottom: "6px" }}>Team size</label>
+                <label style={{ display: "block", fontSize: "12px", fontWeight: 500, color: T.txtTertiary, letterSpacing: "-0.006em", marginBottom: "6px" }} htmlFor="contact-team-size">Team size</label>
                 <select
+                  id="contact-team-size"
                   value={teamSize}
                   onChange={(e) => setTeamSize(e.target.value)}
                   className="field-input"
@@ -465,6 +469,7 @@ export default function ContactView() {
         </div>
       </section>
 
+      </main>
       <SiteFooter />
 
     </div>

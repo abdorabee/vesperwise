@@ -1992,7 +1992,7 @@ footer.site-footer {
   letter-spacing: -0.006em;
   max-width: 260px;
 }
-.footer-col h4 {
+.footer-col h2 {
   font-size: 12px; font-weight: 500;
   color: var(--text-secondary);
   letter-spacing: -0.006em;
@@ -9380,3 +9380,22 @@ button.signal-card.gen-axis.is-selected {
 .footer-link-button {
   background: none; border: 0; padding: 0; font: inherit; color: inherit; cursor: pointer;
 }
+
+/* Keyboard users: first focusable element, visible only when focused. */
+.skip-link {
+  position: absolute;
+  left: 12px;
+  top: -48px;
+  z-index: 1000;
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: #dfff00; /* brand lime; dark text keeps contrast in both themes */
+  color: #0b0c0e;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.skip-link:focus {
+  top: 12px;
+}
+

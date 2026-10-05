@@ -14,7 +14,7 @@ import {
 const FAQ: { q: string; a: string }[] = [
   {
     q: "What is a credit?",
-    a: "One credit scores one company. Results are cached for 6 hours, so asking for the same company again inside that window costs nothing. Bulk jobs reserve one credit per company when the job is created.",
+    a: "One credit scores one company. Results are cached for 6 hours, so asking for the same company again inside that window costs nothing. Bulk API jobs (early access) reserve one credit per company when the job is created.",
   },
   {
     q: "What happens when I run out?",
@@ -85,6 +85,7 @@ export default function PricingView() {
       `}</style>
 
       <LandingNav />
+      <main id="main">
 
       <section className="pp-hero">
         <h1>Start free. Pay for the accounts you score.</h1>
@@ -124,7 +125,7 @@ export default function PricingView() {
         </div>
 
         <p className="pp-note">
-          Bulk jobs take up to {formatCount(BULK_MAX_PER_JOB)} companies each, with {BULK_MAX_CONCURRENT} jobs running at once on any plan.
+          Bulk API jobs are in early access: they take up to {formatCount(BULK_MAX_PER_JOB)} companies each, with {BULK_MAX_CONCURRENT} jobs running at once on any plan. For lists of up to 50 companies today, use CSV upload.
         </p>
 
         <section className="pp-topups" aria-labelledby="topups-title">
@@ -165,6 +166,7 @@ export default function PricingView() {
         </div>
       </section>
 
+      </main>
       <SiteFooter />
       <StickyMobileCta />
     </div>
