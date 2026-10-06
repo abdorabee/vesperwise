@@ -107,7 +107,8 @@ export function SiteHeader() {
             </>
           ) : null}
           {isLists ? (
-            <Button type="button" size="sm" className="rounded-lg" onClick={openNewListModal}>
+            // Desktop uses the list column's "+ New list"; the column is hidden on phones.
+            <Button type="button" size="sm" className="rounded-lg md:hidden" onClick={openNewListModal}>
               <Plus className="size-4" />
               New list
             </Button>

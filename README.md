@@ -221,6 +221,12 @@ The in-app reference is [`/docs`](app/docs/docs-view.tsx).
 
 `/onboarding` and `/dev` are public only when `VERCEL_ENV` is not `production`.
 
+### Dashboard layout
+
+[Wiki](docs/wiki/dashboard-layout.md)
+
+The dashboard shell has five zones: an icon rail, a per-page list column (⌘B), the main view, a right panel, and a status bar. Pages fill the list column and panel through `ShellList` / `ShellPanel` in `components/dashboard/shell/`. Clicking an account on Pipeline, History, Watchlist or a list opens the shared account panel (`components/account-panel/`), kept in the URL as `?account=<domain>`.
+
 ### Key modules
 
 [Wiki](docs/wiki/key-modules.md)

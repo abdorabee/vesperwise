@@ -13,6 +13,7 @@ Companion pages for each section of the [project README](../../README.md). The R
 | Score API | [score-api](score-api.md) |
 | Route groups | [routes](routes.md) |
 | Key modules | [key-modules](key-modules.md) |
+| Dashboard layout | [dashboard-layout](dashboard-layout.md) |
 | Billing | [billing](billing.md) |
 | Autopilot | [autopilot](autopilot.md) |
 | Person scoring | [person-scoring](person-scoring.md) |
