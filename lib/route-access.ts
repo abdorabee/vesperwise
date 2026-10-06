@@ -27,7 +27,14 @@ const PRIVATE_PAGE_SECTIONS = [
 /** Readable without auth in preview deployments only. */
 const PREVIEW_ONLY_PAGE_SECTIONS = ["onboarding", "dev"] as const;
 
-const PUBLIC_API_PATTERNS = [/^\/api\/v1(\/|$)/, /^\/api\/chat/, /^\/api\/billing\/webhook$/, /^\/api\/contact$/];
+const PUBLIC_API_PATTERNS = [
+  /^\/api\/v1(\/|$)/,
+  /^\/api\/chat/,
+  /^\/api\/billing\/webhook$/,
+  /^\/api\/contact$/,
+  // Vercel Cron routes authenticate with CRON_SECRET, not a Clerk session.
+  /^\/api\/cron\//,
+];
 
 function inSection(pathname: string, sections: readonly string[]) {
   const first = pathname.split("/")[1] ?? "";

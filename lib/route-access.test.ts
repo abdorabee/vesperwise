@@ -51,6 +51,10 @@ describe("requiresAuth", () => {
     }
   });
 
+  it("lets Vercel Cron routes through to their own CRON_SECRET check", () => {
+    expect(requiresAuth("/api/cron/reset-free-credits", prod)).toBe(false);
+    expect(requiresAuth("/api/cronx", prod)).toBe(true);
+  });
 });
 
 describe("isApiPath", () => {
