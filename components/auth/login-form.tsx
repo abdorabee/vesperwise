@@ -17,6 +17,7 @@ import {
   globalError,
   oauthLabel,
   socialStrategiesFromClerk,
+  distinctGlobalError,
 } from "./clerk-helpers";
 import { useAuthAvatar } from "./use-auth-avatar";
 
@@ -210,6 +211,8 @@ function LoginFormInner() {
             <label htmlFor="login-email">Email</label>
             <Input
               id="login-email"
+              aria-invalid={!!identifierError}
+              aria-describedby={identifierError ? "login-email-error" : undefined}
               type="email"
               autoComplete="email"
               value={email}
@@ -221,7 +224,7 @@ function LoginFormInner() {
                 avatar.watch("email").onChange(event);
               }}
             />
-            <AuthFieldError message={identifierError} />
+            <AuthFieldError id="login-email-error" message={identifierError} />
           </div>
 
           <div className="auth-field">
@@ -234,6 +237,8 @@ function LoginFormInner() {
             <div className="auth-password-wrap">
               <Input
                 id="login-password"
+                aria-invalid={!!passwordError}
+                aria-describedby={passwordError ? "login-password-error" : undefined}
                 type={avatar.passwordVisible ? "text" : "password"}
                 autoComplete="current-password"
                 value={password}
@@ -254,10 +259,10 @@ function LoginFormInner() {
                 {avatar.passwordVisible ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
-            <AuthFieldError message={passwordError} />
+            <AuthFieldError id="login-password-error" message={passwordError} />
           </div>
 
-          <AuthGlobalError message={localError ?? hookError} />
+          <AuthGlobalError message={distinctGlobalError(localError ?? hookError, [identifierError, passwordError, codeError])} />
           {notice ? <p className="auth-form-caption" style={{ marginTop: 0 }}>{notice}</p> : null}
 
           <Button
@@ -276,6 +281,8 @@ function LoginFormInner() {
             <label htmlFor="reset-code">Reset code</label>
             <Input
               id="reset-code"
+              aria-invalid={!!codeError}
+              aria-describedby={codeError ? "reset-code-error" : undefined}
               inputMode="numeric"
               autoComplete="one-time-code"
               value={code}
@@ -287,9 +294,9 @@ function LoginFormInner() {
                 avatar.watch("code").onChange(event);
               }}
             />
-            <AuthFieldError message={codeError} />
+            <AuthFieldError id="reset-code-error" message={codeError} />
           </div>
-          <AuthGlobalError message={localError ?? hookError} />
+          <AuthGlobalError message={distinctGlobalError(localError ?? hookError, [identifierError, passwordError, codeError])} />
           <Button
             type="submit"
             disabled={busy}
@@ -310,6 +317,8 @@ function LoginFormInner() {
             <div className="auth-password-wrap">
               <Input
                 id="new-password"
+                aria-invalid={!!passwordError}
+                aria-describedby={passwordError ? "new-password-error" : undefined}
                 type={avatar.passwordVisible ? "text" : "password"}
                 autoComplete="new-password"
                 value={newPassword}
@@ -330,9 +339,9 @@ function LoginFormInner() {
                 {avatar.passwordVisible ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
-            <AuthFieldError message={passwordError} />
+            <AuthFieldError id="new-password-error" message={passwordError} />
           </div>
-          <AuthGlobalError message={localError ?? hookError} />
+          <AuthGlobalError message={distinctGlobalError(localError ?? hookError, [identifierError, passwordError, codeError])} />
           <Button
             type="submit"
             disabled={busy}
@@ -349,6 +358,8 @@ function LoginFormInner() {
             <label htmlFor="mfa-code">Verification code</label>
             <Input
               id="mfa-code"
+              aria-invalid={!!codeError}
+              aria-describedby={codeError ? "mfa-code-error" : undefined}
               inputMode="numeric"
               autoComplete="one-time-code"
               value={code}
@@ -360,9 +371,9 @@ function LoginFormInner() {
                 avatar.watch("code").onChange(event);
               }}
             />
-            <AuthFieldError message={codeError} />
+            <AuthFieldError id="mfa-code-error" message={codeError} />
           </div>
-          <AuthGlobalError message={localError ?? hookError} />
+          <AuthGlobalError message={distinctGlobalError(localError ?? hookError, [identifierError, passwordError, codeError])} />
           <Button
             type="submit"
             disabled={busy}

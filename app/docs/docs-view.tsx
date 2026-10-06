@@ -6,6 +6,7 @@ import LandingNav from "@/components/landing/LandingNav";
 import SiteFooter from "@/components/site-footer";
 import { BULK_MAX_CONCURRENT, BULK_MAX_PER_JOB, PLAN_LABEL, PLAN_ORDER as PLAN_KEYS, formatCount } from "@/lib/plan-features";
 import { PLAN_CREDITS, PLAN_RATE_LIMIT, PLAN_WATCHLIST_LIMIT } from "@/lib/types";
+import { filterNavGroups, type NavGroup } from "./docs-search";
 
 
 /* ─── Design tokens ──────────────────────────────────────────── */
@@ -324,8 +325,6 @@ const scoreResponse = (
 );
 
 /* ─── Rail nav data ──────────────────────────────────────────── */
-type NavItem = { id: string; label: string; method?: string };
-type NavGroup = { heading: string; items: NavItem[] };
 
 const NAV_GROUPS: NavGroup[] = [
   {
@@ -385,14 +384,7 @@ export default function DocsView() {
   }, []);
 
   /* Filter groups by search */
-  const filteredGroups = NAV_GROUPS.map(g => ({
-    ...g,
-    items: g.items.filter(i =>
-      !search ||
-      i.label.toLowerCase().includes(search.toLowerCase()) ||
-      i.method?.toLowerCase().includes(search.toLowerCase())
-    ),
-  })).filter(g => g.items.length > 0);
+  const filteredGroups = filterNavGroups(NAV_GROUPS, search);
 
   /* ⌘K → focus search */
   useEffect(() => {
@@ -407,7 +399,7 @@ export default function DocsView() {
   }, []);
 
   const secStyle: React.CSSProperties = { padding: "32px 0", borderTop: `1px solid ${T.border}` };
-  const h1Style: React.CSSProperties = { fontSize: "32px", fontWeight: 500, letterSpacing: "-0.028em", lineHeight: 1.15, color: T.txt, marginBottom: "8px", scrollMarginTop: "100px" };
+  const sectionTitleStyle: React.CSSProperties = { fontSize: "32px", fontWeight: 500, letterSpacing: "-0.028em", lineHeight: 1.15, color: T.txt, marginBottom: "8px", scrollMarginTop: "100px" };
   const h2Style: React.CSSProperties = { fontSize: "24px", fontWeight: 500, letterSpacing: "-0.022em", color: T.txt, marginBottom: "6px", scrollMarginTop: "100px", display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" as const };
 
   return (
@@ -463,6 +455,14 @@ export default function DocsView() {
             <kbd style={{ position: "absolute", right: "8px", top: "50%", transform: "translateY(-50%)", fontFamily: T.mono, fontSize: "10px", fontWeight: 500, padding: "1px 5px", border: `1px solid ${T.border}`, borderRadius: "3px", color: T.txtQ }}>⌘K</kbd>
           </div>
 
+          {filteredGroups.length === 0 && (
+            <p role="status" style={{ fontSize: "13px", color: T.txtTert, padding: "0 10px", margin: "0 0 12px" }}>
+              No results for &ldquo;{search.trim()}&rdquo;.{" "}
+              <button type="button" onClick={() => setSearch("")} style={{ background: "none", border: 0, padding: 0, color: T.txt, textDecoration: "underline", cursor: "pointer", font: "inherit" }}>
+                Clear search
+              </button>
+            </p>
+          )}
           {filteredGroups.map(group => (
             <div key={group.heading} style={{ marginBottom: "22px" }}>
               <div style={{ fontSize: "12px", fontWeight: 600, color: T.txtTert, margin: "0 0 8px", padding: "0 10px" }}>{group.heading}</div>
@@ -488,11 +488,11 @@ export default function DocsView() {
         </aside>
 
         {/* ── Main content ── */}
-        <main style={{ minWidth: 0 }}>
+        <main id="main" style={{ minWidth: 0 }}>
 
           {/* Quickstart */}
           <section id="quickstart" style={{ paddingBottom: "32px" }}>
-            <h1 style={h1Style}>Quickstart</h1>
+            <h2 style={sectionTitleStyle}>Quickstart</h2>
             <Summary>You need an API key and a domain to score. Everything else is a single <IC>POST</IC>.</Summary>
             <H3>1. Create an API key</H3>
             <P>Sign in and open <A href="/api-keys">API keys</A>. Keys start with <IC>vesperwise_</IC> and are shown once when created; we store only a SHA‑256 hash. Put the key in your secret manager, for example as <IC>VESPERWISE_API_KEY</IC>.</P>
@@ -509,14 +509,14 @@ export default function DocsView() {
 
           {/* Authentication */}
           <section id="auth" style={secStyle}>
-            <h1 style={h1Style}>Authentication</h1>
+            <h2 style={sectionTitleStyle}>Authentication</h2>
             <Summary>Send your key as a bearer token: <IC>Authorization: Bearer vesperwise_…</IC>. Never put keys in URLs.</Summary>
             <P>Every endpoint on this page accepts an API key. Revoking a key in <A href="/api-keys">API keys</A> makes further requests with it return <IC>401</IC>. To rotate, create the new key, deploy it, then revoke the old one.</P>
           </section>
 
           {/* Errors */}
           <section id="errors" style={secStyle}>
-            <h1 style={h1Style}>Errors</h1>
+            <h2 style={sectionTitleStyle}>Errors</h2>
             <Summary>Scoring endpoints return JSON with a stable <IC>code</IC> and a readable <IC>message</IC>. Other endpoints return <IC>{"{ \"error\": \"…\" }"}</IC>.</Summary>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "8px", margin: "12px 0" }}>
               <ErrorCell num="400" code="invalid_request"      desc={<>Malformed body or a domain that can&apos;t be parsed. The <IC>field</IC> property names the problem field.</>} />
@@ -531,7 +531,7 @@ export default function DocsView() {
 
           {/* Limits */}
           <section id="limits" style={secStyle}>
-            <h1 style={h1Style}>Limits</h1>
+            <h2 style={sectionTitleStyle}>Limits</h2>
             <Summary>Credits are the main limit: one credit per company scored. The limits below apply per account.</Summary>
             <ParamTable>
               <ParamRow name="Credits" type="per plan">{PLAN_KEYS.map((k, i) => <span key={k}>{i > 0 ? " · " : ""}{PLAN_LABEL[k]} {formatCount(PLAN_CREDITS[k])}/mo</span>)}</ParamRow>
@@ -543,7 +543,7 @@ export default function DocsView() {
 
           {/* Idempotency */}
           <section id="idempotency" style={secStyle}>
-            <h1 style={h1Style}>Idempotency</h1>
+            <h2 style={sectionTitleStyle}>Idempotency</h2>
             <Summary><IC>POST /api/v1/score</IC> accepts an <IC>Idempotency-Key</IC> header, so a retried request never uses a second credit.</Summary>
             <P>Use any unique string up to 255 characters (a UUID works). Reusing a key with a <em>different</em> request returns <IC>409 idempotency_conflict</IC>. Replays of a completed request return the original response with <IC>Idempotency-Replayed: true</IC>.</P>
           </section>
@@ -664,7 +664,7 @@ export default function DocsView() {
 
           {/* Score object */}
           <section id="score-object" style={secStyle}>
-            <h1 style={h1Style}>The Score object</h1>
+            <h2 style={sectionTitleStyle}>The Score object</h2>
             <Summary>Returned by <IC>POST /api/v1/score</IC> and its GET form.</Summary>
             <ParamTable>
               <ParamRow name="domain"       type="string">Normalized domain, lower-case.</ParamRow>
@@ -686,7 +686,7 @@ export default function DocsView() {
 
           {/* Signal object */}
           <section id="signal-object" style={secStyle}>
-            <h1 style={h1Style}>The Signal object</h1>
+            <h2 style={sectionTitleStyle}>The Signal object</h2>
             <Summary>Each entry in <IC>signals</IC>. Only funding, hiring, news and technology count toward <IC>intent_score</IC>; web and GitHub are context.</Summary>
             <ParamTable>
               <ParamRow name="score"       type="number">Points earned, out of <IC>max</IC>.</ParamRow>

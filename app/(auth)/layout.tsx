@@ -75,7 +75,8 @@ function LeftPanel() {
         >
           Sales intelligence you can inspect
         </p>
-        <h1
+        {/* Not a heading: the form title is the page's only h1. */}
+        <p
           style={{
             maxWidth: "430px",
             margin: 0,
@@ -87,7 +88,7 @@ function LeftPanel() {
           }}
         >
           Know why an account is ready before you reach out.
-        </h1>
+        </p>
         <p
           style={{
             maxWidth: "420px",
@@ -124,9 +125,9 @@ function LeftPanel() {
                 ✓
               </span>
               <div>
-                <h2 style={{ margin: 0, color: "var(--foreground)", fontSize: "14px", fontWeight: 600 }}>
+                <p style={{ margin: 0, color: "var(--foreground)", fontSize: "14px", fontWeight: 600 }}>
                   {capability.title}
-                </h2>
+                </p>
                 <p style={{ margin: "5px 0 0", color: "var(--muted-foreground)", fontSize: "13px", lineHeight: 1.55 }}>
                   {capability.description}
                 </p>
@@ -195,7 +196,8 @@ export default function AuthLayout({
         <LeftPanel />
       </div>
 
-      <div
+      <main
+        id="main"
         className="auth-right"
         style={{
           flex: 1,
@@ -225,7 +227,7 @@ export default function AuthLayout({
           <VesperWiseLogo size={44} variant="wordmark" />
         </Link>
         {children}
-      </div>
+      </main>
     </div>
   );
 }

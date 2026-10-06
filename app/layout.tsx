@@ -133,6 +133,7 @@ export default function RootLayout({
           />
         </head>
         <body className={`${instrumentSans.variable} font-sans antialiased`}>
+          <a href="#main" className="skip-link">Skip to content</a>
           <ThemeProvider>
             <TooltipProvider>
               {children}

@@ -67,7 +67,8 @@
   --text-primary: #15171a;
   --text-secondary: #41464f;
   --text-tertiary: #626872;
-  --text-quaternary: #8b94a3;
+  /* WCAG AA: >= 4.5:1 on #f6f7f8 and #fff */
+  --text-quaternary: #676d78;
   --success: #16a34a;
   --success-bg: rgba(22, 163, 74, 0.10);
   --warning: #b45309;
@@ -162,8 +163,9 @@
   --accent-border: var(--brand-border);
   --text-primary: #f4f4f5;
   --text-secondary: #a4a8b0;
-  --text-tertiary: #737982;
-  --text-quaternary: #555b64;
+  /* WCAG AA: >= 4.5:1 on #050608 through #17191d */
+  --text-tertiary: #8a8f98;
+  --text-quaternary: #7d838c;
   --success: #4ade80;
   --success-bg: rgba(74, 222, 128, 0.12);
   --warning: #f5b544;

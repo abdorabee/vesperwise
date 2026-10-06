@@ -158,10 +158,10 @@ export default function TermsView() {
 
       {/* ── Top banner — sticky ── */}
       <div className="legal-top-banner" style={{ position: "sticky", top: 0, zIndex: 100, height: "36px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "13px", color: T.txtSecondary, background: "var(--bg-translucent)", backdropFilter: "saturate(180%) blur(20px)", WebkitBackdropFilter: "saturate(180%) blur(20px)", borderBottom: `1px solid ${T.border}`, letterSpacing: "-0.011em", gap: 0 } as React.CSSProperties}>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", marginRight: "10px", fontSize: "11px", fontWeight: 600, color: T.ink, background: T.cyanSoft, padding: "1px 8px", borderRadius: "999px" }}>v3.1</span>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", marginRight: "10px", fontSize: "11px", fontWeight: 600, color: T.ink, background: T.cyanSoft, padding: "1px 8px", borderRadius: "999px" }}>v3.2</span>
         <strong style={{ color: T.txtPrimary, fontWeight: 500 }}>Terms of Service</strong>
         <span style={{ margin: "0 6px", color: T.txtQuaternary }}>·</span>
-        last updated May 12, 2026
+        last updated October 4, 2026
       </div>
 
       <div className="legal-nav-wrap">
@@ -212,13 +212,13 @@ export default function TermsView() {
         </aside>
 
         {/* Doc body */}
-        <main style={{ maxWidth: "720px", fontSize: "15px", lineHeight: 1.65, color: T.txtSecondary, letterSpacing: "-0.006em" }}>
+        <main id="main" style={{ maxWidth: "720px", fontSize: "15px", lineHeight: 1.65, color: T.txtSecondary, letterSpacing: "-0.006em" }}>
 
           {/* Doc meta strip */}
           <div style={{ display: "flex", gap: "18px", alignItems: "center", flexWrap: "wrap", marginBottom: "32px", paddingBottom: "24px", borderBottom: `1px solid ${T.border}`, fontSize: "12px", color: T.txtTertiary, fontFamily: T.fontMono, letterSpacing: "0.02em" }}>
-            <span><span style={{ color: T.txtQuaternary, marginRight: "4px" }}>Effective</span><span style={{ color: T.txtSecondary }}>May 12, 2026</span></span>
-            <span><span style={{ color: T.txtQuaternary, marginRight: "4px" }}>Version</span>v3.1</span>
-            <span><span style={{ color: T.txtQuaternary, marginRight: "4px" }}>Supersedes</span>v3.0 (Jan 4, 2026)</span>
+            <span><span style={{ color: T.txtQuaternary, marginRight: "4px" }}>Effective</span><span style={{ color: T.txtSecondary }}>October 4, 2026</span></span>
+            <span><span style={{ color: T.txtQuaternary, marginRight: "4px" }}>Version</span>v3.2</span>
+            <span><span style={{ color: T.txtQuaternary, marginRight: "4px" }}>Supersedes</span>v3.1 (May 12, 2026)</span>
             <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "2px 8px", border: `1px solid ${T.border}`, borderRadius: "999px", background: "rgba(255,255,255,0.02)", color: T.txtSecondary }}>
               <span style={{ width: "5px", height: "5px", borderRadius: "999px", background: T.cyan }} />
               In force
@@ -229,8 +229,8 @@ export default function TermsView() {
           <InfoCallout>
             <strong style={{ color: T.txtPrimary, fontWeight: 500 }}>The short version.</strong>{" "}Use VesperWise for B2B sales
             work. Don&rsquo;t scrape it, train models on it, or break the law with it. Your data stays yours; we&rsquo;ll
-            handle it under the <A href="/legal/dpa">DPA</A>. Either side can leave with 30 days notice on monthly plans,
-            anytime on annual at renewal.
+            handle it under the <A href="/legal/dpa">DPA</A>. Plans are month&#8209;to&#8209;month: cancel anytime from Billing
+            and keep access until the end of the period you&rsquo;ve paid for.
           </InfoCallout>
 
           {/* ── 01 ── */}
@@ -241,18 +241,18 @@ export default function TermsView() {
 
           {/* ── 02 ── */}
           <Section id="s2" num="02" title="Account & access">
-            <P>You need a verified work email to create an account. You agree to provide accurate information, keep credentials confidential, and notify us promptly at <A href="mailto:security@vesperwise.com">security@vesperwise.com</A> of any suspected unauthorized access. You are responsible for activity under your account, including activity by your seat holders.</P>
+            <P>You need a verified email address to create an account, and the Service is intended for business use. You agree to provide accurate information, keep credentials confidential, and notify us promptly at <A href="mailto:security@vesperwise.com">security@vesperwise.com</A> of any suspected unauthorized access. You are responsible for activity under your account, including activity by your seat holders.</P>
             <P>API keys are bearer credentials. Treat them like passwords. We hash all keys at rest (SHA&#8209;256) and never log key material in plaintext. We may rotate or revoke any key on credible suspicion of compromise.</P>
           </Section>
 
           {/* ── 03 ── */}
           <Section id="s3" num="03" title="Plans, credits & billing">
             <H3>Subscriptions</H3>
-            <P>Plans are billed monthly or annually in advance. Credits reset on each renewal (and on plan changes per Section&nbsp;3.3). Unused monthly credits do not roll over; unused annual credits do not roll over past renewal.</P>
+            <P>Paid plans are billed monthly in advance. Plan credits reset to your plan&rsquo;s allocation on each renewal (and on plan changes per Section&nbsp;3.3); unused plan credits do not roll over. The Free plan includes 20 credits, refilled once a month.</P>
             <H3>One&#8209;time top&#8209;ups</H3>
-            <P>Top&#8209;ups add credits without changing your plan and don&rsquo;t expire until your account is closed.</P>
+            <P>Top&#8209;ups add credits without changing your plan. They are kept across renewals, plan changes and cancellation, are used after your plan credits, and don&rsquo;t expire until your account is closed.</P>
             <H3>Plan changes</H3>
-            <P>Upgrades take effect immediately and reset your credit balance to the new plan&rsquo;s allocation, prorated against the days remaining in the cycle. Downgrades take effect at next renewal. We don&rsquo;t refund unused credits on downgrade.</P>
+            <P>Upgrades take effect immediately and reset your plan credits to the new plan&rsquo;s full allocation. Downgrades take effect at next renewal. We don&rsquo;t refund unused credits on downgrade.</P>
             <H3>Taxes</H3>
             <P>Stated fees exclude VAT, GST and other applicable taxes, which are added at checkout based on your billing address. You are responsible for any withholding taxes; fees due to VesperWise are payable in full.</P>
             <H3>Late payment</H3>
@@ -325,7 +325,7 @@ export default function TermsView() {
           <Section id="s10" num="10" title="Termination">
             <P>Either party may terminate this Agreement:</P>
             <UL items={[
-              <span key="c"><Strong>For convenience</Strong> — monthly plans, on 30 days written notice; annual plans, at the end of the current term;</span>,
+              <span key="c"><Strong>For convenience</Strong> — you may cancel at any time from Billing, and the cancellation takes effect at the end of the current billing period, with access continuing until then; we may terminate on 30 days written notice;</span>,
               <span key="f"><Strong>For cause</Strong> — if the other party materially breaches and fails to cure within 30 days of written notice; immediately for breaches that cannot be cured (e.g. Restricted Use).</span>,
             ]} />
             <P>On termination, your access ends and we delete Customer Data within 90 days. Sections that by their nature should survive — including 5, 7, 8, 9, 11, and 12 — survive termination.</P>

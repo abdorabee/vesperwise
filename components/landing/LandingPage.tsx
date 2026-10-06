@@ -81,6 +81,7 @@ export default function LandingPage() {
   return (
     <>
       <LandingNav />
+      <main id="main">
 
       {/* Hero */}
       <section className="hero">
@@ -310,7 +311,7 @@ export default function LandingPage() {
             <div className="feat-card">
               <div className="feat-head">
                 <h3>One API call. Any company.</h3>
-                <p>POST a domain and get back a 0–100 score, its band, the reason it matters now and a next step. Bulk jobs take up to {formatCount(BULK_MAX_PER_JOB)} companies. <a href="/docs">Read the API docs</a>.</p>
+                <p>POST a domain and get back a 0–100 score, its band, the reason it matters now and a next step. Bulk jobs of up to {formatCount(BULK_MAX_PER_JOB)} companies are in early access. <a href="/docs">Read the API docs</a>.</p>
               </div>
               <div className="feat-visual" aria-hidden="true">
                 <div className="code-surface">
@@ -418,6 +419,7 @@ export default function LandingPage() {
         </div>
       </section>
 
+      </main>
       <SiteFooter />
       <StickyMobileCta />
     </>

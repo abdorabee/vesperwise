@@ -74,7 +74,7 @@ export default function SiteFooter() {
           </div>
           {FOOTER_COLUMNS.map((col) => (
             <div key={col.title} className="footer-col">
-              <h4>{col.title}</h4>
+              <h2>{col.title}</h2>
               <ul>
                 {col.links.map((link) => (
                   <FooterLinkItem key={link.label} {...link} />

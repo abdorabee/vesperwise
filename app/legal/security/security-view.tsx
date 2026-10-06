@@ -88,6 +88,7 @@ export default function SecurityView() {
       `}</style>
 
       <LandingNav />
+      <main id="main">
 
       <section style={{ position: "relative", padding: "88px 0 64px", overflow: "hidden", borderBottom: `1px solid ${T.border}` }}>
         <div style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden" }} aria-hidden="true">
@@ -220,6 +221,7 @@ export default function SecurityView() {
         </div>
       </section>
 
+      </main>
       <SiteFooter />
     </div>
   );

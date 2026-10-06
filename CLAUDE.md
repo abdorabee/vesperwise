@@ -82,13 +82,16 @@ Set `MOCK_SIGNALS=true` to skip all external signal API calls during development
 
 ### Signal Weights (`lib/scorer.ts`)
 
+Relative weights of the four time-bound triggers (`TRIGGER_WEIGHTS`, normalized over their total):
+
 | Signal     | Weight |
 |------------|--------|
-| funding    | 25%    |
-| hiring     | 20%    |
-| news       | 20%    |
-| technology | 20%    |
-| web        | 15%    |
+| funding    | 22     |
+| hiring     | 19     |
+| news       | 18     |
+| technology | 18     |
+
+Web and GitHub are context only; they do not add to the score.
 
 Score decays 15% per month from `latestSignalDate`. Bands: HOT ≥75, WARM ≥50, COLD <50.
 
@@ -111,7 +114,7 @@ Score decays 15% per month from `latestSignalDate`. Bands: HOT ≥75, WARM ≥50
 
 ### Auth & Middleware
 
-`proxy.ts` exports the middleware function (named `proxy`, not `middleware`) that runs `clerkMiddleware` and redirects unauthenticated users away from dashboard paths. `/onboarding` is public only when `VERCEL_ENV !== "production"`.
+`proxy.ts` exports the middleware function (named `proxy`, not `middleware`) that runs `clerkMiddleware` and protects the paths `lib/route-access.ts` marks private (signed-out page visits go through `auth.protect()`). `/onboarding` is public only when `VERCEL_ENV !== "production"`.
 
 User identity is a Clerk `user_*` text id stored on `public.users.id`. `ensureUserRecord` upserts that row. Profile `PUT` must update an existing row; a 0-row update is a 404, not success.
 
