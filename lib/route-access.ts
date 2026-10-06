@@ -52,9 +52,15 @@ function normalize(pathname: string): string {
   return path.toLowerCase().replace(/\/{2,}/g, "/");
 }
 
+/** API and tRPC paths, which answer signed-out callers with JSON instead of a redirect. */
+export function isApiPath(rawPathname: string): boolean {
+  const pathname = normalize(rawPathname);
+  return pathname === "/api" || pathname.startsWith("/api/") || pathname.startsWith("/trpc");
+}
+
 export function requiresAuth(rawPathname: string, { production }: { production: boolean }): boolean {
   const pathname = normalize(rawPathname);
-  if (pathname === "/api" || pathname.startsWith("/api/") || pathname.startsWith("/trpc")) {
+  if (isApiPath(pathname)) {
     return !PUBLIC_API_PATTERNS.some((re) => re.test(pathname));
   }
   if (inSection(pathname, PRIVATE_PAGE_SECTIONS)) return true;

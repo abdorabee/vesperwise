@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { z } from "zod";
+import { errorResponse } from "@/lib/api-errors";
 import { createSupabaseAdmin } from "@/lib/supabase";
 import { isDevCreditBypassEnabled } from "@/lib/dev-credit-bypass";
 import {
@@ -29,26 +30,6 @@ interface AuthenticatedUser {
   userId: string;
   productCategory: string;
   businessProfile: BusinessProfile | null;
-}
-
-function errorResponse(
-  status: number,
-  code: string,
-  message: string,
-  extra: Record<string, unknown> = {},
-  headers?: HeadersInit
-) {
-  return NextResponse.json(
-    {
-      type: "error",
-      code,
-      message,
-      // Backward compatibility for dashboard callers that read `error`.
-      error: message,
-      ...extra,
-    },
-    { status, headers }
-  );
 }
 
 async function authenticate(req: NextRequest): Promise<AuthenticatedUser | NextResponse> {
@@ -227,15 +208,20 @@ function streamScore(req: NextRequest, authenticated: AuthenticatedUser, input: 
   });
 }
 
-async function executeScore(req: NextRequest, input: ScoreInput): Promise<Response> {
-  const authenticated = await authenticate(req);
-  if (authenticated instanceof NextResponse) return authenticated;
+async function executeScore(
+  req: NextRequest,
+  authenticated: AuthenticatedUser,
+  input: ScoreInput
+): Promise<Response> {
   if (wantsEventStream(req)) return streamScore(req, authenticated, input);
   return scoreForUser(req, authenticated, input);
 }
 
-/** Canonical scoring endpoint. */
+/** Canonical scoring endpoint. Authenticates before reading the body. */
 export async function POST(req: NextRequest) {
+  const authenticated = await authenticate(req);
+  if (authenticated instanceof NextResponse) return authenticated;
+
   let payload: unknown;
   try {
     payload = await req.json();
@@ -246,16 +232,21 @@ export async function POST(req: NextRequest) {
   const parsed = scoreRequestSchema.safeParse(payload);
   if (!parsed.success) {
     const issue = parsed.error.issues[0];
-    return errorResponse(400, "invalid_request", issue?.message ?? "Invalid scoring request", {
-      field: issue?.path.join(".") || undefined,
-    });
+    const field = issue?.path.join(".") || undefined;
+    const message = field === "domain" && issue?.code === "invalid_type"
+      ? "domain is required"
+      : issue?.message ?? "Invalid scoring request";
+    return errorResponse(400, "invalid_request", message, { field });
   }
 
-  return executeScore(req, parsed.data);
+  return executeScore(req, authenticated, parsed.data);
 }
 
 /** Legacy dashboard/SDK compatibility wrapper around the canonical POST flow. */
 export async function GET(req: NextRequest) {
+  const authenticated = await authenticate(req);
+  if (authenticated instanceof NextResponse) return authenticated;
+
   const { searchParams } = new URL(req.url);
   const company = searchParams.get("company")?.trim() || undefined;
   const domain = searchParams.get("domain")?.trim() || (
@@ -271,5 +262,5 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  return executeScore(req, parsed.data);
+  return executeScore(req, authenticated, parsed.data);
 }

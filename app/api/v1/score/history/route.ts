@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
+import { errorResponse } from "@/lib/api-errors";
 import { auth } from "@clerk/nextjs/server";
 import { canonicalizeDomain, InvalidDomainError } from "@/lib/score-service";
 import { getActiveScoringVersion } from "@/lib/scorer";
@@ -10,19 +11,19 @@ export async function GET(req: NextRequest) {
   const rawDomain = searchParams.get("domain")?.trim();
 
   if (!rawDomain) {
-    return NextResponse.json({ error: "domain required" }, { status: 400 });
+    return errorResponse(400, "invalid_request", "domain required");
   }
 
   const supabase = createSupabaseAdmin();
   const userId = await authenticatedUserId(req);
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!userId) return errorResponse(401, "unauthorized", "Unauthorized");
 
   let domain: string;
   try {
     domain = canonicalizeDomain(rawDomain);
   } catch (error) {
     if (error instanceof InvalidDomainError) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
+      return errorResponse(400, "invalid_request", error.message);
     }
     throw error;
   }
@@ -41,7 +42,7 @@ export async function GET(req: NextRequest) {
     .order("created_at", { ascending: true });
 
   if (error) {
-    return NextResponse.json({ error: "Failed to fetch history" }, { status: 500 });
+    return errorResponse(500, "internal_error", "Failed to fetch history");
   }
 
   return NextResponse.json({ domain, history: data });
