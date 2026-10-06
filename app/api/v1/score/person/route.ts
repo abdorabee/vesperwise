@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { errorResponse } from "@/lib/api-errors";
 import { auth } from "@clerk/nextjs/server";
 import { createSupabaseAdmin } from "@/lib/supabase";
 import { scorePerson } from "@/lib/person-score-service";
@@ -13,10 +14,7 @@ export async function GET(req: NextRequest) {
   const title = searchParams.get("title")?.trim();
 
   if (!email && !linkedin && !(name && company)) {
-    return NextResponse.json(
-      { error: "Provide at least one of: email, linkedin, or name + company" },
-      { status: 400 }
-    );
+    return errorResponse(400, "invalid_request", "Provide at least one of: email, linkedin, or name + company");
   }
 
   // ── Auth ────────────────────────────────────────────────────────────────────
@@ -35,7 +33,7 @@ export async function GET(req: NextRequest) {
       .single();
 
     if (!keyRow?.is_active) {
-      return NextResponse.json({ error: "Invalid or inactive API key" }, { status: 401 });
+      return errorResponse(401, "unauthorized", "Invalid or inactive API key");
     }
     userId = keyRow.user_id;
   } else {
@@ -53,14 +51,14 @@ export async function GET(req: NextRequest) {
       .single();
 
     if (!user || user.credits_remaining <= 0) {
-      return NextResponse.json({ error: "Insufficient credits" }, { status: 402 });
+      return errorResponse(402, "insufficient_credits", "Insufficient credits");
     }
     productCategory = user.product_category ?? productCategory;
     businessProfile = (user.business_profile as BusinessProfile) ?? null;
   }
 
   if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return errorResponse(401, "unauthorized", "Unauthorized");
   }
 
   try {
@@ -79,7 +77,7 @@ export async function GET(req: NextRequest) {
   } catch (err) {
     console.error("[person-score] error:", err);
     const message = (err as Error).message ?? "Person scoring failed";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return errorResponse(500, "scoring_failed", message);
   }
 }
 

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { canonicalizeDomain, InvalidDomainError } from "@/lib/score-service";
 import { createSupabaseAdmin } from "@/lib/supabase";
+import { PLAN_WATCHLIST_LIMIT, type DbUser } from "@/lib/types";
 
 async function getUserId(req: NextRequest): Promise<string | null> {
   const authHeader = req.headers.get("authorization");
@@ -39,8 +41,20 @@ export async function POST(req: NextRequest) {
   const userId = await getUserId(req);
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { domain, company_name } = (await req.json()) as { domain: string; company_name?: string };
-  if (!domain) return NextResponse.json({ error: "domain required" }, { status: 400 });
+  let body: { domain?: unknown; company_name?: unknown };
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Request body must be valid JSON" }, { status: 400 });
+  }
+  if (typeof body?.domain !== "string" || !body.domain.trim()) {
+    return NextResponse.json({ error: "domain required" }, { status: 400 });
+  }
+  const domain = toCanonicalDomain(body.domain);
+  if (!domain) return NextResponse.json({ error: "Invalid domain" }, { status: 400 });
+  const companyName = typeof body.company_name === "string" && body.company_name.trim()
+    ? body.company_name.trim()
+    : domain;
 
   const supabase = createSupabaseAdmin();
 
@@ -57,17 +71,15 @@ export async function POST(req: NextRequest) {
     .eq("user_id", userId)
     .eq("is_active", true);
 
-  const LIMITS: Record<string, number | null> = {
-    free: 5, starter: 50, growth: 250, pro: 1000, agency: null,
-  };
-  const limit = LIMITS[user?.plan ?? "free"];
+  const plan: DbUser["plan"] = user?.plan && user.plan in PLAN_WATCHLIST_LIMIT ? user.plan : "free";
+  const limit = PLAN_WATCHLIST_LIMIT[plan]; // null = unlimited
   if (limit !== null && (count ?? 0) >= limit) {
     return NextResponse.json({ error: "Watchlist limit reached for your plan" }, { status: 403 });
   }
 
   const { data, error } = await supabase
     .from("watchlist")
-    .upsert({ user_id: userId, domain: domain.toLowerCase(), company_name: company_name ?? domain, is_active: true })
+    .upsert({ user_id: userId, domain, company_name: companyName, is_active: true })
     .select()
     .single();
 
@@ -80,15 +92,31 @@ export async function DELETE(req: NextRequest) {
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { searchParams } = new URL(req.url);
-  const domain = searchParams.get("domain");
-  if (!domain) return NextResponse.json({ error: "domain required" }, { status: 400 });
+  const rawDomain = searchParams.get("domain");
+  if (!rawDomain) return NextResponse.json({ error: "domain required" }, { status: 400 });
+  const domain = toCanonicalDomain(rawDomain);
+  if (!domain) return NextResponse.json({ error: "Invalid domain" }, { status: 400 });
 
   const supabase = createSupabaseAdmin();
-  await supabase
+  const { data, error } = await supabase
     .from("watchlist")
     .update({ is_active: false })
     .eq("user_id", userId)
-    .eq("domain", domain.toLowerCase());
+    .eq("domain", domain)
+    .eq("is_active", true)
+    .select("domain");
 
+  if (error) return NextResponse.json({ error: "Failed to remove from watchlist" }, { status: 500 });
+  if (!data?.length) return NextResponse.json({ error: "Domain is not on your watchlist" }, { status: 404 });
   return NextResponse.json({ success: true });
+}
+
+/** Canonicalize like /score so "https://Stripe.com/" and "stripe.com" are one entry. */
+function toCanonicalDomain(input: string): string | null {
+  try {
+    return canonicalizeDomain(input);
+  } catch (error) {
+    if (error instanceof InvalidDomainError) return null;
+    throw error;
+  }
 }

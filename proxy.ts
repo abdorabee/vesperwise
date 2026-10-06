@@ -1,14 +1,27 @@
 import { clerkMiddleware } from "@clerk/nextjs/server";
 import type { NextFetchEvent, NextRequest } from "next/server";
-import { requiresAuth } from "@/lib/route-access";
+import { unauthorizedResponse } from "@/lib/api-errors";
+import { isApiPath, requiresAuth } from "@/lib/route-access";
 
 const production = process.env.VERCEL_ENV === "production";
 
-const clerk = clerkMiddleware(async (auth, req) => {
-  if (requiresAuth(req.nextUrl.pathname, { production })) {
+const clerk = clerkMiddleware(
+  async (auth, req) => {
+    const { pathname } = req.nextUrl;
+    if (!requiresAuth(pathname, { production })) return;
+
+    // API callers get a JSON 401 instead of a sign-in redirect or an HTML 404.
+    if (isApiPath(pathname)) {
+      const { userId } = await auth();
+      if (!userId) return unauthorizedResponse();
+      return;
+    }
+
     await auth.protect();
-  }
-});
+  },
+  // Send signed-out visitors to our own auth pages, not the Clerk-hosted portal.
+  { signInUrl: "/login", signUpUrl: "/signup" }
+);
 
 export async function proxy(req: NextRequest, ev: NextFetchEvent) {
   return clerk(req, ev);

@@ -1,7 +1,7 @@
 import { readdirSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { PRIVATE_PAGE_SECTIONS_FOR_TEST, requiresAuth } from "./route-access";
+import { PRIVATE_PAGE_SECTIONS_FOR_TEST, isApiPath, requiresAuth } from "./route-access";
 
 const prod = { production: true };
 const preview = { production: false };
@@ -48,6 +48,18 @@ describe("requiresAuth", () => {
     expect(sections.length).toBeGreaterThan(0);
     for (const s of sections) {
       expect(PRIVATE_PAGE_SECTIONS_FOR_TEST, `app/(dashboard)/${s} missing from route-access`).toContain(s);
+    }
+  });
+
+});
+
+describe("isApiPath", () => {
+  it("matches API paths regardless of case or encoding", () => {
+    for (const path of ["/api", "/api/user/profile", "/API/user", "/%61pi/user", "/trpc/x"]) {
+      expect(isApiPath(path), path).toBe(true);
+    }
+    for (const path of ["/apis", "/dashboard", "/docs/api"]) {
+      expect(isApiPath(path), path).toBe(false);
     }
   });
 });
