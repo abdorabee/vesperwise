@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
+import { redactPublicSources } from "@/lib/public-source";
 import { createSupabaseAdmin } from "@/lib/supabase";
 
 const DEFAULT_LIMIT = 20;
@@ -57,10 +58,10 @@ export async function GET(req: NextRequest) {
   if (error) return NextResponse.json({ error: "Failed to fetch scores" }, { status: 500 });
   const total = count ?? 0;
 
-  return NextResponse.json({
+  return NextResponse.json(redactPublicSources({
     scores: data ?? [],
     total,
     page,
     totalPages: Math.max(1, Math.ceil(total / limit)),
-  });
+  }));
 }

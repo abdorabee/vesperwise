@@ -14,6 +14,7 @@ import {
   UnscorableDomainError,
   scoreCompany,
 } from "@/lib/score-service";
+import { redactPublicSources } from "@/lib/public-source";
 import { formatSseEvent, type ScoreProgressHandler } from "@/lib/score-progress";
 import type { BusinessProfile } from "@/lib/types";
 
@@ -117,7 +118,7 @@ async function scoreForUser(
       "X-IIQ-Cache": result.cached ? "hit" : "miss",
     });
     if (result.idempotent_replayed) headers.set("Idempotency-Replayed", "true");
-    return NextResponse.json(result, { headers });
+    return NextResponse.json(redactPublicSources(result), { headers });
   } catch (error) {
     if (error instanceof InvalidDomainError) {
       return errorResponse(400, "invalid_request", error.message, { field: "domain" });
@@ -144,7 +145,7 @@ async function scoreForUser(
         422,
         error.code,
         error.message,
-        error.result as unknown as Record<string, unknown>,
+        redactPublicSources(error.result) as unknown as Record<string, unknown>,
         error.result.idempotent_replayed ? { "Idempotency-Replayed": "true" } : undefined
       );
     }
@@ -179,7 +180,7 @@ function streamScore(req: NextRequest, authenticated: AuthenticatedUser, input: 
       };
       // Flush headers immediately so the client can show live progress.
       controller.enqueue(encoder.encode(": scoring\n\n"));
-      const response = await scoreForUser(req, authenticated, input, (event) => send("progress", event));
+      const response = await scoreForUser(req, authenticated, input, (event) => send("progress", redactPublicSources(event)));
       let body: unknown = null;
       try {
         body = await response.json();

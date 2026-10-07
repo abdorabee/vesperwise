@@ -528,7 +528,7 @@ async function fetchSignal(key: SignalKey, domain: string): Promise<SignalResult
         case "technology": return fetchTechnologySignal(domain, controller.signal);
         case "web_activity": return unavailableSignal(
           "web_activity",
-          "awaiting_firecrawl_change_baseline"
+          "awaiting_change_baseline"
         );
         case "web": return fetchWebSignal(domain, controller.signal);
         case "github": return fetchGitHubSignal(domain, controller.signal);
@@ -909,7 +909,7 @@ async function fetchFirmographics(
         signal: controller.signal,
         next: { revalidate: 86400 },
       });
-      if (!matchResponse.ok) throw new Error(`Explorium match ${matchResponse.status}`);
+      if (!matchResponse.ok) throw new Error("Source unavailable");
       const matchPayload: unknown = await matchResponse.json();
       const matchedBusinesses = isRecord(matchPayload) && Array.isArray(matchPayload.matched_businesses)
         ? matchPayload.matched_businesses
@@ -939,7 +939,7 @@ async function fetchFirmographics(
         next: { revalidate: 21600 },
       }
     );
-    if (!enrichResponse.ok) throw new Error(`Explorium firmographics ${enrichResponse.status}`);
+    if (!enrichResponse.ok) throw new Error("Source unavailable");
 
     const payload: unknown = await enrichResponse.json();
     const fields = isRecord(payload) && isRecord(payload.data) ? payload.data : payload;

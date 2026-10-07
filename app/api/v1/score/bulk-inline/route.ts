@@ -2,6 +2,7 @@ import { parseCsvRecords } from "@/lib/csv-parse";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { createSupabaseAdmin } from "@/lib/supabase";
+import { redactPublicSources } from "@/lib/public-source";
 import { scoreCompany, domainToCompanyName } from "@/lib/score-service";
 
 const MAX_ROWS = 50;
@@ -122,7 +123,7 @@ export async function POST(req: NextRequest) {
         key_triggers: result.key_triggers ?? [],
         email_subject: result.email_subject ?? "",
         talk_track: result.talk_track ?? "",
-        signals: result.signals,
+        signals: redactPublicSources(result.signals),
         score_status: result.score_status,
         data_coverage: result.data_coverage,
         icp_fit_score: result.icp_fit_score,

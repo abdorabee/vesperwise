@@ -38,7 +38,7 @@ export async function fetchNewsMentionsSignal(
   const apiKey = process.env.GNEWS_API_KEY;
 
   if (!apiKey) {
-    return { score: 0, max: MAX, detail: "News API not configured — GNEWS_API_KEY missing" };
+    return { score: 0, max: MAX, detail: "News data unavailable" };
   }
 
   try {

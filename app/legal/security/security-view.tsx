@@ -51,16 +51,14 @@ const CURRENT_CONTROLS = [
       "Every API request requires a signed-in session or an API key",
       "Database access is restricted to VesperWise backend services, and queries are scoped to the requesting account",
       "Billing webhooks are signature-verified and idempotent",
-      "AI summaries are generated through OpenRouter (see Subprocessors)",
+      "AI summaries are generated through a model provider (see Subprocessors)",
     ],
   },
   {
     icon: <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" width="18" height="18"><path d="M3 4v10l6-3 6 3V4z"/><path d="M3 4h12v3H3z"/></svg>,
     title: "Signal sources",
     items: [
-      "Explorium (funding enrichment)",
-      "GNews, BuiltWith, OpenPageRank, GitHub",
-      "Apollo (person enrichment)",
+      "Commercial data providers under contract",
       "All signal vendor API calls use HTTPS",
     ],
   },

@@ -10,6 +10,7 @@ import { copilotSdkTools } from "@/lib/copilot-ai-tools";
 import { CHAT_CREDIT_COST } from "@/lib/types";
 import type { DbUser } from "@/lib/types";
 import { sanitizeUiBlocks } from "@/lib/gen-ui";
+import { redactPublicSources } from "@/lib/public-source";
 import { serializePresentation, type ToolChip } from "@/lib/score-presentation";
 
 const COPILOT_MODEL = process.env.COPILOT_MODEL ?? "anthropic/claude-sonnet-4";
@@ -173,14 +174,14 @@ export async function POST(req: NextRequest) {
             continue;
           }
           if (part.type === "tool-result") {
-            const output = part.output;
+            const output = redactPublicSources(part.output);
             streamedTools = streamedTools.map((tool) => tool.name === part.toolName && tool.status === "running" ? { ...tool, status: "done", result: output } : tool);
             if (part.toolName === "present_ui") {
-              const blocks = sanitizeUiBlocks(
+              const blocks = redactPublicSources(sanitizeUiBlocks(
                 output && typeof output === "object" && "blocks" in output
                   ? (output as { blocks: unknown }).blocks
                   : output
-              );
+              ));
               presentation = blocks;
               send({ type: "ui", blocks, billing: billingLabel });
             }
@@ -192,10 +193,8 @@ export async function POST(req: NextRequest) {
               "error" in part && part.error instanceof Error
                 ? part.error.message
                 : "An error occurred while processing your request.";
-            if (errorText.includes("402")) {
-              throw new Error(
-                "The AI service has run out of credits. Please top up your OpenRouter balance or reduce COPILOT_MAX_TOKENS."
-              );
+            if (errorText.includes("402") || /openrouter|copilot_max_tokens/i.test(errorText)) {
+              throw new Error("The AI service is unavailable.");
             }
             throw new Error(errorText);
           }
@@ -221,7 +220,8 @@ export async function POST(req: NextRequest) {
         controller.close();
       } catch (err) {
         console.error("[chat] error:", err);
-        const msg = err instanceof Error ? err.message : "An error occurred while processing your request.";
+        const raw = err instanceof Error ? err.message : "An error occurred while processing your request.";
+        const msg = /openrouter|copilot_max_tokens/i.test(raw) ? "The AI service is unavailable." : raw;
         send({ type: "error", message: msg });
         controller.close();
       }

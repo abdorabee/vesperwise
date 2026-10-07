@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { errorResponse } from "@/lib/api-errors";
 import { auth } from "@clerk/nextjs/server";
 import { createSupabaseAdmin } from "@/lib/supabase";
+import { redactPublicSources } from "@/lib/public-source";
 import { scorePerson } from "@/lib/person-score-service";
 import type { BusinessProfile } from "@/lib/types";
 
@@ -73,7 +74,7 @@ export async function GET(req: NextRequest) {
       businessProfile,
       skipCredits,
     });
-    return NextResponse.json(result);
+    return NextResponse.json(redactPublicSources(result));
   } catch (err) {
     console.error("[person-score] error:", err);
     const message = (err as Error).message ?? "Person scoring failed";

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
+import { redactPublicSources } from "@/lib/public-source";
 import { createSupabaseAdmin } from "@/lib/supabase";
 
 export interface PipelineSignals {
@@ -125,7 +126,7 @@ export async function GET() {
       key_triggers: latest?.key_triggers ?? null,
       urgency: latest?.urgency ?? null,
       pipeline_stage: w.pipeline_stage ?? defaultStage(w.score_band ?? null),
-      signals: latest?.signals ?? null,
+      signals: latest?.signals ? redactPublicSources(latest.signals) : null,
       score_id: latest?.id ?? null,
       score_status: latest?.score_status ?? null,
       data_coverage: latest?.data_coverage == null ? null : Number(latest.data_coverage),

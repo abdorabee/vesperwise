@@ -289,7 +289,7 @@ export default function TermsView() {
 
           {/* ── 06 ── */}
           <Section id="s6" num="06" title="AI features">
-            <P>The Service uses third&#8209;party AI providers (currently models accessed through OpenRouter) to generate score summaries, recommended actions, and chat copilot responses (collectively, <Strong>&ldquo;AI Output&rdquo;</Strong>). AI Output:</P>
+            <P>The Service uses a model provider to generate score summaries, recommended actions, and chat copilot responses (collectively, <Strong>&ldquo;AI Output&rdquo;</Strong>). AI Output:</P>
             <OL items={[
               "Is not warranted to be accurate, complete, or fit for any decision with legal or similarly significant effects;",
               "May contain factual errors or hallucinations — review before relying on it;",

@@ -3,19 +3,26 @@
  * `explorium-events`, …) are internal and must never be shown raw in the UI.
  */
 const SOURCE_LABELS: Record<string, string> = {
-  explorium: "Explorium business data",
-  "explorium-events": "Explorium business events",
+  explorium: "Company records",
+  "explorium-events": "Hiring activity",
   scrapling: "Company careers page",
+  careers: "Company careers page",
   gnews: "News coverage",
-  builtwith: "BuiltWith",
-  "open-page-rank": "Open PageRank",
+  news: "News coverage",
+  builtwith: "Technology profile",
+  technology: "Technology profile",
+  "open-page-rank": "Web presence",
+  web: "Web presence",
   github: "GitHub",
   firecrawl: "Company website",
   "firecrawl-change-tracking": "Company website changes",
-  "treg-aviato": "Aviato funding data",
-  "treg-predictleads": "PredictLeads company data",
+  website: "Company website",
+  "treg-aviato": "Funding records",
+  "treg-predictleads": "Company records",
   "treg-akta": "News coverage",
-  "treg-hunter": "Hunter company data",
+  "treg-hunter": "Company records",
+  company: "Company records",
+  hiring: "Hiring activity",
   mock: "Sample data",
 };
 

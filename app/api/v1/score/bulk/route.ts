@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { errorResponse } from "@/lib/api-errors";
+import { redactPublicSources } from "@/lib/public-source";
 import { createSupabaseAdmin } from "@/lib/supabase";
 import type { BulkScoreRequest } from "@/lib/types";
 
@@ -130,5 +131,5 @@ export async function GET(req: NextRequest) {
     .single();
 
   if (!job) return errorResponse(404, "not_found", "Job not found");
-  return NextResponse.json(job);
+  return NextResponse.json(redactPublicSources(job));
 }

@@ -101,7 +101,33 @@ describe("POST /api/v1/score", () => {
       "progress:reasoning_done",
       "result",
     ]);
+    expect(events[0]?.data.source).toBe("company");
+    expect(events[1]?.data.source).toBe("careers");
     expect(events.at(-1)?.data).toEqual(RESULT);
+  });
+
+  it("maps provider ids in the JSON score body", async () => {
+    scoreCompany.mockResolvedValue({
+      ...RESULT,
+      signals: {
+        funding: {
+          source: "explorium",
+          evidence: [{ source: "gnews" }],
+          metadata: { selected_source: "builtwith", fallback_source: "firecrawl" },
+        },
+      },
+      contributions: [{ selectedSource: "scrapling" }],
+    });
+    const { POST } = await import("./route");
+    const body = await (await POST(request())).json();
+    expect(body.signals.funding.source).toBe("company");
+    expect(body.signals.funding.evidence[0].source).toBe("news");
+    expect(body.signals.funding.metadata).toEqual({
+      selected_source: "technology",
+      fallback_source: "website",
+    });
+    expect(body.contributions[0].selectedSource).toBe("careers");
+    expect(JSON.stringify(body)).not.toMatch(/explorium|gnews|builtwith|firecrawl|scrapling/i);
   });
 
   it("ends the stream with a typed 402 error carrying credits", async () => {

@@ -17,7 +17,7 @@ describe("public signal evidence contract", () => {
     vi.useRealTimers();
   });
 
-  it("exposes provider and fetch time for OpenPageRank evidence", async () => {
+  it("exposes a public web-presence label and fetch time", async () => {
     vi.stubEnv("OPEN_PAGE_RANK_API_KEY", "test-key");
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
       ok: true,
@@ -30,11 +30,14 @@ describe("public signal evidence contract", () => {
     const result = await fetchWebSignal("acme.com");
 
     expect(result.source).toBe("open-page-rank");
+    expect(result.detail).toBe("Web presence 4/10");
     expect(result.evidence?.[0]).toMatchObject({
+      label: "Web presence 4/10",
       source: "open-page-rank",
       fetched_at: NOW.toISOString(),
       observed_at: NOW.toISOString(),
     });
+    expect(JSON.stringify(result)).not.toMatch(/Open PageRank|OpenPageRank|OPR:/);
   });
 
   it("includes a public organization URL with GitHub evidence", async () => {

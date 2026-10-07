@@ -188,7 +188,7 @@ export async function fetchNewsSignal(
     const query = encodeURIComponent(company);
     const url = `https://gnews.io/api/v4/search?q=${query}&lang=en&max=10&apikey=${apiKey}`;
     const res = await fetch(url, { next: { revalidate: 43200 }, signal });
-    if (!res.ok) throw new Error(`GNews ${res.status}`);
+    if (!res.ok) throw new Error("Source unavailable");
 
     const data = (await res.json()) as GNewsResponse;
     return buildNewsSignal(data.articles ?? [], now, fetchedAt, SOURCE);

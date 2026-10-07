@@ -7,12 +7,12 @@ import { TRIGGER_WEIGHTS } from "@/lib/scorer";
 const MAX_WEIGHT = Math.max(...Object.values(TRIGGER_WEIGHTS));
 
 const SOURCES = [
-  { key: "funding", detects: "Rounds, extensions, valuations", provider: "Explorium", weight: TRIGGER_WEIGHTS.funding, contextOnly: false },
-  { key: "hiring", detects: "Open roles in Sales, RevOps, Eng", provider: "Explorium", weight: TRIGGER_WEIGHTS.hiring, contextOnly: false },
-  { key: "news", detects: "Leadership changes, launches, partnerships", provider: "GNews", weight: TRIGGER_WEIGHTS.news, contextOnly: false },
-  { key: "technology", detects: "Tools added or dropped from the stack", provider: "BuiltWith", weight: TRIGGER_WEIGHTS.technology, contextOnly: false },
-  { key: "web", detects: "Size and shape of web presence", provider: "Open PageRank", weight: null, contextOnly: true },
-  { key: "github", detects: "Repo pushes, new repos this quarter", provider: "GitHub", weight: null, contextOnly: true },
+  { key: "funding", detects: "Rounds, extensions, valuations", weight: TRIGGER_WEIGHTS.funding, contextOnly: false },
+  { key: "hiring", detects: "Open roles in Sales, RevOps, Eng", weight: TRIGGER_WEIGHTS.hiring, contextOnly: false },
+  { key: "news", detects: "Leadership changes, launches, partnerships", weight: TRIGGER_WEIGHTS.news, contextOnly: false },
+  { key: "technology", detects: "Tools added or dropped from the stack", weight: TRIGGER_WEIGHTS.technology, contextOnly: false },
+  { key: "web", detects: "Size and shape of web presence", weight: null, contextOnly: true },
+  { key: "github", detects: "Repo pushes, new repos this quarter", weight: null, contextOnly: true },
 ] as const;
 
 export function SignalSourcesScreen({ seedCount }: { seedCount: number }) {
@@ -28,24 +28,22 @@ export function SignalSourcesScreen({ seedCount }: { seedCount: number }) {
         </p>
 
         <div className="mt-8 overflow-hidden rounded-2xl border border-white/[0.08] bg-[#111]">
-            <div className="grid h-[34px] grid-cols-[200px_1fr_120px_96px_44px] items-center gap-4 bg-[#181818] px-4 font-sans text-[11px] font-medium uppercase tracking-[0.04em] text-[#666]">
+            <div className="grid h-[34px] grid-cols-[200px_1fr_96px_44px] items-center gap-4 bg-[#181818] px-4 font-sans text-[11px] font-medium uppercase tracking-[0.04em] text-[#666]">
               <span>Source</span>
               <span>What it detects</span>
-              <span>Provider</span>
               <span>Weight</span>
               <span />
             </div>
             {SOURCES.map((source) => (
               <div
                 key={source.key}
-                className="grid grid-cols-[200px_1fr_120px_96px_44px] items-center gap-4 border-t border-white/[0.04] px-4 py-3"
+                className="grid grid-cols-[200px_1fr_96px_44px] items-center gap-4 border-t border-white/[0.04] px-4 py-3"
               >
                 <div className="flex min-w-0 flex-col gap-[3px]">
                   <span className="font-mono text-[12.5px] font-medium leading-[1.3] text-white">{source.key}</span>
                   <span className="text-[11px] leading-[1.3] text-[#666]">{source.contextOnly ? "context only" : "scores directly"}</span>
                 </div>
                 <span className="text-[13px] leading-[1.45] tracking-[-0.006em] text-[#a0a0a0]">{source.detects}</span>
-                <span className="font-mono text-[12px] text-[#666]">{source.provider}</span>
                 <div className="flex items-center gap-2">
                   {source.weight !== null ? (
                     <>

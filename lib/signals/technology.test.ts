@@ -78,6 +78,7 @@ describe("fetchTechnologySignal", () => {
     expect(result).toMatchObject({
       status: "unavailable",
       score: 0,
+      detail: "Technology data unavailable",
       observed_at: null,
       source: "builtwith",
       metadata: {
@@ -85,6 +86,7 @@ describe("fetchTechnologySignal", () => {
         provider_schema: "free1",
       },
     });
+    expect(result.detail).not.toMatch(/BuiltWith/);
   });
 });
 
