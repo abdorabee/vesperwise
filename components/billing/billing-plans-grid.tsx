@@ -4,6 +4,7 @@ import {
   BILLING_PLANS,
   comparePlans,
   planCreditsUnit,
+  renewalDisclosure,
   type PlanKey,
 } from "@/lib/billing-plans";
 
@@ -76,9 +77,16 @@ export function BillingPlansGrid({ currentPlan }: BillingPlansGridProps) {
                 ) : (
                   <form action="/api/billing/checkout" method="POST">
                     <input type="hidden" name="plan" value={p.key} />
-                    <button type="submit" className={`pc-cta${isRecommended ? " solid" : " outline"}`}>
+                    <button
+                      type="submit"
+                      className={`pc-cta${isRecommended ? " solid" : " outline"}`}
+                      aria-describedby={`renewal-${p.key}`}
+                    >
                       {`Upgrade to ${p.label}`}
                     </button>
+                    <p id={`renewal-${p.key}`} className="pc-renewal">
+                      {renewalDisclosure(p.price)} <a href="/terms#s3">Terms</a>
+                    </p>
                   </form>
                 )
               ) : (
