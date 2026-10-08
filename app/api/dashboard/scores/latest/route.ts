@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { canonicalizeDomain } from "@/lib/score-service";
+import { redactPublicSources } from "@/lib/public-source";
 import { storedScoreFromRow } from "@/lib/stored-score";
 import { createSupabaseAdmin } from "@/lib/supabase";
 
@@ -32,5 +33,5 @@ export async function GET(req: NextRequest) {
   if (error) return NextResponse.json({ error: "Failed to load score" }, { status: 500 });
   const score = storedScoreFromRow(data as Record<string, unknown> | null);
   if (!score) return NextResponse.json({ error: "No stored score for this domain yet", domain }, { status: 404 });
-  return NextResponse.json({ score });
+  return NextResponse.json({ score: redactPublicSources(score) });
 }

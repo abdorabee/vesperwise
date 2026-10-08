@@ -93,11 +93,11 @@ const SCORE_BLOCKS: UiBlock[] = [
   {
     type: "signal_explorer",
     axes: [
-      { key: "funding", label: "Funding", score: 21, max: 25, detail: "Closed a $22M Series B led by Northzone.", observed_at: "2026-08-18", source: "explorium-events", source_url: "https://example.com/acme-series-b", contribution: 21 },
-      { key: "hiring", label: "Hiring", score: 17, max: 20, detail: "6 open Sales and RevOps roles, including VP RevOps.", observed_at: "2026-09-19", source: "scrapling", source_url: "https://example.com/acme-careers", contribution: 17 },
-      { key: "technology", label: "Technology", score: 15, max: 20, detail: "Moved from Salesforce to HubSpot in the last quarter.", observed_at: "2026-08-30", source: "builtwith", contribution: 15 },
-      { key: "news", label: "News", score: 12, max: 20, detail: "New CEO announced alongside a product launch.", observed_at: "2026-08-22", source: "gnews", source_url: "https://example.com/acme-news", contribution: 12 },
-      { key: "web", label: "Web authority", score: 9, max: 15, detail: "Strong domain authority.", source: "open-page-rank", context: true },
+      { key: "funding", label: "Funding", score: 21, max: 25, detail: "Closed a $22M Series B led by Northzone.", observed_at: "2026-08-18", source: "company", source_url: "https://example.com/acme-series-b", contribution: 21 },
+      { key: "hiring", label: "Hiring", score: 17, max: 20, detail: "6 open Sales and RevOps roles, including VP RevOps.", observed_at: "2026-09-19", source: "careers", source_url: "https://example.com/acme-careers", contribution: 17 },
+      { key: "technology", label: "Technology", score: 15, max: 20, detail: "Moved from Salesforce to HubSpot in the last quarter.", observed_at: "2026-08-30", source: "technology", contribution: 15 },
+      { key: "news", label: "News", score: 12, max: 20, detail: "New CEO announced alongside a product launch.", observed_at: "2026-08-22", source: "news", source_url: "https://example.com/acme-news", contribution: 12 },
+      { key: "web", label: "Web authority", score: 9, max: 15, detail: "Strong domain authority.", source: "web", context: true },
       { key: "github", label: "GitHub activity", score: 4, max: 10, detail: "Active public repositories.", source: "github", context: true },
     ],
   },
@@ -156,8 +156,8 @@ export default function DevPreviewPage({ searchParams }: { searchParams: Promise
               progress={{
                 reasoning: "idle",
                 signals: {
-                  funding: { status: "ok", detail: "Series B · $22M", observed_at: "2026-08-18", source: "explorium-events" },
-                  hiring: { status: "ok", detail: "6 Sales/RevOps roles", observed_at: "2026-09-19", source: "scrapling" },
+                  funding: { status: "ok", detail: "Series B · $22M", observed_at: "2026-08-18", source: "company" },
+                  hiring: { status: "ok", detail: "6 Sales/RevOps roles", observed_at: "2026-09-19", source: "careers" },
                 },
               }}
             />

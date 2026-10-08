@@ -12,8 +12,8 @@ describe("ScoreCoverageIncomplete", () => {
           domain: "facebook.com",
           coveragePercent: 40,
           signals: [
-            { key: "funding", label: "Funding", state: "checked", statusLabel: "Checked", currentRead: "0 / 25", detail: "No recent funding activity detected", source: "Explorium" },
-            { key: "technology", label: "Technology", state: "unavailable", statusLabel: "Unavailable", currentRead: "Unavailable", detail: "Technology data unavailable", source: "BuiltWith" },
+            { key: "funding", label: "Funding", state: "checked", statusLabel: "Checked", currentRead: "0 / 25", detail: "No recent funding activity detected", source: "Company records" },
+            { key: "technology", label: "Technology", state: "unavailable", statusLabel: "Unavailable", currentRead: "Unavailable", detail: "Technology data unavailable", source: "Technology profile" },
           ],
         }}
         onRetry={() => undefined}

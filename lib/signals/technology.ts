@@ -190,7 +190,7 @@ export async function fetchTechnologySignal(
   try {
     const url = `https://api.builtwith.com/free1/api.json?KEY=${apiKey}&LOOKUP=${domain}`;
     const res = await fetch(url, { next: { revalidate: 86400 }, signal });
-    if (!res.ok) throw new Error(`BuiltWith ${res.status}`);
+    if (!res.ok) throw new Error("Source unavailable");
 
     const data = (await res.json()) as BuiltWithResult;
     const matchedResult = data.Results?.[0]?.Result;
@@ -199,7 +199,7 @@ export async function fetchTechnologySignal(
         return {
           score: 0,
           max: 20,
-          detail: "Technology change data unavailable from the BuiltWith Free API",
+          detail: "Technology data unavailable",
           status: "unavailable",
           observed_at: null,
           fetched_at: fetchedAt,

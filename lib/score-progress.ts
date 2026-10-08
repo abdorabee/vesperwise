@@ -1,3 +1,4 @@
+import { toPublicSourceId } from "@/lib/public-source";
 import type { SignalResult, SignalStatus } from "@/lib/types";
 
 /**
@@ -25,7 +26,7 @@ export function signalDoneEvent(key: string, signal: SignalResult | undefined): 
     status: signal?.status ?? (signal ? "ok" : "unavailable"),
     detail: signal?.detail,
     observed_at: signal?.observed_at ?? null,
-    source: signal?.source,
+    source: typeof signal?.source === "string" ? toPublicSourceId(signal.source) : signal?.source,
   };
 }
 

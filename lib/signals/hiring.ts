@@ -261,7 +261,7 @@ export async function fetchHiringSignal(
       next: { revalidate: 86400 },
       signal,
     });
-    if (!matchRes.ok) throw new Error(`Explorium match ${matchRes.status}`);
+    if (!matchRes.ok) throw new Error("Source unavailable");
 
     const matchData = (await matchRes.json()) as ExploriumMatchResponse;
     const businessId = matchData.matched_businesses?.[0]?.business_id;
@@ -290,7 +290,7 @@ export async function fetchHiringSignal(
       next: { revalidate: 43200 },
       signal,
     });
-    if (!eventsRes.ok) throw new Error(`Explorium events ${eventsRes.status}`);
+    if (!eventsRes.ok) throw new Error("Source unavailable");
 
     const response = (await eventsRes.json()) as ExploriumEventsResponse;
     const events = response.output_events ?? response.events ?? [];

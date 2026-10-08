@@ -1,3 +1,4 @@
+import { redactPublicSources } from "@/lib/public-source";
 import { createSupabaseAdmin } from "@/lib/supabase";
 import { scoreCompany } from "@/lib/score-service";
 import { scorePerson } from "@/lib/person-score-service";
@@ -304,7 +305,7 @@ export async function executeTool(
         why_now: result.why_now,
         email_subject: result.email_subject,
         talk_track: result.talk_track,
-        signals: result.signals,
+        signals: redactPublicSources(result.signals),
       };
     }
 
@@ -406,7 +407,7 @@ export async function executeTool(
         domain: score.domain,
         score: score.score,
         score_band: score.score_band,
-        signals: score.signals,
+        signals: redactPublicSources(score.signals),
         ai_summary: score.ai_summary,
         recommended_action: score.recommended_action,
         buying_stage: score.buying_stage,
@@ -460,7 +461,7 @@ export async function executeTool(
         domain,
         score: score.score,
         score_band: score.score_band,
-        signals: score.signals,
+        signals: redactPublicSources(score.signals),
         key_triggers: score.key_triggers,
         existing_email_subject: score.email_subject,
         existing_talk_track: score.talk_track,

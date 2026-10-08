@@ -335,12 +335,12 @@ export default function PrivacyView() {
 
           {/* ── 06 ── */}
           <Section id="s6" num="06" title="AI processing">
-            <P>When you request a score, the company domain, the signal data we collected and your workspace&rsquo;s product description are sent to a large language model through <Strong>OpenRouter</Strong> to write a summary and recommended action. We:</P>
+            <P>When you request a score, the company domain, the signal data we collected and your workspace&rsquo;s product description are sent to a large language model through a model provider to write a summary and recommended action. We:</P>
             <OL items={[
               "Never include API keys, passwords or billing information in these requests",
-              <span key="b">List OpenRouter and the other providers we use on the <A href="/legal/subprocessors">Subprocessors</A> page</span>,
+              <span key="b">List the providers we use on the <A href="/legal/subprocessors">Subprocessors</A> page</span>,
             ]} />
-            <P>OpenRouter&rsquo;s handling of data that passes through its API is governed by its own privacy policy and terms.</P>
+            <P>The model provider&rsquo;s handling of data that passes through its API is governed by its own privacy policy and terms.</P>
           </Section>
 
           {/* ── 07 ── */}

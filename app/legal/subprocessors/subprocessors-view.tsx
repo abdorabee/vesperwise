@@ -170,7 +170,7 @@ export default function SubprocessorsView() {
           </Section>
 
           <Section id="s2" num="02" title="Current subprocessors">
-            <P>The table below lists every subprocessor we use and the service they provide.</P>
+            <P>The table below lists the infrastructure subprocessors we use and the service they provide.</P>
             <DocTable
               headers={["Provider", "Service", "Location"]}
               rows={[
@@ -212,19 +212,7 @@ export default function SubprocessorsView() {
               ]}
             />
             <H3>Data enrichment providers</H3>
-            <P>When you score a company or a person, we look up public signals with these providers. They receive the identifiers listed, not your account details.</P>
-            <DocTable
-              headers={["Provider", "Data they receive", "Purpose"]}
-              rows={[
-                [<Strong key="name">Apollo</Strong>, "Name, work email or LinkedIn URL, and company of the person being scored", "Person enrichment"],
-                [<Strong key="name">Explorium</Strong>, "Company domain and name", "Funding and firmographic signals"],
-                [<Strong key="name">GNews</Strong>, "Company name", "News signals"],
-                [<Strong key="name">BuiltWith</Strong>, "Company domain", "Technology signals"],
-                [<Strong key="name">Open PageRank</Strong>, "Company domain", "Web authority signals"],
-                [<Strong key="name">GitHub</Strong>, "Company name", "Open-source activity signals"],
-                [<Strong key="name">treg</Strong>, "Company domain", "Fallback data for hiring and other signals"],
-              ]}
-            />
+            <P>When you score a company or a person, we look up public signals with commercial data providers under contract. They receive only the company domain, company name, or person identifiers needed for that lookup, not your account details.</P>
             <P><Strong>Card data:</Strong> VesperWise never receives or stores raw card data. Polar.sh collects payment details and stores them with Stripe. We receive only metadata (last 4 digits, brand, expiry) via webhook.</P>
             <P><Strong>AI processing:</Strong> OpenRouter proxies requests to AI providers. See our <A href="/privacy#s6">Privacy Policy § 06 AI processing</A> for details.</P>
           </Section>

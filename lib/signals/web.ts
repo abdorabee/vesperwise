@@ -41,7 +41,7 @@ export async function fetchWebSignal(
       signal,
     });
 
-    if (!res.ok) throw new Error(`OpenPageRank ${res.status}`);
+    if (!res.ok) throw new Error("Source unavailable");
 
     const data = (await res.json()) as OPRResponse;
     const result = data.response?.[0];
@@ -64,26 +64,18 @@ export async function fetchWebSignal(
     const globalRank = result.rank ? parseInt(result.rank) : null;
 
     let score: number;
-    let detail: string;
 
-    // Inverted-U curve: rewards growing mid-market (OPR 3-5) over large enterprises.
+    // Inverted-U curve: rewards growing mid-market (rank 3-5) over large enterprises.
     // Mid-market companies are the most active B2B tool buyers.
-    if (opr >= 8) {
-      score = 7;
-      detail = `Large enterprise domain (OPR: ${opr}/10) — longer sales cycles expected`;
-    } else if (opr >= 6) {
-      score = 10;
-      detail = `Established domain (OPR: ${opr}/10)`;
-    } else if (opr >= 3) {
-      score = 13;
-      detail = `Growing mid-market domain (OPR: ${opr}/10) — active buying profile`;
-    } else if (opr >= 1) {
-      score = 6;
-      detail = `Early-stage domain (OPR: ${opr}/10)`;
-    } else {
-      score = 3;
-      detail = "New domain — limited web presence";
-    }
+    if (opr >= 8) score = 7;
+    else if (opr >= 6) score = 10;
+    else if (opr >= 3) score = 13;
+    else if (opr >= 1) score = 6;
+    else score = 3;
+
+    let detail = opr >= 1
+      ? `Web presence ${opr}/10`
+      : "New domain — limited web presence";
 
     if (globalRank && globalRank <= 100_000) {
       detail += ` — top 100K globally`;
@@ -98,7 +90,7 @@ export async function fetchWebSignal(
       fetched_at: fetchedAt,
       source: SOURCE,
       evidence: [{
-        label: `Open PageRank ${opr}/10`,
+        label: `Web presence ${opr}/10`,
         observed_at: fetchedAt,
         source: SOURCE,
         fetched_at: fetchedAt,

@@ -68,12 +68,31 @@ describe("GenUiWorkspace", () => {
   it("shows human source names, contribution points and links, sorted by contribution", () => {
     const html = render();
     expect(html).toContain("Company careers page");
-    expect(html).toContain("BuiltWith");
+    expect(html).toContain("Company records");
+    expect(html).toContain("Technology profile");
+    expect(html).toContain("Web presence");
     expect(html).not.toContain("scrapling");
+    expect(html).not.toContain("BuiltWith");
+    expect(html).not.toContain("Explorium");
     expect(html).toContain("+18 pts");
     expect(html).toContain('href="https://stripe.com/jobs"');
     expect(html.indexOf("Hiring for platform roles")).toBeLessThan(html.indexOf("New data tooling detected"));
     expect(html).toContain("No current evidence available.");
+  });
+
+  it("keeps the careers label and drops third-party board links", () => {
+    const boarded = blocks.map((block) => block.type === "signal_explorer"
+      ? {
+          ...block,
+          axes: block.axes.map((axis) => axis.key === "hiring"
+            ? { ...axis, source_url: "https://jobs.lever.co/acme/sales-director" }
+            : axis),
+        }
+      : block);
+    const html = render(boarded);
+    expect(html).toContain("Company careers page");
+    expect(html).not.toContain("jobs.lever.co");
+    expect(html).not.toContain("href=\"https://jobs.lever.co/acme/sales-director\"");
   });
 
   it("collapses supporting context and renames the LinkedIn action", () => {

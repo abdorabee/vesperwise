@@ -6,6 +6,7 @@ import { BandPill, CompanyMark, ScoreMeter, ScoreNumber } from "@/components/sco
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { SignalAxis, UiBlock, UiSuggestion } from "@/lib/gen-ui";
+import { isCareersBoardUrl } from "@/lib/public-source";
 import { isMockSource, sourceLabel, stripMockMarker } from "@/lib/source-labels";
 import { daysSince, formatAbsoluteDate, formatDaysAgo, formatRelativeTime } from "@/lib/time-ago";
 import { cn } from "@/lib/utils";
@@ -127,7 +128,8 @@ function SourceMeta({ axis, unavailable }: { axis: SignalAxis; unavailable: bool
   const age = formatDaysAgo(axisAgeDays(axis));
   const absolute = formatAbsoluteDate(axis.observed_at);
   const name = isMockSource(axis.source) ? null : sourceLabel(axis.source);
-  const url = safeUrl(axis.source_url);
+  const rawUrl = safeUrl(axis.source_url);
+  const url = rawUrl && isCareersBoardUrl(rawUrl) ? null : rawUrl;
   const parts: React.ReactNode[] = [];
   if (age) parts.push(<span key="age" suppressHydrationWarning title={absolute ?? undefined}>{age}</span>);
   else parts.push(<span key="age">Undated</span>);
