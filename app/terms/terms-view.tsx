@@ -161,7 +161,7 @@ export default function TermsView() {
         <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", marginRight: "10px", fontSize: "11px", fontWeight: 600, color: T.ink, background: T.cyanSoft, padding: "1px 8px", borderRadius: "999px" }}>v3.2</span>
         <strong style={{ color: T.txtPrimary, fontWeight: 500 }}>Terms of Service</strong>
         <span style={{ margin: "0 6px", color: T.txtQuaternary }}>·</span>
-        last updated October 4, 2026
+        last updated October 8, 2026
       </div>
 
       <div className="legal-nav-wrap">
@@ -216,7 +216,7 @@ export default function TermsView() {
 
           {/* Doc meta strip */}
           <div style={{ display: "flex", gap: "18px", alignItems: "center", flexWrap: "wrap", marginBottom: "32px", paddingBottom: "24px", borderBottom: `1px solid ${T.border}`, fontSize: "12px", color: T.txtTertiary, fontFamily: T.fontMono, letterSpacing: "0.02em" }}>
-            <span><span style={{ color: T.txtQuaternary, marginRight: "4px" }}>Effective</span><span style={{ color: T.txtSecondary }}>October 4, 2026</span></span>
+            <span><span style={{ color: T.txtQuaternary, marginRight: "4px" }}>Effective</span><span style={{ color: T.txtSecondary }}>October 8, 2026</span></span>
             <span><span style={{ color: T.txtQuaternary, marginRight: "4px" }}>Version</span>v3.2</span>
             <span><span style={{ color: T.txtQuaternary, marginRight: "4px" }}>Supersedes</span>v3.1 (May 12, 2026)</span>
             <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "2px 8px", border: `1px solid ${T.border}`, borderRadius: "999px", background: "rgba(255,255,255,0.02)", color: T.txtSecondary }}>
@@ -241,7 +241,7 @@ export default function TermsView() {
 
           {/* ── 02 ── */}
           <Section id="s2" num="02" title="Account & access">
-            <P>You need a verified email address to create an account, and the Service is intended for business use. You agree to provide accurate information, keep credentials confidential, and notify us promptly at <A href="mailto:security@vesperwise.com">security@vesperwise.com</A> of any suspected unauthorized access. You are responsible for activity under your account, including activity by your seat holders.</P>
+            <P>You must be at least 18 years old and need a verified email address to create an account. The Service is for business use only and is not directed to children. You agree to provide accurate information, keep credentials confidential, and notify us promptly at <A href="mailto:security@vesperwise.com">security@vesperwise.com</A> of any suspected unauthorized access. You are responsible for activity under your account, including activity by your seat holders.</P>
             <P>API keys are bearer credentials. Treat them like passwords. We hash all keys at rest (SHA&#8209;256) and never log key material in plaintext. We may rotate or revoke any key on credible suspicion of compromise.</P>
           </Section>
 
