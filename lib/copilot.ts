@@ -3,7 +3,7 @@ import { createSupabaseAdmin } from "@/lib/supabase";
 import { scoreCompany } from "@/lib/score-service";
 import { scorePerson } from "@/lib/person-score-service";
 import type { BusinessProfile, DbUser, PipelineStage, ConversationAnalysis } from "@/lib/types";
-import { sanitizeUiBlocks } from "@/lib/gen-ui";
+import { repairUiBlocks } from "@/lib/gen-ui-repair";
 
 // ─── OpenRouter Tool Definitions (OpenAI-compatible format) ──────────────────
 
@@ -536,8 +536,8 @@ export async function executeTool(
         .order("created_at", { ascending: false })
         .limit(80);
       const domains = [...new Set((data ?? []).map((row) => String(row.domain).toLowerCase()))];
-      const blocks = sanitizeUiBlocks(args.blocks ?? args, domains.length > 0 ? domains : undefined);
-      return { ok: true, blocks };
+      const { blocks, diagnostics } = repairUiBlocks(args.blocks ?? args, domains.length > 0 ? domains : undefined);
+      return { ok: true, blocks, diagnostics };
     }
 
     case "analyze_conversation": {
