@@ -1,6 +1,5 @@
-import type { ZodIssue } from "zod";
-
 import { UI_BLOCK_SCHEMAS, type UiBlock } from "./gen-ui-schemas";
+import { applyIssues, isRecord, pathString, reportStrippedKeys } from "./zod-repair";
 
 export type UiDiagnosticCode =
   | "unknown_type"
@@ -20,117 +19,13 @@ export interface UiDiagnostic {
 
 const MAX_PASSES = 3;
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
-}
-
 function extractBlocksInput(input: unknown): unknown[] {
   if (Array.isArray(input)) return input;
   if (isRecord(input) && Array.isArray(input.blocks)) return input.blocks;
   return [];
 }
 
-function pathString(path: readonly PropertyKey[]): string {
-  return path.map(String).join(".");
-}
-
-function getAtPath(value: unknown, path: readonly PropertyKey[]): unknown {
-  return path.reduce<unknown>((current, key) => {
-    if (Array.isArray(current) && typeof key === "number") return current[key];
-    if (isRecord(current)) return current[key as string];
-    return undefined;
-  }, value);
-}
-
-function removeAtPath(value: unknown, path: readonly PropertyKey[]): unknown {
-  if (path.length === 0) return undefined;
-  const [head, ...tail] = path;
-  if (Array.isArray(value) && typeof head === "number") {
-    if (tail.length === 0) return value.filter((_, index) => index !== head);
-    return value.map((item, index) => index === head ? removeAtPath(item, tail) : item);
-  }
-  if (!isRecord(value)) return value;
-  if (tail.length === 0) {
-    if (!(String(head) in value)) return value;
-    const copy = { ...value };
-    delete copy[String(head)];
-    return copy;
-  }
-  if (!(String(head) in value)) return value;
-  return { ...value, [String(head)]: removeAtPath(value[String(head)], tail) };
-}
-
-function truncateAtPath(value: unknown, path: readonly PropertyKey[], maximum: number): unknown {
-  if (path.length === 0) return typeof value === "string" ? value.slice(0, maximum) : value;
-  const [head, ...tail] = path;
-  if (Array.isArray(value) && typeof head === "number") {
-    return value.map((item, index) => index === head ? truncateAtPath(item, tail, maximum) : item);
-  }
-  if (!isRecord(value)) return value;
-  return { ...value, [String(head)]: truncateAtPath(value[String(head)], tail, maximum) };
-}
-
-function isStringTooBig(issue: ZodIssue, value: unknown): issue is ZodIssue & { maximum: number } {
-  return issue.code === "too_big" && typeof value === "string" && typeof issue.maximum === "number";
-}
-
 type Diagnose = (code: UiDiagnosticCode, path: readonly PropertyKey[]) => void;
-
-function comparePathsDescending(a: readonly PropertyKey[], b: readonly PropertyKey[]): number {
-  for (let i = 0; i < Math.min(a.length, b.length); i += 1) {
-    if (a[i] === b[i]) continue;
-    if (typeof a[i] === "number" && typeof b[i] === "number") return (b[i] as number) - (a[i] as number);
-    return String(b[i]).localeCompare(String(a[i]));
-  }
-  return b.length - a.length;
-}
-
-function isPrefix(prefix: readonly PropertyKey[], path: readonly PropertyKey[]): boolean {
-  return prefix.length <= path.length && prefix.every((key, i) => key === path[i]);
-}
-
-/** Applies one pass of fixes. Highest array indexes go first so removals never shift a later target. */
-function applyIssues(candidate: unknown, issues: readonly ZodIssue[], diagnose: Diagnose): unknown {
-  const ordered = [...issues].sort((a, b) => comparePathsDescending(a.path, b.path));
-  const removed: (readonly PropertyKey[])[] = [];
-  let next = candidate;
-  for (const issue of ordered) {
-    if (removed.some((prefix) => isPrefix(prefix, issue.path))) continue;
-    const current = getAtPath(next, issue.path);
-    const maximum = isStringTooBig(issue, current) ? issue.maximum : undefined;
-    diagnose(maximum === undefined ? "invalid_prop" : "truncated", issue.path);
-    if (maximum !== undefined) {
-      next = truncateAtPath(next, issue.path, maximum);
-      continue;
-    }
-    const target = current === undefined ? enclosingArrayItem(issue.path) : issue.path;
-    if (!target || removed.some((prefix) => isPrefix(prefix, target))) continue;
-    removed.push(target);
-    next = removeAtPath(next, target);
-  }
-  return next;
-}
-
-/** A missing required field can't be removed; drop the nearest enclosing array item instead. */
-function enclosingArrayItem(path: readonly PropertyKey[]): readonly PropertyKey[] | null {
-  for (let i = path.length - 1; i >= 0; i -= 1) {
-    if (typeof path[i] === "number") return path.slice(0, i + 1);
-  }
-  return null;
-}
-
-/** Reports keys the schema stripped, at any depth, by diffing the input against the parsed output. */
-function reportStrippedKeys(input: unknown, output: unknown, path: PropertyKey[], diagnose: Diagnose): void {
-  if (Array.isArray(input) && Array.isArray(output)) {
-    input.forEach((item, i) => reportStrippedKeys(item, output[i], [...path, i], diagnose));
-    return;
-  }
-  if (!isRecord(input) || !isRecord(output)) return;
-  for (const key of Object.keys(input)) {
-    if (!(key in output)) diagnose("unknown_prop", [...path, key]);
-    else reportStrippedKeys(input[key], output[key], [...path, key], diagnose);
-  }
-}
 
 function repairBlock(item: Record<string, unknown>, index: number, diagnostics: UiDiagnostic[]): UiBlock | null {
   const type = String(item.type);
