@@ -16,7 +16,7 @@ type ReportTab = { value: string; label: string; include: UiBlock["type"][] };
 export interface ReportExtraTab { value: string; label: string; content: ReactNode }
 
 const REPORT_TABS: ReportTab[] = [
-  { value: "overview", label: "Overview", include: ["intent_hero", "thesis", "comparison", "markdown"] },
+  { value: "overview", label: "Overview", include: ["living_brief", "intent_hero", "thesis", "comparison", "markdown"] },
   { value: "evidence", label: "Evidence", include: ["signal_explorer"] },
   { value: "outreach", label: "Outreach", include: ["outreach_studio"] },
 ];

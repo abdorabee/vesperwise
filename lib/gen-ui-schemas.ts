@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { briefContributionSchema, briefSpecSchema } from "./brief";
+
 const scoreBandSchema = z.enum(["HOT", "WARM", "COLD"]);
 
 const suggestionSchema = z.object({
@@ -39,6 +41,18 @@ const intentHeroSchema = z.object({
   icp_fit_score: z.number().nullable().optional(),
   /** When the score was computed (drives "Fetched N min ago"). */
   last_updated: z.string().max(80).optional(),
+});
+
+const livingBriefSchema = z.object({
+  type: z.literal("living_brief"),
+  company: z.string().min(1).max(120),
+  domain: z.string().min(1).max(200),
+  intent_score: z.number(),
+  score_band: scoreBandSchema,
+  last_updated: z.string().max(80).optional(),
+  data_coverage: z.number().optional(),
+  spec: briefSpecSchema,
+  contributions: z.array(briefContributionSchema).max(6),
 });
 
 const signalExplorerSchema = z.object({
@@ -92,6 +106,7 @@ const markdownSchema = z.object({
 });
 
 export const uiBlockSchema = z.discriminatedUnion("type", [
+  livingBriefSchema,
   intentHeroSchema,
   signalExplorerSchema,
   thesisSchema,
@@ -108,6 +123,7 @@ export type SignalAxis = z.infer<typeof signalAxisSchema>;
 export type UiSuggestion = z.infer<typeof suggestionSchema>;
 
 export const UI_BLOCK_SCHEMAS: Record<UiBlock["type"], z.ZodObject> = {
+  living_brief: livingBriefSchema,
   intent_hero: intentHeroSchema,
   signal_explorer: signalExplorerSchema,
   thesis: thesisSchema,

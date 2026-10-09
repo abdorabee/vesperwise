@@ -28,7 +28,7 @@ function triggerContributions(contributions: BriefContribution[]): BriefContribu
 function openerText(signal: TriggerKey): Record<string, string> {
   const detail = "{signal." + signal + ".detail}";
   return {
-    "VP Sales": `Saw the news at {company} (${detail}). Moments like this usually mean quota moves faster than the team's tooling.`,
+    "VP Sales": `Noticed ${detail} at {company}. Moments like this usually mean quota moves faster than the team's tooling.`,
     "RevOps lead": `With ${detail}, {company}'s routing, territories, and forecasts are about to get busier.`,
     CFO: `${detail} at {company} usually brings a fresh look at which growth spend actually pays back.`,
   };
@@ -115,7 +115,7 @@ export function buildFallbackBrief(input: {
   const spotlight: BriefSection = {
     type: "signal_spotlight",
     signal: strongest.type,
-    take: "{signal." + strongest.type + ".detail} is the strongest current angle for {company}.",
+    take: "This is the strongest current angle for {company}: lead with it before it ages out.",
   };
   const whatWouldChange: BriefSection = {
     type: "what_would_change",

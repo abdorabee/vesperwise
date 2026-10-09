@@ -48,7 +48,9 @@ export type ScoreReport =
     };
 
 export function heroBlock(blocks: UiBlock[]) {
-  return blocks.find((block): block is Extract<UiBlock, { type: "intent_hero" }> => block.type === "intent_hero");
+  return blocks.find((block): block is Extract<UiBlock, { type: "living_brief" | "intent_hero" }> =>
+    block.type === "living_brief" || block.type === "intent_hero"
+  );
 }
 
 export function artifactLabel(blocks: UiBlock[]) {

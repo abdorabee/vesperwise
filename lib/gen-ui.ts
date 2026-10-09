@@ -1,4 +1,5 @@
 import type { ScoreBand, SignalContribution, SignalResult, SignalSet } from "@/lib/types";
+import { briefContributionsFrom, buildFallbackBrief, repairBrief, type BriefSpec } from "./brief";
 import { repairUiBlocks } from "./gen-ui-repair";
 import type { SignalAxis, UiBlock, UiSuggestion } from "./gen-ui-schemas";
 
@@ -83,6 +84,7 @@ export type WorkspaceScore = {
   talk_track?: string;
   signals?: SignalSet;
   contributions?: SignalContribution[];
+  brief?: BriefSpec;
   last_updated?: string;
 };
 
@@ -104,7 +106,31 @@ export function defaultSuggestions(score: { company: string; score_band: string 
 }
 
 export function workspaceFromScore(score: WorkspaceScore): UiBlock[] {
-  const blocks: UiBlock[] = [
+  const briefContributions = score.contributions ? briefContributionsFrom(score.contributions).slice(0, 6) : [];
+  const availableSignals = briefContributions.map((item) => item.type);
+  const repairedBrief = score.brief
+    ? repairBrief(score.brief, { availableSignals }).spec
+    : null;
+  const livingBrief = briefContributions.length > 0
+    ? {
+        type: "living_brief" as const,
+        company: score.company,
+        domain: score.domain,
+        intent_score: score.intent_score,
+        score_band: score.score_band,
+        last_updated: score.last_updated,
+        data_coverage: score.data_coverage,
+        spec: repairedBrief ?? buildFallbackBrief({
+          company: score.company,
+          score: score.intent_score,
+          band: score.score_band,
+          contributions: briefContributions,
+        }),
+        contributions: briefContributions,
+      }
+    : null;
+
+  const blocks: UiBlock[] = livingBrief ? [livingBrief] : [
     {
       type: "intent_hero",
       company: score.company,
@@ -135,7 +161,7 @@ export function workspaceFromScore(score: WorkspaceScore): UiBlock[] {
     }
   }
 
-  if (score.ai_summary) {
+  if (!livingBrief && score.ai_summary) {
     blocks.push({
       type: "thesis",
       summary: score.ai_summary,

@@ -1,17 +1,21 @@
-import type { SignalContribution, SignalStatus } from "../types";
-import { TRIGGER_KEYS, type TriggerKey } from "./brief-schema";
+import { z } from "zod";
 
-export interface BriefContribution {
-  type: TriggerKey;
-  rawScore: number;
-  effectiveWeight: number;
-  daysAgo: number | null;
-  halfLifeDays?: number;
-  observedAt: string | null;
-  summary: string;
-  contribution: number;
-  status?: SignalStatus;
-}
+import type { SignalContribution, SignalStatus } from "../types";
+import { TRIGGER_KEYS, triggerKeySchema, type TriggerKey } from "./brief-schema";
+
+export const briefContributionSchema = z.object({
+  type: triggerKeySchema,
+  rawScore: z.number(),
+  effectiveWeight: z.number(),
+  daysAgo: z.number().nullable(),
+  halfLifeDays: z.number().optional(),
+  observedAt: z.string().max(80).nullable(),
+  summary: z.string().max(400),
+  contribution: z.number(),
+  status: z.enum(["ok", "no_signal", "stale", "not_found", "unavailable"]).optional(),
+});
+
+export type BriefContribution = z.infer<typeof briefContributionSchema> & { status?: SignalStatus };
 
 const TRIGGER_KEY_SET = new Set<string>(TRIGGER_KEYS);
 
