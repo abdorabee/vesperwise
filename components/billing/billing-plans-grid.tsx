@@ -6,6 +6,7 @@ import {
   planCreditsUnit,
   type PlanKey,
 } from "@/lib/billing-plans";
+import { captureProductEvent } from "@/lib/product-analytics";
 
 interface BillingPlansGridProps {
   currentPlan: PlanKey;
@@ -74,7 +75,7 @@ export function BillingPlansGrid({ currentPlan }: BillingPlansGridProps) {
                     Talk to sales
                   </a>
                 ) : (
-                  <form action="/api/billing/checkout" method="POST">
+                  <form action="/api/billing/checkout" method="POST" onSubmit={() => captureProductEvent("checkout_started")}>
                     <input type="hidden" name="plan" value={p.key} />
                     <button type="submit" className={`pc-cta${isRecommended ? " solid" : " outline"}`}>
                       {`Upgrade to ${p.label}`}

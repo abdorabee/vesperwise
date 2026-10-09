@@ -209,6 +209,11 @@ export default function SubprocessorsView() {
                   "Website usage analytics — only after cookie consent",
                   "United States"
                 ],
+                [
+                  <Strong key="name">PostHog</Strong>,
+                  "Product analytics — only after cookie consent",
+                  "EU"
+                ],
               ]}
             />
             <H3>Data enrichment providers</H3>

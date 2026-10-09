@@ -31,8 +31,9 @@ export function CookieBanner() {
     <div className="cookie-banner" role="dialog" aria-live="polite" aria-labelledby="cookie-banner-title">
       <div id="cookie-banner-title" className="cookie-banner-title">Cookies</div>
       <p>
-        We use essential cookies to keep you signed in. With your OK, we also use Google Analytics to
-        understand how the site is used. See our <Link href="/privacy#cookies">privacy policy</Link>.
+        We use essential cookies to keep you signed in. With your OK, Google Analytics and PostHog
+        measure which pages you leave. Reject keeps essential cookies only. See our{" "}
+        <Link href="/privacy#cookies">privacy policy</Link>.
       </p>
       <div className="cookie-banner-actions">
         <button type="button" className="btn btn-secondary" onClick={() => choose("denied")}>
