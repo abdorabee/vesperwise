@@ -679,6 +679,7 @@ export default function DocsView() {
               <ParamRow name="why_now"      type="string">One or two sentences on why the account matters now.</ParamRow>
               <ParamRow name="recommended_action" type="string">Suggested next step for the rep.</ParamRow>
               <ParamRow name="ai_summary"   type="string">Short written summary of the evidence.</ParamRow>
+              <ParamRow name="brief"        type="object">The report layout: a headline, an ordered list of sections, buyer personas and opening lines per signal. Text uses placeholders such as <IC>{"{score}"}</IC> and <IC>{"{signal.hiring.detail}"}</IC> that you fill from this response.</ParamRow>
               <ParamRow name="cached"       type="boolean"><IC>true</IC> when served from the six-hour cache.</ParamRow>
               <ParamRow name="charged"      type="boolean" isLast><IC>true</IC> only when this request used a credit.</ParamRow>
             </ParamTable>

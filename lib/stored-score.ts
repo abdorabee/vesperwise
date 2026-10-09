@@ -1,3 +1,4 @@
+import type { BriefSpec } from "@/lib/brief";
 import type { WorkspaceScore } from "@/lib/gen-ui";
 import type { ScoreBand, SignalContribution, SignalSet } from "@/lib/types";
 
@@ -42,6 +43,8 @@ export function storedScoreFromRow(row: Record<string, unknown> | null | undefin
     talk_track: str(row.talk_track),
     signals,
     contributions: Array.isArray(row.contributions) ? row.contributions as SignalContribution[] : undefined,
+    // Validated and repaired by workspaceFromScore; null for scores saved before the brief existed.
+    brief: row.brief && typeof row.brief === "object" ? row.brief as BriefSpec : undefined,
     last_updated: createdAt,
     created_at: createdAt,
   };

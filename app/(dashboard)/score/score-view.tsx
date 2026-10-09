@@ -80,6 +80,16 @@ function outcomeFrom(ok: boolean, status: number, payload: unknown): ScoreReques
  * completion can fill its row. Falls back to the plain JSON body when the
  * server answers without a stream (auth/validation errors).
  */
+const MAX_HANDOFF_PROMPT_LENGTH = 600;
+
+/** A handed-off follow-up costs credits; never resend it on reload. */
+function dropPromptParam() {
+  const url = new URL(window.location.href);
+  if (!url.searchParams.has("prompt")) return;
+  url.searchParams.delete("prompt");
+  window.history.replaceState(window.history.state, "", url);
+}
+
 async function requestScore(
   domain: string,
   onProgress: (event: ScoreProgressEvent) => void,
@@ -154,10 +164,15 @@ export function ScoreView(props: ScoreViewProps) {
   useEffect(() => {
     const domain = searchParams.get("domain")?.trim();
     const view = searchParams.get("view");
-    const key = `${domain}|${view ?? ""}`;
+    const followUp = searchParams.get("prompt")?.trim().slice(0, MAX_HANDOFF_PROMPT_LENGTH);
+    const key = `${domain}|${view ?? ""}|${followUp ?? ""}`;
     if (!domain || autoScoredRef.current === key) return;
     autoScoredRef.current = key;
-    if (view === "last") void openLastScore(domain);
+    if (view === "last") void openLastScore(domain).then((opened) => {
+      if (!opened || !followUp) return;
+      dropPromptParam();
+      void runFollowUp(followUp);
+    });
     else void submitMessage(domain);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
@@ -251,8 +266,8 @@ export function ScoreView(props: ScoreViewProps) {
   }
 
   /** Restores the last stored score for a domain without rescoring or charging. */
-  async function openLastScore(rawDomain: string) {
-    if (busy) return;
+  async function openLastScore(rawDomain: string): Promise<boolean> {
+    if (busy) return false;
     const domain = extractDomain(rawDomain) ?? rawDomain;
     setBusy(true);
     try {
@@ -261,7 +276,7 @@ export function ScoreView(props: ScoreViewProps) {
       if (response.status === 404) {
         const message = payload?.error ?? "No stored score yet";
         setMessages([{ id: nextId(), role: "error", content: message, failure: { status: 404, code: "no_stored_score", message }, domain }]);
-        return;
+        return false;
       }
       if (!response.ok || !payload?.score) throw new Error(payload?.error ?? "Couldn't load the stored score");
       const stored = payload.score;
@@ -270,9 +285,11 @@ export function ScoreView(props: ScoreViewProps) {
       setSessionId(null);
       pendingSeedRef.current = { title: stored.domain, user: stored.domain, assistant, presentation: blocks, tools: [], billing: "stored result · free" };
       setMessages([{ id: nextId(), role: "assistant", kind: "ui", blocks, content: "", tools: [], billing: "stored result · free", restored: true, stored: { domain: stored.domain, createdAt: stored.created_at } }]);
+      return true;
     } catch (reason) {
       const message = (reason as Error).message || "Couldn't load the stored score";
       setMessages([{ id: nextId(), role: "error", content: message, failure: { status: 0, message }, domain }]);
+      return false;
     } finally {
       setBusy(false);
     }

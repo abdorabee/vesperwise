@@ -252,6 +252,8 @@ export interface DbScore {
   model_fallback: boolean;
   score_explanation: string | null;
   icp_fit_score: number | null;
+  /** Model-composed living brief; null for scores saved before it existed. */
+  brief: BriefSpec | null;
   expires_at: string;
   created_at: string;
 }
