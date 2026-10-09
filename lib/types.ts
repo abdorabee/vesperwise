@@ -1,3 +1,5 @@
+import type { BriefSpec } from "@/lib/brief";
+
 // ─── Signal Types ─────────────────────────────────────────────────────────────
 
 export type SignalStatus =
@@ -124,6 +126,7 @@ export interface IntentScore {
   raw_score?: number | null;    // weighted score before freshness decay
   confidence?: number;          // backward-compatible alias for data_coverage
   score_explanation?: string;   // bounded reasoning summary for older clients
+  brief?: BriefSpec;
 }
 
 // ─── API Types ────────────────────────────────────────────────────────────────
@@ -249,6 +252,8 @@ export interface DbScore {
   model_fallback: boolean;
   score_explanation: string | null;
   icp_fit_score: number | null;
+  /** Model-composed living brief; null for scores saved before it existed. */
+  brief: BriefSpec | null;
   expires_at: string;
   created_at: string;
 }

@@ -45,6 +45,14 @@ import {
   signalDoneEvent,
   type ScoreProgressHandler,
 } from "@/lib/score-progress";
+import {
+  availableBriefSignals,
+  briefContributionsFrom,
+  buildFallbackBrief,
+  repairBrief,
+  type BriefContribution,
+  type TriggerKey,
+} from "@/lib/brief";
 import { updatePipelineStage } from "@/lib/pipeline";
 import { createInboxNotification } from "@/lib/inbox";
 import { evaluateV2ScoreTransition } from "@/lib/score-transition";
@@ -606,6 +614,61 @@ function emitAllSignals(onProgress: ScoreProgressHandler | undefined, signals: S
     const signal = signals[key] as SignalResult | undefined;
     if (signal) emitProgress(onProgress, signalDoneEvent(key, signal));
   }
+}
+
+function emitScoreReady(
+  onProgress: ScoreProgressHandler | undefined,
+  score: {
+    company: string;
+    domain: string;
+    intent_score: number | null;
+    score_band: IntentScore["score_band"];
+    data_coverage?: number;
+    last_updated: string;
+  },
+  contributions: BriefContribution[],
+) {
+  if (!onProgress || score.intent_score === null || score.score_band === null) return;
+  emitProgress(onProgress, {
+    type: "score_ready",
+    company: score.company,
+    domain: score.domain,
+    intent_score: score.intent_score,
+    score_band: score.score_band,
+    ...(score.data_coverage === undefined ? {} : { data_coverage: score.data_coverage }),
+    last_updated: score.last_updated,
+    contributions,
+  });
+}
+
+function briefForStoredScore(score: StoredIntentScore): BriefContribution[] {
+  return briefContributionsFrom(score.contributions ?? []);
+}
+
+function livingBriefForScore(score: StoredIntentScore, contributions: BriefContribution[]) {
+  if (score.intent_score === null || score.score_band === null) return null;
+  const availableSignals = availableBriefSignals(contributions);
+  return score.brief
+    ? repairBrief(score.brief, { availableSignals }).spec ?? buildFallbackBrief({
+        company: score.company,
+        score: score.intent_score,
+        band: score.score_band,
+        contributions,
+      })
+    : buildFallbackBrief({
+        company: score.company,
+        score: score.intent_score,
+        band: score.score_band,
+        contributions,
+      });
+}
+
+function emitScoreReadyAndBrief(onProgress: ScoreProgressHandler | undefined, score: StoredIntentScore) {
+  if (!onProgress) return;
+  const contributions = briefForStoredScore(score);
+  emitScoreReady(onProgress, score, contributions);
+  const spec = livingBriefForScore(score, contributions);
+  if (spec) emitProgress(onProgress, { type: "brief", spec });
 }
 
 export async function getEvidenceSnapshot(
@@ -1362,6 +1425,7 @@ export async function scoreCompany(opts: ScoreCompanyOptions): Promise<StoredInt
     const cached = await cacheGet<StoredIntentScore>(resultCacheKey);
     if (isStoredIntentScore(cached, scoringVersion)) {
       emitAllSignals(onProgress, cached.signals);
+      emitScoreReadyAndBrief(onProgress, cached);
       return {
         ...cached,
         cached: true,
@@ -1403,6 +1467,7 @@ export async function scoreCompany(opts: ScoreCompanyOptions): Promise<StoredInt
 
   if (run.run_status === "completed" && isStoredIntentScore(run.stored_result, scoringVersion)) {
     emitAllSignals(onProgress, run.stored_result.signals);
+    emitScoreReadyAndBrief(onProgress, run.stored_result);
     const replay: StoredIntentScore = {
       ...run.stored_result,
       cached: true,
@@ -1465,6 +1530,7 @@ export async function scoreCompany(opts: ScoreCompanyOptions): Promise<StoredInt
         )
       : null;
     const statuses = sourceStatuses(snapshot.signals);
+    const briefContributions = briefContributionsFrom(partial.contributions);
 
     if (["unavailable", "not_found", "stale"].includes(statuses.hiring)) {
       void enqueueHiringRefresh(lookupDomain).catch((error) => {
@@ -1524,6 +1590,7 @@ export async function scoreCompany(opts: ScoreCompanyOptions): Promise<StoredInt
       parseEmployeeRange(profile.company_size)
       ? getFirmographics(supabase, lookupDomain, businessIdFromSignals(snapshot.signals))
       : Promise.resolve({ data: null, rows: [], status: "unavailable" as const });
+    emitScoreReady(onProgress, partial, briefContributions);
     emitProgress(onProgress, { type: "reasoning_start" });
     const reasoningPromise = generateReasoning(
       lookupCompany,
@@ -1532,7 +1599,11 @@ export async function scoreCompany(opts: ScoreCompanyOptions): Promise<StoredInt
       snapshot.signals,
       effectiveProductCategory,
       isBaseline,
-      profile
+      profile,
+      {
+        contributions: partial.contributions,
+        onBrief: (spec) => emitProgress(onProgress, { type: "brief", spec }),
+      }
     ).then((value) => {
       emitProgress(onProgress, { type: "reasoning_done" });
       return value;

@@ -270,4 +270,56 @@ describe("repairUiBlocks", () => {
       ],
     }]);
   });
+
+  it("repairs a malformed living brief spec instead of dropping the block", () => {
+    const input = deepFreeze([{
+      type: "living_brief",
+      company: "Acme",
+      domain: "acme.com",
+      intent_score: 64,
+      score_band: "WARM",
+      spec: {
+        headline: "Acme has a timely buying window " + "x".repeat(160),
+        personas: ["VP Sales"],
+        openers: {
+          funding: {
+            "VP Sales": "Lead with {signal.funding.detail}.",
+          },
+        },
+        layout: [
+          { type: "why_now", text: "{company} is moving because {signal.funding.detail}.", extra: true },
+        ],
+      },
+      contributions: [
+        {
+          type: "funding",
+          rawScore: 75,
+          effectiveWeight: 25,
+          daysAgo: 5,
+          observedAt: "2026-10-01T00:00:00.000Z",
+          summary: "Series B announced",
+          contribution: 18,
+          status: "ok",
+        },
+      ],
+    }]);
+
+    const result = repairUiBlocks(input);
+
+    expect(result.blocks).toHaveLength(1);
+    const block = result.blocks[0];
+    expect(block?.type).toBe("living_brief");
+    if (block?.type !== "living_brief") throw new Error("missing living brief");
+    expect(block.spec.version).toBe(1);
+    expect(block.spec.headline).toHaveLength(140);
+    expect(block.spec.layout[0]).toEqual({ type: "score_hero" });
+    expect(block.spec.layout[1]).toEqual({
+      type: "why_now",
+      text: "{company} is moving because {signal.funding.detail}.",
+    });
+    expect(result.diagnostics).toEqual(expect.arrayContaining([
+      { index: 0, type: "living_brief", code: "truncated", path: "spec.headline" },
+      { index: 0, type: "living_brief", code: "unknown_prop", path: "spec.layout.0.extra" },
+    ]));
+  });
 });

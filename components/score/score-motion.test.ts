@@ -60,6 +60,18 @@ describe("Score motion contract", () => {
     );
   });
 
+  it("animates living brief sections and slider-driven fills without escaping reduced motion", () => {
+    const reduced = reducedMotionBlock();
+
+    expect(motionCss).toContain('[data-motion="generated"] .brief-section-in');
+    expect(motionCss).toContain("animation: score-row-in 200ms cubic-bezier(0.22, 1, 0.36, 1)");
+    expect(motionCss).toContain("calc(var(--brief-i, 0) * 70ms)");
+    expect(motionCss).toContain(".brief-score-fill");
+    expect(motionCss).toContain("transition: width 300ms");
+    expect(reduced).toContain(".brief-section-in");
+    expect(reduced).toContain(".brief-score-fill");
+  });
+
   it("keeps the orb mounted while chat thinking labels blur-swap", () => {
     expect(research).toContain("<ThinkingOrb label={headline}");
     expect(research).toContain('<span key={headline} className="text-swap-in headline-shimmer">');

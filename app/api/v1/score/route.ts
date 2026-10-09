@@ -15,7 +15,8 @@ import {
   scoreCompany,
 } from "@/lib/score-service";
 import { redactPublicSources } from "@/lib/public-source";
-import { formatSseEvent, type ScoreProgressHandler } from "@/lib/score-progress";
+import { availableBriefSignals, repairBrief, type TriggerKey } from "@/lib/brief";
+import { formatSseEvent, type ScoreProgressEvent, type ScoreProgressHandler } from "@/lib/score-progress";
 import type { BusinessProfile } from "@/lib/types";
 
 export const maxDuration = 45;
@@ -87,6 +88,13 @@ async function authenticate(req: NextRequest): Promise<AuthenticatedUser | NextR
 
 function wantsEventStream(req: NextRequest): boolean {
   return (req.headers.get("accept") ?? "").toLowerCase().includes("text/event-stream");
+}
+
+function sanitizeProgressEvent(event: ScoreProgressEvent, availableSignals: TriggerKey[]): ScoreProgressEvent | null {
+  const redacted = redactPublicSources(event) as ScoreProgressEvent;
+  if (redacted.type !== "brief") return redacted;
+  const repaired = repairBrief(redacted.spec, { availableSignals }).spec;
+  return repaired ? { type: "brief", spec: repaired } : null;
 }
 
 async function scoreForUser(
@@ -180,7 +188,14 @@ function streamScore(req: NextRequest, authenticated: AuthenticatedUser, input: 
       };
       // Flush headers immediately so the client can show live progress.
       controller.enqueue(encoder.encode(": scoring\n\n"));
-      const response = await scoreForUser(req, authenticated, input, (event) => send("progress", redactPublicSources(event)));
+      let briefSignals: TriggerKey[] = [];
+      const response = await scoreForUser(req, authenticated, input, (event) => {
+        if (event.type === "score_ready") {
+          briefSignals = availableBriefSignals(event.contributions);
+        }
+        const safeEvent = sanitizeProgressEvent(event, briefSignals);
+        if (safeEvent) send("progress", safeEvent);
+      });
       let body: unknown = null;
       try {
         body = await response.json();

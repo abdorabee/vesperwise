@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { ArrowUpRight, Check, ChevronRight, Copy, ListPlus, PenLine } from "lucide-react";
+import { LivingBrief } from "@/components/score/brief/living-brief";
 import { BandPill, CompanyMark, ScoreMeter, ScoreNumber } from "@/components/score/band";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -18,6 +19,7 @@ export interface GenUiHandlers {
 }
 
 type HeroBlock = Extract<UiBlock, { type: "intent_hero" }>;
+type LivingBriefBlock = Extract<UiBlock, { type: "living_brief" }>;
 type ExplorerBlock = Extract<UiBlock, { type: "signal_explorer" }>;
 type ThesisBlock = Extract<UiBlock, { type: "thesis" }>;
 
@@ -320,13 +322,14 @@ export function SuggestionChips({ suggestions, onPrompt, disabled }: { suggestio
 
 /** Hero → Why now → Recommended next move → evidence → everything else, regardless of block order. */
 function orderBlocks(blocks: UiBlock[]): UiBlock[] {
-  const rank = (block: UiBlock) => block.type === "intent_hero" ? 0 : block.type === "thesis" ? 1 : block.type === "signal_explorer" ? 2 : 3;
+  const rank = (block: UiBlock) => block.type === "living_brief" ? 0 : block.type === "intent_hero" ? 1 : block.type === "thesis" ? 2 : block.type === "signal_explorer" ? 3 : 4;
   return blocks.map((block, index) => ({ block, index })).sort((a, b) => rank(a.block) - rank(b.block) || a.index - b.index).map((item) => item.block);
 }
 
 export function GenUiWorkspace({ blocks, handlers, fresh = false, include }: { blocks: UiBlock[]; handlers: GenUiHandlers; fresh?: boolean; include?: UiBlock["type"][] }) {
   const hero = blocks.find((block): block is HeroBlock => block.type === "intent_hero");
-  const company = hero?.company ?? blocks.find((block) => block.type === "action_rail")?.company;
+  const livingBrief = blocks.find((block): block is LivingBriefBlock => block.type === "living_brief");
+  const company = hero?.company ?? livingBrief?.company ?? blocks.find((block) => block.type === "action_rail")?.company;
   const sampleData = blocks.some((block) => block.type === "signal_explorer" && block.axes.some((axis) => isMockSource(axis.source)));
   const visibleBlocks = include ? blocks.filter((block) => include.includes(block.type)) : blocks;
   return (
@@ -334,6 +337,7 @@ export function GenUiWorkspace({ blocks, handlers, fresh = false, include }: { b
       {orderBlocks(visibleBlocks).map((block, index) => {
         const key = `${block.type}-${index}`;
         switch (block.type) {
+          case "living_brief": return <LivingBrief key={key} block={block} handlers={handlers} fresh={fresh} />;
           case "intent_hero": return <IntentHero key={key} block={block} sampleData={sampleData} fresh={fresh} />;
           case "signal_explorer": return <EvidenceTable key={key} block={block} />;
           case "thesis": return <div key={key} className="space-y-5"><WhyNow block={block} /><NextMove block={block} company={company} onPrompt={handlers.onPrompt} /></div>;

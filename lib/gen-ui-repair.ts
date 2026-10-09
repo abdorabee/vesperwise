@@ -1,6 +1,6 @@
-import type { ZodIssue } from "zod";
-
 import { UI_BLOCK_SCHEMAS, type UiBlock } from "./gen-ui-schemas";
+import { applyIssues, isRecord, pathString, reportStrippedKeys } from "./zod-repair";
+import { buildFallbackBrief, repairBrief, TRIGGER_KEYS, type BriefContribution, type TriggerKey } from "./brief";
 
 export type UiDiagnosticCode =
   | "unknown_type"
@@ -20,116 +20,82 @@ export interface UiDiagnostic {
 
 const MAX_PASSES = 3;
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
-}
-
 function extractBlocksInput(input: unknown): unknown[] {
   if (Array.isArray(input)) return input;
   if (isRecord(input) && Array.isArray(input.blocks)) return input.blocks;
   return [];
 }
 
-function pathString(path: readonly PropertyKey[]): string {
-  return path.map(String).join(".");
-}
-
-function getAtPath(value: unknown, path: readonly PropertyKey[]): unknown {
-  return path.reduce<unknown>((current, key) => {
-    if (Array.isArray(current) && typeof key === "number") return current[key];
-    if (isRecord(current)) return current[key as string];
-    return undefined;
-  }, value);
-}
-
-function removeAtPath(value: unknown, path: readonly PropertyKey[]): unknown {
-  if (path.length === 0) return undefined;
-  const [head, ...tail] = path;
-  if (Array.isArray(value) && typeof head === "number") {
-    if (tail.length === 0) return value.filter((_, index) => index !== head);
-    return value.map((item, index) => index === head ? removeAtPath(item, tail) : item);
-  }
-  if (!isRecord(value)) return value;
-  if (tail.length === 0) {
-    if (!(String(head) in value)) return value;
-    const copy = { ...value };
-    delete copy[String(head)];
-    return copy;
-  }
-  if (!(String(head) in value)) return value;
-  return { ...value, [String(head)]: removeAtPath(value[String(head)], tail) };
-}
-
-function truncateAtPath(value: unknown, path: readonly PropertyKey[], maximum: number): unknown {
-  if (path.length === 0) return typeof value === "string" ? value.slice(0, maximum) : value;
-  const [head, ...tail] = path;
-  if (Array.isArray(value) && typeof head === "number") {
-    return value.map((item, index) => index === head ? truncateAtPath(item, tail, maximum) : item);
-  }
-  if (!isRecord(value)) return value;
-  return { ...value, [String(head)]: truncateAtPath(value[String(head)], tail, maximum) };
-}
-
-function isStringTooBig(issue: ZodIssue, value: unknown): issue is ZodIssue & { maximum: number } {
-  return issue.code === "too_big" && typeof value === "string" && typeof issue.maximum === "number";
-}
-
 type Diagnose = (code: UiDiagnosticCode, path: readonly PropertyKey[]) => void;
 
-function comparePathsDescending(a: readonly PropertyKey[], b: readonly PropertyKey[]): number {
-  for (let i = 0; i < Math.min(a.length, b.length); i += 1) {
-    if (a[i] === b[i]) continue;
-    if (typeof a[i] === "number" && typeof b[i] === "number") return (b[i] as number) - (a[i] as number);
-    return String(b[i]).localeCompare(String(a[i]));
-  }
-  return b.length - a.length;
+const SCORE_BANDS = new Set(["HOT", "WARM", "COLD"]);
+const TRIGGER_KEY_SET = new Set<string>(TRIGGER_KEYS);
+
+function isTriggerKey(value: unknown): value is TriggerKey {
+  return typeof value === "string" && TRIGGER_KEY_SET.has(value);
 }
 
-function isPrefix(prefix: readonly PropertyKey[], path: readonly PropertyKey[]): boolean {
-  return prefix.length <= path.length && prefix.every((key, i) => key === path[i]);
+function extractContributionSignals(value: unknown): TriggerKey[] {
+  if (!Array.isArray(value)) return [];
+  const signals: TriggerKey[] = [];
+  const seen = new Set<TriggerKey>();
+  for (const item of value) {
+    const type = isRecord(item) ? item.type : undefined;
+    if (!isTriggerKey(type) || seen.has(type)) continue;
+    seen.add(type);
+    signals.push(type);
+  }
+  return signals;
 }
 
-/** Applies one pass of fixes. Highest array indexes go first so removals never shift a later target. */
-function applyIssues(candidate: unknown, issues: readonly ZodIssue[], diagnose: Diagnose): unknown {
-  const ordered = [...issues].sort((a, b) => comparePathsDescending(a.path, b.path));
-  const removed: (readonly PropertyKey[])[] = [];
-  let next = candidate;
-  for (const issue of ordered) {
-    if (removed.some((prefix) => isPrefix(prefix, issue.path))) continue;
-    const current = getAtPath(next, issue.path);
-    const maximum = isStringTooBig(issue, current) ? issue.maximum : undefined;
-    diagnose(maximum === undefined ? "invalid_prop" : "truncated", issue.path);
-    if (maximum !== undefined) {
-      next = truncateAtPath(next, issue.path, maximum);
-      continue;
-    }
-    const target = current === undefined ? enclosingArrayItem(issue.path) : issue.path;
-    if (!target || removed.some((prefix) => isPrefix(prefix, target))) continue;
-    removed.push(target);
-    next = removeAtPath(next, target);
-  }
-  return next;
+function extractFallbackContributions(value: unknown): BriefContribution[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item): BriefContribution[] => {
+    if (!isRecord(item) || !isTriggerKey(item.type)) return [];
+    return [{
+      type: item.type,
+      rawScore: typeof item.rawScore === "number" ? item.rawScore : 0,
+      effectiveWeight: typeof item.effectiveWeight === "number" ? item.effectiveWeight : 0,
+      daysAgo: typeof item.daysAgo === "number" || item.daysAgo === null ? item.daysAgo : null,
+      ...(typeof item.halfLifeDays === "number" ? { halfLifeDays: item.halfLifeDays } : {}),
+      observedAt: typeof item.observedAt === "string" || item.observedAt === null ? item.observedAt : null,
+      summary: typeof item.summary === "string" ? item.summary : "No signal detail available",
+      contribution: typeof item.contribution === "number" ? item.contribution : 0,
+      ...(typeof item.status === "string" ? { status: item.status as BriefContribution["status"] } : {}),
+    }];
+  }).slice(0, 6);
 }
 
-/** A missing required field can't be removed; drop the nearest enclosing array item instead. */
-function enclosingArrayItem(path: readonly PropertyKey[]): readonly PropertyKey[] | null {
-  for (let i = path.length - 1; i >= 0; i -= 1) {
-    if (typeof path[i] === "number") return path.slice(0, i + 1);
-  }
-  return null;
+function mapBriefDiagnosticCode(code: string): UiDiagnosticCode {
+  if (code === "unknown_prop") return "unknown_prop";
+  if (code === "truncated") return "truncated";
+  return "invalid_prop";
 }
 
-/** Reports keys the schema stripped, at any depth, by diffing the input against the parsed output. */
-function reportStrippedKeys(input: unknown, output: unknown, path: PropertyKey[], diagnose: Diagnose): void {
-  if (Array.isArray(input) && Array.isArray(output)) {
-    input.forEach((item, i) => reportStrippedKeys(item, output[i], [...path, i], diagnose));
-    return;
+function normalizeLivingBriefSpec(candidate: unknown, diagnose: Diagnose): unknown {
+  if (!isRecord(candidate) || candidate.type !== "living_brief") return candidate;
+  const availableSignals = extractContributionSignals(candidate.contributions);
+  const repaired = repairBrief(candidate.spec, { availableSignals });
+  for (const diagnostic of repaired.diagnostics) {
+    const suffix = diagnostic.path ? `spec.${diagnostic.path}` : "spec";
+    diagnose(mapBriefDiagnosticCode(diagnostic.code), suffix.split("."));
   }
-  if (!isRecord(input) || !isRecord(output)) return;
-  for (const key of Object.keys(input)) {
-    if (!(key in output)) diagnose("unknown_prop", [...path, key]);
-    else reportStrippedKeys(input[key], output[key], [...path, key], diagnose);
-  }
+  if (repaired.spec) return { ...candidate, spec: repaired.spec };
+
+  const company = typeof candidate.company === "string" && candidate.company.trim() ? candidate.company : "Account";
+  const score = typeof candidate.intent_score === "number" ? candidate.intent_score : 0;
+  const band = typeof candidate.score_band === "string" && SCORE_BANDS.has(candidate.score_band)
+    ? candidate.score_band as "HOT" | "WARM" | "COLD"
+    : "COLD";
+  return {
+    ...candidate,
+    spec: buildFallbackBrief({
+      company,
+      score,
+      band,
+      contributions: extractFallbackContributions(candidate.contributions),
+    }),
+  };
 }
 
 function repairBlock(item: Record<string, unknown>, index: number, diagnostics: UiDiagnostic[]): UiBlock | null {
@@ -145,6 +111,7 @@ function repairBlock(item: Record<string, unknown>, index: number, diagnostics: 
 
   let candidate: unknown = item;
   for (let pass = 0; pass < MAX_PASSES; pass += 1) {
+    candidate = normalizeLivingBriefSpec(candidate, diagnose);
     const parsed = schema.safeParse(candidate);
     if (parsed.success) {
       reportStrippedKeys(candidate, parsed.data, [], diagnose);
@@ -160,7 +127,7 @@ function repairBlock(item: Record<string, unknown>, index: number, diagnostics: 
 }
 
 function domainOf(block: UiBlock): string | undefined {
-  if (block.type === "intent_hero" || block.type === "action_rail") return block.domain.toLowerCase();
+  if (block.type === "living_brief" || block.type === "intent_hero" || block.type === "action_rail") return block.domain.toLowerCase();
   return undefined;
 }
 

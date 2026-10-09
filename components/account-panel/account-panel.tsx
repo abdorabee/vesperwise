@@ -18,9 +18,11 @@ interface AccountPanelProps {
   extraTab?: ReportExtraTab;
 }
 
-export function scoreHref(domain: string, view?: "last") {
+/** `prompt` is a follow-up the score page sends once after opening the stored score. */
+export function scoreHref(domain: string, view?: "last", prompt?: string) {
   const base = `/score?domain=${encodeURIComponent(domain)}`;
-  return view ? `${base}&view=${view}` : base;
+  const withView = view ? `${base}&view=${view}` : base;
+  return prompt ? `${withView}&prompt=${encodeURIComponent(prompt)}` : withView;
 }
 
 function AccountStateBody({ state, domain, onRetry }: { state: Exclude<AccountReportState, { status: "ready" }>; domain: string; onRetry: () => void }) {
@@ -105,7 +107,7 @@ export function AccountPanel({ domain, onClose, extraTab }: AccountPanelProps) {
     onWatchlist: (company, target) => void addToWatchlist(company, target),
     watchlistByDomain,
     // Follow-ups run in the Score workspace, where the conversation lives.
-    onPrompt: () => router.push(scoreHref(domain, "last")),
+    onPrompt: (prompt: string) => router.push(scoreHref(domain, "last", prompt)),
   };
 
   return (

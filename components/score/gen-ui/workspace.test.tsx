@@ -37,6 +37,40 @@ const blocks: UiBlock[] = [
   { type: "action_rail", company: "Stripe", domain: "stripe.com" },
 ];
 
+const livingBrief: UiBlock = {
+  type: "living_brief",
+  company: "Stripe",
+  domain: "stripe.com",
+  intent_score: 64,
+  score_band: "WARM",
+  spec: {
+    version: 1,
+    headline: "Stripe has a timely platform-change window",
+    personas: ["VP Sales"],
+    openers: {
+      hiring: {
+        "VP Sales": "Lead with {signal.hiring.detail}.",
+      },
+    },
+    layout: [
+      { type: "score_hero" },
+      { type: "why_now", text: "{company} is {band} because {signal.hiring.detail}." },
+    ],
+  },
+  contributions: [
+    {
+      type: "hiring",
+      rawScore: 80,
+      effectiveWeight: 20,
+      daysAgo: 7,
+      observedAt: "2026-09-11",
+      summary: "Hiring for platform roles.",
+      contribution: 18,
+      status: "ok",
+    },
+  ],
+};
+
 const render = (input: UiBlock[] = blocks, fresh = false, include?: UiBlock["type"][]) =>
   renderToStaticMarkup(<GenUiWorkspace blocks={input} handlers={{ onPrompt: () => {} }} fresh={fresh} include={include} />);
 
@@ -128,6 +162,14 @@ describe("GenUiWorkspace", () => {
     expect(html).toContain("Sample data");
     expect(html).not.toContain("Evidence");
     expect(html).not.toContain("Hiring for platform roles");
+  });
+
+  it("renders a living brief before legacy overview blocks", () => {
+    const html = render([blocks[0], livingBrief, blocks[2], blocks[3]]);
+
+    expect(html.indexOf("Stripe has a timely platform-change window")).toBeLessThan(html.indexOf("Act this week"));
+    expect(html).toContain("brief-section-in");
+    expect(html).not.toContain("{signal.hiring.detail}");
   });
 
   it("does not render the retired ring or axis cards", () => {

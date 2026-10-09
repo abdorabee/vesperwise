@@ -86,6 +86,41 @@ describe("POST /api/v1/score", () => {
     scoreCompany.mockImplementation(async (opts: { onProgress?: (event: unknown) => void }) => {
       opts.onProgress?.({ type: "signal_done", key: "funding", status: "ok", detail: "Series B", source: "explorium" });
       opts.onProgress?.({ type: "signal_done", key: "hiring", status: "no_signal", source: "scrapling" });
+      opts.onProgress?.({
+        type: "score_ready",
+        company: "Acme",
+        domain: "acme.io",
+        intent_score: 82,
+        score_band: "HOT",
+        last_updated: "2026-10-09T12:00:00.000Z",
+        contributions: [{
+          type: "hiring",
+          rawScore: 80,
+          effectiveWeight: 19,
+          daysAgo: 4,
+          observedAt: "2026-10-05T12:00:00.000Z",
+          summary: "Hiring sales leaders",
+          contribution: 20,
+          status: "ok",
+        }],
+      });
+      opts.onProgress?.({
+        type: "brief",
+        spec: {
+          version: 1,
+          headline: "BuiltWith says Acme is ready",
+          personas: ["VP Sales"],
+          openers: {
+            hiring: {
+              "VP Sales": "OpenPageRank should never leak into opener text.",
+            },
+          },
+          layout: [
+            { type: "score_hero" },
+            { type: "why_now", text: "Use GNews signal text without naming the vendor." },
+          ],
+        },
+      });
       opts.onProgress?.({ type: "reasoning_start" });
       opts.onProgress?.({ type: "reasoning_done" });
       return RESULT;
@@ -97,12 +132,17 @@ describe("POST /api/v1/score", () => {
     expect(events.map((event) => event.event === "progress" ? `${event.event}:${event.data.type}${event.data.key ? `:${event.data.key}` : ""}` : event.event)).toEqual([
       "progress:signal_done:funding",
       "progress:signal_done:hiring",
+      "progress:score_ready",
+      "progress:brief",
       "progress:reasoning_start",
       "progress:reasoning_done",
       "result",
     ]);
     expect(events[0]?.data.source).toBe("company");
     expect(events[1]?.data.source).toBe("careers");
+    const brief = events.find((event) => event.data.type === "brief")?.data.spec as { headline?: string; layout?: Array<{ text?: string }>; openers?: Record<string, Record<string, string>> } | undefined;
+    expect(JSON.stringify(brief)).not.toMatch(/BuiltWith|OpenPageRank|GNews/i);
+    expect(brief?.headline).toContain("public data");
     expect(events.at(-1)?.data).toEqual(RESULT);
   });
 

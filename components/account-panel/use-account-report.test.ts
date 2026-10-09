@@ -27,3 +27,14 @@ describe("accountReportFromResponse", () => {
     expect(accountReportFromResponse(200, null)).toEqual({ status: "error", message: "Couldn't load this account's score." });
   });
 });
+
+import { scoreHref } from "./account-panel";
+
+describe("scoreHref", () => {
+  it("carries a follow-up prompt to the stored score view", () => {
+    expect(scoreHref("acme.com")).toBe("/score?domain=acme.com");
+    expect(scoreHref("acme.com", "last")).toBe("/score?domain=acme.com&view=last");
+    expect(scoreHref("acme.com", "last", "Draft to the CFO & lead with hiring"))
+      .toBe("/score?domain=acme.com&view=last&prompt=Draft%20to%20the%20CFO%20%26%20lead%20with%20hiring");
+  });
+});
