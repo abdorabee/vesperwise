@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
 import { GoogleAnalytics } from "@/components/google-analytics";
+import { PostHogAnalytics } from "@/components/posthog-analytics";
 import { CookieBanner } from "@/components/cookie-banner";
 import "./globals.css";
 import "./theme-overrides.css";
@@ -140,6 +141,7 @@ export default function RootLayout({
               <Toaster />
               <CookieBanner />
               <GoogleAnalytics />
+              <PostHogAnalytics />
             </TooltipProvider>
           </ThemeProvider>
         </body>

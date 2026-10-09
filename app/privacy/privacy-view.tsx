@@ -285,7 +285,7 @@ export default function PrivacyView() {
             ]} />
             <H3>Product telemetry</H3>
             <UL items={[
-              "Page views, button clicks, and feature-usage events (via PostHog, self-hosted in EU)",
+              "Page views, button clicks, and feature-usage events (via PostHog, hosted in the EU, only after cookie consent)",
               "API request metadata: endpoint, latency, status code — payloads are never logged",
             ]} />
             <H3>Communications</H3>
@@ -310,7 +310,7 @@ export default function PrivacyView() {
           {/* ── 04 ── */}
           <Section id="s4" num="04" title="Cookies & analytics">
             <div id="cookies" style={{ scrollMarginTop: "100px" }} />
-            <P>We use a small number of essential cookies and browser-storage entries to run the Service. We also use <Strong>Google Analytics 4</Strong> to understand how the marketing site and product are used, but <Strong>only after you click &ldquo;Accept&rdquo;</Strong> in the cookie banner. If you reject or ignore the banner, the Google Analytics script is never loaded. We do not use Meta Pixel or any ad-tracking scripts, and advertising features in Google Analytics are disabled.</P>
+            <P>We use a small number of essential cookies and browser-storage entries to run the Service. We also use <Strong>Google Analytics 4</Strong> and <Strong>PostHog</Strong> (hosted in the EU) to understand how the marketing site and product are used, but <Strong>only after you click &ldquo;Accept&rdquo;</Strong> in the cookie banner. If you reject or ignore the banner, those scripts are never loaded. We do not use Meta Pixel or any ad-tracking scripts, and advertising features in Google Analytics are disabled.</P>
             <DocTable
               headers={["Cookie / storage", "Purpose", "Lifetime"]}
               rows={[
@@ -322,9 +322,10 @@ export default function PrivacyView() {
                 [<Code key="c3">vw-cookie-consent</Code>, "Remembers your cookie choice (local storage, essential)", "Until cleared"],
                 [<Code key="c4">intentiq-theme</Code>, "UI theme preference (local storage)", "Until cleared"],
                 [<Code key="c5">_ga, _ga_*</Code>, "Google Analytics visitor and session IDs — only with consent", "Up to 2 years"],
+                [<Code key="c9">ph_*</Code>, "PostHog product analytics — only with consent, hosted in the EU", "Up to 1 year"],
               ]}
             />
-            <P>Google Analytics receives your truncated IP address, browser and device information, and the pages you visit. You can change your choice at any time via <Strong>Cookie settings</Strong> in the site footer; rejecting deletes the Google Analytics cookies from your browser.</P>
+            <P>Google Analytics receives your truncated IP address, browser and device information, and the pages you visit. PostHog, hosted in the EU, receives page and product-usage events only after cookie consent. You can change your choice at any time via <Strong>Cookie settings</Strong> in the site footer; rejecting deletes the Google Analytics cookies from your browser and stops PostHog.</P>
           </Section>
 
           {/* ── 05 ── */}

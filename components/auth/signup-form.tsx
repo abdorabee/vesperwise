@@ -8,6 +8,7 @@ import { useMemo, useState, type FormEvent } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { captureProductEvent } from "@/lib/product-analytics";
 
 import { AuthCard, AuthFieldError, AuthGlobalError } from "./auth-card";
 import { AUTH_FORM_CSS } from "./auth-form-styles";
@@ -85,6 +86,7 @@ export function SignupForm() {
       avatar.setSuccess(true);
       const finalizeError = await finalizeToDashboard((params) => signUp.finalize(params), router);
       if (finalizeError) fail(finalizeError.message);
+      else captureProductEvent("signup_completed");
       return;
     }
 
@@ -129,6 +131,7 @@ export function SignupForm() {
     avatar.setSuccess(true);
     const finalizeError = await finalizeToDashboard((params) => signUp.finalize(params), router);
     if (finalizeError) fail(finalizeError.message);
+    else captureProductEvent("signup_completed");
   }
 
   return (

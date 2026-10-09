@@ -81,6 +81,10 @@ GITHUB_TOKEN=
 # Contact form (optional; logs to the console if unset)
 RESEND_API_KEY=
 
+# PostHog Cloud EU (product analytics). The script loads only after cookie Accept.
+# NEXT_PUBLIC_POSTHOG_HOST=https://eu.i.posthog.com
+NEXT_PUBLIC_POSTHOG_KEY=
+
 # Skip real API calls during development
 MOCK_SIGNALS=true
 

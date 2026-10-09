@@ -22,6 +22,7 @@ import { parsePersistedPresentation, type ToolChip } from "@/lib/score-presentat
 import { createSseParser, type ScoreProgressEvent } from "@/lib/score-progress";
 import { SCORE_NEW_EVENT, SCORE_OPEN_THREADS_EVENT } from "@/lib/score-workspace-events";
 import type { StoredWorkspaceScore } from "@/lib/stored-score";
+import { captureProductEvent } from "@/lib/product-analytics";
 import { CHAT_CREDIT_COST, type IntentScore, type ScoreBand } from "@/lib/types";
 type ScorableIntentScore = IntentScore & { intent_score: number; score_band: ScoreBand };
 
@@ -176,6 +177,7 @@ export function ScoreView(props: ScoreViewProps) {
   }, []);
 
   async function runScore(raw: string, domain: string) {
+    captureProductEvent("score_started");
     const thinkingId = nextId();
     setMessages((current) => [...current, { id: nextId(), role: "user", content: raw }, { id: thinkingId, role: "assistant", kind: "thinking", mode: "score", tools: [], progress: EMPTY_RESEARCH_PROGRESS, domain }]);
     setBusy(true);
@@ -203,6 +205,7 @@ export function ScoreView(props: ScoreViewProps) {
         return;
       }
       const result = outcome.result;
+      captureProductEvent("score_completed");
       const blocks = workspaceFromScore(result);
       const billing = billingLabel(result);
       setMessages((current) => current.map((message) => message.id === thinkingId ? { id: thinkingId, role: "assistant", kind: "ui", blocks, content: "", tools: [], billing } : message));
