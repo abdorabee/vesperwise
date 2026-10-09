@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { extractJsonText, generateReasoning, withOpenRouterReasoningCap } from "./reasoning";
+import { extractJsonText, generateReasoning, resolveReasoningBindings, withOpenRouterReasoningCap } from "./reasoning";
 import type { SignalContribution, SignalResult, SignalSet } from "./types";
 
 const mocks = vi.hoisted(() => {
@@ -206,6 +206,30 @@ describe("deterministic reasoning fallback", () => {
     const sent = JSON.parse(String(spy.mock.calls[0][1]?.body));
     expect(sent).toMatchObject({ model: "google/gemini-3.5-flash", max_tokens: 4000, reasoning: { max_tokens: 400 } });
     spy.mockRestore();
+  });
+
+  it("fills brief bindings that leak into the plain-text reasoning fields", () => {
+    const result = resolveReasoningBindings({
+      ai_summary: "At {score}/100, {company} is {band}; driver: {signal.hiring.detail}.",
+      recommended_action: "Call {company} this week.",
+      buying_stage: "consideration",
+      urgency: "this-week",
+      key_triggers: ["{signal.hiring.detail}"],
+      why_now: "Hiring is fresh.",
+      email_subject: "Hiring at {company}",
+      talk_track: "Saw {unknown.ref} the news.",
+    }, {
+      company: "Acme",
+      score: 67,
+      band: "WARM",
+      contributions: [{ type: "hiring", rawScore: 80, effectiveWeight: 19, daysAgo: 10, observedAt: null, summary: "6 open RevOps roles", contribution: 15, status: "ok" }],
+    });
+
+    expect(result.ai_summary).toBe("At 67/100, Acme is WARM; driver: 6 open RevOps roles.");
+    expect(result.recommended_action).toBe("Call Acme this week.");
+    expect(result.key_triggers).toEqual(["6 open RevOps roles"]);
+    expect(result.email_subject).toBe("Hiring at Acme");
+    expect(result.talk_track).toBe("Saw the news.");
   });
 
   it("extracts the object from fenced or prefixed model text", () => {
