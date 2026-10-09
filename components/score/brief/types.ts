@@ -12,6 +12,7 @@ export type BriefProjection = {
 
 export type LivingBriefHandlers = {
   onPrompt?: (prompt: string) => void;
+  pending?: boolean;
 };
 
 export type BriefSharedState = {

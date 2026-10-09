@@ -1,5 +1,7 @@
 import type { UiBlock } from "@/lib/gen-ui";
+import type { BriefSpec } from "@/lib/brief";
 import type { ScoreResearchProgress } from "@/components/score/score-research-status";
+import type { ScoreReadyProgress } from "@/components/score/score-thread-types";
 import type { ScoreBand } from "@/lib/types";
 
 type UiMessageSource = {
@@ -18,6 +20,8 @@ type ThinkingMessageSource = {
   mode: "score" | "chat";
   domain?: string;
   progress?: ScoreResearchProgress;
+  score?: ScoreReadyProgress;
+  brief?: BriefSpec;
 };
 
 export type ScoreReportSource = UiMessageSource | ThinkingMessageSource;
@@ -45,6 +49,8 @@ export type ScoreReport =
       company?: string;
       domain: string;
       progress?: ScoreResearchProgress;
+      score?: ScoreReadyProgress;
+      brief?: BriefSpec;
     };
 
 export function heroBlock(blocks: UiBlock[]) {
@@ -101,10 +107,12 @@ function buildPendingReport(message: ThinkingMessageSource): ScoreReport | null 
     kind: "pending",
     id: message.id,
     messageId: message.id,
-    label: message.domain,
-    company: message.domain,
+    label: message.score?.company ?? message.domain,
+    company: message.score?.company ?? message.domain,
     domain: message.domain,
     progress: message.progress,
+    score: message.score,
+    brief: message.brief,
   };
 }
 

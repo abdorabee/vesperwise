@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import type { SignalContribution, SignalStatus } from "../types";
 import { TRIGGER_KEYS, triggerKeySchema, type TriggerKey } from "./brief-schema";
+import { scrubVendorNames } from "./scrub-vendors";
 
 export const briefContributionSchema = z.object({
   type: triggerKeySchema,
@@ -33,8 +34,20 @@ export function briefContributionsFrom(contributions: SignalContribution[]): Bri
       daysAgo: item.daysAgo,
       ...(item.halfLifeDays === undefined ? {} : { halfLifeDays: item.halfLifeDays }),
       observedAt: item.observedAt,
-      summary: item.summary,
+      summary: scrubVendorNames(item.summary),
       contribution: item.contribution,
       ...(item.status === undefined ? {} : { status: item.status }),
     }));
+}
+
+/** A trigger counts as available evidence for the brief when it has any signal. */
+export function hasBriefSignal(contribution: Pick<BriefContribution, "status" | "rawScore" | "contribution">): boolean {
+  return contribution.status === "ok" ||
+    contribution.status === "stale" ||
+    contribution.rawScore > 0 ||
+    contribution.contribution > 0;
+}
+
+export function availableBriefSignals(contributions: readonly BriefContribution[]): TriggerKey[] {
+  return [...new Set(contributions.filter(hasBriefSignal).map((item) => item.type))];
 }

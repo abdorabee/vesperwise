@@ -116,4 +116,35 @@ describe("ScoreReportPanel", () => {
     expect(html).toContain("Run snapshot");
     expect(html).not.toContain('role="tablist"');
   });
+
+  it("renders a streamed LivingBrief under research status while a score is pending", () => {
+    const report = {
+      kind: "pending" as const,
+      id: "pending-1",
+      messageId: "pending-1",
+      label: "ramp.com",
+      company: "Ramp",
+      domain: "ramp.com",
+      progress: { signals: {}, reasoning: "running" as const },
+      score: {
+        type: "score_ready" as const,
+        company: "Ramp",
+        domain: "ramp.com",
+        intent_score: 78,
+        score_band: "HOT" as const,
+        last_updated: "2026-10-09T12:00:00.000Z",
+        contributions: livingBrief.contributions,
+      },
+      brief: livingBrief.spec,
+    };
+
+    const html = renderToStaticMarkup(
+      <ScoreReportPanel report={report} handlers={{ onPrompt: () => {} }} busy={true} onClose={() => {}} onRescore={() => {}} />,
+    );
+
+    expect(html).toContain("Synthesising why-now");
+    expect(html).toContain("Living Brief");
+    expect(html).toContain("Ramp is ready for a focused outbound motion");
+    expect(html).toContain("disabled");
+  });
 });

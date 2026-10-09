@@ -22,7 +22,7 @@ export function NextSteps({ section, ctx, handlers }: BriefSectionProps & { sect
               type="button"
               size="sm"
               variant="outline"
-              disabled={!handlers.onPrompt}
+              disabled={!handlers.onPrompt || handlers.pending}
               onClick={() => handlers.onPrompt?.(prompt)}
             >
               {label}

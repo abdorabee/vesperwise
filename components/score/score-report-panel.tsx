@@ -2,11 +2,13 @@
 
 import { useMemo, useState, type ReactNode } from "react";
 import { RotateCcw, X } from "lucide-react";
+import { LivingBrief } from "@/components/score/brief/living-brief";
 import { GenUiWorkspace, type GenUiHandlers } from "@/components/score/gen-ui/workspace";
 import { ScoreResearchStatus } from "@/components/score/score-research-status";
 import { buildScoreReport, type ScoreReport } from "@/components/score/score-report-model";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import type { BriefSpec } from "@/lib/brief";
 import type { UiBlock } from "@/lib/gen-ui";
 import { formatAbsoluteDate, formatRelativeTime } from "@/lib/time-ago";
 
@@ -60,6 +62,31 @@ function ReportBlocks({ report, include, handlers }: { report: Extract<ScoreRepo
   );
 }
 
+const SCORE_ONLY_SPEC: BriefSpec = {
+  version: 1,
+  headline: "",
+  personas: [],
+  openers: {},
+  layout: [{ type: "score_hero" }, { type: "timing_slider" }],
+};
+
+function pendingLivingBriefBlock(report: Extract<ScoreReport, { kind: "pending" }>): Extract<UiBlock, { type: "living_brief" }> | null {
+  if (!report.score) return null;
+  return {
+    type: "living_brief",
+    company: report.score.company,
+    domain: report.score.domain,
+    intent_score: report.score.intent_score,
+    score_band: report.score.score_band,
+    last_updated: report.score.last_updated,
+    data_coverage: report.score.data_coverage,
+    contributions: report.score.contributions,
+    // Until the model's first sections arrive, show only what the score already
+    // proves (hero + timing); the composed sections then stream in after it.
+    spec: report.brief ?? SCORE_ONLY_SPEC,
+  };
+}
+
 export function ScoreReportPanel({
   report,
   handlers,
@@ -78,6 +105,7 @@ export function ScoreReportPanel({
   closeLabel?: string;
 }) {
   const groups = useMemo(() => report.kind === "ui" ? tabGroupsForBlocks(report.blocks) : [], [report]);
+  const pendingBrief = report.kind === "pending" ? pendingLivingBriefBlock(report) : null;
   const tabValues = extraTab ? [extraTab.value, ...groups.map((group) => group.value)] : groups.map((group) => group.value);
   const [activeTab, setActiveTab] = useState(tabValues[0] ?? "overview");
   const activeValue = tabValues.includes(activeTab) ? activeTab : tabValues[0] ?? "overview";
@@ -91,6 +119,11 @@ export function ScoreReportPanel({
           <div className="space-y-4">
             <p className="text-xs font-medium uppercase tracking-[0.08em] text-muted-foreground">Scoring {report.domain}</p>
             <ScoreResearchStatus mode="score" progress={report.progress} />
+            {pendingBrief ? (
+              <div className="border-t border-border/70 pt-4">
+                <LivingBrief block={pendingBrief} handlers={{ onPrompt: handlers.onPrompt, pending: true }} fresh />
+              </div>
+            ) : null}
           </div>
         ) : (
           <div className="space-y-4">

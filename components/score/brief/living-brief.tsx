@@ -73,9 +73,11 @@ export function LivingBrief({
     <article data-slot="living-brief" className="space-y-6">
       <div className="space-y-2">
         <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Living Brief</p>
-        <h2 className="text-pretty font-serif text-2xl leading-tight text-foreground sm:text-3xl">
-          {renderSpecText(block.spec.headline, ctx)}
-        </h2>
+        {block.spec.headline ? (
+          <h2 className="brief-section-in text-pretty font-serif text-2xl leading-tight text-foreground sm:text-3xl">
+            {renderSpecText(block.spec.headline, ctx)}
+          </h2>
+        ) : null}
       </div>
       <div className="space-y-6">
         {block.spec.layout.map((section, index) => {

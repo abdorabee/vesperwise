@@ -1,3 +1,5 @@
+import type { BriefSpec } from "@/lib/brief";
+
 // ─── Signal Types ─────────────────────────────────────────────────────────────
 
 export type SignalStatus =
@@ -124,6 +126,7 @@ export interface IntentScore {
   raw_score?: number | null;    // weighted score before freshness decay
   confidence?: number;          // backward-compatible alias for data_coverage
   score_explanation?: string;   // bounded reasoning summary for older clients
+  brief?: BriefSpec;
 }
 
 // ─── API Types ────────────────────────────────────────────────────────────────

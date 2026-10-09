@@ -91,6 +91,7 @@ export function OpenerPicker({ block, ctx, handlers, state }: BriefSectionProps 
           type="button"
           size="sm"
           variant="brand"
+          disabled={!handlers.onPrompt || handlers.pending}
           onClick={() => handlers.onPrompt?.(`Draft an outreach email to the ${personaLabel} at ${block.company} that leads with the ${angle} signal. Open with: "${opener}"`)}
         >
           <PenLine className="size-4" aria-hidden="true" />

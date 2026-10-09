@@ -15,6 +15,7 @@ import { ScorePageFrame, ScoreWorkspaceLayout } from "@/components/score/score-w
 import { ScoreThreadDrawer } from "@/components/score/score-thread-drawer";
 import { ScoreThreadsColumn } from "@/components/score/score-threads-column";
 import { useScoreReportState } from "@/components/score/use-score-report-state";
+import type { BriefSpec } from "@/lib/brief";
 import { extractDomain, loadChatSession, seedChatSession, streamChat } from "@/lib/chat-client";
 import { sanitizeUiBlocks, suggestionsFromBlocks, workspaceFromScore } from "@/lib/gen-ui";
 import { parseIncompleteCoverage, type IncompleteCoverageResult } from "@/lib/score-coverage";
@@ -23,6 +24,7 @@ import { createSseParser, type ScoreProgressEvent } from "@/lib/score-progress";
 import { SCORE_NEW_EVENT, SCORE_OPEN_THREADS_EVENT } from "@/lib/score-workspace-events";
 import type { StoredWorkspaceScore } from "@/lib/stored-score";
 import { CHAT_CREDIT_COST, type IntentScore, type ScoreBand } from "@/lib/types";
+import type { ScoreReadyProgress } from "@/components/score/score-thread-types";
 type ScorableIntentScore = IntentScore & { intent_score: number; score_band: ScoreBand };
 
 export interface RecentScore {
@@ -46,6 +48,7 @@ function requireScorableResult(value: IntentScore): ScorableIntentScore {
 type ScoreRequestOutcome =
   | { kind: "scored"; result: ScorableIntentScore }
   | { kind: "coverage"; result: IncompleteCoverageResult };
+type BriefProgressEvent = ScoreReadyProgress | Extract<ScoreProgressEvent, { type: "brief" }>;
 
 class ScoreRequestError extends Error {
   constructor(readonly failure: ScoreFailure) {
@@ -77,7 +80,11 @@ function outcomeFrom(ok: boolean, status: number, payload: unknown): ScoreReques
  * completion can fill its row. Falls back to the plain JSON body when the
  * server answers without a stream (auth/validation errors).
  */
-async function requestScore(domain: string, onProgress: (event: ScoreProgressEvent) => void): Promise<ScoreRequestOutcome> {
+async function requestScore(
+  domain: string,
+  onProgress: (event: ScoreProgressEvent) => void,
+  onBrief: (event: BriefProgressEvent) => void,
+): Promise<ScoreRequestOutcome> {
   const response = await fetch("/api/v1/score", {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "text/event-stream" },
@@ -99,7 +106,11 @@ async function requestScore(domain: string, onProgress: (event: ScoreProgressEve
     for (const message of messages) {
       let data: unknown;
       try { data = JSON.parse(message.data); } catch { continue; }
-      if (message.event === "progress") onProgress(data as ScoreProgressEvent);
+      if (message.event === "progress") {
+        const event = data as ScoreProgressEvent;
+        if (event.type === "score_ready" || event.type === "brief") onBrief(event);
+        else onProgress(event);
+      }
       else if (message.event === "result") final = { ok: true, status: 200, payload: data };
       else if (message.event === "error") {
         const status = data && typeof data === "object" && typeof (data as { status?: unknown }).status === "number" ? (data as { status: number }).status : 500;
@@ -179,21 +190,30 @@ export function ScoreView(props: ScoreViewProps) {
     const thinkingId = nextId();
     setMessages((current) => [...current, { id: nextId(), role: "user", content: raw }, { id: thinkingId, role: "assistant", kind: "thinking", mode: "score", tools: [], progress: EMPTY_RESEARCH_PROGRESS, domain }]);
     setBusy(true);
+    let streamedScore: ScoreReadyProgress | undefined;
+    let streamedBrief: BriefSpec | undefined;
     const onProgress = (event: ScoreProgressEvent) => {
       setMessages((current) => current.map((message) => message.id === thinkingId && message.role === "assistant" && message.kind === "thinking"
         ? { ...message, progress: applyResearchEvent(message.progress ?? EMPTY_RESEARCH_PROGRESS, event) }
         : message));
     };
+    const onBrief = (event: BriefProgressEvent) => {
+      if (event.type === "score_ready") streamedScore = event;
+      else streamedBrief = event.spec;
+      setMessages((current) => current.map((message) => message.id === thinkingId && message.role === "assistant" && message.kind === "thinking"
+        ? { ...message, score: streamedScore, brief: streamedBrief }
+        : message));
+    };
     try {
       let outcome: ScoreRequestOutcome;
       try {
-        outcome = await requestScore(domain, onProgress);
+        outcome = await requestScore(domain, onProgress, onBrief);
       } catch (reason) {
         // Another request is already scoring this domain: wait as told, then retry once.
         const retryAfter = reason instanceof ScoreRequestError && reason.failure.status === 409 ? reason.failure.retryAfterSeconds : undefined;
         if (retryAfter === undefined) throw reason;
         await wait(Math.min(10, Math.max(1, retryAfter)) * 1000);
-        outcome = await requestScore(domain, onProgress);
+        outcome = await requestScore(domain, onProgress, onBrief);
       }
       if (outcome.kind === "coverage") {
         const result = outcome.result;
@@ -203,7 +223,8 @@ export function ScoreView(props: ScoreViewProps) {
         return;
       }
       const result = outcome.result;
-      const blocks = workspaceFromScore(result);
+      const resultForWorkspace = streamedBrief && !result.brief ? { ...result, brief: streamedBrief } : result;
+      const blocks = workspaceFromScore(resultForWorkspace);
       const billing = billingLabel(result);
       setMessages((current) => current.map((message) => message.id === thinkingId ? { id: thinkingId, role: "assistant", kind: "ui", blocks, content: "", tools: [], billing } : message));
       pendingSeedRef.current = null;

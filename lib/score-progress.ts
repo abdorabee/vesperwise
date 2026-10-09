@@ -1,5 +1,6 @@
 import { toPublicSourceId } from "@/lib/public-source";
-import type { SignalResult, SignalStatus } from "@/lib/types";
+import type { BriefContribution, BriefSpec } from "@/lib/brief";
+import type { ScoreBand, SignalResult, SignalStatus } from "@/lib/types";
 
 /**
  * Real progress emitted while a score is computed. Each `signal_done` fires
@@ -14,6 +15,17 @@ export type ScoreProgressEvent =
       observed_at?: string | null;
       source?: string;
     }
+  | {
+      type: "score_ready";
+      company: string;
+      domain: string;
+      intent_score: number;
+      score_band: ScoreBand;
+      data_coverage?: number;
+      last_updated: string;
+      contributions: BriefContribution[];
+    }
+  | { type: "brief"; spec: BriefSpec }
   | { type: "reasoning_start" }
   | { type: "reasoning_done" };
 
