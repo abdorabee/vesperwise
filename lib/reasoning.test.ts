@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { extractJsonText, generateReasoning } from "./reasoning";
+import { extractJsonText, generateReasoning, withOpenRouterReasoningCap } from "./reasoning";
 import type { SignalContribution, SignalResult, SignalSet } from "./types";
 
 const mocks = vi.hoisted(() => {
@@ -195,6 +195,19 @@ describe("deterministic reasoning fallback", () => {
     expect(result.brief.headline).toBe("Acme is ready now");
   });
 
+  it("caps OpenRouter reasoning so it cannot eat the JSON budget", async () => {
+    const spy = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("{}"));
+
+    await withOpenRouterReasoningCap("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      body: JSON.stringify({ model: "google/gemini-3.5-flash", max_tokens: 4000 }),
+    });
+
+    const sent = JSON.parse(String(spy.mock.calls[0][1]?.body));
+    expect(sent).toMatchObject({ model: "google/gemini-3.5-flash", max_tokens: 4000, reasoning: { max_tokens: 400 } });
+    spy.mockRestore();
+  });
+
   it("extracts the object from fenced or prefixed model text", () => {
     expect(extractJsonText("```json\n{\"a\":1}\n```")).toBe('{"a":1}');
     expect(extractJsonText("Sure! {\"a\":1")).toBe('{"a":1');
@@ -246,7 +259,7 @@ describe("deterministic reasoning fallback", () => {
       contributions,
       onBrief,
     });
-    await vi.advanceTimersByTimeAsync(20_001);
+    await vi.advanceTimersByTimeAsync(30_001);
     const result = await pending;
 
     expect(abortSignal?.aborted).toBe(true);

@@ -25,6 +25,13 @@ function triggerContributions(contributions: BriefContribution[]): BriefContribu
   return contributions.filter((item) => (TRIGGER_KEYS as readonly string[]).includes(item.type));
 }
 
+const WHAT_WOULD_CHANGE: Record<TriggerKey, string> = {
+  funding: "If {company} announces a funding round",
+  hiring: "If {company} opens revenue or ops roles",
+  news: "If {company} makes a leadership or launch announcement",
+  technology: "If {company} changes a core sales or data tool",
+};
+
 function openerText(signal: TriggerKey): Record<string, string> {
   const detail = "{signal." + signal + ".detail}";
   return {
@@ -121,7 +128,7 @@ export function buildFallbackBrief(input: {
     type: "what_would_change",
     items: weakestSignals(input.contributions).map((item) => ({
       signal: item.type,
-      if: "Fresh evidence appears around {signal." + item.type + ".detail}",
+      if: WHAT_WOULD_CHANGE[item.type],
     })),
   };
 
