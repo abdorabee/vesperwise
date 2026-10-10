@@ -86,8 +86,12 @@ function nextSteps(): BriefSection {
         prompt: "Write a concise outreach email to {persona} at {company} using the {angle} angle.",
       },
       {
-        label: "Explain timing",
-        prompt: "Explain why {company} is {band} now and what changes if outreach waits.",
+        label: "ROI calculator",
+        prompt: "Build an ROI calculator for pitching {company}",
+      },
+      {
+        label: "Signal timeline",
+        prompt: "Chart {company}'s signal timeline",
       },
     ],
   };

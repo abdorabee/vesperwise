@@ -7,6 +7,7 @@ import type { BusinessProfile, DbUser, PipelineStage, ConversationAnalysis, Sign
 import { repairUiBlocks } from "@/lib/gen-ui-repair";
 import { briefContributionsFrom } from "@/lib/brief";
 import { getPipelineSummaryData, resolveDataRefs } from "@/lib/sandbox-data";
+import { SANDBOX_DESIGN_CSS } from "@/components/score/sandbox-tool/frame-content";
 
 // ─── OpenRouter Tool Definitions (OpenAI-compatible format) ──────────────────
 
@@ -635,6 +636,64 @@ interface CopilotContext {
   watchlist: Array<{ domain: string; company_name: string; score: number | null; pipeline_stage: string }>;
 }
 
+function cssNames(css: string, prefix: "--" | "."): string[] {
+  const pattern = prefix === "--" ? /(--[a-z0-9-]+)\s*:/g : /\.([a-z][a-z0-9-]*)\b/g;
+  return [...new Set([...css.matchAll(pattern)].map((match) => prefix === "--" ? match[1]! : `.${match[1]!}`))];
+}
+
+function sandboxDesignList(): string {
+  return [
+    `CSS variables: ${cssNames(SANDBOX_DESIGN_CSS, "--").join(", ")}.`,
+    `CSS classes: ${cssNames(SANDBOX_DESIGN_CSS, ".").join(", ")}.`,
+  ].join("\n");
+}
+
+function sandboxDataShapeDescription(): string {
+  return [
+    "VW_DATA shapes:",
+    "- account:<domain> -> { company, domain, score, band, scored_at, contributions, signals, brief }. contributions items include type, rawScore, effectiveWeight, daysAgo, observedAt, summary, contribution, status, and optional halfLifeDays/freshness. signals keys include funding, hiring, news, technology, web_activity, web, github with score, max, detail, status, observed_at. brief is null or { personas, openers }.",
+    "- accounts:recent -> array of up to 20 { domain, company, score, band, scored_at, freshest_signal_days }.",
+    "- pipeline -> { total, counts, top_per_stage } where top_per_stage groups domains/company_name/scores by pipeline stage.",
+  ].join("\n");
+}
+
+function interactiveToolsSection(): string {
+  return `INTERACTIVE TOOLS (build_interactive_tool):
+Routing:
+- quick fact or advice -> plain text
+- exact comparison or a stored score -> present_ui
+- calculator, chart, diagram, or tool for the moment -> build_interactive_tool
+- Do not build a tool when text answers the request.
+
+Contract:
+- Stream fields in this exact order: title -> initialHeight -> placeholderMessages -> data_refs -> css -> html -> jsFunctions -> jsExpressions.
+- Put all logic in jsFunctions. Use jsExpressions only for short init calls such as init().
+- Scripts are classic scripts: no top-level await. For charts use import() inside async functions for "chart.js/auto" and "d3"; the importmap is provided.
+- No fetch and no network calls. Read ALL real numbers from window.VW_DATA[ref]; never type scores, dates, ages, or points into html/js/css.
+${sandboxDataShapeDescription()}
+
+Design system:
+${sandboxDesignList()}
+- Use lime --brand only for the single primary action and one key highlight. Use band colors --hot, --warm, and --cold for score bands.
+
+Bridge:
+- await Websandbox.connection.remote.prefillPrompt({ text })
+- await Websandbox.connection.remote.openAccount({ domain })
+- await Websandbox.connection.remote.openLink({ url })
+- Call bridge functions ONLY from a click handler. Include the current input values in prefill text.
+
+Quality:
+- Label illustrative assumptions in the UI.
+- Validate numeric inputs: blank, non-finite, and <=0 divisors show an inline message instead of NaN.
+- Controls must be keyboard accessible, respect prefers-reduced-motion, and stay responsive around 640px width.
+
+Recipes:
+1. ROI / deal calculator. data_refs: [account:<domain>]. Read company name and score context from window.VW_DATA["account:<domain>"]. Layout: compact input grid for seats, price/seat, hours saved/rep/week, loaded hourly cost; output cards for annual value and payback months; label outputs "illustrative assumptions"; "Put this in my email" calls prefillPrompt with the current values.
+2. Signal timeline chart. data_refs: [account:<domain>]. Use chart.js scatter/line over time: each contribution at observedAt (skip null), y = points. Add a 120-day decay projection curve computed with freshness = 0.85^(age/30), or 2^(-age/halfLifeDays) when halfLifeDays is set, and score contribution = rawScore * freshness * effectiveWeight / sum(effectiveWeight), matching lib/brief/decay.ts.
+3. Account comparison chart. data_refs: [accounts:recent]. Layout: horizontal bars of score colored by band with freshness marker text. Clicking a bar calls openAccount({ domain }).
+4. Stakeholder map. data_refs: [account:<domain>]. Layout: company in the center with brief.personas as surrounding nodes and angle chips from brief.openers. Click a persona to show its opener. "Draft for this role" calls prefillPrompt. If brief is null, say so in the UI.`;
+}
+
 export async function buildCopilotContext(userId: string): Promise<CopilotContext> {
   const supabase = createSupabaseAdmin();
 
@@ -742,6 +801,8 @@ Compose inline artifacts only when they materially improve the answer:
 - Compare accounts → comparison (2-4 scored domains only)
 - Simple explanation → plain text only; do not call present_ui
 Keep spoken text to 1-3 sentences. Put dated, source-backed evidence in signal_explorer axes (key, label, score, max, detail, observed_at, source). Supporting web and GitHub axes must be marked as context and never described as score inputs. Preserve verified numerical zeroes; describe missing evidence as Unavailable. Always include suggested next prompts on action_rail for actionable artifacts. Never invent scores or domains that are not in tool results.
+
+${interactiveToolsSection()}
 
 GUIDELINES:
 - Always cite specific data from scores and signals. Never fabricate company data.

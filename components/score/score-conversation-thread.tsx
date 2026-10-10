@@ -1,21 +1,50 @@
 "use client";
 
+import { useMemo } from "react";
 import { AlertCircle } from "lucide-react";
 import { Conversation, ConversationContent, ConversationScrollButton } from "@/components/ai-elements/conversation";
 import { MessageResponse } from "@/components/ai-elements/message";
+import { SandboxToolRenderer } from "@/components/score/sandbox-tool/renderer";
+import { createSandboxFunctions } from "@/components/score/sandbox-tool/sandbox-functions";
 import { ScoreCoverageIncomplete } from "@/components/score/score-coverage-incomplete";
 import { ScoreErrorCard } from "@/components/score/score-error-card";
 import { ScoreResultCard } from "@/components/score/score-result-card";
 import { ScoreResearchStatus } from "@/components/score/score-research-status";
 import type { ScoreReport } from "@/components/score/score-report-model";
-import type { ScoreUiThreadMessage, ThreadMessage } from "@/components/score/score-thread-types";
+import type { ScoreUiThreadMessage, ThreadMessage, ThreadWidget } from "@/components/score/score-thread-types";
 import { toolLabel, ToolTrace } from "@/components/score/tool-trace";
+
+function MessageWidgets({
+  functions,
+  widgets,
+}: {
+  functions: ReturnType<typeof createSandboxFunctions>;
+  widgets?: ThreadWidget[];
+}) {
+  if (!widgets || widgets.length === 0) return null;
+  return (
+    <div className="w-full space-y-3">
+      {widgets.map((widget) => (
+        <SandboxToolRenderer
+          key={widget.id}
+          content={widget.content}
+          data={widget.data}
+          dataReady={widget.dataReady}
+          functions={functions}
+        />
+      ))}
+    </div>
+  );
+}
 
 export function ScoreConversationThread({
   messages,
   latestArtifactId,
   activeStreamingMessageId,
+  allowedDomains,
   reportForMessage,
+  onPrefillPrompt,
+  onOpenAccount,
   onOpenReport,
   onRetryScore,
   onReset,
@@ -23,11 +52,22 @@ export function ScoreConversationThread({
   messages: ThreadMessage[];
   latestArtifactId?: string;
   activeStreamingMessageId: string | null;
+  allowedDomains: readonly string[];
   reportForMessage: (message: ScoreUiThreadMessage) => Extract<ScoreReport, { kind: "ui" }>;
+  onPrefillPrompt: (text: string) => void;
+  onOpenAccount: (domain: string) => void;
   onOpenReport: (report: Extract<ScoreReport, { kind: "ui" }>) => void;
   onRetryScore: (domain: string) => void;
   onReset: () => void;
 }) {
+  const allowedDomainsKey = allowedDomains.join("\n");
+  const stableAllowedDomains = useMemo(() => allowedDomainsKey ? allowedDomainsKey.split("\n") : [], [allowedDomainsKey]);
+  const sandboxFunctions = useMemo(() => createSandboxFunctions({
+    allowedDomains: stableAllowedDomains,
+    onOpenAccount,
+    onPrefillPrompt,
+  }), [stableAllowedDomains, onOpenAccount, onPrefillPrompt]);
+
   return (
     <Conversation className="score-chat-thread">
       <ConversationContent className="score-chat-col">
@@ -51,9 +91,9 @@ export function ScoreConversationThread({
           }
           if (message.kind === "ui") {
             const report = reportForMessage(message);
-            return <div key={message.id} className="score-message space-y-4"><ToolTrace tools={message.tools} billing={message.billing} />{message.content ? <MessageResponse streaming={message.id === activeStreamingMessageId} className="text-sm leading-6 text-foreground/85">{message.content}</MessageResponse> : null}<ScoreResultCard report={report} onView={() => onOpenReport(report)} /></div>;
+            return <div key={message.id} className="score-message space-y-4"><ToolTrace tools={message.tools} billing={message.billing} />{message.content ? <MessageResponse streaming={message.id === activeStreamingMessageId} className="text-sm leading-6 text-foreground/85">{message.content}</MessageResponse> : null}<MessageWidgets widgets={message.widgets} functions={sandboxFunctions} /><ScoreResultCard report={report} onView={() => onOpenReport(report)} /></div>;
           }
-          return <div key={message.id} className="score-message space-y-3"><ToolTrace tools={message.tools} />{message.content ? <MessageResponse streaming={message.id === activeStreamingMessageId} className="text-sm leading-6 text-foreground/85">{message.content}</MessageResponse> : null}</div>;
+          return <div key={message.id} className="score-message space-y-3"><ToolTrace tools={message.tools} />{message.content ? <MessageResponse streaming={message.id === activeStreamingMessageId} className="text-sm leading-6 text-foreground/85">{message.content}</MessageResponse> : null}<MessageWidgets widgets={message.widgets} functions={sandboxFunctions} /></div>;
         })}
       </ConversationContent>
       <ConversationScrollButton />

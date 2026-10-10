@@ -131,6 +131,24 @@ describe("workspaceFromScore", () => {
     ]);
   });
 
+  it("adds sandbox tool starter prompts without crowding the action rail", () => {
+    const actionRail = workspaceFromScore({
+      company: "Acme",
+      domain: "acme.com",
+      intent_score: 84,
+      score_band: "HOT",
+      signals: signals(),
+    }).find((block) => block.type === "action_rail");
+
+    expect(actionRail?.type).toBe("action_rail");
+    if (actionRail?.type !== "action_rail") return;
+    expect(actionRail.suggestions).toEqual(expect.arrayContaining([
+      { label: "ROI calculator", prompt: "Build an ROI calculator for pitching Acme" },
+      { label: "Signal timeline", prompt: "Chart Acme's signal timeline" },
+    ]));
+    expect(actionRail.suggestions ?? []).toHaveLength(5);
+  });
+
   it("emits a living brief instead of legacy hero and thesis when trigger contributions are available", () => {
     const brief: BriefSpec = {
       version: 1,

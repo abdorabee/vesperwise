@@ -1,13 +1,15 @@
+import type { ServerChatSandboxEvent } from "@/lib/sandbox-stream";
+import type { UiBlock } from "@/lib/gen-ui";
+import type { ToolChip } from "@/lib/score-presentation";
+
 export type ChatSseEvent =
+  | ServerChatSandboxEvent
   | { type: "text"; content: string }
   | { type: "tool_call"; name: string; args: Record<string, unknown> }
   | { type: "tool_result"; name: string; result: unknown }
   | { type: "ui"; blocks: unknown; billing?: string }
   | { type: "done"; session_id: string }
   | { type: "error"; message: string };
-
-import type { UiBlock } from "@/lib/gen-ui";
-import type { ToolChip } from "@/lib/score-presentation";
 
 export interface ChatSessionSummary { id: string; title: string; created_at: string; updated_at: string }
 export interface StoredChatMessage { id: string; role: "user" | "assistant" | "tool"; content: string; tool_result: unknown; created_at: string }
@@ -24,6 +26,10 @@ export function extractDomain(input: string): string | null {
   } catch {
     return null;
   }
+}
+
+export function parseChatSseEvent(payload: string): ChatSseEvent {
+  return JSON.parse(payload) as ChatSseEvent;
 }
 
 export async function streamChat(
@@ -58,7 +64,7 @@ export async function streamChat(
     for (const part of parts) {
       const line = part.split("\n").find((entry) => entry.startsWith("data: "));
       if (!line) continue;
-      const event = JSON.parse(line.slice(6)) as ChatSseEvent;
+      const event = parseChatSseEvent(line.slice(6));
       onEvent(event);
       if (event.type === "done") sessionId = event.session_id;
       if (event.type === "error") throw new Error(event.message);

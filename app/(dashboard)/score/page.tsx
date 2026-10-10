@@ -20,7 +20,7 @@ export default async function ScorePage() {
       .select("domain, company_name, score, score_band, created_at")
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
-      .limit(6),
+      .limit(20),
   ]);
 
   if (userResult.data) creditsRemaining = userResult.data.credits_remaining;
