@@ -1,9 +1,12 @@
+import { z } from "zod";
 import { redactPublicSources } from "@/lib/public-source";
 import { createSupabaseAdmin } from "@/lib/supabase";
 import { scoreCompany } from "@/lib/score-service";
 import { scorePerson } from "@/lib/person-score-service";
-import type { BusinessProfile, DbUser, PipelineStage, ConversationAnalysis } from "@/lib/types";
+import type { BusinessProfile, DbUser, PipelineStage, ConversationAnalysis, SignalContribution } from "@/lib/types";
 import { repairUiBlocks } from "@/lib/gen-ui-repair";
+import { briefContributionsFrom } from "@/lib/brief";
+import { getPipelineSummaryData, resolveDataRefs } from "@/lib/sandbox-data";
 
 // ─── OpenRouter Tool Definitions (OpenAI-compatible format) ──────────────────
 
@@ -270,9 +273,80 @@ export const COPILOT_TOOLS: OpenRouterTool[] = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "build_interactive_tool",
+      description: "renders a sandboxed interactive tool (calculator, chart, diagram) in the chat; data comes ONLY via data_refs → window.VW_DATA; fields stream in order.",
+      parameters: {
+        type: "object",
+        properties: {
+          title: { type: "string", maxLength: 80 },
+          initialHeight: { type: "integer", minimum: 120, maximum: 1200 },
+          placeholderMessages: {
+            type: "array",
+            maxItems: 4,
+            items: { type: "string", maxLength: 60 },
+          },
+          data_refs: {
+            type: "array",
+            maxItems: 4,
+            items: { type: "string", pattern: "^(account:[a-z0-9.-]+|accounts:recent|pipeline)$" },
+          },
+          css: { type: "string" },
+          html: { type: "string" },
+          jsFunctions: { type: "string" },
+          jsExpressions: {
+            type: "array",
+            maxItems: 20,
+            items: { type: "string", maxLength: 4000 },
+          },
+        },
+        required: ["title", "html"],
+      },
+    },
+  },
 ];
 
 // ─── Tool Executor ───────────────────────────────────────────────────────────
+
+const buildInteractiveToolInputSchema = z.object({
+  title: z.string().max(80),
+  initialHeight: z.number().int().min(120).max(1200).optional(),
+  placeholderMessages: z.array(z.string().max(60)).max(4).optional(),
+  data_refs: z.array(z.string().regex(/^(account:[a-z0-9.-]+|accounts:recent|pipeline)$/)).max(4).optional(),
+  css: z.string().max(20_000).optional(),
+  html: z.string().max(60_000),
+  jsFunctions: z.string().max(40_000).optional(),
+  jsExpressions: z.array(z.string().max(4_000)).max(20).optional(),
+});
+
+function validationError(error: z.ZodError): string {
+  return error.issues
+    .map((issue) => `${issue.path.join(".") || "input"}: ${issue.message}`)
+    .join("; ");
+}
+
+function summarizeResolvedData(data: Record<string, unknown>): string[] {
+  return Object.entries(data).map(([ref, value]) => {
+    if (value && typeof value === "object" && !Array.isArray(value) && "error" in value) {
+      return `${ref} -> ${(value as { error?: unknown }).error}`;
+    }
+    if (Array.isArray(value)) return `${ref} -> ${value.length} accounts`;
+    if (ref === "pipeline" && value && typeof value === "object" && "total" in value) {
+      const total = (value as { total?: unknown }).total;
+      return `${ref} -> ${typeof total === "number" ? total : 0} accounts`;
+    }
+    if (value && typeof value === "object" && !Array.isArray(value) && "signals" in value) {
+      const signals = (value as { signals?: unknown }).signals;
+      const count = signals && typeof signals === "object" && !Array.isArray(signals)
+        ? Object.keys(signals).length
+        : 0;
+      return `${ref} -> ${count} signals`;
+    }
+    return `${ref} -> available`;
+  });
+}
 
 export async function executeTool(
   name: string,
@@ -363,30 +437,7 @@ export async function executeTool(
     }
 
     case "get_pipeline_summary": {
-      const { data: watchlist } = await supabase
-        .from("watchlist")
-        .select("domain, company_name, score, score_band, pipeline_stage, last_scored")
-        .eq("user_id", userId)
-        .eq("is_active", true)
-        .order("score", { ascending: false });
-
-      if (!watchlist || watchlist.length === 0) {
-        return { total: 0, stages: {}, message: "No companies in pipeline" };
-      }
-
-      const stages: Record<string, Array<{ domain: string; company_name: string; score: number | null }>> = {};
-      for (const w of watchlist) {
-        const stage = w.pipeline_stage ?? "cold";
-        if (!stages[stage]) stages[stage] = [];
-        stages[stage].push({ domain: w.domain, company_name: w.company_name, score: w.score });
-      }
-
-      const counts: Record<string, number> = {};
-      for (const [stage, companies] of Object.entries(stages)) {
-        counts[stage] = companies.length;
-      }
-
-      return { total: watchlist.length, counts, top_per_stage: stages };
+      return getPipelineSummaryData(supabase, userId);
     }
 
     case "get_company_details": {
@@ -416,6 +467,7 @@ export async function executeTool(
         why_now: score.why_now,
         email_subject: score.email_subject,
         talk_track: score.talk_track,
+        contributions: briefContributionsFrom(Array.isArray(score.contributions) ? score.contributions as SignalContribution[] : []),
         scored_at: score.created_at,
       };
     }
@@ -538,6 +590,19 @@ export async function executeTool(
       const domains = [...new Set((data ?? []).map((row) => String(row.domain).toLowerCase()))];
       const { blocks, diagnostics } = repairUiBlocks(args.blocks ?? args, domains.length > 0 ? domains : undefined);
       return { ok: true, blocks, diagnostics };
+    }
+
+    case "build_interactive_tool": {
+      const parsed = buildInteractiveToolInputSchema.safeParse(args);
+      if (!parsed.success) return { error: validationError(parsed.error) };
+      const refs = parsed.data.data_refs ?? [];
+      const data = await resolveDataRefs(supabase, userId, refs);
+      return {
+        ok: true,
+        title: parsed.data.title,
+        data,
+        data_summary: summarizeResolvedData(data),
+      };
     }
 
     case "analyze_conversation": {
