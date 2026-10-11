@@ -170,6 +170,18 @@ describe("resolveDataRefs", () => {
     });
   });
 
+  it("falls back to the deterministic brief with bindings filled when none is stored", async () => {
+    const supabase = mockSupabase({ scores: [makeScore({ brief: null })] });
+
+    const result = await resolveDataRefs(supabase, "user_1", ["account:notion.so"]);
+
+    const brief = (result["account:notion.so"] as { brief: { personas: string[]; openers: Record<string, Record<string, string>> } }).brief;
+    expect(brief.personas.length).toBeGreaterThan(0);
+    const openerText = Object.values(brief.openers).flatMap((byPersona) => Object.values(byPersona)).join(" ");
+    expect(openerText).toContain("Notion");
+    expect(openerText).not.toMatch(/[{}]/);
+  });
+
   it("returns not_found for domains owned only by another user", async () => {
     const supabase = mockSupabase({
       scores: [makeScore({ user_id: "other_user", score: 99 })],

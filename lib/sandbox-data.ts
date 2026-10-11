@@ -1,8 +1,8 @@
-import { briefContributionsFrom } from "@/lib/brief";
+import { briefContributionsFrom, buildFallbackBrief, interpolate, type BriefContribution, type TriggerKey } from "@/lib/brief";
 import { redactPublicSources } from "@/lib/public-source";
 import { scrubVendorNames } from "@/lib/brief/scrub-vendors";
 import type { BriefSpec } from "@/lib/brief";
-import type { SignalContribution, SignalSet } from "@/lib/types";
+import type { ScoreBand, SignalContribution, SignalSet } from "@/lib/types";
 
 type SupabaseLike = {
   from: (table: string) => unknown;
@@ -132,8 +132,37 @@ async function resolveAccount(supabase: SupabaseLike, userId: string, domain: st
     scored_at: str(row.created_at) ?? null,
     contributions,
     signals: signalSummary(row.signals as SignalSet | undefined),
-    brief: briefSummary(row.brief),
+    brief: resolvedBrief(row, domain, contributions),
   };
+}
+
+/**
+ * Personas and openers for the tool, with bindings already filled in.
+ * Scores saved before the brief existed get the deterministic fallback, like
+ * the report itself.
+ */
+function resolvedBrief(row: Record<string, unknown>, domain: string, contributions: BriefContribution[]) {
+  const company = str(row.company_name) ?? domain;
+  const score = num(row.score);
+  const band = str(row.score_band);
+  if (score === undefined || !isBand(band)) return briefSummary(row.brief);
+  const spec = row.brief && typeof row.brief === "object"
+    ? row.brief
+    : buildFallbackBrief({ company, score, band, contributions });
+  const summary = briefSummary(spec);
+  if (!summary) return null;
+  const openers: Record<string, Record<string, string>> = {};
+  for (const [angle, byPersona] of Object.entries(summary.openers)) {
+    openers[angle] = Object.fromEntries(Object.entries(byPersona).map(([persona, text]) => [
+      persona,
+      interpolate(text, { company, score, band, contributions, angle: angle as TriggerKey, persona }).text,
+    ]));
+  }
+  return { personas: summary.personas, openers };
+}
+
+function isBand(value: unknown): value is ScoreBand {
+  return value === "HOT" || value === "WARM" || value === "COLD";
 }
 
 async function resolveRecentAccounts(supabase: SupabaseLike, userId: string) {
