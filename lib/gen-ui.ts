@@ -102,6 +102,14 @@ export function defaultSuggestions(score: { company: string; score_band: string 
       label: "Who to call",
       prompt: `Who should I talk to at ${score.company} and what's the angle?`,
     },
+    {
+      label: "ROI calculator",
+      prompt: `Build an ROI calculator for pitching ${score.company}`,
+    },
+    {
+      label: "Signal timeline",
+      prompt: `Chart ${score.company}'s signal timeline`,
+    },
   ];
 }
 

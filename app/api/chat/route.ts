@@ -12,10 +12,18 @@ import type { DbUser } from "@/lib/types";
 import { sanitizeUiBlocks } from "@/lib/gen-ui";
 import type { UiDiagnostic } from "@/lib/gen-ui-repair";
 import { redactPublicSources } from "@/lib/public-source";
-import { serializePresentation, type ToolChip } from "@/lib/score-presentation";
+import { serializePresentation, type ToolChip, type WidgetSnapshot } from "@/lib/score-presentation";
+import { resolveDataRefs } from "@/lib/sandbox-data";
+import {
+  SandboxToolStreamController,
+  sandboxToolCallEvent,
+  sandboxToolResultOutput,
+  type SandboxToolStreamPart,
+  type ServerChatSandboxEvent,
+} from "@/lib/sandbox-stream";
 
 const COPILOT_MODEL = process.env.COPILOT_MODEL ?? "anthropic/claude-sonnet-4";
-const COPILOT_MAX_TOKENS = Number(process.env.COPILOT_MAX_TOKENS) || 1024;
+const COPILOT_MAX_TOKENS = Number(process.env.COPILOT_MAX_TOKENS) || 8000;
 
 function openRouterProvider() {
   const apiKey = process.env.OPENROUTER_API_KEY;
@@ -187,6 +195,20 @@ export async function POST(req: NextRequest) {
         let fullAssistantText = "";
         let presentation = [] as ReturnType<typeof sanitizeUiBlocks>;
         let streamedTools: ToolChip[] = [];
+        const sandboxStream = new SandboxToolStreamController();
+        const widgetSnapshots = new Map<string, WidgetSnapshot>();
+        const resolveSandboxRefs = (refs: string[]) => resolveDataRefs(supabase, userId, refs);
+        const sendSandboxEvents = (events: ServerChatSandboxEvent[]) => {
+          for (const event of events) {
+            const current = widgetSnapshots.get(event.id) ?? { id: event.id, content: {} };
+            if (event.type === "widget") {
+              widgetSnapshots.set(event.id, { ...current, content: event.content });
+            } else {
+              widgetSnapshots.set(event.id, { ...current, data: event.data });
+            }
+            send(event);
+          }
+        };
 
         for await (const part of result.fullStream) {
           if (part.type === "text-delta") {
@@ -194,14 +216,23 @@ export async function POST(req: NextRequest) {
             send({ type: "text", content: part.text });
             continue;
           }
+          if (part.type === "tool-input-start" || part.type === "tool-input-delta" || part.type === "tool-input-end") {
+            const events = await sandboxStream.handlePart(part as SandboxToolStreamPart, { resolveDataRefs: resolveSandboxRefs });
+            sendSandboxEvents(events);
+            continue;
+          }
           if (part.type === "tool-call") {
+            const events = await sandboxStream.handlePart(part as SandboxToolStreamPart, { resolveDataRefs: resolveSandboxRefs });
+            sendSandboxEvents(events);
             streamedTools = [...streamedTools, { name: part.toolName, status: "running" }];
-            send({ type: "tool_call", name: part.toolName, args: part.input ?? {} });
+            send(sandboxToolCallEvent(part.toolName, part.input ?? {}));
             continue;
           }
           if (part.type === "tool-result") {
+            const events = await sandboxStream.handlePart(part as SandboxToolStreamPart, { resolveDataRefs: resolveSandboxRefs });
+            sendSandboxEvents(events);
             const output = redactPublicSources(part.output);
-            let toolResultOutput = output;
+            let toolResultOutput = sandboxToolResultOutput(part.toolName, output);
             if (part.toolName === "present_ui") {
               warnUiDiagnostics(output);
               toolResultOutput = stripUiDiagnostics(output);
@@ -229,13 +260,14 @@ export async function POST(req: NextRequest) {
           }
         }
 
-        if (fullAssistantText || presentation.length > 0) {
+        const widgets = [...widgetSnapshots.values()].filter((widget) => widget.content.generating === false);
+        if (fullAssistantText || presentation.length > 0 || widgets.length > 0) {
           await supabase.from("chat_messages").insert({
             session_id: sessionId,
             role: "assistant",
             content: fullAssistantText,
-            tool_result: presentation.length > 0
-              ? serializePresentation({ presentation, tools: streamedTools, billing: billingLabel })
+            tool_result: presentation.length > 0 || widgets.length > 0
+              ? serializePresentation({ presentation, tools: streamedTools, billing: billingLabel, widgets })
               : null,
           });
         }

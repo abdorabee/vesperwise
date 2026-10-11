@@ -36,8 +36,8 @@ function openerText(signal: TriggerKey): Record<string, string> {
   const detail = "{signal." + signal + ".detail}";
   return {
     "VP Sales": `Noticed ${detail} at {company}. Moments like this usually mean quota moves faster than the team's tooling.`,
-    "RevOps lead": `With ${detail}, {company}'s routing, territories, and forecasts are about to get busier.`,
-    CFO: `${detail} at {company} usually brings a fresh look at which growth spend actually pays back.`,
+    "RevOps lead": `Changes like this at {company} (${detail}) usually mean routing, territories, and forecasts are about to get busier.`,
+    CFO: `Moves like this at {company} (${detail}) usually bring a fresh look at which growth spend actually pays back.`,
   };
 }
 
@@ -86,8 +86,12 @@ function nextSteps(): BriefSection {
         prompt: "Write a concise outreach email to {persona} at {company} using the {angle} angle.",
       },
       {
-        label: "Explain timing",
-        prompt: "Explain why {company} is {band} now and what changes if outreach waits.",
+        label: "ROI calculator",
+        prompt: "Build an ROI calculator for pitching {company}",
+      },
+      {
+        label: "Signal timeline",
+        prompt: "Chart {company}'s signal timeline",
       },
     ],
   };

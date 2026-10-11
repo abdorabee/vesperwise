@@ -1,15 +1,17 @@
 "use client";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { AccountPanel } from "@/components/account-panel/account-panel";
+import { useAccountParam } from "@/components/account-panel/use-account-param";
 import { ShellPanel } from "@/components/dashboard/shell/shell-panel";
-import { ScoreComposer } from "@/components/score/score-composer";
+import { ScoreComposer, type ScoreComposerHandle } from "@/components/score/score-composer";
 import { ScoreConversationThread } from "@/components/score/score-conversation-thread";
 import { ScoreEmptyState } from "@/components/score/score-empty-state";
 import type { ScoreFailure } from "@/components/score/score-error-card";
 import { buildScoreReport, ScoreReportPanel } from "@/components/score/score-report-panel";
 import type { ScoreReport } from "@/components/score/score-report-model";
 import { applyResearchEvent, EMPTY_RESEARCH_PROGRESS } from "@/components/score/score-research-status";
-import type { ScoreUiThreadMessage, ThreadMessage } from "@/components/score/score-thread-types";
+import type { ScoreUiThreadMessage, ThreadMessage, ThreadWidget } from "@/components/score/score-thread-types";
 import { ScoreWorkspaceReportHeader } from "@/components/score/score-workspace-report-header";
 import { ScorePageFrame, ScoreWorkspaceLayout } from "@/components/score/score-workspace-layout";
 import { ScoreThreadDrawer } from "@/components/score/score-thread-drawer";
@@ -17,13 +19,14 @@ import { ScoreThreadsColumn } from "@/components/score/score-threads-column";
 import { useScoreReportState } from "@/components/score/use-score-report-state";
 import type { BriefSpec } from "@/lib/brief";
 import { extractDomain, loadChatSession, seedChatSession, streamChat } from "@/lib/chat-client";
-import { sanitizeUiBlocks, suggestionsFromBlocks, workspaceFromScore } from "@/lib/gen-ui";
+import { suggestionsFromBlocks, workspaceFromScore, type UiBlock } from "@/lib/gen-ui";
+import { applyChatEvent } from "@/lib/score-chat-events";
 import { parseIncompleteCoverage, type IncompleteCoverageResult } from "@/lib/score-coverage";
-import { parsePersistedPresentation, type ToolChip } from "@/lib/score-presentation";
+import { parsePersistedPresentation, type WidgetSnapshot } from "@/lib/score-presentation";
 import { createSseParser, type ScoreProgressEvent } from "@/lib/score-progress";
 import { SCORE_NEW_EVENT, SCORE_OPEN_THREADS_EVENT } from "@/lib/score-workspace-events";
 import type { StoredWorkspaceScore } from "@/lib/stored-score";
-import { CHAT_CREDIT_COST, type IntentScore, type ScoreBand } from "@/lib/types";
+import type { IntentScore, ScoreBand } from "@/lib/types";
 import type { ScoreReadyProgress } from "@/components/score/score-thread-types";
 type ScorableIntentScore = IntentScore & { intent_score: number; score_band: ScoreBand };
 
@@ -143,14 +146,42 @@ function billingLabel(result: ScorableIntentScore & { charged?: boolean; cached?
   return "no credit charged";
 }
 
-function toolsOf(message: ThreadMessage): ToolChip[] {
-  return message.role === "assistant" && "tools" in message ? message.tools : [];
+function restoreWidgets(widgets: WidgetSnapshot[] = []): ThreadWidget[] {
+  return widgets.map((widget) => ({
+    ...widget,
+    content: { ...widget.content, generating: false },
+    dataReady: true,
+  }));
+}
+
+function domainFromBlock(block: UiBlock): string | null {
+  return "domain" in block && typeof block.domain === "string" ? block.domain.toLowerCase() : null;
+}
+
+function allowedSandboxDomains(recentScores: RecentScore[], messages: ThreadMessage[]): string[] {
+  const domains = new Set<string>();
+  for (const score of recentScores) domains.add(score.domain.toLowerCase());
+  for (const message of messages) {
+    if (message.role !== "assistant") continue;
+    if (message.kind === "ui") {
+      for (const block of message.blocks) {
+        const domain = domainFromBlock(block);
+        if (domain) domains.add(domain);
+      }
+      if (message.stored?.domain) domains.add(message.stored.domain.toLowerCase());
+    }
+    if (message.kind === "coverage") domains.add(message.result.domain.toLowerCase());
+    if (message.kind === "thinking" && message.domain) domains.add(message.domain.toLowerCase());
+  }
+  return [...domains].sort();
 }
 
 export function ScoreView(props: ScoreViewProps) {
   const { creditsRemaining, recentScores } = props;
   const searchParams = useSearchParams();
+  const { account, openAccount, closeAccount } = useAccountParam();
   const autoScoredRef = useRef<string | null>(null);
+  const composerRef = useRef<ScoreComposerHandle>(null);
   const resetWorkspaceRef = useRef<() => void>(() => {});
   const [messages, setMessages] = useState<ThreadMessage[]>([]);
   const [busy, setBusy] = useState(false);
@@ -311,27 +342,7 @@ export function ScoreView(props: ScoreViewProps) {
         pendingSeedRef.current = null;
       }
       const nextSession = await streamChat({ message: text, session_id: activeSession ?? undefined }, (event) => {
-        setMessages((currentMessages) => currentMessages.map((message) => {
-          if (message.id !== thinkingId) return message;
-          if (event.type === "text") {
-            if (message.role === "assistant" && message.kind === "ui") return { ...message, content: message.content + event.content };
-            return { id: thinkingId, role: "assistant", kind: "text", content: message.role === "assistant" && message.kind === "text" ? message.content + event.content : event.content, tools: toolsOf(message) };
-          }
-          if (event.type === "tool_call") {
-            const tools = [...toolsOf(message), { name: event.name, status: "running" as const }];
-            return message.role === "assistant" && (message.kind === "text" || message.kind === "ui") ? { ...message, tools } : { id: thinkingId, role: "assistant", kind: "thinking", mode: "chat", tools };
-          }
-          if (event.type === "tool_result") {
-            const tools = toolsOf(message).map((tool) => tool.name === event.name && tool.status === "running" ? { ...tool, status: "done" as const, result: event.result } : tool);
-            return message.role === "assistant" ? { ...message, tools } : message;
-          }
-          if (event.type === "ui") {
-            const blocks = sanitizeUiBlocks(event.blocks);
-            if (blocks.length === 0) return message;
-            return { id: thinkingId, role: "assistant", kind: "ui", blocks, content: message.role === "assistant" && "content" in message ? message.content : "", tools: toolsOf(message), billing: event.billing ?? `${CHAT_CREDIT_COST} credits` };
-          }
-          return message;
-        }));
+        setMessages((currentMessages) => applyChatEvent(currentMessages, thinkingId, event));
       });
       if (nextSession) setSessionId(nextSession);
       setMessages((current) => current.map((message) => message.id === thinkingId && message.role === "assistant" && message.kind === "thinking" ? { id: thinkingId, role: "assistant", kind: "text", content: "No response was generated. Try a more specific question.", tools: message.tools } : message));
@@ -359,7 +370,13 @@ export function ScoreView(props: ScoreViewProps) {
         if (row.role === "user") return [{ id: row.id, role: "user", content: row.content, restored: true }];
         if (row.role !== "assistant") return [];
         const saved = parsePersistedPresentation(row.tool_result);
-        if (saved) return [{ id: row.id, role: "assistant", kind: "ui", blocks: saved.presentation, content: row.content, tools: saved.tools, billing: saved.billing, restored: true }];
+        if (saved) {
+          const widgets = restoreWidgets(saved.widgets);
+          if (saved.presentation.length > 0) {
+            return [{ id: row.id, role: "assistant", kind: "ui", blocks: saved.presentation, content: row.content, tools: saved.tools, widgets, billing: saved.billing, restored: true }];
+          }
+          return [{ id: row.id, role: "assistant", kind: "text", content: row.content, tools: saved.tools, widgets, restored: true }];
+        }
         return row.content ? [{ id: row.id, role: "assistant", kind: "text", content: row.content, tools: [], restored: true }] : [];
       });
       setMessages(restored);
@@ -389,6 +406,7 @@ export function ScoreView(props: ScoreViewProps) {
   const latestUiId = uiMessages.at(-1)?.id;
   const latestArtifactId = messages.findLast((message) => message.role === "assistant" && (message.kind === "ui" || message.kind === "coverage"))?.id;
   const suggestions = useMemo(() => uiMessages.length > 0 ? suggestionsFromBlocks(uiMessages.at(-1)!.blocks) : [], [uiMessages]);
+  const sandboxDomains = useMemo(() => allowedSandboxDomains(recentScores, messages), [recentScores, messages]);
   const reportSources = useMemo(() => messages.filter((message): message is Extract<ThreadMessage, { role: "assistant"; kind: "ui" | "thinking" }> => (
     message.role === "assistant" && (message.kind === "ui" || (message.kind === "thinking" && message.mode === "score"))
   )), [messages]);
@@ -416,15 +434,25 @@ export function ScoreView(props: ScoreViewProps) {
     setReportPanelOpen(true);
   }
 
+  const prefillPrompt = useCallback((text: string) => {
+    composerRef.current?.prefill(text);
+  }, []);
+
+  const openSandboxAccount = useCallback((domain: string) => {
+    openAccount(domain);
+  }, [openAccount]);
+
   const workspaceHeader = <ScoreWorkspaceReportHeader reports={reports} selectedReport={selectedReport} onSelect={setSelectedReportId} onOpen={() => selectedReport && setReportPanelOpen(true)} />;
 
-  const thread = <ScoreConversationThread messages={messages} latestArtifactId={latestArtifactId} activeStreamingMessageId={activeStreamingMessageId} reportForMessage={reportForMessage} onOpenReport={openReport} onRetryScore={(domain) => void runScore(domain, domain)} onReset={resetWorkspace} />;
+  const thread = <ScoreConversationThread messages={messages} latestArtifactId={latestArtifactId} activeStreamingMessageId={activeStreamingMessageId} allowedDomains={sandboxDomains} reportForMessage={reportForMessage} onPrefillPrompt={prefillPrompt} onOpenAccount={openSandboxAccount} onOpenReport={openReport} onRetryScore={(domain) => void runScore(domain, domain)} onReset={resetWorkspace} />;
 
   return (
     <>
       <ScoreThreadsColumn activeId={sessionId} busy={busy} onNewScore={resetWorkspace} onSelect={(id) => void restoreThread(id)} />
       <div className={`score-chat transition-opacity duration-200 motion-reduce:transition-none ${transitioning ? "opacity-0" : "opacity-100"}`}>
-        {!active ? <ScorePageFrame mode="entry"><ScoreEmptyState onSubmit={(value) => void submitMessage(value)} onOpenRecent={(domain) => void openLastScore(domain)} recentScores={recentScores} creditsRemaining={creditsRemaining} busy={busy} /></ScorePageFrame> : <ScorePageFrame mode="workspace"><ScoreWorkspaceLayout header={workspaceHeader} thread={thread} composer={<ScoreComposer busy={busy} suggestions={suggestions} onSubmit={(value) => void submitMessage(value)} />} /></ScorePageFrame>}
+        {!active ? <ScorePageFrame mode="entry"><ScoreEmptyState onSubmit={(value) => void submitMessage(value)} onOpenRecent={(domain) => void openLastScore(domain)} recentScores={recentScores} creditsRemaining={creditsRemaining} busy={busy} /></ScorePageFrame> : <ScorePageFrame mode="workspace"><ScoreWorkspaceLayout header={workspaceHeader} thread={thread} composer={<ScoreComposer ref={composerRef} busy={busy} suggestions={suggestions} onSubmit={(value) => void submitMessage(value)} />} /></ScorePageFrame>}
+        {/* Opened by sandboxed tools (openAccount), same panel as pipeline and watchlist. */}
+        {account ? <AccountPanel domain={account} onClose={closeAccount} /> : null}
         <ScoreThreadDrawer open={threadsOpen} onOpenChange={setThreadsOpen} onSelect={(id) => void restoreThread(id)} onNewScore={resetWorkspace} activeId={sessionId} busy={busy} />
         {selectedReport ? (
           <ShellPanel open={reportPanelOpen} size="wide" label="Score report" onClose={() => setReportPanelOpen(false)}>

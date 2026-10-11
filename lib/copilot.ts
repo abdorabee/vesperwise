@@ -1,9 +1,13 @@
+import { z } from "zod";
 import { redactPublicSources } from "@/lib/public-source";
 import { createSupabaseAdmin } from "@/lib/supabase";
 import { scoreCompany } from "@/lib/score-service";
 import { scorePerson } from "@/lib/person-score-service";
-import type { BusinessProfile, DbUser, PipelineStage, ConversationAnalysis } from "@/lib/types";
+import type { BusinessProfile, DbUser, PipelineStage, ConversationAnalysis, SignalContribution } from "@/lib/types";
 import { repairUiBlocks } from "@/lib/gen-ui-repair";
+import { briefContributionsFrom } from "@/lib/brief";
+import { getPipelineSummaryData, resolveDataRefs } from "@/lib/sandbox-data";
+import { SANDBOX_DESIGN_CSS } from "@/components/score/sandbox-tool/frame-content";
 
 // ─── OpenRouter Tool Definitions (OpenAI-compatible format) ──────────────────
 
@@ -270,9 +274,80 @@ export const COPILOT_TOOLS: OpenRouterTool[] = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "build_interactive_tool",
+      description: "renders a sandboxed interactive tool (calculator, chart, diagram) in the chat; data comes ONLY via data_refs → window.VW_DATA; fields stream in order.",
+      parameters: {
+        type: "object",
+        properties: {
+          title: { type: "string", maxLength: 80 },
+          initialHeight: { type: "integer", minimum: 120, maximum: 1200 },
+          placeholderMessages: {
+            type: "array",
+            maxItems: 4,
+            items: { type: "string", maxLength: 60 },
+          },
+          data_refs: {
+            type: "array",
+            maxItems: 4,
+            items: { type: "string", pattern: "^(account:[a-z0-9.-]+|accounts:recent|pipeline)$" },
+          },
+          css: { type: "string" },
+          html: { type: "string" },
+          jsFunctions: { type: "string" },
+          jsExpressions: {
+            type: "array",
+            maxItems: 20,
+            items: { type: "string", maxLength: 4000 },
+          },
+        },
+        required: ["title", "html"],
+      },
+    },
+  },
 ];
 
 // ─── Tool Executor ───────────────────────────────────────────────────────────
+
+const buildInteractiveToolInputSchema = z.object({
+  title: z.string().max(80),
+  initialHeight: z.number().int().min(120).max(1200).optional(),
+  placeholderMessages: z.array(z.string().max(60)).max(4).optional(),
+  data_refs: z.array(z.string().regex(/^(account:[a-z0-9.-]+|accounts:recent|pipeline)$/)).max(4).optional(),
+  css: z.string().max(20_000).optional(),
+  html: z.string().max(60_000),
+  jsFunctions: z.string().max(40_000).optional(),
+  jsExpressions: z.array(z.string().max(4_000)).max(20).optional(),
+});
+
+function validationError(error: z.ZodError): string {
+  return error.issues
+    .map((issue) => `${issue.path.join(".") || "input"}: ${issue.message}`)
+    .join("; ");
+}
+
+function summarizeResolvedData(data: Record<string, unknown>): string[] {
+  return Object.entries(data).map(([ref, value]) => {
+    if (value && typeof value === "object" && !Array.isArray(value) && "error" in value) {
+      return `${ref} -> ${(value as { error?: unknown }).error}`;
+    }
+    if (Array.isArray(value)) return `${ref} -> ${value.length} accounts`;
+    if (ref === "pipeline" && value && typeof value === "object" && "total" in value) {
+      const total = (value as { total?: unknown }).total;
+      return `${ref} -> ${typeof total === "number" ? total : 0} accounts`;
+    }
+    if (value && typeof value === "object" && !Array.isArray(value) && "signals" in value) {
+      const signals = (value as { signals?: unknown }).signals;
+      const count = signals && typeof signals === "object" && !Array.isArray(signals)
+        ? Object.keys(signals).length
+        : 0;
+      return `${ref} -> ${count} signals`;
+    }
+    return `${ref} -> available`;
+  });
+}
 
 export async function executeTool(
   name: string,
@@ -363,30 +438,7 @@ export async function executeTool(
     }
 
     case "get_pipeline_summary": {
-      const { data: watchlist } = await supabase
-        .from("watchlist")
-        .select("domain, company_name, score, score_band, pipeline_stage, last_scored")
-        .eq("user_id", userId)
-        .eq("is_active", true)
-        .order("score", { ascending: false });
-
-      if (!watchlist || watchlist.length === 0) {
-        return { total: 0, stages: {}, message: "No companies in pipeline" };
-      }
-
-      const stages: Record<string, Array<{ domain: string; company_name: string; score: number | null }>> = {};
-      for (const w of watchlist) {
-        const stage = w.pipeline_stage ?? "cold";
-        if (!stages[stage]) stages[stage] = [];
-        stages[stage].push({ domain: w.domain, company_name: w.company_name, score: w.score });
-      }
-
-      const counts: Record<string, number> = {};
-      for (const [stage, companies] of Object.entries(stages)) {
-        counts[stage] = companies.length;
-      }
-
-      return { total: watchlist.length, counts, top_per_stage: stages };
+      return getPipelineSummaryData(supabase, userId);
     }
 
     case "get_company_details": {
@@ -416,6 +468,7 @@ export async function executeTool(
         why_now: score.why_now,
         email_subject: score.email_subject,
         talk_track: score.talk_track,
+        contributions: briefContributionsFrom(Array.isArray(score.contributions) ? score.contributions as SignalContribution[] : []),
         scored_at: score.created_at,
       };
     }
@@ -540,6 +593,19 @@ export async function executeTool(
       return { ok: true, blocks, diagnostics };
     }
 
+    case "build_interactive_tool": {
+      const parsed = buildInteractiveToolInputSchema.safeParse(args);
+      if (!parsed.success) return { error: validationError(parsed.error) };
+      const refs = parsed.data.data_refs ?? [];
+      const data = await resolveDataRefs(supabase, userId, refs);
+      return {
+        ok: true,
+        title: parsed.data.title,
+        data,
+        data_summary: summarizeResolvedData(data),
+      };
+    }
+
     case "analyze_conversation": {
       // Claude has already extracted and structured the analysis via vision or text reading.
       // Deduct 1 credit for the analysis and return the structured result.
@@ -568,6 +634,68 @@ export async function executeTool(
 interface CopilotContext {
   recentScores: Array<{ domain: string; company_name: string; score: number; score_band: string }>;
   watchlist: Array<{ domain: string; company_name: string; score: number | null; pipeline_stage: string }>;
+}
+
+function cssNames(css: string, prefix: "--" | "."): string[] {
+  const pattern = prefix === "--" ? /(--[a-z0-9-]+)\s*:/g : /\.([a-z][a-z0-9-]*)\b/g;
+  return [...new Set([...css.matchAll(pattern)].map((match) => prefix === "--" ? match[1]! : `.${match[1]!}`))];
+}
+
+function sandboxDesignList(): string {
+  return [
+    `CSS variables: ${cssNames(SANDBOX_DESIGN_CSS, "--").join(", ")}.`,
+    `CSS classes: ${cssNames(SANDBOX_DESIGN_CSS, ".").join(", ")}.`,
+  ].join("\n");
+}
+
+function sandboxDataShapeDescription(): string {
+  return [
+    "VW_DATA shapes:",
+    "- account:<domain> -> { company, domain, score, band, scored_at, contributions, signals, brief }. contributions items include type, rawScore, effectiveWeight, daysAgo, observedAt, summary, contribution, status, and optional halfLifeDays/freshness. signals keys include funding, hiring, news, technology, web_activity, web, github with score, max, detail, status, observed_at. brief is null or { personas: string[] (role names like \"VP Sales\"), openers: { [angle: \"funding\"|\"hiring\"|\"news\"|\"technology\"]: { [personaName: string]: string } } } — openers are ready-to-use text (bindings already filled); look one up as brief.openers[angle][personaName].",
+    "- accounts:recent -> array of up to 20 { domain, company, score, band, scored_at, freshest_signal_days }.",
+    "- pipeline -> { total, counts, top_per_stage } where top_per_stage groups domains/company_name/scores by pipeline stage.",
+  ].join("\n");
+}
+
+function interactiveToolsSection(): string {
+  return `INTERACTIVE TOOLS (build_interactive_tool):
+Routing:
+- quick fact or advice -> plain text
+- exact comparison or a stored score -> present_ui
+- calculator, chart, diagram, or tool for the moment -> build_interactive_tool
+- Do not build a tool when text answers the request.
+
+Contract:
+- Stream fields in this exact order: title -> initialHeight -> placeholderMessages -> data_refs -> css -> html -> jsFunctions -> jsExpressions.
+- Put all logic in jsFunctions. Use jsExpressions only for short init calls such as init().
+- Scripts are classic scripts: no top-level await. For charts use import() inside async functions for "chart.js/auto" and "d3"; the importmap is provided. Load Chart.js as: const { default: Chart } = await import("chart.js/auto").
+- Always wrap a chart <canvas> in <div class="vw-chart"> (fixed 320px height) and pass options { responsive: true, maintainAspectRatio: false }; never let a canvas size itself to an auto-height parent.
+- Lines on a scatter chart (projections, thresholds) need { type: "line" } datasets or showLine: true with pointRadius 0; draw band thresholds as two-point line datasets, not plugins.
+- Chart.js has NO date adapter: never use type: "time" or "timeseries" scales. Put dates on a linear x-axis in days (negative = past, 0 = today, positive = future) and format tick labels yourself.
+- Scoring math is provided — never reimplement it. window.VW.projectScore(contributions, offsetDays) returns { score, band, perSignal } exactly like the Living Brief; window.VW.freshness(contribution, offsetDays), window.VW.daysSince(iso), window.VW.formatDate(iso), window.VW.band(score).
+- No fetch and no network calls. Read ALL real numbers from window.VW_DATA[ref]; never type scores, dates, ages, or points into html/js/css.
+${sandboxDataShapeDescription()}
+
+Design system:
+${sandboxDesignList()}
+- Use lime --brand only for the single primary action and one key highlight. Use band colors --hot, --warm, and --cold for score bands.
+
+Bridge:
+- await Websandbox.connection.remote.prefillPrompt({ text })
+- await Websandbox.connection.remote.openAccount({ domain })
+- await Websandbox.connection.remote.openLink({ url })
+- Call bridge functions ONLY from a click handler. Include the current input values in prefill text.
+
+Quality:
+- Label illustrative assumptions in the UI.
+- Validate numeric inputs: blank, non-finite, and <=0 divisors show an inline message instead of NaN.
+- Controls must be keyboard accessible, respect prefers-reduced-motion, and stay responsive around 640px width.
+
+Recipes:
+1. ROI / deal calculator. data_refs: [account:<domain>]. Read company name and score context from window.VW_DATA["account:<domain>"]. Layout: compact input grid for seats, price/seat, hours saved/rep/week, loaded hourly cost; output cards for annual value and payback months; label outputs "illustrative assumptions"; "Put this in my email" calls prefillPrompt with the current values.
+2. Signal timeline chart. data_refs: [account:<domain>]. Chart.js on a linear x-axis in days relative to today. Plot each contribution with an observedAt (skip null) at x = -(daysAgo + VW.daysSince(scored_at)), y = its points today (VW.projectScore(contributions, VW.daysSince(scored_at)).perSignal[type]), labelled by type and summary. Add the decay projection: for d = 0..120 step 5, y = VW.projectScore(contributions, VW.daysSince(scored_at) + d).score, with dashed lines at 50 (WARM) and 75 (HOT). Show which day the account drops a band.
+3. Account comparison chart. data_refs: [accounts:recent]. Layout: horizontal bars of score colored by band with freshness marker text. Clicking a bar calls openAccount({ domain }).
+4. Stakeholder map. data_refs: [account:<domain>]. Layout: company in the center with each persona string in brief.personas as a surrounding node (the string IS the label; personas are not objects) and angle chips from Object.keys(brief.openers). Click a persona to show its opener. "Draft for this role" calls prefillPrompt. If brief is null, say so in the UI.`;
 }
 
 export async function buildCopilotContext(userId: string): Promise<CopilotContext> {
@@ -677,6 +805,8 @@ Compose inline artifacts only when they materially improve the answer:
 - Compare accounts → comparison (2-4 scored domains only)
 - Simple explanation → plain text only; do not call present_ui
 Keep spoken text to 1-3 sentences. Put dated, source-backed evidence in signal_explorer axes (key, label, score, max, detail, observed_at, source). Supporting web and GitHub axes must be marked as context and never described as score inputs. Preserve verified numerical zeroes; describe missing evidence as Unavailable. Always include suggested next prompts on action_rail for actionable artifacts. Never invent scores or domains that are not in tool results.
+
+${interactiveToolsSection()}
 
 GUIDELINES:
 - Always cite specific data from scores and signals. Never fabricate company data.

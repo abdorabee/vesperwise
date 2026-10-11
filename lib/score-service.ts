@@ -51,7 +51,6 @@ import {
   buildFallbackBrief,
   repairBrief,
   type BriefContribution,
-  type TriggerKey,
 } from "@/lib/brief";
 import { updatePipelineStage } from "@/lib/pipeline";
 import { createInboxNotification } from "@/lib/inbox";

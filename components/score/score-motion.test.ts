@@ -13,6 +13,10 @@ const view = readFileSync(
   new URL("../../app/(dashboard)/score/score-view.tsx", import.meta.url),
   "utf8",
 );
+const chatEvents = readFileSync(
+  new URL("../../lib/score-chat-events.ts", import.meta.url),
+  "utf8",
+);
 const research = readFileSync(
   new URL("./score-research-status.tsx", import.meta.url),
   "utf8",
@@ -33,7 +37,8 @@ describe("Score motion contract", () => {
   it("ties progress to real request or tool state instead of fake provider steps", () => {
     expect(view).not.toContain("STEPS");
     expect(view).not.toContain("setInterval");
-    expect(view).toContain('tool.status === "running"');
+    expect(view).toContain("applyChatEvent");
+    expect(chatEvents).toContain('tool.status === "running"');
     expect(research).toContain("Verifying current signals");
   });
 
