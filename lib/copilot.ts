@@ -669,6 +669,8 @@ Contract:
 - Stream fields in this exact order: title -> initialHeight -> placeholderMessages -> data_refs -> css -> html -> jsFunctions -> jsExpressions.
 - Put all logic in jsFunctions. Use jsExpressions only for short init calls such as init().
 - Scripts are classic scripts: no top-level await. For charts use import() inside async functions for "chart.js/auto" and "d3"; the importmap is provided. Load Chart.js as: const { default: Chart } = await import("chart.js/auto").
+- Always wrap a chart <canvas> in <div class="vw-chart"> (fixed 320px height) and pass options { responsive: true, maintainAspectRatio: false }; never let a canvas size itself to an auto-height parent.
+- Lines on a scatter chart (projections, thresholds) need { type: "line" } datasets or showLine: true with pointRadius 0; draw band thresholds as two-point line datasets, not plugins.
 - Chart.js has NO date adapter: never use type: "time" or "timeseries" scales. Put dates on a linear x-axis in days (negative = past, 0 = today, positive = future) and format tick labels yourself.
 - Scoring math is provided — never reimplement it. window.VW.projectScore(contributions, offsetDays) returns { score, band, perSignal } exactly like the Living Brief; window.VW.freshness(contribution, offsetDays), window.VW.daysSince(iso), window.VW.formatDate(iso), window.VW.band(score).
 - No fetch and no network calls. Read ALL real numbers from window.VW_DATA[ref]; never type scores, dates, ages, or points into html/js/css.

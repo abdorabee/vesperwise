@@ -67,6 +67,20 @@ export const SANDBOX_DESIGN_CSS = `
   box-sizing: border-box;
 }
 
+/* Responsive Chart.js canvases size themselves to their parent; inside an
+   autosizing frame that parent grows with them forever. Cap canvases and give
+   charts a fixed-height wrapper so the loop can't start. */
+canvas {
+  display: block;
+  max-width: 100%;
+  max-height: 420px;
+}
+
+.vw-chart {
+  position: relative;
+  height: 320px;
+}
+
 html,
 body {
   margin: 0;
