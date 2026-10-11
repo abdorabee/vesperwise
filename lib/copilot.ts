@@ -651,7 +651,7 @@ function sandboxDesignList(): string {
 function sandboxDataShapeDescription(): string {
   return [
     "VW_DATA shapes:",
-    "- account:<domain> -> { company, domain, score, band, scored_at, contributions, signals, brief }. contributions items include type, rawScore, effectiveWeight, daysAgo, observedAt, summary, contribution, status, and optional halfLifeDays/freshness. signals keys include funding, hiring, news, technology, web_activity, web, github with score, max, detail, status, observed_at. brief is null or { personas, openers }.",
+    "- account:<domain> -> { company, domain, score, band, scored_at, contributions, signals, brief }. contributions items include type, rawScore, effectiveWeight, daysAgo, observedAt, summary, contribution, status, and optional halfLifeDays/freshness. signals keys include funding, hiring, news, technology, web_activity, web, github with score, max, detail, status, observed_at. brief is null or { personas: string[] (role names like \"VP Sales\"), openers: { [angle: \"funding\"|\"hiring\"|\"news\"|\"technology\"]: { [personaName: string]: string } } } — openers are ready-to-use text (bindings already filled); look one up as brief.openers[angle][personaName].",
     "- accounts:recent -> array of up to 20 { domain, company, score, band, scored_at, freshest_signal_days }.",
     "- pipeline -> { total, counts, top_per_stage } where top_per_stage groups domains/company_name/scores by pipeline stage.",
   ].join("\n");
@@ -695,7 +695,7 @@ Recipes:
 1. ROI / deal calculator. data_refs: [account:<domain>]. Read company name and score context from window.VW_DATA["account:<domain>"]. Layout: compact input grid for seats, price/seat, hours saved/rep/week, loaded hourly cost; output cards for annual value and payback months; label outputs "illustrative assumptions"; "Put this in my email" calls prefillPrompt with the current values.
 2. Signal timeline chart. data_refs: [account:<domain>]. Chart.js on a linear x-axis in days relative to today. Plot each contribution with an observedAt (skip null) at x = -(daysAgo + VW.daysSince(scored_at)), y = its points today (VW.projectScore(contributions, VW.daysSince(scored_at)).perSignal[type]), labelled by type and summary. Add the decay projection: for d = 0..120 step 5, y = VW.projectScore(contributions, VW.daysSince(scored_at) + d).score, with dashed lines at 50 (WARM) and 75 (HOT). Show which day the account drops a band.
 3. Account comparison chart. data_refs: [accounts:recent]. Layout: horizontal bars of score colored by band with freshness marker text. Clicking a bar calls openAccount({ domain }).
-4. Stakeholder map. data_refs: [account:<domain>]. Layout: company in the center with brief.personas as surrounding nodes and angle chips from brief.openers. Click a persona to show its opener. "Draft for this role" calls prefillPrompt. If brief is null, say so in the UI.`;
+4. Stakeholder map. data_refs: [account:<domain>]. Layout: company in the center with each persona string in brief.personas as a surrounding node (the string IS the label; personas are not objects) and angle chips from Object.keys(brief.openers). Click a persona to show its opener. "Draft for this role" calls prefillPrompt. If brief is null, say so in the UI.`;
 }
 
 export async function buildCopilotContext(userId: string): Promise<CopilotContext> {
