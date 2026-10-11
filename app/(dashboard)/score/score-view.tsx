@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { AccountPanel } from "@/components/account-panel/account-panel";
 import { useAccountParam } from "@/components/account-panel/use-account-param";
 import { ShellPanel } from "@/components/dashboard/shell/shell-panel";
 import { ScoreComposer, type ScoreComposerHandle } from "@/components/score/score-composer";
@@ -178,7 +179,7 @@ function allowedSandboxDomains(recentScores: RecentScore[], messages: ThreadMess
 export function ScoreView(props: ScoreViewProps) {
   const { creditsRemaining, recentScores } = props;
   const searchParams = useSearchParams();
-  const { openAccount } = useAccountParam();
+  const { account, openAccount, closeAccount } = useAccountParam();
   const autoScoredRef = useRef<string | null>(null);
   const composerRef = useRef<ScoreComposerHandle>(null);
   const resetWorkspaceRef = useRef<() => void>(() => {});
@@ -450,6 +451,8 @@ export function ScoreView(props: ScoreViewProps) {
       <ScoreThreadsColumn activeId={sessionId} busy={busy} onNewScore={resetWorkspace} onSelect={(id) => void restoreThread(id)} />
       <div className={`score-chat transition-opacity duration-200 motion-reduce:transition-none ${transitioning ? "opacity-0" : "opacity-100"}`}>
         {!active ? <ScorePageFrame mode="entry"><ScoreEmptyState onSubmit={(value) => void submitMessage(value)} onOpenRecent={(domain) => void openLastScore(domain)} recentScores={recentScores} creditsRemaining={creditsRemaining} busy={busy} /></ScorePageFrame> : <ScorePageFrame mode="workspace"><ScoreWorkspaceLayout header={workspaceHeader} thread={thread} composer={<ScoreComposer ref={composerRef} busy={busy} suggestions={suggestions} onSubmit={(value) => void submitMessage(value)} />} /></ScorePageFrame>}
+        {/* Opened by sandboxed tools (openAccount), same panel as pipeline and watchlist. */}
+        {account ? <AccountPanel domain={account} onClose={closeAccount} /> : null}
         <ScoreThreadDrawer open={threadsOpen} onOpenChange={setThreadsOpen} onSelect={(id) => void restoreThread(id)} onNewScore={resetWorkspace} activeId={sessionId} busy={busy} />
         {selectedReport ? (
           <ShellPanel open={reportPanelOpen} size="wide" label="Score report" onClose={() => setReportPanelOpen(false)}>
