@@ -1,5 +1,6 @@
 // Adapted from CopilotKit/OpenIntelligentUI, MIT License.
 
+import { FRAME_HELPERS_JS } from "./frame-helpers";
 import type { SandboxToolData } from "./schema";
 
 export const RESIZE_MESSAGE_TYPE = "__ogui_resize";
@@ -315,6 +316,7 @@ export function buildFinalFrameContent(html: string, css: string | undefined, da
     DESIGN_SYSTEM_STYLE_TAG +
     (css ? `<style>${escapeStyleText(css)}</style>` : "") +
     `<script>window.VW_DATA = Object.freeze(${escapeInlineJson(data)});</script>` +
+    `<script>${FRAME_HELPERS_JS}</script>` +
     // Install autosize as part of the document itself, so it never depends on
     // the post-boot run() queue; it runs once the body exists.
     `<script>document.addEventListener("DOMContentLoaded", function () {${MEASUREMENT_JS}});</script>`;

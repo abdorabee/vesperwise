@@ -668,7 +668,9 @@ Routing:
 Contract:
 - Stream fields in this exact order: title -> initialHeight -> placeholderMessages -> data_refs -> css -> html -> jsFunctions -> jsExpressions.
 - Put all logic in jsFunctions. Use jsExpressions only for short init calls such as init().
-- Scripts are classic scripts: no top-level await. For charts use import() inside async functions for "chart.js/auto" and "d3"; the importmap is provided.
+- Scripts are classic scripts: no top-level await. For charts use import() inside async functions for "chart.js/auto" and "d3"; the importmap is provided. Load Chart.js as: const { default: Chart } = await import("chart.js/auto").
+- Chart.js has NO date adapter: never use type: "time" or "timeseries" scales. Put dates on a linear x-axis in days (negative = past, 0 = today, positive = future) and format tick labels yourself.
+- Scoring math is provided — never reimplement it. window.VW.projectScore(contributions, offsetDays) returns { score, band, perSignal } exactly like the Living Brief; window.VW.freshness(contribution, offsetDays), window.VW.daysSince(iso), window.VW.formatDate(iso), window.VW.band(score).
 - No fetch and no network calls. Read ALL real numbers from window.VW_DATA[ref]; never type scores, dates, ages, or points into html/js/css.
 ${sandboxDataShapeDescription()}
 
@@ -689,7 +691,7 @@ Quality:
 
 Recipes:
 1. ROI / deal calculator. data_refs: [account:<domain>]. Read company name and score context from window.VW_DATA["account:<domain>"]. Layout: compact input grid for seats, price/seat, hours saved/rep/week, loaded hourly cost; output cards for annual value and payback months; label outputs "illustrative assumptions"; "Put this in my email" calls prefillPrompt with the current values.
-2. Signal timeline chart. data_refs: [account:<domain>]. Use chart.js scatter/line over time: each contribution at observedAt (skip null), y = points. Add a 120-day decay projection curve computed with freshness = 0.85^(age/30), or 2^(-age/halfLifeDays) when halfLifeDays is set, and score contribution = rawScore * freshness * effectiveWeight / sum(effectiveWeight), matching lib/brief/decay.ts.
+2. Signal timeline chart. data_refs: [account:<domain>]. Chart.js on a linear x-axis in days relative to today. Plot each contribution with an observedAt (skip null) at x = -(daysAgo + VW.daysSince(scored_at)), y = its points today (VW.projectScore(contributions, VW.daysSince(scored_at)).perSignal[type]), labelled by type and summary. Add the decay projection: for d = 0..120 step 5, y = VW.projectScore(contributions, VW.daysSince(scored_at) + d).score, with dashed lines at 50 (WARM) and 75 (HOT). Show which day the account drops a band.
 3. Account comparison chart. data_refs: [accounts:recent]. Layout: horizontal bars of score colored by band with freshness marker text. Clicking a bar calls openAccount({ domain }).
 4. Stakeholder map. data_refs: [account:<domain>]. Layout: company in the center with brief.personas as surrounding nodes and angle chips from brief.openers. Click a persona to show its opener. "Draft for this role" calls prefillPrompt. If brief is null, say so in the UI.`;
 }
