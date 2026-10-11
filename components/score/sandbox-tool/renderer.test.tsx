@@ -220,7 +220,7 @@ describe("SandboxToolRenderer", () => {
     ]);
   });
 
-  it("clamps reported heights and ignores foreign resize messages", async () => {
+  it("ignores not-yet-laid-out and foreign resize reports, applies real ones", async () => {
     renderTool(
       {
         generating: false,
@@ -244,7 +244,17 @@ describe("SandboxToolRenderer", () => {
         }),
       );
     });
-    expect(frameContainer.style.height).toBe("50px");
+    expect(frameContainer.style.height).toBe("200px");
+
+    await act(async () => {
+      window.dispatchEvent(
+        new MessageEvent("message", {
+          data: { height: 882, type: RESIZE_MESSAGE_TYPE },
+          source: mockIframe.contentWindow,
+        }),
+      );
+    });
+    expect(frameContainer.style.height).toBe("882px");
 
     await act(async () => {
       window.dispatchEvent(
@@ -254,7 +264,7 @@ describe("SandboxToolRenderer", () => {
         }),
       );
     });
-    expect(frameContainer.style.height).toBe("50px");
+    expect(frameContainer.style.height).toBe("882px");
   });
 
   it("exports clampReportedHeight", () => {

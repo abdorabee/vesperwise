@@ -314,7 +314,10 @@ export function buildFinalFrameContent(html: string, css: string | undefined, da
     INSTRUMENT_SANS_LINK_TAG +
     DESIGN_SYSTEM_STYLE_TAG +
     (css ? `<style>${escapeStyleText(css)}</style>` : "") +
-    `<script>window.VW_DATA = Object.freeze(${escapeInlineJson(data)});</script>`;
+    `<script>window.VW_DATA = Object.freeze(${escapeInlineJson(data)});</script>` +
+    // Install autosize as part of the document itself, so it never depends on
+    // the post-boot run() queue; it runs once the body exists.
+    `<script>document.addEventListener("DOMContentLoaded", function () {${MEASUREMENT_JS}});</script>`;
   const withHead = ensureHead(html);
   const openTag = withHead.match(/<head[^>]*>/i);
   if (!openTag || openTag.index === undefined) {
@@ -370,14 +373,22 @@ export const MEASUREMENT_JS = `
     var cs = getComputedStyle(document.body);
     h += parseFloat(cs.marginTop) || 0;
     h += parseFloat(cs.marginBottom) || 0;
+    window.__oguiLastHeight = document.body.scrollHeight;
     parent.postMessage({ type: '${RESIZE_MESSAGE_TYPE}', height: Math.ceil(h) }, '*');
   }
+  window.__oguiReport = reportHeight;
   var ro = new ResizeObserver(reportHeight);
   ro.observe(document.body);
   window.addEventListener('resize', reportHeight);
   window.addEventListener('load', reportHeight);
-  var interval = setInterval(reportHeight, 200);
-  setTimeout(function() { clearInterval(interval); }, 3000);
+  // Fonts, charts and images settle after load; keep reporting real changes
+  // instead of stopping after a fixed window.
+  setInterval(function() {
+    if (document.body.scrollHeight !== window.__oguiLastHeight) reportHeight();
+  }, 500);
   reportHeight();
 })();
 `;
+
+/** Asks an installed frame to report its height again (used when it scrolls into view). */
+export const REQUEST_HEIGHT_JS = "window.__oguiReport && window.__oguiReport();";

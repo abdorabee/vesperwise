@@ -29,7 +29,7 @@ describe("createSandboxFunctions", () => {
       onPrefillPrompt: vi.fn(),
     });
 
-    await expect(functions.prefillPrompt({ text: "x".repeat(601) })).rejects.toThrow(/prefillPrompt: invalid arguments/);
+    await expect(functions.prefillPrompt({ text: "x".repeat(4001) })).rejects.toThrow(/prefillPrompt: invalid arguments/);
   });
 
   it("opens only allowed account domains case-insensitively", async () => {

@@ -10,6 +10,7 @@ import {
   buildPreviewHeadContent,
   MEASUREMENT_JS,
   PREVIEW_FRAME_CONTENT,
+  REQUEST_HEIGHT_JS,
   RESIZE_MESSAGE_TYPE,
 } from "./frame-content";
 import { extractCompleteStyles, processPartialHtml } from "./process-partial-html";
@@ -23,6 +24,9 @@ export const THROTTLE_MS = 400;
 
 const MIN_HEIGHT = 50;
 const MAX_HEIGHT = 4000;
+// Reports below this come from a frame that has not laid out yet; ignore them
+// rather than collapsing the tool.
+const MIN_TRUSTED_REPORT = 80;
 const DEFAULT_INITIAL_HEIGHT = 220;
 const DEFAULT_PLACEHOLDERS = ["Preparing interactive tool", "Loading sandbox", "Wiring controls"];
 
@@ -250,6 +254,7 @@ const SandboxToolRendererInner = React.memo(function SandboxToolRendererInner({
     }
 
     let cancelled = false;
+    let visibilityObserver: IntersectionObserver | null = null;
     finalReadyRef.current = false;
     pendingQueueRef.current = [];
     executionChainRef.current = Promise.resolve();
@@ -257,12 +262,14 @@ const SandboxToolRendererInner = React.memo(function SandboxToolRendererInner({
     executedExpressionCountRef.current = 0;
 
     const onMessage = (event: MessageEvent) => {
-      const sandbox = finalSandboxRef.current;
-      if (!sandbox) return;
-      if (event.source === sandbox.iframe.contentWindow && event.data?.type === RESIZE_MESSAGE_TYPE) {
-        const nextHeight = clampReportedHeight(event.data.height);
-        if (nextHeight !== null) setAutoHeight(nextHeight);
-      }
+      if (event.data?.type !== RESIZE_MESSAGE_TYPE) return;
+      // Match the iframe actually mounted in this container: the sandbox ref is
+      // assigned asynchronously, and early reports would otherwise be dropped.
+      const frameWindow = container.querySelector("iframe")?.contentWindow;
+      if (!frameWindow || event.source !== frameWindow) return;
+      if (typeof event.data.height !== "number" || event.data.height < MIN_TRUSTED_REPORT) return;
+      const nextHeight = clampReportedHeight(event.data.height);
+      if (nextHeight !== null) setAutoHeight(nextHeight);
     };
     window.addEventListener("message", onMessage);
 
@@ -286,6 +293,15 @@ const SandboxToolRendererInner = React.memo(function SandboxToolRendererInner({
           for (const code of queued) {
             scheduleRun(code);
           }
+          // Chrome skips layout in off-screen cross-origin frames, so a frame
+          // created below the fold measures 0. Re-measure whenever it scrolls
+          // into view.
+          if (typeof IntersectionObserver !== "undefined") {
+            visibilityObserver = new IntersectionObserver((entries) => {
+              if (entries.some((entry) => entry.isIntersecting)) scheduleRun(REQUEST_HEIGHT_JS);
+            });
+            visibilityObserver.observe(container);
+          }
         });
       })
       .catch((error: unknown) => {
@@ -294,6 +310,7 @@ const SandboxToolRendererInner = React.memo(function SandboxToolRendererInner({
 
     return () => {
       cancelled = true;
+      visibilityObserver?.disconnect();
       window.removeEventListener("message", onMessage);
       if (finalSandboxRef.current) {
         finalSandboxRef.current.destroy();

@@ -2,6 +2,9 @@
 
 import { z } from "zod";
 
+// Generated tools often build a full email draft; match the source project's 4,000 cap.
+export const MAX_PREFILL_LENGTH = 4000;
+
 export type SandboxFunctionMap = Record<string, (args: unknown) => unknown>;
 
 interface CreateSandboxFunctionsOptions {
@@ -14,7 +17,7 @@ const RATE_LIMIT_WINDOW_MS = 10_000;
 const RATE_LIMIT_MAX_CALLS = 5;
 
 const prefillPromptParameters = z.object({
-  text: z.string().trim().min(1).max(600),
+  text: z.string().trim().min(1).max(MAX_PREFILL_LENGTH),
 });
 
 const openAccountParameters = z.object({
