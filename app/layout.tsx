@@ -124,7 +124,7 @@ export default function RootLayout({
 
   return (
     <ClerkProvider {...clerkProps}>
-      <html lang="en" className="dark" suppressHydrationWarning>
+      <html lang="en" className={`dark ${instrumentSans.variable}`} suppressHydrationWarning>
         <head>
           <script
             dangerouslySetInnerHTML={{
@@ -132,7 +132,7 @@ export default function RootLayout({
             }}
           />
         </head>
-        <body className={`${instrumentSans.variable} font-sans antialiased`}>
+        <body className="font-sans antialiased">
           <a href="#main" className="skip-link">Skip to content</a>
           <ThemeProvider>
             <TooltipProvider>
