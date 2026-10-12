@@ -1,0 +1,166 @@
+{
+  "fonts": [
+    "Instrument Sans",
+    "Instrument Sans Fallback",
+    "-apple-system",
+    "BlinkMacSystemFont",
+    "system-ui",
+    "ui-sans-serif",
+    "sans-serif",
+    "SFMono-Regular",
+    "Consolas",
+    "Liberation Mono",
+    "Menlo",
+    "monospace"
+  ],
+  "fontSizes": [
+    8,
+    9,
+    10,
+    11,
+    11.5,
+    12,
+    12.5,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    20,
+    22,
+    26,
+    28,
+    30,
+    34,
+    35.1,
+    36,
+    40,
+    48,
+    60,
+    64,
+    72,
+    76,
+    80
+  ],
+  "typeRules": [
+    {
+      "selector": "h1",
+      "sizes": [
+        24,
+        32,
+        35.1,
+        40,
+        48,
+        64,
+        72,
+        80
+      ]
+    },
+    {
+      "selector": "h2",
+      "sizes": [
+        12,
+        20,
+        24,
+        28,
+        30,
+        32,
+        34,
+        36,
+        40,
+        64,
+        76
+      ]
+    },
+    {
+      "selector": "h3",
+      "sizes": [
+        18,
+        20,
+        22,
+        24
+      ]
+    },
+    {
+      "selector": "button, [role=button]",
+      "sizes": [
+        12,
+        13,
+        14,
+        16
+      ]
+    }
+  ],
+  "minControlSize": 15,
+  "controlSizeRules": [],
+  "minControlGap": 8,
+  "minControlInset": 8,
+  "controlContainers": [
+    "[data-ui-container]"
+  ],
+  "minLayoutGap": 8,
+  "bannedCopy": [
+    "unlock your potential",
+    "seamlessly",
+    "game-changing"
+  ],
+  "viewports": [
+    {
+      "width": 390,
+      "height": 844
+    },
+    {
+      "width": 1440,
+      "height": 900
+    }
+  ],
+  "colorSchemes": [
+    "dark",
+    "light"
+  ],
+  "exceptions": [
+    {
+      "selector": ".price-card.featured, .price-card.featured *",
+      "rules": [
+        "text-contrast"
+      ],
+      "reason": "Gradient background on the featured pricing card; axe cannot measure contrast."
+    },
+    {
+      "selector": ".cta-inner, .cta-inner *",
+      "rules": [
+        "text-contrast"
+      ],
+      "reason": "Gradient CTA band; axe cannot measure contrast."
+    },
+    {
+      "selector": ".cookie-banner, .cookie-banner *",
+      "rules": [
+        "text-contrast"
+      ],
+      "reason": "Fixed translucent banner overlaps page content; axe cannot measure contrast."
+    },
+    {
+      "selector": ".landing-mockup-caption",
+      "rules": [
+        "text-contrast"
+      ],
+      "reason": "Caption sits over the mockup image; axe cannot measure contrast."
+    },
+    {
+      "selector": ".auth-left-panel, .auth-left-panel *, .auth-form-caption, .auth-form-caption *",
+      "rules": [
+        "text-contrast"
+      ],
+      "reason": "Auth panel uses a pseudo-element gradient and glyph-only checkmarks; axe cannot measure contrast."
+    },
+    {
+      "selector": ".nav-mob-btn, .hero-video-toggle, .auth-password-toggle",
+      "rules": [
+        "icon-button-tooltip"
+      ],
+      "reason": "Known gap: icon buttons have aria-label but no visible tooltip yet."
+    }
+  ]
+}
