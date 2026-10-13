@@ -311,7 +311,7 @@ export function SignupForm() {
           </Button>
           {/* Covers the social sign-up buttons above too: any path that creates an account. */}
           <p className="auth-form-caption">
-            By creating an account, you agree to our <Link href="/terms">Terms of Service</Link> and
+            By creating an account, you confirm you&apos;re 18 or older and agree to our <Link href="/terms">Terms of Service</Link> and
             acknowledge our <Link href="/privacy">Privacy Policy</Link>.
           </p>
         </form>
