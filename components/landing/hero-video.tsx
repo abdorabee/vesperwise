@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { IconTooltip, useIconTooltip } from "@/components/ui/icon-tooltip";
+
 const SOURCES = {
   webm: "/demo/vesperwise-demo.webm",
   mp4: "/demo/vesperwise-demo.mp4",
@@ -18,6 +20,7 @@ export default function HeroVideo() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const userPausedRef = useRef(false);
   const [playing, setPlaying] = useState(false);
+  const toggleTip = useIconTooltip();
 
   useEffect(() => {
     const video = videoRef.current;
@@ -92,8 +95,8 @@ export default function HeroVideo() {
             type="button"
             className="hero-video-toggle"
             onClick={toggle}
-            aria-label={playing ? "Pause demo video" : "Play demo video"}
             data-playing={playing ? "true" : "false"}
+            {...toggleTip.triggerProps}
           >
             <svg className="icon-pause" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
               <rect x="4" y="3" width="3" height="10" rx="1" />
@@ -102,6 +105,7 @@ export default function HeroVideo() {
             <svg className="icon-play" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
               <path d="M5 3.2v9.6a.8.8 0 0 0 1.2.7l7.6-4.8a.8.8 0 0 0 0-1.4L6.2 2.5A.8.8 0 0 0 5 3.2Z" />
             </svg>
+            <IconTooltip id={toggleTip.id}>{playing ? "Pause demo video" : "Play demo video"}</IconTooltip>
           </button>
         </div>
       </div>

@@ -10,6 +10,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 npm run dev      # Start development server (localhost:3000)
 npm run build    # Production build
 npm run lint     # Run ESLint
+npm run lint:ui  # lintapple UI policy check (ui-policy.json); start the dev server first
 npm test         # Vitest, one run
 ```
 

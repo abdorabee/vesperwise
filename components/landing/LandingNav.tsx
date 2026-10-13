@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import VesperWiseLogo from "@/components/vesperwise-logo";
+import { IconTooltip, useIconTooltip } from "@/components/ui/icon-tooltip";
 
 const NAV_ITEMS = [
   { label: "Product",    href: "/#product" },
@@ -17,6 +18,7 @@ export default function LandingNav() {
   const drawerRef = useRef<HTMLDivElement>(null);
   const wasOpenRef = useRef(false);
   const drawerId = "landing-mobile-nav";
+  const menuTip = useIconTooltip();
 
   useEffect(() => {
     if (!open) {
@@ -102,13 +104,14 @@ export default function LandingNav() {
             className="nav-mob-btn"
             ref={triggerRef}
             onClick={() => setOpen(true)}
-            aria-label="Open navigation"
             aria-expanded={open}
             aria-controls={drawerId}
+            {...menuTip.triggerProps}
           >
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
               <path d="M3 5h14M3 10h14M3 15h14"/>
             </svg>
+            <IconTooltip id={menuTip.id} side="bottom">Open navigation</IconTooltip>
           </button>
 
           {/* Desktop CTAs */}

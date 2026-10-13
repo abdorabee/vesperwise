@@ -12,7 +12,8 @@
     "test:scoring-db": "SCORING_V2_DB_TESTS=true vitest run supabase/migrations/scoring-v2-postgres.integration.test.ts",
     "test:cache-queue-db": "REPLACE_REDIS_DB_TESTS=true vitest run --silent=false supabase/migrations/replace-redis-postgrest.integration.test.ts",
     "test:watch": "vitest",
-    "generate:favicon": "node scripts/generate-favicon.mjs"
+    "generate:favicon": "node scripts/generate-favicon.mjs",
+    "lint:ui": "lintapple http://localhost:3000 && lintapple http://localhost:3000/pricing && lintapple http://localhost:3000/login && lintapple http://localhost:3000/signup"
   },
   "dependencies": {
     "@ai-sdk/openai": "^4.0.60",
@@ -58,6 +59,7 @@
     "eslint-config-next": "16.1.6",
     "jsdom": "^30.1.2",
     "knip": "6.32.2",
+    "lintapple": "^0.1.20",
     "pg": "^8.20.0",
     "shadcn": "^3.8.5",
     "sharp": "^0.34.5",

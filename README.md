@@ -125,6 +125,7 @@ Set `MOCK_SIGNALS=true` to use deterministic mock signals seeded by domain — n
 npm run dev      # localhost:3000
 npm run build    # production build
 npm run lint     # ESLint
+npm run lint:ui  # lintapple UI policy check (ui-policy.json); start the dev server first
 npm test         # Vitest, one run
 npm run test:scoring-db # destructive only to an explicitly confirmed disposable Postgres database
 npm run test:cache-queue-db # same class of reset, for the Postgres cache and queue
