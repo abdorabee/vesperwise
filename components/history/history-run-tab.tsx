@@ -27,10 +27,10 @@ const S = {
 };
 
 export const SIGNAL_META: { key: IntentSignalKey; abbr: string; color: string }[] = [
-  { key: "funding", abbr: "FU", color: "#f5b544" },
-  { key: "hiring", abbr: "HI", color: "#4ade80" },
+  { key: "funding", abbr: "FU", color: "var(--warm)" },
+  { key: "hiring", abbr: "HI", color: "var(--hot)" },
   { key: "news", abbr: "NE", color: "#8a8f98" },
-  { key: "technology", abbr: "TE", color: "#e8ff40" },
+  { key: "technology", abbr: "TE", color: "#dfff00" },
   { key: "web_activity", abbr: "WA", color: "#a855f7" },
 ];
 
@@ -112,7 +112,7 @@ function RunRing({ score, band }: { score: number; band: string }) {
   const r = 55;
   const circ = 2 * Math.PI * r;
   const offset = circ * (1 - score / 100);
-  const g = band === "HOT" ? ["#4ade80", "#dfff00", "#e8ff40"] : band === "WARM" ? ["#f5b544", "#8a8f98", "#e8ff40"] : ["var(--text-tertiary)", "var(--text-tertiary)", "var(--text-tertiary)"];
+  const g = band === "HOT" ? ["var(--hot)", "var(--hot)", "var(--hot)"] : band === "WARM" ? ["var(--warm)", "var(--warm)", "var(--warm)"] : ["var(--cold)", "var(--cold)", "var(--cold)"];
   return (
     <div style={{ position: "relative", width: 130, height: 130 }}>
       <svg viewBox="0 0 130 130" style={{ display: "block" }} aria-hidden="true">

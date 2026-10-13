@@ -14,15 +14,15 @@ type PeopleState = "list" | "score" | "result";
 
 const AV_COLORS = [
   "linear-gradient(135deg,#dfff00,#dfff00)",
-  "linear-gradient(135deg,#4ade80,#22c55e)",
-  "linear-gradient(135deg,#f5b544,#8a8f98)",
-  "linear-gradient(135deg,#e8ff40,#dfff00)",
-  "linear-gradient(135deg,#f87171,#f5b544)",
-  "linear-gradient(135deg,#dfff00,#4ade80)",
+  "linear-gradient(135deg,var(--hot),#22c55e)",
+  "linear-gradient(135deg,var(--warm),var(--cold))",
   "linear-gradient(135deg,#dfff00,#dfff00)",
-  "linear-gradient(135deg,#8a8f98,#f87171)",
-  "linear-gradient(135deg,#a78bfa,#e8ff40)",
-  "linear-gradient(135deg,#f5b544,#4ade80)",
+  "linear-gradient(135deg,#f87171,var(--warm))",
+  "linear-gradient(135deg,#dfff00,var(--hot))",
+  "linear-gradient(135deg,#dfff00,#dfff00)",
+  "linear-gradient(135deg,var(--cold),#f87171)",
+  "linear-gradient(135deg,#a78bfa,#dfff00)",
+  "linear-gradient(135deg,var(--warm),var(--hot))",
 ];
 
 function avColor(name: string): string {
@@ -478,7 +478,7 @@ export function PeopleView({ totalCount, hotCount, initialScores }: PeopleViewPr
                   const circ = 2 * Math.PI * r;
                   const offset = circ * (1 - result.intent_score / 100);
                   const band = result.score_band;
-                  const g = band === "HOT" ? ["#4ade80", "#dfff00", "#e8ff40"] : band === "WARM" ? ["#f5b544", "#8a8f98", "#e8ff40"] : ["var(--text-tertiary)", "var(--text-tertiary)", "var(--text-tertiary)"];
+                  const g = band === "HOT" ? ["var(--hot)", "var(--hot)", "var(--hot)"] : band === "WARM" ? ["var(--warm)", "var(--warm)", "var(--warm)"] : ["var(--cold)", "var(--cold)", "var(--cold)"];
                   return (
                     <div className="score-ring">
                       <svg viewBox="0 0 100 100">
@@ -524,10 +524,10 @@ export function PeopleView({ totalCount, hotCount, initialScores }: PeopleViewPr
               <div className="signal-grid">
                 {([
                   { key: "seniority_fit" as const, label: "ICP fit",   color: "#dfff00", grad: "linear-gradient(90deg,#dfff00,#38a3b3)", max: 20 },
-                  { key: "career_change" as const, label: "Career",    color: "#4ade80", grad: "linear-gradient(90deg,#4ade80,#22c55e)", max: 30 },
-                  { key: "company_intent" as const, label: "Company",  color: "#f5b544", grad: "linear-gradient(90deg,#f5b544,#d49530)", max: 20 },
-                  { key: "news_mentions" as const, label: "Influence", color: "#e8ff40", grad: "linear-gradient(90deg,#e8ff40,#dfff00)", max: 15 },
-                  { key: "social_presence" as const, label: "Social",  color: "#8a8f98", grad: "linear-gradient(90deg,#8a8f98,#c0367f)", max: 15 },
+                  { key: "career_change" as const, label: "Career",    color: "var(--hot)", grad: "linear-gradient(90deg,var(--hot),#22c55e)", max: 30 },
+                  { key: "company_intent" as const, label: "Company",  color: "var(--warm)", grad: "linear-gradient(90deg,var(--warm),#d49530)", max: 20 },
+                  { key: "news_mentions" as const, label: "Influence", color: "#dfff00", grad: "linear-gradient(90deg,#dfff00,#dfff00)", max: 15 },
+                  { key: "social_presence" as const, label: "Social",  color: "var(--cold)", grad: "linear-gradient(90deg,var(--cold),#c0367f)", max: 15 },
                 ] as const).map(({ key, label, color, grad, max }) => {
                   const sig = result.signals[key];
                   const pct = sig ? Math.round((sig.score / max) * 100) : 0;

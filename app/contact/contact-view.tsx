@@ -25,8 +25,8 @@ const T = {
   accent2:       "var(--brand-hover)",
   cyan:          "var(--brand)",
   cyanSoft:      "var(--brand-soft)",
-  hot:           "#4ade80",
-  warm:          "#f5b544",
+  hot:           "var(--hot)",
+  warm:          "var(--warm)",
   fontSans:      "var(--font-sans)",
   fontMono:      "var(--font-sans)",
 };

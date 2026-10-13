@@ -55,8 +55,8 @@ function InfoCallout({ children }: { children: React.ReactNode }) {
 
 function WarnCallout({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ margin: "20px 0", padding: "14px 16px", borderRadius: "6px", background: "rgba(245,181,68,0.04)", border: "1px solid rgba(245,181,68,0.18)", fontSize: "14px", lineHeight: 1.55, color: T.txtSecondary, display: "flex", gap: "12px" }}>
-      <svg style={{ width: "18px", height: "18px", flexShrink: 0, color: "#f5b544", marginTop: "1px" }} viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5">
+    <div style={{ margin: "20px 0", padding: "14px 16px", borderRadius: "6px", background: "var(--warm-bg)", border: "1px solid var(--warm-border)", fontSize: "14px", lineHeight: 1.55, color: T.txtSecondary, display: "flex", gap: "12px" }}>
+      <svg style={{ width: "18px", height: "18px", flexShrink: 0, color: "var(--warm)", marginTop: "1px" }} viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5">
         <path d="M9 2L1 16h16z" /><path d="M9 7v4M9 13h.01" />
       </svg>
       <div>{children}</div>

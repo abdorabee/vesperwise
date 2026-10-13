@@ -338,7 +338,7 @@ export default function OnboardingWizard({
       className={`flex flex-none items-center justify-between gap-3 border-b px-12 py-3 text-[13px] ${
         saveError
           ? "border-[#f87171]/25 bg-[#f87171]/[0.08] text-[#fca5a5]"
-          : "border-[#f5b544]/25 bg-[#f5b544]/[0.08] text-[#f5b544]"
+          : "border-[var(--warm)]/25 bg-[var(--warm)]/[0.08] text-[var(--warm)]"
       }`}
     >
       <p>{saveError ?? notice}</p>
@@ -355,7 +355,7 @@ export default function OnboardingWizard({
           type="button"
           onClick={() => setNotice(null)}
           aria-label="Dismiss"
-          className="shrink-0 px-2 text-[#f5b544]/70 hover:text-[#f5b544]"
+          className="shrink-0 px-2 text-[var(--warm)]/70 hover:text-[var(--warm)]"
         >
           ×
         </button>
