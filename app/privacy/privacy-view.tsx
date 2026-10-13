@@ -55,8 +55,8 @@ function InfoCallout({ children }: { children: React.ReactNode }) {
 
 function GoodCallout({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ margin: "20px 0", padding: "14px 16px", borderRadius: "6px", background: "rgba(74,222,128,0.04)", border: "1px solid rgba(74,222,128,0.18)", fontSize: "14px", lineHeight: 1.55, color: T.txtSecondary, display: "flex", gap: "12px" }}>
-      <svg style={{ width: "18px", height: "18px", flexShrink: 0, color: "#4ade80", marginTop: "1px" }} viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5">
+    <div style={{ margin: "20px 0", padding: "14px 16px", borderRadius: "6px", background: "var(--hot-bg)", border: "1px solid var(--hot-border)", fontSize: "14px", lineHeight: 1.55, color: T.txtSecondary, display: "flex", gap: "12px" }}>
+      <svg style={{ width: "18px", height: "18px", flexShrink: 0, color: "var(--hot)", marginTop: "1px" }} viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5">
         <circle cx="9" cy="9" r="7" /><path d="M5 9l3 3 5-5" />
       </svg>
       <div>{children}</div>

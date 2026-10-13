@@ -21,7 +21,7 @@ export function SignalEvidenceRow({ signals }: { signals: SignalSet }) {
             <div className="flex items-baseline gap-0.5">
               <span
                 className="font-mono text-[13px] tabular-nums"
-                style={{ color: strong ? "#4ade80" : "#f7f8f8" }}
+                style={{ color: strong ? "var(--hot)" : "#f7f8f8" }}
               >
                 {axis.score}
               </span>
@@ -31,7 +31,7 @@ export function SignalEvidenceRow({ signals }: { signals: SignalSet }) {
               <div className="h-1 w-[88px] flex-none overflow-hidden rounded-full bg-white/[0.08]">
                 <div
                   className="h-1 rounded-full"
-                  style={{ width: `${pct}%`, background: strong ? "#4ade80" : "rgba(255,255,255,.4)" }}
+                  style={{ width: `${pct}%`, background: strong ? "var(--hot)" : "rgba(255,255,255,.4)" }}
                 />
               </div>
               <span className={`truncate text-[12px] leading-[1.4] tracking-[-0.006em] ${strong ? "text-[#a0a0a0]" : "text-[#666]"}`}>

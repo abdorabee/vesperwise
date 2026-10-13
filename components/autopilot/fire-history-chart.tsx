@@ -34,7 +34,7 @@ export default function FireHistoryChart({ buckets, peak }: FireHistoryChartProp
                 y={height - h}
                 width={barW}
                 height={h}
-                fill="#4ade80"
+                fill="var(--hot)"
                 fillOpacity={0.7}
                 rx={1}
               />

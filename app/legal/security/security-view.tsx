@@ -18,8 +18,8 @@ const T = {
   accent:        "var(--brand)",
   cyan:          "var(--brand)",
   cyanSoft:      "var(--brand-soft)",
-  hot:           "#4ade80",
-  warm:          "#f5b544",
+  hot:           "var(--hot)",
+  warm:          "var(--warm)",
   fontSans:      "var(--font-sans)",
   fontMono:      "var(--font-sans)",
 };

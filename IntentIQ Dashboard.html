@@ -28,15 +28,15 @@
   --cyan:          #4ec9d8;
   --cyan-soft:     rgba(78,201,216,0.16);
 
-  --hot:           #4ade80;
-  --hot-bg:        rgba(74,222,128,0.10);
-  --hot-border:    rgba(74,222,128,0.25);
-  --warm:          #f5b544;
-  --warm-bg:       rgba(245,181,68,0.10);
-  --warm-border:   rgba(245,181,68,0.25);
-  --cold:          #8a8f98;
-  --cold-bg:       rgba(138,143,152,0.08);
-  --cold-border:   rgba(138,143,152,0.22);
+  --hot:           #fb7185;
+  --hot-bg:        rgba(251,113,133,0.10);
+  --hot-border:    rgba(251,113,133,0.25);
+  --warm:          #fbbf24;
+  --warm-bg:       rgba(251,191,36,0.10);
+  --warm-border:   rgba(251,191,36,0.25);
+  --cold:          #60a5fa;
+  --cold-bg:       rgba(96,165,250,0.08);
+  --cold-border:   rgba(96,165,250,0.22);
   --red:           #f87171;
 
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
@@ -226,7 +226,7 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
   width: 22px; height: 22px; border-radius: 999px;
   display: grid; place-items: center;
   font-size: 10px; font-weight: 700; color: #0a0b0f;
-  background: linear-gradient(135deg, #f5b544, #ec4899);
+  background: linear-gradient(135deg, #fbbf24, #ec4899);
 }
 .sb-user .info { flex: 1; min-width: 0; }
 .sb-user .name {
@@ -885,12 +885,12 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
 
 /* avatars */
 .av-1 { background: linear-gradient(135deg, #4ec9d8, #5e6ad2); }
-.av-2 { background: linear-gradient(135deg, #4ade80, #22c55e); }
-.av-3 { background: linear-gradient(135deg, #f5b544, #ec4899); }
+.av-2 { background: linear-gradient(135deg, #fb7185, #22c55e); }
+.av-3 { background: linear-gradient(135deg, #fbbf24, #ec4899); }
 .av-4 { background: linear-gradient(135deg, #7170ff, #c9c4ff); }
 .av-5 { background: linear-gradient(135deg, #ec4899, #f87171); }
-.av-6 { background: linear-gradient(135deg, #4ec9d8, #4ade80); }
-.av-7 { background: linear-gradient(135deg, #f87171, #f5b544); }
+.av-6 { background: linear-gradient(135deg, #4ec9d8, #fb7185); }
+.av-7 { background: linear-gradient(135deg, #f87171, #fbbf24); }
 .av-8 { background: linear-gradient(135deg, #c9c4ff, #4ec9d8); }
 
 /* footer "view all" link */
@@ -1231,12 +1231,12 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
               <svg class="chart-svg" viewBox="0 0 800 240" preserveAspectRatio="none">
                 <defs>
                   <linearGradient id="hotGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stop-color="#4ade80" stop-opacity="0.7"/>
-                    <stop offset="100%" stop-color="#4ade80" stop-opacity="0.04"/>
+                    <stop offset="0%" stop-color="#fb7185" stop-opacity="0.7"/>
+                    <stop offset="100%" stop-color="#fb7185" stop-opacity="0.04"/>
                   </linearGradient>
                   <linearGradient id="warmGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stop-color="#f5b544" stop-opacity="0.55"/>
-                    <stop offset="100%" stop-color="#f5b544" stop-opacity="0.04"/>
+                    <stop offset="0%" stop-color="#fbbf24" stop-opacity="0.55"/>
+                    <stop offset="100%" stop-color="#fbbf24" stop-opacity="0.04"/>
                   </linearGradient>
                   <linearGradient id="coldGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stop-color="#8a8f98" stop-opacity="0.35"/>
@@ -1264,18 +1264,18 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
                 <path d="M 0,240 L 0,108 C 50,104 100,110 150,98 S 250,84 300,82 S 400,72 450,68 S 550,58 600,60 S 700,46 800,42 L 800,240 Z"
                   fill="url(#warmGrad)" stroke="none"/>
                 <path d="M 0,108 C 50,104 100,110 150,98 S 250,84 300,82 S 400,72 450,68 S 550,58 600,60 S 700,46 800,42"
-                  fill="none" stroke="#f5b544" stroke-width="1.6" stroke-opacity="0.7"/>
+                  fill="none" stroke="#fbbf24" stroke-width="1.6" stroke-opacity="0.7"/>
 
                 <!-- Hot area (top) -->
                 <path d="M 0,240 L 0,82 C 50,78 100,86 150,72 S 250,58 300,56 S 400,44 450,42 S 550,28 600,30 S 700,16 800,12 L 800,240 Z"
                   fill="url(#hotGrad)" stroke="none"/>
                 <path d="M 0,82 C 50,78 100,86 150,72 S 250,58 300,56 S 400,44 450,42 S 550,28 600,30 S 700,16 800,12"
-                  fill="none" stroke="#4ade80" stroke-width="2"/>
+                  fill="none" stroke="#fb7185" stroke-width="2"/>
 
                 <!-- highlight marker -->
                 <line x1="650" y1="0" x2="650" y2="240" stroke="rgba(255,255,255,0.18)" stroke-width="1" stroke-dasharray="3 3"/>
-                <circle cx="650" cy="22" r="4" fill="#4ade80" stroke="#0e1011" stroke-width="2"/>
-                <circle cx="650" cy="50" r="4" fill="#f5b544" stroke="#0e1011" stroke-width="2"/>
+                <circle cx="650" cy="22" r="4" fill="#fb7185" stroke="#0e1011" stroke-width="2"/>
+                <circle cx="650" cy="50" r="4" fill="#fbbf24" stroke="#0e1011" stroke-width="2"/>
                 <circle cx="650" cy="110" r="4" fill="#8a8f98" stroke="#0e1011" stroke-width="2"/>
               </svg>
 
@@ -1283,8 +1283,8 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
               <div class="chart-marker" style="left: calc(81.25% - 80px); top: -4px;">
                 <div class="chart-tip">
                   <div class="date">Mar 18 · Tue</div>
-                  <div class="val-row"><span class="swatch" style="background:#4ade80;"></span><span class="name">HOT</span><span class="num">11</span></div>
-                  <div class="val-row"><span class="swatch" style="background:#f5b544;"></span><span class="name">Warm</span><span class="num">36</span></div>
+                  <div class="val-row"><span class="swatch" style="background:#fb7185;"></span><span class="name">HOT</span><span class="num">11</span></div>
+                  <div class="val-row"><span class="swatch" style="background:#fbbf24;"></span><span class="name">Warm</span><span class="num">36</span></div>
                   <div class="val-row"><span class="swatch" style="background:#8a8f98;"></span><span class="name">Cold</span><span class="num">194</span></div>
                 </div>
               </div>
@@ -1572,9 +1572,9 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
                 <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="14"/>
                 <circle cx="50" cy="50" r="40" fill="none" stroke="#4ec9d8" stroke-width="14"
                   stroke-dasharray="65.3 251.3" stroke-dashoffset="0" stroke-linecap="butt"/>
-                <circle cx="50" cy="50" r="40" fill="none" stroke="#4ade80" stroke-width="14"
+                <circle cx="50" cy="50" r="40" fill="none" stroke="#fb7185" stroke-width="14"
                   stroke-dasharray="55.3 251.3" stroke-dashoffset="-65.3"/>
-                <circle cx="50" cy="50" r="40" fill="none" stroke="#f5b544" stroke-width="14"
+                <circle cx="50" cy="50" r="40" fill="none" stroke="#fbbf24" stroke-width="14"
                   stroke-dasharray="52.8 251.3" stroke-dashoffset="-120.6"/>
                 <circle cx="50" cy="50" r="40" fill="none" stroke="#7170ff" stroke-width="14"
                   stroke-dasharray="45.2 251.3" stroke-dashoffset="-173.4"/>
@@ -1593,12 +1593,12 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
                 <span class="num">26%</span>
               </div>
               <div class="row">
-                <span class="swatch" style="background:#4ade80;"></span>
+                <span class="swatch" style="background:#fb7185;"></span>
                 <span class="name">Hiring</span>
                 <span class="num">22%</span>
               </div>
               <div class="row">
-                <span class="swatch" style="background:#f5b544;"></span>
+                <span class="swatch" style="background:#fbbf24;"></span>
                 <span class="name">News</span>
                 <span class="num">21%</span>
               </div>

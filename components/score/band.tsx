@@ -13,17 +13,16 @@ export function bandForScore(score: number): ScoreBand {
   return "COLD";
 }
 
-// HOT is the brand highlighter (lime under ink); WARM/COLD use the band tokens.
 const PILL_CLASS: Record<ScoreBand, string> = {
-  HOT: "bg-[var(--brand)] text-[var(--on-brand)] border-transparent",
+  HOT: "bg-[var(--hot-bg)] text-[var(--hot)] border-[var(--hot-border)]",
   WARM: "bg-[var(--warm-bg)] text-[var(--warm)] border-[var(--warm-border)]",
-  COLD: "bg-[var(--cold-bg)] text-muted-foreground border-[var(--cold-border)]",
+  COLD: "bg-[var(--cold-bg)] text-[var(--cold)] border-[var(--cold-border)]",
 };
 
 const FILL_CLASS: Record<ScoreBand, string> = {
-  HOT: "bg-foreground",
+  HOT: "bg-[var(--hot)]",
   WARM: "bg-[var(--warm)]",
-  COLD: "bg-muted-foreground/60",
+  COLD: "bg-[var(--cold)]",
 };
 
 export function BandPill({ band, size = "md", className }: { band: ScoreBand; size?: "sm" | "md"; className?: string }) {
@@ -37,7 +36,7 @@ export function BandPill({ band, size = "md", className }: { band: ScoreBand; si
         className,
       )}
     >
-      <span aria-hidden className={cn("size-1.5 rounded-full", band === "HOT" ? "bg-[var(--on-brand)]" : "bg-current")} />
+      <span aria-hidden className="size-1.5 rounded-full bg-current" />
       {band}
     </span>
   );

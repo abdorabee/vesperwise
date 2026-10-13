@@ -226,7 +226,7 @@ export async function ensureDefaultList(userId: string): Promise<void> {
       name: "My Watchlist",
       description: "Accounts from your watchlist",
       list_type: "manual",
-      color: "#4ade80",
+      color: "#fb7185",
       icon_initials: "MW",
     })
     .select()

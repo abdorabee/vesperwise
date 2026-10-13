@@ -33,7 +33,7 @@ export function SignalDots({ result }: { result: IntentScore }) {
           <i
             key={key}
             className="h-1.5 w-1.5 rounded-full"
-            style={{ background: on ? "#4ade80" : "rgba(255,255,255,.13)" }}
+            style={{ background: on ? "var(--hot)" : "rgba(255,255,255,.13)" }}
           />
         );
       })}
@@ -46,7 +46,7 @@ export function ScoreCell({ score }: { score: number | null }) {
   return (
     <span
       className="font-mono text-[17px] font-medium tabular-nums"
-      style={{ color: band ? BAND_COLOR[band] : "#8a8f98", letterSpacing: "-0.03em" }}
+      style={{ color: band ? BAND_COLOR[band] : "var(--cold)", letterSpacing: "-0.03em" }}
     >
       {score ?? "—"}
     </span>
