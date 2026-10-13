@@ -55,7 +55,12 @@ export function AppFrame({
         {rail}
       </div>
       {list ? (
-        <aside data-slot="app-frame-list" className="dashboard-app-frame__list">
+        <aside
+          data-slot="app-frame-list"
+          className="dashboard-app-frame__list"
+          // Collapsed to zero width: keep its controls out of the tab order.
+          inert={hasListContent && !listOpen}
+        >
           {list}
         </aside>
       ) : null}

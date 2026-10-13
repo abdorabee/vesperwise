@@ -269,6 +269,11 @@
     border-right: 1px solid var(--border);
   }
 
+  /* Keep full width while the column animates so rows clip instead of re-wrapping. */
+  .dashboard-app-frame__list .dashboard-shell-list {
+    width: var(--list-w);
+  }
+
   .dashboard-app-frame__main {
     grid-column: 3;
   }
@@ -346,6 +351,7 @@
 }
 
 .dashboard-shell-list {
+  pointer-events: auto;
   display: flex;
   flex-direction: column;
   overflow: hidden;

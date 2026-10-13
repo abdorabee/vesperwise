@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/breadcrumb";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
+import { ShellListReopenButton } from "@/components/dashboard/shell/shell-list";
 
 export function SiteHeader() {
   const pathname = usePathname();
@@ -64,6 +65,7 @@ export function SiteHeader() {
         <SidebarTrigger className="-ml-1 size-11 shrink-0 md:hidden">
           {isMobile ? <Menu /> : <PanelLeft />}
         </SidebarTrigger>
+        <ShellListReopenButton />
         <Separator
           orientation="vertical"
           className="mr-2 hidden data-[orientation=vertical]:h-4"
