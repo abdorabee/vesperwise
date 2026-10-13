@@ -64,6 +64,12 @@ export function perCreditPrice(price: number, credits: number): string {
   return `$${(price / credits).toFixed(3).replace(/0+$/, "").replace(/\.$/, "")} ea.`;
 }
 
+/** Auto-renewal terms shown next to a paid plan's purchase button (California ARL). Null for free. */
+export function renewalDisclosure(price: number): string | null {
+  if (price <= 0) return null;
+  return `Renews automatically at $${price}/mo until you cancel. Cancel anytime in Billing; access continues to the end of the period.`;
+}
+
 /** Plan card unit line — free uses score count, paid uses per-credit */
 export function planCreditsUnit(plan: BillingPlanDef): string {
   if (plan.price <= 0) return `≈ ${plan.credits} scores`;

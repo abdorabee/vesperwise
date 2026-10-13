@@ -287,7 +287,6 @@ export function InboxDetail({
           <span>{format(new Date(n.created_at), "MMM d, yyyy")}</span>
         </div>
         <div className="right">
-          <button type="button" className="tb-btn outlined">Unsubscribe</button>
           <button
             type="button"
             className="btn-primary"
