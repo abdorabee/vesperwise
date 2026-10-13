@@ -5,7 +5,7 @@ The authenticated shell (`components/dashboard/dashboard-shell.tsx`) has five zo
 | Zone | Component | Notes |
 |------|-----------|-------|
 | Icon rail (3rem) | `shell/icon-rail.tsx` | Items from `nav-config.ts`, tooltips, count badges, account menu |
-| List column (16rem) | `shell/shell-list.tsx` | Filled per page through `<ShellList>`; ⌘B collapses it |
+| List column (16rem) | `shell/shell-list.tsx` | Filled per page through `<ShellList>`; the header button or ⌘B collapses it, and the page header shows a button to reopen it |
 | Main | `SiteHeader` + `PageContainer` | Page content |
 | Right panel (22rem / 30rem wide) | `shell/shell-panel.tsx` | Filled per page through `<ShellPanel>`; Esc closes it |
 | Status bar (28px) | `shell/status-bar.tsx` | Credits, plan, mock-signals pill, ⌘K; pages post messages with `useShellStatus` |

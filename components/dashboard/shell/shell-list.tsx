@@ -2,6 +2,10 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { PanelLeft, PanelLeftClose } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { useOptionalSidebar } from "@/components/ui/sidebar";
 
 interface ActiveList {
   id: symbol;
@@ -51,6 +55,46 @@ export function useShellListFrame() {
   return { managed: true, open: Boolean(context.activeList) };
 }
 
+/** Shown in the page header while a page's list column is collapsed (⌘B toggles it too). */
+export function ShellListReopenButton() {
+  const context = useContext(ShellListContext);
+  const sidebar = useOptionalSidebar();
+  const label = context?.activeList?.label;
+  if (!label || !sidebar || sidebar.open) return null;
+
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="icon-sm"
+      className="hidden shrink-0 md:inline-flex"
+      aria-label={`Show ${label}`}
+      title={`Show ${label} (⌘B)`}
+      onClick={() => sidebar.setOpen(true)}
+    >
+      <PanelLeft className="size-4" />
+    </Button>
+  );
+}
+
+function ShellListCollapseButton({ label }: { label: string }) {
+  const sidebar = useOptionalSidebar();
+  if (!sidebar) return null;
+
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="icon-xs"
+      aria-label={`Collapse ${label}`}
+      title={`Collapse ${label} (⌘B)`}
+      onClick={() => sidebar.setOpen(false)}
+    >
+      <PanelLeftClose className="size-3.5" />
+    </Button>
+  );
+}
+
 export function ShellListSlot() {
   const context = useContext(ShellListContext);
   // Depend on the stable setter only; setting the target changes the context value.
@@ -86,11 +130,10 @@ export function ShellListColumn({
         <h2 data-slot="shell-list-title" className="dashboard-shell-list__title">
           {title}
         </h2>
-        {actions ? (
-          <div data-slot="shell-list-actions" className="dashboard-shell-list__actions">
-            {actions}
-          </div>
-        ) : null}
+        <div data-slot="shell-list-actions" className="dashboard-shell-list__actions">
+          {actions}
+          <ShellListCollapseButton label={label} />
+        </div>
       </header>
       <div data-slot="shell-list-body" className="dashboard-shell-list__body">
         {children}
