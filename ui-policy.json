@@ -154,13 +154,6 @@
         "text-contrast"
       ],
       "reason": "Auth panel uses a pseudo-element gradient and glyph-only checkmarks; axe cannot measure contrast."
-    },
-    {
-      "selector": ".nav-mob-btn, .hero-video-toggle, .auth-password-toggle",
-      "rules": [
-        "icon-button-tooltip"
-      ],
-      "reason": "Known gap: icon buttons have aria-label but no visible tooltip yet."
     }
   ]
 }

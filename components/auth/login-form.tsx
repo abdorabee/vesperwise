@@ -1,7 +1,6 @@
 "use client";
 
 import { useClerk, useSignIn } from "@clerk/nextjs";
-import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useMemo, useState, type FormEvent } from "react";
@@ -10,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 import { AuthCard, AuthFieldError, AuthGlobalError } from "./auth-card";
+import { PasswordVisibilityToggle } from "./password-visibility-toggle";
 import { AUTH_FORM_CSS } from "./auth-form-styles";
 import {
   fieldError,
@@ -250,14 +250,7 @@ function LoginFormInner() {
                   avatar.watch("password").onChange(event);
                 }}
               />
-              <button
-                type="button"
-                className="auth-password-toggle"
-                aria-label={avatar.passwordVisible ? "Hide password" : "Show password"}
-                onClick={() => avatar.setPasswordVisible(!avatar.passwordVisible)}
-              >
-                {avatar.passwordVisible ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
+              <PasswordVisibilityToggle isVisible={avatar.passwordVisible} onToggle={avatar.setPasswordVisible} />
             </div>
             <AuthFieldError id="login-password-error" message={passwordError} />
           </div>
@@ -330,14 +323,7 @@ function LoginFormInner() {
                   avatar.watch("password").onChange(event);
                 }}
               />
-              <button
-                type="button"
-                className="auth-password-toggle"
-                aria-label={avatar.passwordVisible ? "Hide password" : "Show password"}
-                onClick={() => avatar.setPasswordVisible(!avatar.passwordVisible)}
-              >
-                {avatar.passwordVisible ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
+              <PasswordVisibilityToggle isVisible={avatar.passwordVisible} onToggle={avatar.setPasswordVisible} />
             </div>
             <AuthFieldError id="new-password-error" message={passwordError} />
           </div>

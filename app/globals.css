@@ -884,6 +884,35 @@ nav.primary .row {
   transition: opacity 200ms cubic-bezier(0.2, 0, 0, 1), transform 200ms cubic-bezier(0.2, 0, 0, 1), filter 200ms cubic-bezier(0.2, 0, 0, 1);
 }
 .hero-video-toggle .icon-play { transform: translateX(1px); }
+/* Icon-button tooltip (components/ui/icon-tooltip.tsx). Lives inside a
+   positioned trigger; end-aligned so it never spills past the right edge. */
+.icon-tooltip {
+  position: absolute; right: 0; z-index: 60;
+  padding: 4px 8px;
+  border-radius: var(--r-md);
+  background: var(--foreground);
+  color: var(--background);
+  font-size: 12px; font-weight: 500; line-height: 1.4;
+  white-space: nowrap;
+  pointer-events: none;
+  visibility: hidden; opacity: 0;
+  transition: opacity 120ms ease, visibility 0s linear 120ms;
+}
+.icon-tooltip[data-side="top"] { bottom: calc(100% + 6px); }
+.icon-tooltip[data-side="bottom"] { top: calc(100% + 6px); }
+[data-ui-tooltip]:focus-visible:not([data-tip-dismissed]) > .icon-tooltip {
+  visibility: visible; opacity: 1;
+  transition: opacity 120ms ease, visibility 0s;
+}
+@media (hover: hover) {
+  [data-ui-tooltip]:hover:not([data-tip-dismissed]) > .icon-tooltip {
+    visibility: visible; opacity: 1;
+    transition: opacity 120ms ease 300ms, visibility 0s linear 300ms;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .icon-tooltip { transition: none !important; }
+}
 .hero-video-toggle[data-playing="true"] .icon-play,
 .hero-video-toggle[data-playing="false"] .icon-pause {
   opacity: 0; transform: scale(0.25); filter: blur(4px);
