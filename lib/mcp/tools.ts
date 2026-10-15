@@ -390,16 +390,25 @@ export async function whatsChangedTool(
   if (watchError) throw watchError;
   if (!watched?.length) return { days, changed: [], unchanged: 0, stale: [], note: "The watchlist is empty." };
 
+  // Older watchlist rows can hold a raw URL ("https://acme.com"); scores are keyed by canonical domain.
+  const accounts = watched.map((w) => {
+    try {
+      return { domain: canonicalizeDomain(w.domain), company_name: w.company_name };
+    } catch {
+      return w;
+    }
+  });
+
   const { data: points, error } = await supabase
     .from("scores")
     .select("domain, score, score_band, created_at")
     .eq("user_id", user.userId)
     .eq("scoring_version", getActiveScoringVersion())
-    .in("domain", watched.map((w) => w.domain))
+    .in("domain", accounts.map((a) => a.domain))
     .gte("created_at", new Date(now - 90 * DAY_MS).toISOString());
   if (error) throw error;
 
-  const result = computeChanges(watched, (points ?? []) as ScorePoint[], since, input.min_delta ?? 0);
+  const result = computeChanges(accounts, (points ?? []) as ScorePoint[], since, input.min_delta ?? 0);
   return {
     days,
     ...result,
