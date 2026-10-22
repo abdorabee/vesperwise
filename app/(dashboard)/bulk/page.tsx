@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Download } from "lucide-react";
 
 import {
@@ -25,6 +26,7 @@ import {
 } from "@/lib/csv";
 
 export default function BulkScorerPage() {
+  const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [summary, setSummary] = useState<BulkCsvSummary | null>(null);
   const [loading, setLoading] = useState(false);
@@ -105,6 +107,8 @@ export default function BulkScorerPage() {
       setAnnouncement(`Batch failed. ${message}`);
     } finally {
       setLoading(false);
+      // Re-render the dashboard layout so the status bar shows the credits this batch used.
+      router.refresh();
     }
   }
 
