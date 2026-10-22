@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   BulkProcessingPanel,
   BulkResultsPanel,
+  BulkResultsPreview,
   BulkUploadPanel,
   type BulkResponse,
 } from "./bulk-workspace";
@@ -15,6 +16,7 @@ describe("BulkUploadPanel", () => {
     const html = renderToStaticMarkup(
       <BulkUploadPanel
         file={null}
+        summary={null}
         loading={false}
         dragActive={false}
         error={null}
@@ -31,8 +33,8 @@ describe("BulkUploadPanel", () => {
 
     expect(html).toContain('aria-label="CSV file"');
     expect(html).toContain('aria-label="Choose a CSV file"');
-    expect(html).toContain('aria-labelledby="bulk-format-heading"');
-    expect(html).toContain('<h3 id="bulk-format-heading">CSV requirements</h3>');
+    expect(html).toContain('id="bulk-file-requirements"');
+    expect(html).toContain("stripe.com");
     expect(html).toContain("domain");
     expect(html).toContain("company");
     expect(html).toContain("50 companies");
@@ -42,6 +44,12 @@ describe("BulkUploadPanel", () => {
     const html = renderToStaticMarkup(
       <BulkUploadPanel
         file={{ name: "target-accounts.csv", size: 1_536 }}
+        summary={{
+          rowCount: 7,
+          column: "domain",
+          sample: ["a.com", "b.com", "c.com", "d.com", "e.com"],
+          error: null,
+        }}
         loading={false}
         dragActive={false}
         error={null}
@@ -58,8 +66,48 @@ describe("BulkUploadPanel", () => {
 
     expect(html).toContain("target-accounts.csv");
     expect(html).toContain("1.5 KB");
-    expect(html).toContain("Ready to score");
+    expect(html).toContain("7 companies");
+    expect(html).toContain("+2 more");
+    expect(html).toContain("Score 7 companies");
     expect(html).not.toContain('disabled=""');
+  });
+
+  it("blocks submission when the CSV fails preflight", () => {
+    const html = renderToStaticMarkup(
+      <BulkUploadPanel
+        file={{ name: "too-many.csv", size: 4_096 }}
+        summary={{
+          rowCount: 51,
+          column: "domain",
+          sample: ["a.com"],
+          error: "This CSV has 51 rows. The limit is 50 per batch.",
+        }}
+        loading={false}
+        dragActive={false}
+        error="This CSV has 51 rows. The limit is 50 per batch."
+        onBrowse={noop}
+        onRemove={noop}
+        onSubmit={noop}
+        onDragEnter={noop}
+        onDragLeave={noop}
+        onDragOver={noop}
+        onDrop={noop}
+        onFileChange={noop}
+      />,
+    );
+
+    expect(html).toContain('role="alert"');
+    expect(html).toContain("Score companies</button>");
+    expect(html).toMatch(/disabled=""[^>]*>.*Score companies/);
+  });
+});
+
+describe("BulkResultsPreview", () => {
+  it("previews the result columns before any batch runs", () => {
+    const html = renderToStaticMarkup(<BulkResultsPreview />);
+
+    expect(html).toContain("Ranked results");
+    expect(html).toContain("AI thesis");
   });
 });
 

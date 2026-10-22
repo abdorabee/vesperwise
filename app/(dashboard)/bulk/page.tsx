@@ -6,13 +6,16 @@ import { Download } from "lucide-react";
 import {
   BulkProcessingPanel,
   BulkResultsPanel,
+  BulkResultsPreview,
   BulkUploadPanel,
   type BulkResponse,
 } from "@/components/bulk/bulk-workspace";
 import {
   bulkTemplateCsv,
   formatCoverage,
+  summarizeBulkCsv,
   validateBulkFile,
+  type BulkCsvSummary,
 } from "@/lib/bulk-workspace";
 import {
   csvFilename,
@@ -23,6 +26,7 @@ import {
 
 export default function BulkScorerPage() {
   const [file, setFile] = useState<File | null>(null);
+  const [summary, setSummary] = useState<BulkCsvSummary | null>(null);
   const [loading, setLoading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [response, setResponse] = useState<BulkResponse | null>(null);
@@ -30,7 +34,7 @@ export default function BulkScorerPage() {
   const [announcement, setAnnouncement] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
-  function selectFile(candidate: File | null) {
+  async function selectFile(candidate: File | null) {
     if (!candidate) return;
 
     const validationError = validateBulkFile(candidate);
@@ -40,14 +44,29 @@ export default function BulkScorerPage() {
       return;
     }
 
+    let nextSummary: BulkCsvSummary;
+    try {
+      nextSummary = summarizeBulkCsv(await candidate.text());
+    } catch {
+      const message = "This file could not be read. Try exporting it again.";
+      setError(message);
+      setAnnouncement(message);
+      return;
+    }
+
     setFile(candidate);
+    setSummary(nextSummary);
     setResponse(null);
-    setError(null);
-    setAnnouncement(`${candidate.name} attached and ready to score.`);
+    setError(nextSummary.error);
+    setAnnouncement(
+      nextSummary.error ??
+        `${candidate.name} attached with ${nextSummary.rowCount} companies.`,
+    );
   }
 
   function clearFile() {
     setFile(null);
+    setSummary(null);
     setResponse(null);
     setError(null);
     setAnnouncement("CSV removed.");
@@ -55,7 +74,7 @@ export default function BulkScorerPage() {
   }
 
   async function handleSubmit() {
-    if (!file || loading) return;
+    if (!file || loading || summary?.error) return;
 
     setLoading(true);
     setError(null);
@@ -180,6 +199,7 @@ export default function BulkScorerPage() {
       <div className="bulk-workspace">
         <BulkUploadPanel
           file={file}
+          summary={summary}
           loading={loading}
           dragActive={dragActive}
           error={error}
@@ -202,15 +222,17 @@ export default function BulkScorerPage() {
           onDrop={(event) => {
             event.preventDefault();
             setDragActive(false);
-            if (!loading) selectFile(event.dataTransfer.files[0] ?? null);
+            if (!loading) void selectFile(event.dataTransfer.files[0] ?? null);
           }}
           onFileChange={(event) => {
-            selectFile(event.currentTarget.files?.[0] ?? null);
+            void selectFile(event.currentTarget.files?.[0] ?? null);
             event.currentTarget.value = "";
           }}
         />
 
         {loading && file ? <BulkProcessingPanel fileName={file.name} /> : null}
+
+        {!loading && !response ? <BulkResultsPreview /> : null}
 
         {response ? (
           <BulkResultsPanel
