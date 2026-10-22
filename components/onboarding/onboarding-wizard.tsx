@@ -12,6 +12,7 @@ import { WorkspaceSetupScreen } from "@/components/onboarding/screens/workspace-
 import { OnboardingFooter, OnboardingShell, PrimaryButton, SecondaryButton } from "@/components/onboarding/onboarding-shell";
 import { scoredAccountsFromEntries, topDriver, type ScoredAccount } from "@/components/onboarding/results-shared";
 import { useScoringRun } from "@/lib/onboarding-run";
+import { summarizeRun } from "@/lib/onboarding-run-summary";
 import {
   buildBusinessProfile,
   createOnboardingState,
@@ -266,16 +267,25 @@ export default function OnboardingWizard({
       />
     );
   } else if (step === 3) {
-    const anyDone = run.entries.some((e) => e.status === "done" || e.status === "error");
+    const summary = summarizeRun(run.entries, run.running);
     content = <ScoringRunScreen entries={run.entries} />;
     footer = (
       <OnboardingFooter
-        caption="Scoring your ICP preview"
+        caption={
+          summary.allFailed
+            ? `None of the ${summary.total} could be scored right now · your answers still save`
+            : "Scoring your ICP preview"
+        }
         back={{ label: "Back", onClick: () => dispatch({ type: "previous_step" }), disabled: run.running }}
-        secondary={<SecondaryButton inert>Email me instead</SecondaryButton>}
+        secondary={summary.allFailed ? undefined : <SecondaryButton inert>Email me instead</SecondaryButton>}
         primary={
-          <PrimaryButton disabled={!anyDone} onClick={() => dispatch({ type: "next_step" })}>
-            See the {run.entries.filter((e) => e.status === "done").length} ready now
+          <PrimaryButton
+            disabled={!summary.canContinue || saveStatus === "saving"}
+            // Nothing scored means there is nothing to review on the results
+            // screen, so save the profile and go straight to the dashboard.
+            onClick={() => (summary.allFailed ? void finishWithWatchlist([]) : dispatch({ type: "next_step" }))}
+          >
+            {saveStatus === "saving" ? "Saving..." : summary.continueLabel}
           </PrimaryButton>
         }
       />
