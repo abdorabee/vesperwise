@@ -39,3 +39,7 @@ The open account lives in the URL as `?account=<domain>` (`useAccountParam`), so
 ## Render-loop rule
 
 Effects and ref callbacks in shell primitives depend only on stable setters and primitive values, never on a context value they update or on inline callbacks (keep those in refs). The DOM tests in `components/dashboard/shell/*.dom.test.tsx` and `components/account-panel/*.dom.test.tsx` mount these components and fail on "Maximum update depth exceeded".
+
+## Motion
+
+What animates in the shell and why: see [motion](motion.md).

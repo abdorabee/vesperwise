@@ -14,6 +14,7 @@ Companion pages for each section of the [project README](../../README.md). The R
 | Route groups | [routes](routes.md) |
 | Key modules | [key-modules](key-modules.md) |
 | Dashboard layout | [dashboard-layout](dashboard-layout.md) |
+| Motion | [motion](motion.md) |
 | Billing | [billing](billing.md) |
 | Autopilot | [autopilot](autopilot.md) |
 | Person scoring | [person-scoring](person-scoring.md) |
