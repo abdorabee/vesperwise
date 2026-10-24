@@ -1,6 +1,7 @@
+import { randomUUID } from "node:crypto";
 import {
-  advanceBulkState,
   bulkJobStatus,
+  bulkScoreIdempotencyKey,
   failBulkState,
   freshBulkState,
   isBulkJobStale,
@@ -11,6 +12,7 @@ import {
   type BulkScoredRow,
 } from "@/lib/bulk-job";
 import { createSupabaseAdmin } from "@/lib/supabase";
+import { postBulkWebhook, webhookUrlError } from "@/lib/webhook-url";
 
 type Admin = ReturnType<typeof createSupabaseAdmin>;
 
@@ -24,25 +26,43 @@ interface StoredJob {
   completed?: number;
 }
 
+const BULK_LEASE_SECONDS = 120;
+
 export async function notifyBulkWebhook(url: string | null, payload: unknown): Promise<void> {
   if (!url) return;
-  let target: URL;
   try {
-    target = new URL(url);
-  } catch {
-    return;
-  }
-  if (target.protocol !== "https:" && target.protocol !== "http:") return;
-  try {
-    await fetch(target, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(5_000),
-    });
+    await postBulkWebhook(url, payload);
   } catch (error) {
     console.error("[bulk] completion webhook failed", error);
   }
+}
+
+export async function assertPublicWebhookUrl(url: string | null | undefined): Promise<string | null> {
+  if (!url) return null;
+  return webhookUrlError(url);
+}
+
+async function claimBulkJob(supabase: Admin, jobId: string, token: string): Promise<StoredJob | null> {
+  const { data, error } = await supabase.rpc("claim_bulk_job", {
+    p_job_id: jobId,
+    p_token: token,
+    p_lease_seconds: BULK_LEASE_SECONDS,
+  });
+  if (error) {
+    console.error("[bulk] claim failed", error);
+    return null;
+  }
+  const row = Array.isArray(data) ? data[0] : data;
+  return row ? row as StoredJob : null;
+}
+
+async function markWebhookSent(supabase: Admin, jobId: string): Promise<boolean> {
+  const { data, error } = await supabase.rpc("mark_bulk_webhook_sent", { p_job_id: jobId });
+  if (error) {
+    console.error("[bulk] webhook claim failed", error);
+    return false;
+  }
+  return data === true;
 }
 
 export async function sweepStaleBulkJobs(supabase: Admin, now = Date.now()): Promise<number> {
@@ -60,22 +80,28 @@ export async function sweepStaleBulkJobs(supabase: Admin, now = Date.now()): Pro
     const state = isBulkState(job.results) ? job.results : null;
     if (!isBulkJobStale(job.created_at, state, now)) continue;
     const next = failBulkState(state ?? freshBulkState([]), "stale", new Date(now));
-    const { error: updateError } = await supabase
+    const { data: saved, error: updateError } = await supabase
       .from("bulk_jobs")
       .update({ status: "failed", completed: next.scored.length, results: next })
-      .eq("id", job.id);
+      .eq("id", job.id)
+      .in("status", ["queued", "processing"])
+      .select("id")
+      .maybeSingle();
     if (updateError) {
       console.error("[bulk] stale job update failed", updateError);
       continue;
     }
+    if (!saved) continue;
     failed += 1;
-    await notifyBulkWebhook(job.webhook_url, {
-      job_id: job.id,
-      status: "failed",
-      stopped: "stale",
-      partial: next.partial,
-      completed: next.scored.length,
-    });
+    if (await markWebhookSent(supabase, job.id)) {
+      await notifyBulkWebhook(job.webhook_url, {
+        job_id: job.id,
+        status: "failed",
+        stopped: "stale",
+        partial: next.partial,
+        completed: next.scored.length,
+      });
+    }
   }
   return failed;
 }
@@ -83,37 +109,54 @@ export async function sweepStaleBulkJobs(supabase: Admin, now = Date.now()): Pro
 export async function advanceStoredBulkJob(
   supabase: Admin,
   job: StoredJob,
-  score: (company: BulkCompanyInput, index: number) => Promise<BulkScoredRow>,
+  score: (company: BulkCompanyInput, index: number, idempotencyKey: string) => Promise<BulkScoredRow>,
   budgetMs?: number,
-): Promise<{ status: "processing" | "completed" | "failed"; state: BulkJobState }> {
+): Promise<{ status: "processing" | "completed" | "failed"; state: BulkJobState; claimed: boolean }> {
+  const token = randomUUID();
+  const claimed = await claimBulkJob(supabase, job.id, token);
   const initial = isBulkState(job.results) ? job.results : freshBulkState([]);
+  if (!claimed) {
+    return { status: bulkJobStatus(initial), state: initial, claimed: false };
+  }
+
+  const claimedState = isBulkState(claimed.results) ? claimed.results : initial;
   let next: BulkJobState;
   try {
-    next = await runBulkWindow(initial, score, budgetMs);
+    next = await runBulkWindow(
+      claimedState,
+      (company, index) => score(company, index, bulkScoreIdempotencyKey(job.id, index)),
+      budgetMs,
+    );
   } catch (error) {
     console.error("[bulk] job failed", job.id, error);
-    next = failBulkState(initial, "error");
+    next = failBulkState(claimedState, "error");
   }
 
   const status = bulkJobStatus(next);
-  const { error: updateError } = await supabase
+  const { data: saved, error: updateError } = await supabase
     .from("bulk_jobs")
     .update({ status, completed: next.scored.length, results: next })
-    .eq("id", job.id);
+    .eq("id", job.id)
+    .eq("lease_token", token)
+    .select("id")
+    .maybeSingle();
   if (updateError) console.error("[bulk] job update failed", updateError);
 
-  if (status !== "processing" && job.status !== status) {
-    await notifyBulkWebhook(job.webhook_url, {
-      job_id: job.id,
-      status,
-      completed: next.scored.length,
-      total: next.companies.length,
-      credits_charged: next.credits_charged,
-      stopped: next.stopped,
-      partial: next.partial,
-    });
+  if (saved && status !== "processing") {
+    const shouldSend = await markWebhookSent(supabase, job.id);
+    if (shouldSend) {
+      await notifyBulkWebhook(job.webhook_url, {
+        job_id: job.id,
+        status,
+        completed: next.scored.length,
+        total: next.companies.length,
+        credits_charged: next.credits_charged,
+        stopped: next.stopped,
+        partial: next.partial,
+      });
+    }
   }
-  return { status, state: next };
+  return { status, state: next, claimed: true };
 }
 
-export { advanceBulkState, bulkJobStatus, freshBulkState, isBulkState };
+export { bulkJobStatus, freshBulkState, isBulkState };

@@ -116,6 +116,10 @@ export function failBulkState(state: BulkJobState, reason: "error" | "stale", no
   };
 }
 
+export function bulkScoreIdempotencyKey(jobId: string, index: number): string {
+  return `bulk:${jobId}:${index}`;
+}
+
 export function isCreditStop(error: unknown): boolean {
   return error instanceof InsufficientCreditsError
     || (error instanceof Error && error.name === "InsufficientCreditsError");

@@ -76,8 +76,11 @@ async function syncSubscription(
   }
   if (!stored) return null;
 
-  const mappedPlan = productToPlan()[sub.product_id];
-  if (!mappedPlan) return unmappedProductResponse(sub.product_id, type);
+  const mappedPlan = productToPlan()[sub.product_id] ?? null;
+  // Cancel and revoke do not grant a plan. Apply them even when the product
+  // id is archived or not in the current env map.
+  const lifecycleOnly = type === "subscription.revoked" || type === "subscription.canceled";
+  if (!lifecycleOnly && !mappedPlan) return unmappedProductResponse(sub.product_id, type);
   const patch = computeBillingPatch(type, sub, mappedPlan, stored);
   if (Object.keys(patch).length === 0) return null;
 
@@ -150,12 +153,19 @@ async function routeEvent(admin: SupabaseAdmin, event: PolarEvent): Promise<Next
     case "order.paid": {
       const meta = getMeta(event.data.metadata);
       const productId = "product_id" in event.data ? String(event.data.product_id ?? "") : "";
-      const credits = topupCreditsByProduct()[productId];
-      if (!credits) {
-        const ignored = unmappedProductResponse(productId, "order.paid");
-        if (ignored) return ignored;
+      if (productId && isArchivedPolarProduct(productId)) {
+        console.warn(`[billing/webhook] ignoring archived product ${productId} on order.paid`);
         break;
       }
+      const planProduct = productToPlan()[productId];
+      if (planProduct) {
+        // Subscription checkout and renewals also emit order.paid. The plan
+        // change is applied by subscription.*; acknowledging avoids a retry loop.
+        console.info(`[billing/webhook] order.paid for ${planProduct} (${productId}) left to subscription events`);
+        break;
+      }
+      const credits = topupCreditsByProduct()[productId];
+      if (!credits) return unmappedProductResponse(productId, "order.paid")!;
 
       const userId = meta.user_id;
       if (!userId) break;

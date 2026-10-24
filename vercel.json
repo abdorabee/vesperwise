@@ -19,7 +19,7 @@
     },
     {
       "path": "/api/cron/sweep-bulk-jobs",
-      "schedule": "*/15 * * * *"
+      "schedule": "0 4 * * *"
     }
   ]
 }

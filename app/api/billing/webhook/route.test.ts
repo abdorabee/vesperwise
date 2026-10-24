@@ -132,6 +132,55 @@ describe("POST /api/billing/webhook", () => {
     await expect(res.json()).resolves.toMatchObject({ product_id: "prod_new_unmapped" });
   });
 
+  it("acknowledges order.paid for a plan product without granting top-up credits", async () => {
+    validateEvent.mockResolvedValue({
+      type: "order.paid",
+      data: {
+        customer_id: "cus_1",
+        product_id: "prod_growth",
+        metadata: { user_id: "user_1", plan: "growth" },
+      },
+    });
+
+    const res = await POST(webhookRequest());
+
+    expect(res.status).toBe(200);
+    expect(rpc).not.toHaveBeenCalled();
+    expect(userUpdate).not.toHaveBeenCalled();
+  });
+
+  it("ignores order.paid for an archived product", async () => {
+    validateEvent.mockResolvedValue({
+      type: "order.paid",
+      data: {
+        customer_id: "cus_1",
+        product_id: "490f7958-4635-4780-9b71-5075d4e24738",
+        metadata: { type: "topup", user_id: "user_1", credits: "100" },
+      },
+    });
+
+    const res = await POST(webhookRequest());
+
+    expect(res.status).toBe(200);
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it("still downgrades when an unmapped product is revoked", async () => {
+    validateEvent.mockResolvedValue(subscriptionEvent("subscription.revoked", {
+      product_id: "prod_unknown",
+      status: "canceled",
+    }));
+
+    const res = await POST(webhookRequest());
+
+    expect(res.status).toBe(200);
+    expect(userUpdate).toHaveBeenCalledWith(
+      "users",
+      expect.objectContaining({ plan: "free" }),
+      "user_1",
+    );
+  });
+
   it("fails an unmapped top-up so the purchase is not dropped", async () => {
     validateEvent.mockResolvedValue({
       type: "order.paid",
