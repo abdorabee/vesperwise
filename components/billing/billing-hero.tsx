@@ -241,7 +241,9 @@ export function BillingHero({ stats }: BillingHeroProps) {
         </div>
 
         <div className="ni-pm">
-          {stats.profile.polar_customer_id ? (
+          {granted ? (
+            <span>Granted plan · no payment required</span>
+          ) : stats.profile.polar_customer_id ? (
             <>
               <span>Payments handled by <span className="b">Polar</span></span>
               <a href="/api/billing/portal" style={{ marginLeft: "auto" }} className="b underline underline-offset-4">

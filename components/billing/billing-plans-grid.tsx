@@ -20,7 +20,7 @@ export function BillingPlansGrid({ currentPlan, granted = false }: BillingPlansG
       <div className="section-head" id="plans">
         <div>
           <div className="h">Plans</div>
-          <div className="s">Switch any time — unused credits don&apos;t roll over.</div>
+          <div className="s">{granted ? "Your granted plan" : "Switch any time — unused credits don't roll over."}</div>
         </div>
       </div>
 
