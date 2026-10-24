@@ -108,12 +108,21 @@ export default function PricingView({ signedIn, currentPlan, granted }: PricingV
           {MARKETING_PLANS.map((plan) => {
             const isCurrent = signedIn && plan.key === currentPlan;
             const isGranted = isCurrent && granted;
+            const currentPlanKey = currentPlan as "free" | "starter" | "plus" | "growth" | "pro" | "agency" | null;
+            const planOrder = ["free", "starter", "plus", "growth", "pro"];
+            const currentIdx = currentPlanKey ? planOrder.indexOf(currentPlanKey) : -1;
+            const planIdx = planOrder.indexOf(plan.key);
+            const isLowerTier = currentIdx >= 0 && planIdx >= 0 && planIdx <= currentIdx;
+            
             let ctaHref = "/signup";
             let ctaText = plan.cta;
 
             if (signedIn) {
               if (isCurrent) {
                 ctaText = isGranted ? "Current (Granted)" : "Current plan";
+                ctaHref = "/billing";
+              } else if (isLowerTier) {
+                ctaText = "Included";
                 ctaHref = "/billing";
               } else {
                 ctaText = "Upgrade";
@@ -150,7 +159,14 @@ export default function PricingView({ signedIn, currentPlan, granted }: PricingV
             );
           })}
           <div className="pp-card">
-            <div className="pp-name">Agency</div>
+            <div className="pp-name">
+              Agency
+              {signedIn && currentPlan === "agency" ? (
+                <span className="pp-pill" style={{ background: granted ? "var(--warm)" : "var(--brand)" }}>
+                  {granted ? "Current (Granted)" : "Current"}
+                </span>
+              ) : null}
+            </div>
             <div className="pp-blurb">For a workspace that needs a granted plan.</div>
             <div className="pp-amt">
               <span className="num" style={{ fontSize: 28 }}>Contact us</span>
@@ -162,7 +178,11 @@ export default function PricingView({ signedIn, currentPlan, granted }: PricingV
                 Granted workspaces keep their current access
               </li>
             </ul>
-            <Link href="/contact#contact-form" className="pp-btn">Contact us</Link>
+            {signedIn && currentPlan === "agency" ? (
+              <Link href="/billing" className="pp-btn">{granted ? "Current (Granted)" : "Current plan"}</Link>
+            ) : (
+              <Link href="/contact#contact-form" className="pp-btn">Contact us</Link>
+            )}
           </div>
         </div>
 
