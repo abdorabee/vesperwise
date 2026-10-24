@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { retryUnsentBulkWebhooks, sweepStaleBulkJobs } from "@/lib/bulk-job-runner";
 import { createSupabaseAdmin } from "@/lib/supabase";
 
+export const maxDuration = 60;
+
 function isAuthorized(req: NextRequest, secret: string): boolean {
   const expected = Buffer.from(`Bearer ${secret}`);
   const actual = Buffer.from(req.headers.get("authorization") ?? "");

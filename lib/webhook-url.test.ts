@@ -1,6 +1,6 @@
 import https from "node:https";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { isInternalAddress, postBulkWebhook, webhookUrlError, type DnsLookup } from "./webhook-url";
+import { isInternalAddress, postBulkWebhook, WebhookDeliveryError, webhookUrlError, type DnsLookup } from "./webhook-url";
 
 const publicLookup: DnsLookup = async () => ["1.1.1.1"];
 
@@ -120,10 +120,59 @@ describe("webhook URL guard", () => {
     await expect(postBulkWebhook("https://example.com/hook", { ok: true }, async () => ["0:0:0:0:0:ffff:169.254.169.254"])).rejects.toThrow(/not public/);
     expect(requests).toHaveLength(0);
 
-    await postBulkWebhook("https://example.com/hook", { ok: true }, publicLookup);
+    await expect(postBulkWebhook("https://example.com/hook", { ok: true }, publicLookup)).rejects.toThrow(/302/);
     expect(requests).toHaveLength(1);
     expect(requests[0]?.host).toBe("1.1.1.1");
     expect(headerHost(requests[0]?.headers)).not.toMatch(/127\.0\.0\.1/);
+  });
+
+  it.each([
+    [200, "delivered"],
+    [500, "retry"],
+    [503, "retry"],
+    [429, "retry"],
+    [404, "permanent"],
+    [301, "permanent"],
+  ] as const)("treats HTTP %s as %s", async (status, kind) => {
+    const requests: https.RequestOptions[] = [];
+    vi.spyOn(https, "request").mockImplementation(((...args: unknown[]) => {
+      const options = args[0] as https.RequestOptions;
+      const callback = args[1] as (res: {
+        statusCode?: number;
+        resume: () => void;
+        destroy: () => void;
+        on: (event: string, fn: () => void) => unknown;
+      }) => void;
+      requests.push(options);
+      const res = {
+        statusCode: status,
+        resume() {},
+        destroy() {},
+        on(event: string, fn: () => void) {
+          if (event === "end") queueMicrotask(fn);
+          return res;
+        },
+      };
+      queueMicrotask(() => callback(res));
+      return {
+        end() {},
+        destroy() { return this; },
+        on() { return this; },
+        setTimeout() { return this; },
+      };
+    }) as unknown as typeof https.request);
+
+    const send = postBulkWebhook("https://example.com/hook", { ok: true }, async () => ["1.1.1.1", "8.8.8.8"]);
+    if (kind === "delivered") {
+      await send;
+    } else {
+      const error = await send.then(() => null, (caught: unknown) => caught);
+      expect(error).toBeInstanceOf(WebhookDeliveryError);
+      expect((error as WebhookDeliveryError).permanent).toBe(kind === "permanent");
+      expect((error as WebhookDeliveryError).message).toContain(String(status));
+    }
+    expect(requests).toHaveLength(1);
+    expect(requests[0]?.host).toBe("1.1.1.1");
   });
 
   function fastTiming(overrides: { deadlineMs?: number; connectTimeoutMs?: number } = {}) {

@@ -2,7 +2,7 @@ import { lookup } from "node:dns/promises";
 import https from "node:https";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { freshBulkState, type BulkCompanyInput, type BulkScoredRow } from "@/lib/bulk-job";
-import { advanceStoredBulkJob, retryStoredBulkWebhook, WEBHOOK_ATTEMPT_CAP } from "@/lib/bulk-job-runner";
+import { advanceStoredBulkJob, retryStoredBulkWebhook, retryUnsentBulkWebhooks, WEBHOOK_ATTEMPT_CAP } from "@/lib/bulk-job-runner";
 
 vi.mock("node:dns/promises", () => ({
   lookup: vi.fn(async () => [{ address: "1.1.1.1", family: 4 }]),
@@ -344,6 +344,94 @@ describe("bulk job lease", () => {
     expect(httpsMock).toHaveBeenCalledTimes(1);
     expect(admin.job.webhook_attempts).toBe(1);
     expect(admin.job.webhook_sent_at).toBeTruthy();
+  });
+
+  function statusHttps(status: number) {
+    return vi.spyOn(https, "request").mockImplementation(((...args: unknown[]) => {
+      const callback = args[1] as (res: {
+        statusCode?: number;
+        resume: () => void;
+        destroy: () => void;
+        on: (event: string, fn: () => void) => unknown;
+      }) => void;
+      const res = {
+        statusCode: status,
+        resume() {},
+        destroy() {},
+        on(event: string, fn: () => void) {
+          if (event === "end") queueMicrotask(fn);
+          return res;
+        },
+      };
+      queueMicrotask(() => callback(res));
+      return {
+        end() {},
+        destroy() { return this; },
+        on() { return this; },
+        setTimeout() { return this; },
+      };
+    }) as unknown as typeof https.request);
+  }
+
+  it.each([500, 503, 429])("leaves the webhook unsent when the endpoint returns %s", async (status) => {
+    const admin = leaseAdmin(`job-${status}`, [{ domain: "acme.com" }]);
+    statusHttps(status);
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const result = await advanceStoredBulkJob(admin as never, admin.job, async () => scored("acme.com"), 5_000);
+
+    expect(result.status).toBe("completed");
+    expect(admin.job.webhook_sent_at).toBeNull();
+    expect(admin.job.webhook_attempts).toBe(1);
+    expect(error.mock.calls.some((call) => String(call[0]).includes("left unsent"))).toBe(true);
+    error.mockRestore();
+  });
+
+  it.each([404, 301])("gives up when the endpoint returns %s", async (status) => {
+    const admin = leaseAdmin(`job-${status}`, [{ domain: "acme.com" }]);
+    statusHttps(status);
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const result = await advanceStoredBulkJob(admin as never, admin.job, async () => scored("acme.com"), 5_000);
+
+    expect(result.status).toBe("completed");
+    expect(admin.job.webhook_sent_at).toBeTruthy();
+    expect(admin.job.webhook_attempts).toBe(1);
+    expect(error.mock.calls.some((call) => String(call[0]).includes("give-up"))).toBe(true);
+    error.mockRestore();
+  });
+
+  it("retries the oldest unsent webhooks first", async () => {
+    const order: string[] = [];
+    const rows = [
+      { id: "newer", status: "completed", created_at: "2026-02-01T00:00:00.000Z", webhook_url: "https://example.com/new", results: null },
+      { id: "older", status: "completed", created_at: "2026-01-01T00:00:00.000Z", webhook_url: "https://example.com/old", results: null },
+    ];
+    const chain = {
+      select() { return chain; },
+      in() { return chain; },
+      is() { return chain; },
+      not() { return chain; },
+      order(column: string, options: { ascending: boolean }) {
+        order.push(`${column}:${options.ascending}`);
+        rows.sort((left, right) => left.created_at.localeCompare(right.created_at));
+        return chain;
+      },
+      limit: async () => ({ data: rows, error: null }),
+    };
+    const seen: string[] = [];
+    const supabase = {
+      from: () => chain,
+      rpc: async (_name: string, args: { p_job_id?: string }) => {
+        if (args.p_job_id) seen.push(args.p_job_id);
+        return { data: null, error: null };
+      },
+    };
+
+    await retryUnsentBulkWebhooks(supabase as never, 20);
+
+    expect(order).toEqual(["created_at:true"]);
+    expect(seen[0]).toBe("older");
   });
 
   it("gives up immediately when the webhook host is not public", async () => {

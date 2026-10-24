@@ -8,11 +8,14 @@ export const WEBHOOK_CONNECT_TIMEOUT_MS = 2_000;
 
 export class WebhookDeliveryError extends Error {
   readonly permanent: boolean;
+  /** True once the server returned an HTTP status. Do not try another address. */
+  readonly responded: boolean;
 
-  constructor(message: string, permanent: boolean) {
+  constructor(message: string, permanent: boolean, responded = false) {
     super(message);
     this.name = "WebhookDeliveryError";
     this.permanent = permanent;
+    this.responded = responded;
   }
 }
 
@@ -185,6 +188,13 @@ function deadlineError(): WebhookDeliveryError {
   return new WebhookDeliveryError("webhook deadline exceeded", false);
 }
 
+/** 2xx is delivered. 5xx, 408, and 429 can be retried. Other 3xx and 4xx are permanent. */
+function httpStatusError(status: number): WebhookDeliveryError | null {
+  if (status >= 200 && status < 300) return null;
+  const retryable = status >= 500 || status === 408 || status === 429;
+  return new WebhookDeliveryError(`webhook responded ${status}`, !retryable, true);
+}
+
 function lookupWithinDeadline(resolve: DnsLookup, hostname: string, signal: AbortSignal): Promise<string[]> {
   return new Promise((resolveAddresses, rejectAddresses) => {
     let settled = false;
@@ -270,10 +280,15 @@ function pinnedPost(
     }, (res) => {
       clearTimeout(connectTimer);
       const status = res.statusCode ?? 0;
+      const failure = httpStatusError(status);
+      const settle = () => {
+        if (failure) fail(failure);
+        else succeed();
+      };
+      // A redirect is a completed response. Do not follow it.
       if (status >= 300 && status < 400) {
-        succeed();
+        settle();
         res.destroy();
-        req.destroy();
         return;
       }
       let received = 0;
@@ -281,13 +296,13 @@ function pinnedPost(
         if (settled) return;
         received += typeof chunk === "string" ? Buffer.byteLength(chunk) : chunk.length;
         if (received > MAX_WEBHOOK_BODY_BYTES) {
-          succeed();
+          settle();
           res.destroy();
           req.destroy();
         }
       });
-      res.on("end", () => succeed());
-      res.on("error", () => succeed());
+      res.on("end", () => settle());
+      res.on("error", () => settle());
     });
 
     if (signal.aborted) {
@@ -340,7 +355,7 @@ export async function postBulkWebhook(
         return;
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
-        if (controller.signal.aborted) break;
+        if (controller.signal.aborted || (error instanceof WebhookDeliveryError && error.responded)) break;
       }
     }
     throw lastError ?? deadlineError();

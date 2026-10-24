@@ -14,4 +14,9 @@ describe("vercel crons", () => {
     }
     expect(vercel.crons.map((cron) => cron.path)).toContain("/api/cron/sweep-bulk-jobs");
   });
+
+  it("lets the bulk sweep run long enough to retry webhooks", () => {
+    const source = readFileSync(join(process.cwd(), "app/api/cron/sweep-bulk-jobs/route.ts"), "utf8");
+    expect(source).toContain("export const maxDuration = 60");
+  });
 });

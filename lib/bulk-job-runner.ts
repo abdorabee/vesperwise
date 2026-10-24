@@ -102,10 +102,10 @@ async function giveUpExhaustedWebhook(supabase: Admin, jobId: string): Promise<b
 }
 
 /**
- * Send the completion callback once. Transport failures leave webhook_sent_at
- * unset so the next poll or sweep can retry, up to WEBHOOK_ATTEMPT_CAP.
- * The flag is set only after a successful POST, a permanent URL rejection,
- * or a logged give-up at the cap. Callers must persist the job first.
+ * Send the completion callback. 2xx sets webhook_sent_at. 5xx, 408, and 429
+ * leave it unset so the next poll or sweep can retry, up to WEBHOOK_ATTEMPT_CAP.
+ * Other HTTP statuses and a rejected URL are logged and given up immediately.
+ * Callers must persist the job first.
  */
 export async function retryStoredBulkWebhook(
   supabase: Admin,
@@ -158,6 +158,7 @@ export async function retryUnsentBulkWebhooks(
     .in("status", ["completed", "failed"])
     .is("webhook_sent_at", null)
     .not("webhook_url", "is", null)
+    .order("created_at", { ascending: true })
     .limit(limit);
   if (error) {
     console.error("[bulk] webhook retry scan failed", error);
