@@ -4,6 +4,9 @@ import type { DbUser } from "@/lib/types";
 /** Warn once this share of the plan allowance has been used. */
 export const LOW_CREDIT_USED_PCT = 80;
 
+/** Absolute threshold below which low credit warning always appears, regardless of plan. */
+export const LOW_CREDIT_ABSOLUTE_THRESHOLD = 20;
+
 /** @deprecated Remaining-balance form of the same threshold. Prefer LOW_CREDIT_USED_PCT. */
 export const LOW_CREDIT_PCT = 100 - LOW_CREDIT_USED_PCT;
 
@@ -42,9 +45,11 @@ export function getCreditStatus({
   const pct = creditPercent(creditsRemaining, creditCap);
   const usedPct = allowanceUsedPercent(creditsRemaining, creditCap);
 
+  const isLow = creditsRemaining < LOW_CREDIT_ABSOLUTE_THRESHOLD || usedPct >= LOW_CREDIT_USED_PCT;
+
   return {
     pct,
-    isLow: usedPct >= LOW_CREDIT_USED_PCT,
+    isLow,
     cta: lowCreditCta(plan),
     planLabel: plan.charAt(0).toUpperCase() + plan.slice(1),
     summary: `${creditsRemaining.toLocaleString()} of ${creditCap.toLocaleString()} credits remaining`,

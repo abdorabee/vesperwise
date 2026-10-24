@@ -35,7 +35,13 @@ const FAQ: { q: string; a: string }[] = [
   },
 ];
 
-export default function PricingView() {
+interface PricingViewProps {
+  signedIn: boolean;
+  currentPlan: string | null;
+  granted: boolean;
+}
+
+export default function PricingView({ signedIn, currentPlan, granted }: PricingViewProps) {
   return (
     <div className="pricing-page">
       <style>{`
@@ -99,32 +105,50 @@ export default function PricingView() {
 
       <div className="pp-wrap">
         <div className="pp-grid">
-          {MARKETING_PLANS.map((plan) => (
-            <div key={plan.key} className={`pp-card${plan.featured ? " featured" : ""}`}>
-              <div className="pp-name">
-                {plan.label}
-                {plan.featured ? <span className="pp-pill">Most popular</span> : null}
+          {MARKETING_PLANS.map((plan) => {
+            const isCurrent = signedIn && plan.key === currentPlan;
+            const isGranted = isCurrent && granted;
+            let ctaHref = "/signup";
+            let ctaText = plan.cta;
+
+            if (signedIn) {
+              if (isCurrent) {
+                ctaText = isGranted ? "Current (Granted)" : "Current plan";
+                ctaHref = "/billing";
+              } else {
+                ctaText = "Upgrade";
+                ctaHref = "/billing";
+              }
+            }
+
+            return (
+              <div key={plan.key} className={`pp-card${plan.featured ? " featured" : ""}`}>
+                <div className="pp-name">
+                  {plan.label}
+                  {plan.featured ? <span className="pp-pill">Most popular</span> : null}
+                  {isGranted ? <span className="pp-pill" style={{ background: "var(--warm)" }}>Granted</span> : null}
+                </div>
+                <div className="pp-blurb">{plan.blurb}</div>
+                <div className="pp-amt">
+                  <span className="num">${formatCount(plan.price)}</span>
+                  <span className="per"> / mo</span>
+                </div>
+                <div className="pp-unit">{plan.perScore ?? "No card required"}</div>
+                <ul className="pp-feats">
+                  {[planCreditsFeature(plan.key), ...plan.features].map((feat) => (
+                    <li key={feat}>
+                      <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M3 7l3 3 5-7" /></svg>
+                      {feat}
+                    </li>
+                  ))}
+                </ul>
+                <Link href={ctaHref} className={`pp-btn${plan.featured && !isCurrent ? " primary" : ""}`}>
+                  {ctaText}
+                </Link>
+                {plan.price > 0 && !isCurrent ? <p className="pp-renewal">{renewalDisclosure(plan.price)}</p> : null}
               </div>
-              <div className="pp-blurb">{plan.blurb}</div>
-              <div className="pp-amt">
-                <span className="num">${formatCount(plan.price)}</span>
-                <span className="per"> / mo</span>
-              </div>
-              <div className="pp-unit">{plan.perScore ?? "No card required"}</div>
-              <ul className="pp-feats">
-                {[planCreditsFeature(plan.key), ...plan.features].map((feat) => (
-                  <li key={feat}>
-                    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M3 7l3 3 5-7" /></svg>
-                    {feat}
-                  </li>
-                ))}
-              </ul>
-              <Link href="/signup" className={`pp-btn${plan.featured ? " primary" : ""}`}>
-                {plan.cta}
-              </Link>
-              {plan.price > 0 ? <p className="pp-renewal">{renewalDisclosure(plan.price)}</p> : null}
-            </div>
-          ))}
+            );
+          })}
           <div className="pp-card">
             <div className="pp-name">Agency</div>
             <div className="pp-blurb">For a workspace that needs a granted plan.</div>
@@ -179,7 +203,9 @@ export default function PricingView() {
         <h2>Score your first 20 accounts free.</h2>
         <p>No card required. Upgrade when the scores start booking meetings.</p>
         <div className="row">
-          <Link href="/signup" className="pp-btn primary">Start scoring free</Link>
+          <Link href={signedIn ? "/dashboard" : "/signup"} className="pp-btn primary">
+            {signedIn ? "Go to dashboard" : "Start scoring free"}
+          </Link>
           <Link href="/contact#contact-form" className="pp-btn">Contact us</Link>
         </div>
       </section>

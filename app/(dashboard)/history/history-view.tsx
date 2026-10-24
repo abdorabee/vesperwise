@@ -432,7 +432,7 @@ export function HistoryView({ stats }: HistoryViewProps) {
                 {count}
                 {stats.monthlyCount > 0 && (
                   <span style={{ color: "var(--text-tertiary)", fontWeight: 400, marginLeft: 6, fontSize: 11 }}>
-                    {Math.round(count / stats.monthlyCount * 100 * 10) / 10}%
+                    {(count / stats.monthlyCount * 100).toFixed(1)}%
                   </span>
                 )}
               </span>

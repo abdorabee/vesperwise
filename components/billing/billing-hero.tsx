@@ -52,7 +52,7 @@ export function BillingHero({ stats }: BillingHeroProps) {
         })
       : null;
 
-  const eyebrowWarn = stats.depletesBeforeRenewal;
+  const eyebrowWarn = !granted && stats.depletesBeforeRenewal;
 
   return (
     <div className="bill-hero">
@@ -138,7 +138,7 @@ export function BillingHero({ stats }: BillingHeroProps) {
 
         <div className="cb-cap">
           <span className="b">{stats.usedCredits.toLocaleString()} used</span>
-          {daysLeft != null && (
+          {!granted && daysLeft != null && (
             <>
               {" "}
               · resets in <span className="b">{daysLeft} days</span>
@@ -188,7 +188,7 @@ export function BillingHero({ stats }: BillingHeroProps) {
           </div>
           <div className="div" />
           <div className="stat">
-            <div className={`v${eyebrowWarn ? " warn" : ""}`}>{depleteDate ?? "—"}</div>
+            <div className={`v${eyebrowWarn ? " warn" : ""}`}>{!granted && depleteDate ? depleteDate : "—"}</div>
             <div className="l">Likely to deplete</div>
           </div>
           <div className="div" />
