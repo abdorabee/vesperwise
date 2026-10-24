@@ -32,9 +32,14 @@ describe("public pages only sell what the app ships", () => {
     expect(landing.src).not.toMatch(pattern);
   });
 
-  it("plan features list no Autopilot workflows or Slack alerts", () => {
+  it("plan features list no Autopilot workflow counts or Slack alerts", () => {
     for (const plan of PLAN_ORDER) {
-      expect(planFeatures(plan).join(" | "), plan).not.toMatch(/Autopilot|Slack|webhook/i);
+      const features = planFeatures(plan);
+      const text = features.join(" | ");
+      expect(text, plan).not.toMatch(/\bSlack\b|webhook|\d+ Autopilot/i);
+      for (const feature of features) {
+        if (/^Autopilot/i.test(feature)) expect(feature).toBe("Autopilot coming soon");
+      }
     }
   });
 });

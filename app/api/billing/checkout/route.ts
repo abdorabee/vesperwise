@@ -1,25 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { getPolar } from "@/lib/polar";
+import {
+  CHECKOUT_PLAN_ORDER,
+  CHECKOUT_PRODUCT_ENV,
+  type CheckoutPlan,
+} from "@/lib/plan-features";
 
-const PLAN_PRODUCT_IDS: Record<string, string> = {
-  starter: process.env.POLAR_PRODUCT_STARTER ?? "",
-  growth:  process.env.POLAR_PRODUCT_GROWTH  ?? "",
-  pro:     process.env.POLAR_PRODUCT_PRO     ?? "",
-  agency:  process.env.POLAR_PRODUCT_AGENCY  ?? "",
-};
+function checkoutProductId(plan: string): string | null {
+  if (!CHECKOUT_PLAN_ORDER.includes(plan as CheckoutPlan)) return null;
+  const envKey = CHECKOUT_PRODUCT_ENV[plan as CheckoutPlan];
+  return process.env[envKey]?.trim() || "";
+}
 
 export async function POST(req: NextRequest) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const formData = await req.formData();
-  const plan = formData.get("plan") as string;
+  const plan = String(formData.get("plan") ?? "");
+  const productId = checkoutProductId(plan);
 
-  if (!(plan in PLAN_PRODUCT_IDS)) {
+  if (productId === null) {
     return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
   }
-  if (!PLAN_PRODUCT_IDS[plan]) {
+  if (!productId) {
     return NextResponse.json(
       { error: "Payment not configured. Set POLAR_PRODUCT_* env vars." },
       { status: 503 }
@@ -30,7 +35,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const checkout = await getPolar().checkouts.create({
-      products: [PLAN_PRODUCT_IDS[plan]],
+      products: [productId],
       success_url: `${origin}/billing?success=true`,
       metadata: { user_id: userId, plan },
     });

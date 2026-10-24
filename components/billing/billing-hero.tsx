@@ -1,4 +1,4 @@
-import { getPlanDef, type PlanKey } from "@/lib/billing-plans";
+import { getPlanDef, isGrantedPlan, type PlanKey } from "@/lib/billing-plans";
 import type { BillingStats } from "@/lib/billing-stats";
 import { daysUntilReset, formatRenewDate } from "@/lib/billing-stats";
 
@@ -19,6 +19,7 @@ export function BillingHero({ stats }: BillingHeroProps) {
   const def = getPlanDef(plan);
   const renewDate = formatRenewDate(stats.profile.subscription_renews_at);
   const daysLeft = daysUntilReset(stats.profile.subscription_renews_at);
+  const granted = isGrantedPlan(plan, stats.profile.polar_subscription_id);
   const isPaid = plan !== "free" && !!stats.profile.polar_subscription_id;
   const cancelScheduled = stats.profile.subscription_cancel_at_period_end ?? false;
 
@@ -58,13 +59,15 @@ export function BillingHero({ stats }: BillingHeroProps) {
       <div className="hero-card plan">
         <div className="hc-eyebrow">
           <span className="pin" />
-          CURRENT PLAN · {cancelScheduled ? "CANCELLING" : isPaid ? "ACTIVE" : "FREE"}
+          CURRENT PLAN · {cancelScheduled ? "CANCELLING" : granted ? "GRANTED" : isPaid ? "ACTIVE" : "FREE"}
         </div>
 
         <div className="plan-tier-row">
           <div className="plan-tier-name">{def.label}</div>
           <div className="plan-price">
-            {def.price > 0 ? (
+            {granted ? (
+              <>Granted, no charge</>
+            ) : def.price > 0 ? (
               <>
                 $<strong>{def.price}</strong>/mo · billed monthly
               </>
@@ -75,7 +78,17 @@ export function BillingHero({ stats }: BillingHeroProps) {
         </div>
 
         <div className="plan-summary">
-          {plan === "free" ? (
+          {granted ? (
+            <>
+              <span className="b">{def.label}</span> is granted on this workspace.
+              {renewDate ? (
+                <>
+                  {" "}
+                  Expires <span className="b">{renewDate}</span>.
+                </>
+              ) : null}
+            </>
+          ) : plan === "free" ? (
             <>
               <span className="b">{def.credits} credits</span> a month for score and basic dashboard.
             </>
@@ -102,11 +115,13 @@ export function BillingHero({ stats }: BillingHeroProps) {
           ))}
         </ul>
 
-        <div className="plan-cta-row">
-          <a href="#plans" className="tb-btn outlined" style={{ borderColor: "var(--border-strong)" }}>
-            Change plan
-          </a>
-        </div>
+        {granted ? null : (
+          <div className="plan-cta-row">
+            <a href="#plans" className="tb-btn outlined" style={{ borderColor: "var(--border-strong)" }}>
+              Change plan
+            </a>
+          </div>
+        )}
       </div>
 
       <div className="hero-card credits">
@@ -199,6 +214,8 @@ export function BillingHero({ stats }: BillingHeroProps) {
             <>
               Charges on <span className="b">{renewDate}</span>
             </>
+          ) : granted ? (
+            renewDate ? `Granted · expires ${renewDate}` : "Granted, no charge"
           ) : cancelScheduled ? (
             "Cancelled · no further charges"
           ) : isPaid ? (
@@ -211,9 +228,9 @@ export function BillingHero({ stats }: BillingHeroProps) {
         <div className="ni-lines">
           <div className="ni-line">
             <span className="b">
-              {def.label} · monthly
+              {def.label} · {granted ? "granted" : "monthly"}
             </span>
-            <span className="v">${def.price.toFixed(2)}</span>
+            <span className="v">{granted ? "No charge" : `$${def.price.toFixed(2)}`}</span>
           </div>
           {stats.cycleTopupSpend > 0 ? (
             <div className="ni-line">

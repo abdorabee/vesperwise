@@ -2,7 +2,7 @@
 
 import { useCallback } from "react";
 import type { BillingStats } from "@/lib/billing-stats";
-import type { PlanKey } from "@/lib/billing-plans";
+import { isGrantedPlan, type PlanKey } from "@/lib/billing-plans";
 import { BillingNotification } from "./billing-notification";
 import { BillingPageHead } from "@/components/billing/billing-page-head";
 import { BillingHero } from "@/components/billing/billing-hero";
@@ -24,6 +24,7 @@ interface BillingViewProps {
 
 export function BillingView({ stats, email, workspaceLabel }: BillingViewProps) {
   const plan = (stats.profile.plan ?? "free") as PlanKey;
+  const granted = isGrantedPlan(plan, stats.profile.polar_subscription_id);
   const isPaid = plan !== "free" && !!stats.profile.polar_subscription_id;
 
   const scrollToTopup = useCallback(() => {
@@ -56,7 +57,7 @@ export function BillingView({ stats, email, workspaceLabel }: BillingViewProps) 
               onComparePlans={scrollToPlans}
             />
 
-            <BillingPlansGrid currentPlan={plan} />
+            <BillingPlansGrid currentPlan={plan} granted={granted} />
 
             <div className="split-row">
               <BillingTopupsPanel plan={plan} />
@@ -73,6 +74,7 @@ export function BillingView({ stats, email, workspaceLabel }: BillingViewProps) 
 
             <BillingDangerZone
               currentPlan={plan}
+              granted={granted}
               isPaid={isPaid}
               cancelScheduled={stats.profile.subscription_cancel_at_period_end ?? false}
               renewsAt={stats.profile.subscription_renews_at}

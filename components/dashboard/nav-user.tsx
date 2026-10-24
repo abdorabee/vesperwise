@@ -39,6 +39,8 @@ import { cn } from "@/lib/utils";
 import type { DbUser } from "@/lib/types";
 import {
   LOW_CREDIT_PCT,
+  LOW_CREDIT_USED_PCT,
+  allowanceUsedPercent,
   creditPercent,
   getCreditStatus,
 } from "@/lib/credits-status";
@@ -67,6 +69,7 @@ function CreditBar({ pct, low }: { pct: number; low: boolean }) {
 
 function AccountCredits({ creditsRemaining, creditCap }: NavUserProps) {
   const creditPct = creditPercent(creditsRemaining, creditCap);
+  const low = allowanceUsedPercent(creditsRemaining, creditCap) >= LOW_CREDIT_USED_PCT;
 
   return (
     <div data-slot="account-credits" className="px-2 py-1.5 text-xs">
@@ -83,7 +86,7 @@ function AccountCredits({ creditsRemaining, creditCap }: NavUserProps) {
         </span>
       </div>
       <div className="mt-2">
-        <CreditBar pct={creditPct} low={creditPct < LOW_CREDIT_PCT} />
+        <CreditBar pct={creditPct} low={low} />
       </div>
     </div>
   );

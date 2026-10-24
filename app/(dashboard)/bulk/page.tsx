@@ -1,8 +1,8 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Download } from "lucide-react";
+import { useFeatureGuard, useSetCreditsRemaining } from "@/components/dashboard/workspace-state";
 
 import {
   BulkProcessingPanel,
@@ -20,13 +20,12 @@ import {
 } from "@/lib/bulk-workspace";
 import {
   csvFilename,
+  downloadAuthorizedCsv,
   downloadCSV as triggerDownload,
   formatSignal,
-  toCSV,
 } from "@/lib/csv";
 
 export default function BulkScorerPage() {
-  const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [summary, setSummary] = useState<BulkCsvSummary | null>(null);
   const [loading, setLoading] = useState(false);
@@ -35,6 +34,8 @@ export default function BulkScorerPage() {
   const [error, setError] = useState<string | null>(null);
   const [announcement, setAnnouncement] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const guardBulk = useFeatureGuard("bulk");
+  const setCreditsRemaining = useSetCreditsRemaining();
 
   async function selectFile(candidate: File | null) {
     if (!candidate) return;
@@ -77,6 +78,7 @@ export default function BulkScorerPage() {
 
   async function handleSubmit() {
     if (!file || loading || summary?.error) return;
+    if (guardBulk()) return;
 
     setLoading(true);
     setError(null);
@@ -91,12 +93,13 @@ export default function BulkScorerPage() {
         method: "POST",
         body: form,
       });
-      const data = await res.json() as BulkResponse & { error?: string };
+      const data = await res.json() as BulkResponse & { error?: string; credits_remaining?: number };
 
       if (!res.ok) {
         throw new Error(data.error ?? "Scoring failed");
       }
 
+      if (typeof data.credits_remaining === "number") setCreditsRemaining(data.credits_remaining);
       setResponse(data);
       setAnnouncement(
         `Batch complete. ${data.scored} scored and ${data.failed} failed.`,
@@ -107,8 +110,6 @@ export default function BulkScorerPage() {
       setAnnouncement(`Batch failed. ${message}`);
     } finally {
       setLoading(false);
-      // Re-render the dashboard layout so the status bar shows the credits this batch used.
-      router.refresh();
     }
   }
 
@@ -173,10 +174,9 @@ export default function BulkScorerPage() {
       scored_at: result.last_updated,
     }));
 
-    triggerDownload(
-      toCSV(columns, rows),
-      csvFilename("vesperwise-bulk-scores"),
-    );
+    void downloadAuthorizedCsv(csvFilename("vesperwise-bulk-scores"), columns, rows).catch((error: Error) => {
+      setError(error.message);
+    });
   }
 
   return (

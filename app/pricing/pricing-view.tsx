@@ -15,7 +15,7 @@ import { renewalDisclosure } from "@/lib/billing-plans";
 const FAQ: { q: string; a: string }[] = [
   {
     q: "What is a credit?",
-    a: "One credit scores one company. Results are cached for 6 hours, so asking for the same company again inside that window costs nothing. Bulk API jobs (early access) reserve one credit per company when the job is created.",
+    a: "One credit scores one company. Results are cached for 6 hours, so asking for the same company again inside that window costs nothing and writes no charge. Bulk jobs charge one credit for each company that is actually scored, and stop if the balance runs out.",
   },
   {
     q: "What happens when I run out?",
@@ -46,7 +46,7 @@ export default function PricingView() {
         .pp-wrap { max-width: 1320px; margin: 0 auto; padding: 64px 16px 80px; }
         .pp-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
         @media (min-width: 720px) { .pp-grid { grid-template-columns: repeat(2, 1fr); } }
-        @media (min-width: 1180px) { .pp-grid { grid-template-columns: repeat(5, 1fr); } }
+        @media (min-width: 1180px) { .pp-grid { grid-template-columns: repeat(3, 1fr); } }
         .pp-card { border: 1px solid var(--border); border-radius: 12px; padding: 24px 20px; background: var(--card); display: flex; flex-direction: column; }
         .pp-card.featured { border-color: var(--brand-border); box-shadow: 0 0 0 1px var(--brand-border); }
         .pp-name { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 600; letter-spacing: -0.011em; margin-bottom: 4px; }
@@ -125,10 +125,25 @@ export default function PricingView() {
               {plan.price > 0 ? <p className="pp-renewal">{renewalDisclosure(plan.price)}</p> : null}
             </div>
           ))}
+          <div className="pp-card">
+            <div className="pp-name">Agency</div>
+            <div className="pp-blurb">For a workspace that needs a granted plan.</div>
+            <div className="pp-amt">
+              <span className="num" style={{ fontSize: 28 }}>Contact us</span>
+            </div>
+            <div className="pp-unit">Not sold online</div>
+            <ul className="pp-feats">
+              <li>
+                <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M3 7l3 3 5-7" /></svg>
+                Granted workspaces keep their current access
+              </li>
+            </ul>
+            <Link href="/contact#contact-form" className="pp-btn">Contact us</Link>
+          </div>
         </div>
 
         <p className="pp-note">
-          Bulk API jobs are in early access: they take up to {formatCount(BULK_MAX_PER_JOB)} companies each, with {BULK_MAX_CONCURRENT} jobs running at once on any plan. For lists of up to 50 companies today, use CSV upload.
+          Bulk scoring and CSV are on Plus and above. Jobs take up to {formatCount(BULK_MAX_PER_JOB)} companies, with {BULK_MAX_CONCURRENT} running at once. A cached company is free. Starter has no bulk, CSV or autopilot.
         </p>
 
         <section className="pp-topups" aria-labelledby="topups-title">

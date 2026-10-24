@@ -15,6 +15,7 @@ import type {
   SignalSet,
   PipelineStage,
 } from "@/lib/types";
+import { canUseFeature, parsePlan } from "@/lib/plan-features";
 import { evaluateV2ScoreTransition } from "@/lib/score-transition";
 
 // ─── Condition Evaluation ───────────────────────────────────────────────────
@@ -325,6 +326,16 @@ export async function executeWorkflow(
 ): Promise<{ companiesChecked: number; companiesTriggered: number; creditsUsed: number }> {
   const supabase = createSupabaseAdmin();
   const { user } = workflow;
+  const plan = parsePlan(user.plan);
+
+  if (!canUseFeature(plan, "autopilot")) {
+    const intervalMs = workflow.schedule === "daily" ? 24 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000;
+    await supabase
+      .from("autopilot_workflows")
+      .update({ next_run_at: new Date(Date.now() + intervalMs).toISOString() })
+      .eq("id", workflow.id);
+    return { companiesChecked: 0, companiesTriggered: 0, creditsUsed: 0 };
+  }
 
   // Create run record
   const { data: run, error: runError } = await supabase

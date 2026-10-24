@@ -27,6 +27,9 @@ supabase db push
 | `20260821000000_revoke_old_credit_rpcs` | Retire old credit RPCs |
 | `20260829000000_onboarding_workspace_name` | Workspace name |
 | `20260930000000_replace_redis` | Postgres cache and `background_jobs` |
+| `20261024161000_add_plus_plan` | `plus` on the users plan check |
+| `20261024180000_bulk_job_lease` | Bulk job lease and `webhook_sent_at` |
+| `20261024200000_bulk_webhook_attempts` | Webhook attempt cap and retry lease |
 
 ## Scoring integration test
 

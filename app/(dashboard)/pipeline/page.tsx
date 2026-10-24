@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Activity } from "lucide-react";
 import { AccountPanel } from "@/components/account-panel/account-panel";
 import { useAccountParam } from "@/components/account-panel/use-account-param";
+import { useSetCreditsRemaining } from "@/components/dashboard/workspace-state";
 import { PipelineAccountTab } from "@/components/pipeline/pipeline-account-tab";
 import { PipelineAccountsColumn } from "@/components/pipeline/pipeline-accounts-column";
 import type { PipelineCompany, PipelineSignals } from "@/app/api/dashboard/pipeline/route";
@@ -242,6 +243,7 @@ export default function PipelinePage() {
   const [outcomeSaving, setOutcomeSaving] = useState(false);
   const [outcomeError, setOutcomeError] = useState<string | null>(null);
   const { account, openAccount, closeAccount } = useAccountParam();
+  const setCreditsRemaining = useSetCreditsRemaining();
   const selected = account ? companies.find((c) => c.domain.toLowerCase() === account) ?? null : null;
 
   const fetchPipeline = useCallback(async () => {
@@ -265,6 +267,7 @@ export default function PipelinePage() {
       const res = await fetch(`/api/v1/score?domain=${encodeURIComponent(domain)}`);
       if (!res.ok) return;
       const data = await res.json();
+      if (typeof data.credits_remaining === "number") setCreditsRemaining(data.credits_remaining);
       setCompanies((prev) =>
         prev.map((c) =>
           c.domain === domain

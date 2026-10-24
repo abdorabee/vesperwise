@@ -37,12 +37,12 @@ CACHE_DISABLED=false
 POLAR_ACCESS_TOKEN=
 POLAR_WEBHOOK_SECRET=
 POLAR_PRODUCT_STARTER=
+POLAR_PRODUCT_PLUS=
 POLAR_PRODUCT_GROWTH=
 POLAR_PRODUCT_PRO=
-POLAR_PRODUCT_AGENCY=
-POLAR_PRODUCT_TOPUP_100=
-POLAR_PRODUCT_TOPUP_500=
-POLAR_PRODUCT_TOPUP_1000=
+POLAR_PRODUCT_TOPUP_25=
+POLAR_PRODUCT_TOPUP_70=
+POLAR_PRODUCT_TOPUP_140=
 
 # Signal sources (only needed when MOCK_SIGNALS=false)
 EXPLORIUM_API_KEY=
@@ -130,7 +130,7 @@ Plans: `free | starter | growth | pro | agency`. Credits are reset on subscripti
 
 ### Bulk Jobs
 
-`app/api/v1/score/bulk/route.ts` creates a `bulk_jobs` row with status `queued`. The actual bulk processor is not yet wired up (marked as TODO). Max 1,000 companies per job, max 3 concurrent jobs per user.
+`app/api/v1/score/bulk/route.ts` scores the submitted companies, debits one credit per scored company (cache hits are free), and stops the job when credits run out. Max 1,000 companies per job, max 3 concurrent jobs per user. Free and Starter cannot run bulk jobs.
 
 ### UI Components
 

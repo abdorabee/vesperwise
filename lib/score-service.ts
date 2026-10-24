@@ -16,6 +16,7 @@ import { fetchNewsSignal } from "@/lib/signals/news";
 import { fetchTechnologySignal } from "@/lib/signals/technology";
 import { fetchWebSignal } from "@/lib/signals/web";
 import { fetchGitHubSignal } from "@/lib/signals/github";
+import { canUseFeature, parsePlan } from "@/lib/plan-features";
 import { TREG_HUNTER_SOURCE, type TregFirmographicsResult } from "@/lib/signals/treg";
 import { getMockSignals } from "@/lib/signals/mock";
 import {
@@ -476,7 +477,8 @@ function staleSignal(signal: SignalResult, metadata: Record<string, unknown> = {
 
 async function loadDatabaseEvidence(
   supabase: SupabaseAdmin,
-  domain: string
+  domain: string,
+  allowTreg = true,
 ): Promise<LoadedDatabaseEvidence> {
   const { data, error } = await supabase
     .from("signal_evidence")
@@ -501,6 +503,7 @@ async function loadDatabaseEvidence(
     if (!SIGNAL_KEYS.includes(candidate.signal_type as SignalKey)) continue;
     const key = candidate.signal_type as SignalKey;
     if (isTregSource(candidate.source)) {
+      if (!allowTreg) continue;
       appendEvidenceRow(tregAttempts, key, candidate);
       // Demoting a signal takes effect immediately: a row stored while it was
       // promoted stops being a scoring candidate.
@@ -611,11 +614,13 @@ function emitAllSignals(onProgress: ScoreProgressHandler | undefined, signals: S
 export async function getEvidenceSnapshot(
   supabase: SupabaseAdmin,
   domain: string,
-  onProgress?: ScoreProgressHandler
+  onProgress?: ScoreProgressHandler,
+  options?: { allowTreg?: boolean },
 ): Promise<EvidenceSnapshot> {
+  const allowTreg = options?.allowTreg !== false;
   const cacheKey = scoreEvidenceCacheKey(
     domain,
-    `${SIGNAL_EVIDENCE_SCHEMA_VERSION}-${HIRING_EVIDENCE_SCHEMA_VERSION}-${WEB_ENRICHMENT_SCHEMA_VERSION}`
+    `${SIGNAL_EVIDENCE_SCHEMA_VERSION}-${HIRING_EVIDENCE_SCHEMA_VERSION}-${WEB_ENRICHMENT_SCHEMA_VERSION}${allowTreg ? "" : ":primary"}`
   );
   const cached = await cacheGet<EvidenceSnapshot>(cacheKey);
   if (isEvidenceSnapshot(cached)) {
@@ -648,7 +653,7 @@ export async function getEvidenceSnapshot(
     return snapshot;
   }
 
-  const databaseRows = await loadDatabaseEvidence(supabase, domain);
+  const databaseRows = await loadDatabaseEvidence(supabase, domain, allowTreg);
   const resolved = {} as Record<SignalKey, SignalResult>;
   const rows: SignalEvidenceRow[] = [];
 
@@ -683,14 +688,16 @@ export async function getEvidenceSnapshot(
     const refreshedRow = evidenceRowForSignal(domain, key, refreshed, SOURCE_BY_SIGNAL[key]);
     rows.push(refreshedRow);
 
-    const tregRow = await resolveTregSignalRow({
-      key,
-      domain,
-      primaryStatus: refreshed.status,
-      attempts: databaseRows.tregAttempts.get(key) ?? [],
-      buildRow: (signal, source) => evidenceRowForSignal(domain, key, signal, source),
-      freshnessMs: SCORE_EVIDENCE_TTL_SECONDS * 1000,
-    });
+    const tregRow = allowTreg
+      ? await resolveTregSignalRow({
+        key,
+        domain,
+        primaryStatus: refreshed.status,
+        attempts: databaseRows.tregAttempts.get(key) ?? [],
+        buildRow: (signal, source) => evidenceRowForSignal(domain, key, signal, source),
+        freshnessMs: SCORE_EVIDENCE_TTL_SECONDS * 1000,
+      })
+      : null;
     if (tregRow) rows.push(tregRow);
 
     if (refreshed.status === "ok" || refreshed.status === "no_signal") {
@@ -1008,9 +1015,13 @@ async function loadFirmographicsRow(
 async function getFirmographics(
   supabase: SupabaseAdmin,
   domain: string,
-  knownBusinessId: string | null
+  knownBusinessId: string | null,
+  allowTreg = true,
 ): Promise<FirmographicsSnapshot> {
-  const cacheKey = scoreEvidenceCacheKey(domain, FIRMOGRAPHICS_SCHEMA_VERSION);
+  const cacheKey = scoreEvidenceCacheKey(
+    domain,
+    `${FIRMOGRAPHICS_SCHEMA_VERSION}${allowTreg ? "" : ":primary"}`,
+  );
   const cached = await cacheGet<FirmographicsSnapshot>(cacheKey);
   if (
     cached &&
@@ -1053,13 +1064,15 @@ async function getFirmographics(
     return snapshot;
   }
 
-  const tregRow = await resolveTregFirmographicsRow({
-    domain,
-    primaryStatus: refreshed.row.status,
-    attempts: tregAttempts,
-    buildRow: (result) => tregFirmographicsRow(domain, result),
-    freshnessMs: SCORE_EVIDENCE_TTL_SECONDS * 1000,
-  });
+  const tregRow = allowTreg
+    ? await resolveTregFirmographicsRow({
+      domain,
+      primaryStatus: refreshed.row.status,
+      attempts: tregAttempts,
+      buildRow: (result) => tregFirmographicsRow(domain, result),
+      freshnessMs: SCORE_EVIDENCE_TTL_SECONDS * 1000,
+    })
+    : null;
   const tregRows = tregRow ? [tregRow] : [];
   const tregData = promotedTregFirmographicsData(tregRow);
   if (tregData) {
@@ -1361,6 +1374,8 @@ export async function scoreCompany(opts: ScoreCompanyOptions): Promise<StoredInt
   if (!normalizedIdempotencyKey) {
     const cached = await cacheGet<StoredIntentScore>(resultCacheKey);
     if (isStoredIntentScore(cached, scoringVersion)) {
+      // A 6-hour result-cache hit returns before begin_score_run, so it
+      // neither decrements credits_remaining nor inserts a credits_log row.
       emitAllSignals(onProgress, cached.signals);
       return {
         ...cached,
@@ -1438,7 +1453,13 @@ export async function scoreCompany(opts: ScoreCompanyOptions): Promise<StoredInt
   let terminal = false;
 
   try {
-    const snapshot = await getEvidenceSnapshot(supabase, lookupDomain, onProgress);
+    const { data: planRow } = await supabase
+      .from("users")
+      .select("plan")
+      .eq("id", userId)
+      .maybeSingle();
+    const allowTreg = canUseFeature(parsePlan(planRow?.plan), "treg");
+    const snapshot = await getEvidenceSnapshot(supabase, lookupDomain, onProgress, { allowTreg });
     evidence = snapshot.rows;
     const shouldComputeV3Shadow =
       scoringVersion === SCORING_VERSION &&
@@ -1522,7 +1543,7 @@ export async function scoreCompany(opts: ScoreCompanyOptions): Promise<StoredInt
     const firmographicsPromise = profile &&
       profile.target_industries.length > 0 &&
       parseEmployeeRange(profile.company_size)
-      ? getFirmographics(supabase, lookupDomain, businessIdFromSignals(snapshot.signals))
+      ? getFirmographics(supabase, lookupDomain, businessIdFromSignals(snapshot.signals), allowTreg)
       : Promise.resolve({ data: null, rows: [], status: "unavailable" as const });
     emitProgress(onProgress, { type: "reasoning_start" });
     const reasoningPromise = generateReasoning(

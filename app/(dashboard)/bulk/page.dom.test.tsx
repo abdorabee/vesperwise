@@ -4,10 +4,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import BulkScorerPage from "./page";
 
-const refresh = vi.fn();
+const setCreditsRemaining = vi.fn();
+const guardBulk = vi.fn(() => false);
 
-vi.mock("next/navigation", () => ({
-  useRouter: () => ({ refresh }),
+vi.mock("@/components/dashboard/workspace-state", () => ({
+  useFeatureGuard: () => guardBulk,
+  useSetCreditsRemaining: () => setCreditsRemaining,
 }));
 
 function attachCsv(text: string) {
@@ -17,7 +19,9 @@ function attachCsv(text: string) {
 }
 
 beforeEach(() => {
-  refresh.mockClear();
+  setCreditsRemaining.mockClear();
+  guardBulk.mockClear();
+  guardBulk.mockReturnValue(false);
 });
 
 afterEach(() => {
@@ -26,13 +30,14 @@ afterEach(() => {
 });
 
 describe("BulkScorerPage", () => {
-  it("refreshes server data so the status bar credits update after a batch", async () => {
+  it("updates the status bar credits from the batch response", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue(
-        new Response(JSON.stringify({ total: 1, scored: 1, failed: 0, results: [] }), {
-          status: 200,
-        }),
+        new Response(
+          JSON.stringify({ total: 1, scored: 1, failed: 0, results: [], credits_remaining: 16 }),
+          { status: 200 },
+        ),
       ),
     );
     render(<BulkScorerPage />);
@@ -40,22 +45,19 @@ describe("BulkScorerPage", () => {
     attachCsv("domain\nstripe.com\n");
     fireEvent.click(await screen.findByRole("button", { name: "Score 1 company" }));
 
-    await waitFor(() => expect(refresh).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(setCreditsRemaining).toHaveBeenCalledWith(16));
   });
 
-  it("refreshes credits even when the batch request fails", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue(
-        new Response(JSON.stringify({ error: "Scoring failed" }), { status: 500 }),
-      ),
-    );
+  it("does not submit when the plan guard blocks bulk scoring", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    guardBulk.mockReturnValue(true);
     render(<BulkScorerPage />);
 
     attachCsv("domain\nstripe.com\n");
     fireEvent.click(await screen.findByRole("button", { name: "Score 1 company" }));
 
-    await screen.findByText("Scoring failed");
-    expect(refresh).toHaveBeenCalledTimes(1);
+    expect(guardBulk).toHaveBeenCalledTimes(1);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

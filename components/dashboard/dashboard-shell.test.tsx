@@ -115,7 +115,7 @@ describe("DashboardShell", () => {
     expect(html).toContain("42 credits");
     expect(html).not.toContain("credits left");
     expect(html).toContain(">Growth<");
-    expect(html).toContain(">Top up<");
+    expect(html).toContain(">Upgrade to Pro<");
     expect(html).toContain("Mock signals");
     expect(html).toContain("⌘K Search");
   });

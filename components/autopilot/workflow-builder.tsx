@@ -275,6 +275,9 @@ export default function WorkflowBuilder({ workflow, onSave, onCancel }: Workflow
           <div className="flex items-center gap-2 text-sm text-red-400">
             <AlertCircle className="h-3.5 w-3.5 shrink-0" />
             {error}
+            {error.includes("Upgrade") ? (
+              <a href="/billing#plans" className="underline">Upgrade</a>
+            ) : null}
           </div>
         )}
 

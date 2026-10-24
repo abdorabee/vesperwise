@@ -19,8 +19,18 @@ describe("BillingPlansGrid renewal disclosure", () => {
     expect(html).toMatch(/Renews automatically at \$\d+\/mo until you cancel/);
   });
 
-  it("omits the disclosure for the current plan, downgrades and talk-to-sales", () => {
+  it("omits the disclosure for the current plan, downgrades and contact", () => {
     const html = renderToStaticMarkup(<BillingPlansGrid currentPlan="pro" />);
     expect(renewalIds(html)).toEqual([]);
+    expect(html).toContain("Contact us");
+    expect(html).not.toContain("Upgrade to");
+  });
+
+  it("hides upgrade and downgrade for a granted plan", () => {
+    const html = renderToStaticMarkup(<BillingPlansGrid currentPlan="agency" granted />);
+    expect(html).toContain("Current plan");
+    expect(html).not.toContain("Upgrade to");
+    expect(html).not.toContain("Downgrade");
+    expect(html).toContain("Contact us");
   });
 });
