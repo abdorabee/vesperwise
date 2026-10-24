@@ -4,7 +4,7 @@ import { MARKETING_PLANS, MARKETING_TOPUPS, planFeatures } from "@/lib/plan-feat
 import { PLAN_CREDITS, PLAN_WATCHLIST_LIMIT } from "@/lib/types";
 import { DEMO_ACCOUNTS, DEMO_PEOPLE, bandFor } from "@/components/landing/demo-accounts";
 
-const UNBACKED = /\b(hubspot|salesforce|sso|scim|seats?|sla|csm|white-label|multi-workspace|custom scoring)\b/i;
+const UNBACKED = /\b(hubspot|salesforce|sso|scim|sla|csm|white-label|multi-workspace|custom scoring)\b/i;
 
 describe("plan features", () => {
   it("derives limits from the enforced plan constants", () => {
@@ -18,15 +18,27 @@ describe("plan features", () => {
 
   it("never lists features the product does not have", () => {
     for (const plan of MARKETING_PLANS) {
-      for (const feat of plan.features) expect(feat).not.toMatch(UNBACKED);
+      for (const feat of plan.features) {
+        expect(feat).not.toMatch(UNBACKED);
+        if (/seat/i.test(feat)) expect(feat).toBe("1 seat");
+      }
     }
   });
 
-  it("keeps billing, pricing and landing on the same plan list", () => {
-    expect(BILLING_PLANS.map((p) => [p.key, p.price, p.credits])).toEqual(
+  it("starts paid plans at $10 and keeps starter off bulk, CSV and autopilot", () => {
+    const starter = MARKETING_PLANS.find((plan) => plan.key === "starter");
+    expect(starter?.price).toBe(10);
+    expect(starter?.features.join(" ")).toMatch(/no bulk, csv or autopilot/i);
+    expect(MARKETING_PLANS.map((plan) => plan.key)).not.toContain("agency");
+  });
+
+  it("keeps billing, pricing and landing on the same sold plan list", () => {
+    const sold = BILLING_PLANS.filter((plan) => !plan.contactOnly);
+    expect(sold.map((p) => [p.key, p.price, p.credits])).toEqual(
       MARKETING_PLANS.map((p) => [p.key, p.price, p.credits])
     );
     for (const plan of BILLING_PLANS) expect(plan.features).toEqual(planFeatures(plan.key));
+    expect(BILLING_PLANS.find((plan) => plan.key === "agency")?.contactOnly).toBe(true);
     expect(BILLING_TOPUPS.map((t) => t.credits)).toEqual(MARKETING_TOPUPS.map((t) => t.credits));
   });
 });

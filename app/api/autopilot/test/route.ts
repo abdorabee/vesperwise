@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { createSupabaseAdmin } from "@/lib/supabase";
+import { canUseFeature, featureDeniedMessage, parsePlan, requiredPlanFor } from "@/lib/plan-features";
 import { scoreCompany, domainToCompanyName } from "@/lib/score-service";
 import { evaluateConditions } from "@/lib/autopilot";
 import { evaluateV2ScoreTransition } from "@/lib/score-transition";
@@ -24,6 +25,13 @@ export async function POST(req: NextRequest) {
 
   if (!workflow) return NextResponse.json({ error: "Workflow not found" }, { status: 404 });
   if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+  const plan = parsePlan(user.plan);
+  if (!canUseFeature(plan, "autopilot")) {
+    return NextResponse.json(
+      { error: featureDeniedMessage(plan, "autopilot"), upgrade_to: requiredPlanFor("autopilot") },
+      { status: 403 },
+    );
+  }
 
   const typedWorkflow = workflow as DbAutopilotWorkflow;
 

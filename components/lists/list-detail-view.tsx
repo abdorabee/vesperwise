@@ -7,7 +7,8 @@ import type { ListDetailData } from "@/lib/lists-types";
 import { ruleToDisplayParts } from "@/lib/lists-evaluator";
 import { isInnerInteractiveClick } from "@/lib/row-click";
 import { deltaLabel, formatRelativeTime } from "@/lib/lists-display";
-import { toCSV, downloadCSV, csvFilename } from "@/lib/csv";
+import { toast } from "sonner";
+import { csvFilename, downloadAuthorizedCsv } from "@/lib/csv";
 
 interface ListDetailViewProps {
   detail: ListDetailData;
@@ -58,7 +59,13 @@ export function ListDetailView({ detail, onOpenAccount, openDomain = null }: Lis
       band: a.score_band ?? "",
       qualify: a.qualifyReason,
     }));
-    downloadCSV(toCSV(columns, rows), csvFilename(`list-${list.name.replace(/\s+/g, "-").toLowerCase()}`));
+    void downloadAuthorizedCsv(
+      csvFilename(`list-${list.name.replace(/\s+/g, "-").toLowerCase()}`),
+      columns,
+      rows,
+    ).catch((error: Error) => {
+      toast.error(error.message);
+    });
   }
 
   async function handleDelete() {

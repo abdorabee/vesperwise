@@ -118,7 +118,18 @@ async function scoreForUser(
       "X-IIQ-Cache": result.cached ? "hit" : "miss",
     });
     if (result.idempotent_replayed) headers.set("Idempotency-Replayed", "true");
-    return NextResponse.json(redactPublicSources(result), { headers });
+    const { data: balance } = await createSupabaseAdmin()
+      .from("users")
+      .select("credits_remaining")
+      .eq("id", authenticated.userId)
+      .maybeSingle();
+    return NextResponse.json(
+      redactPublicSources({
+        ...result,
+        credits_remaining: balance?.credits_remaining ?? null,
+      }),
+      { headers },
+    );
   } catch (error) {
     if (error instanceof InvalidDomainError) {
       return errorResponse(400, "invalid_request", error.message, { field: "domain" });

@@ -16,7 +16,7 @@ vi.mock("@/lib/supabase", () => ({
         eq: () => ({
           maybeSingle: async () => table === "api_keys"
             ? { data: { user_id: "user_test", is_active: true }, error: null }
-            : { data: { product_category: "B2B SaaS", business_profile: null }, error: null },
+            : { data: { product_category: "B2B SaaS", business_profile: null, credits_remaining: 19 }, error: null },
         }),
       }),
       update: (values: Record<string, unknown>) => ({
@@ -78,7 +78,7 @@ describe("POST /api/v1/score", () => {
     const response = await POST(request());
     expect(response.headers.get("content-type")).toContain("application/json");
     expect(response.headers.get("X-IIQ-Cache")).toBe("miss");
-    expect(await response.json()).toEqual(RESULT);
+    expect(await response.json()).toEqual({ ...RESULT, credits_remaining: 19 });
     expect(scoreCompany.mock.calls[0][0].onProgress).toBeUndefined();
   });
 
@@ -103,7 +103,7 @@ describe("POST /api/v1/score", () => {
     ]);
     expect(events[0]?.data.source).toBe("company");
     expect(events[1]?.data.source).toBe("careers");
-    expect(events.at(-1)?.data).toEqual(RESULT);
+    expect(events.at(-1)?.data).toEqual({ ...RESULT, credits_remaining: 19 });
   });
 
   it("maps provider ids in the JSON score body", async () => {

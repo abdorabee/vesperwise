@@ -3,6 +3,8 @@
 import { BILLING_TOPUPS } from "@/lib/billing-plans";
 import type { BillingStats } from "@/lib/billing-stats";
 import { getPlanDef, type PlanKey } from "@/lib/billing-plans";
+import { UPGRADE_PATH } from "@/lib/plan-features";
+import { PLAN_CREDITS } from "@/lib/types";
 
 interface BillingHelpRowProps {
   stats: BillingStats;
@@ -16,9 +18,7 @@ export function BillingHelpRow({ stats, onScrollToTopup, onComparePlans }: Billi
   const plan = (stats.profile.plan ?? "free") as PlanKey;
   const def = getPlanDef(plan);
   const bestTopup = BILLING_TOPUPS.find((t) => t.bestValue) ?? BILLING_TOPUPS[1];
-  const nextPlan = ["free", "starter", "growth", "pro", "agency"].find(
-    (p) => getPlanDef(p as PlanKey).credits > def.credits,
-  );
+  const nextPlan = UPGRADE_PATH.find((p) => PLAN_CREDITS[p] > def.credits);
   const nextDef = nextPlan ? getPlanDef(nextPlan as PlanKey) : null;
   const headroom =
     nextDef && def.credits > 0

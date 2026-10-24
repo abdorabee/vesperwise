@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import { parsePlan } from "@/lib/plan-features";
 import { getOnboardingRedirect } from "@/lib/onboarding-profile";
 import { createSupabaseAdmin } from "@/lib/supabase";
 import { ensureUserRecord } from "@/lib/user-provisioning";
@@ -25,7 +26,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   const creditsRemaining = profile.credits_remaining ?? 0;
   const onboardingCompleted = profile.onboarding_completed ?? false;
-  const plan = (profile.plan as "free" | "starter" | "growth" | "pro" | "agency" | undefined) ?? "free";
+  const plan = parsePlan(profile.plan);
 
   const onboardingRedirect = getOnboardingRedirect(onboardingCompleted, "dashboard");
   if (onboardingRedirect) redirect(onboardingRedirect);

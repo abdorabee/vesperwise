@@ -3,24 +3,40 @@ import { webhooks } from "@polar-sh/sdk/2026-04";
 import { createSupabaseAdmin } from "@/lib/supabase";
 import {
   computeBillingPatch,
-  isPlan,
+  type Plan,
   type StoredBilling,
   type SubscriptionEventType,
   type SubscriptionSnapshot,
 } from "@/lib/billing/subscription-sync";
+import { isArchivedPolarProduct } from "@/lib/billing/archived-products";
+import { CHECKOUT_PRODUCT_ENV, TOPUP_PACKS, type CheckoutPlan } from "@/lib/plan-features";
 
-// Reverse map: Polar product ID → plan name (for portal-initiated plan changes).
-// Filter out empty-string keys that arise when env vars are unset.
-const PRODUCT_TO_PLAN: Record<string, string | undefined> = Object.fromEntries(
-  (
-    [
-      [process.env.POLAR_PRODUCT_STARTER, "starter"],
-      [process.env.POLAR_PRODUCT_GROWTH,  "growth"],
-      [process.env.POLAR_PRODUCT_PRO,     "pro"],
-      [process.env.POLAR_PRODUCT_AGENCY,  "agency"],
-    ] as [string | undefined, string][]
-  ).filter(([k]) => k)
-);
+function productToPlan(): Record<string, Plan> {
+  const entries = (Object.entries(CHECKOUT_PRODUCT_ENV) as [CheckoutPlan, string][])
+    .map(([plan, envKey]) => [process.env[envKey]?.trim(), plan] as const)
+    .filter((entry): entry is [string, CheckoutPlan] => Boolean(entry[0]));
+  return Object.fromEntries(entries);
+}
+
+function topupCreditsByProduct(): Record<string, number> {
+  const entries = TOPUP_PACKS
+    .map((pack) => [process.env[pack.envKey]?.trim(), pack.credits] as const)
+    .filter((entry): entry is [string, number] => Boolean(entry[0]));
+  return Object.fromEntries(entries);
+}
+
+/** Mapped products credit the account. Archived ones are ignored. Anything else must retry. */
+function unmappedProductResponse(productId: string, eventType: string): NextResponse | null {
+  if (productId && isArchivedPolarProduct(productId)) {
+    console.warn(`[billing/webhook] ignoring archived product ${productId} on ${eventType}`);
+    return null;
+  }
+  console.error(`[billing/webhook] unmapped product ${productId || "(missing)"} on ${eventType}`);
+  return NextResponse.json(
+    { error: "Unmapped Polar product", product_id: productId || null },
+    { status: 500 },
+  );
+}
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -60,9 +76,12 @@ async function syncSubscription(
   }
   if (!stored) return null;
 
-  const mappedPlan = PRODUCT_TO_PLAN[sub.product_id] ?? meta.plan;
-  const plan = isPlan(mappedPlan) ? mappedPlan : null;
-  const patch = computeBillingPatch(type, sub, plan, stored);
+  const mappedPlan = productToPlan()[sub.product_id] ?? null;
+  // Cancel and revoke do not grant a plan. Apply them even when the product
+  // id is archived or not in the current env map.
+  const lifecycleOnly = type === "subscription.revoked" || type === "subscription.canceled";
+  if (!lifecycleOnly && !mappedPlan) return unmappedProductResponse(sub.product_id, type);
+  const patch = computeBillingPatch(type, sub, mappedPlan, stored);
   if (Object.keys(patch).length === 0) return null;
 
   const { error } = await admin.from("users").update(patch).eq("id", userId);
@@ -132,15 +151,24 @@ async function routeEvent(admin: SupabaseAdmin, event: PolarEvent): Promise<Next
   // ── Event routing ────────────────────────────────────────────────────────────
   switch (event.type) {
     case "order.paid": {
-      // One-time credit top-up purchase
       const meta = getMeta(event.data.metadata);
-      if (meta.type !== "topup") break;
+      const productId = "product_id" in event.data ? String(event.data.product_id ?? "") : "";
+      if (productId && isArchivedPolarProduct(productId)) {
+        console.warn(`[billing/webhook] ignoring archived product ${productId} on order.paid`);
+        break;
+      }
+      const planProduct = productToPlan()[productId];
+      if (planProduct) {
+        // Subscription checkout and renewals also emit order.paid. The plan
+        // change is applied by subscription.*; acknowledging avoids a retry loop.
+        console.info(`[billing/webhook] order.paid for ${planProduct} (${productId}) left to subscription events`);
+        break;
+      }
+      const credits = topupCreditsByProduct()[productId];
+      if (!credits) return unmappedProductResponse(productId, "order.paid")!;
 
       const userId = meta.user_id;
       if (!userId) break;
-
-      const credits = parseInt(meta.credits ?? "0", 10);
-      if (credits <= 0) break;
 
       // Credit first so a failed RPC (retried by Polar) never leaves a duplicate log row.
       const { error: rpcError } = await admin.rpc("increment_topup_credits", {

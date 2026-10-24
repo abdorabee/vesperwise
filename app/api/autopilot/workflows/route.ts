@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { createSupabaseAdmin } from "@/lib/supabase";
+import { canUseFeature, featureDeniedMessage, parsePlan, requiredPlanFor } from "@/lib/plan-features";
 import { PLAN_AUTOPILOT_LIMIT } from "@/lib/types";
 import type { AutopilotCondition, AutopilotAction, AutopilotSchedule, AutopilotSourceType, AutopilotConditionLogic } from "@/lib/types";
 
@@ -53,7 +54,13 @@ export async function POST(req: NextRequest) {
     supabase.from("autopilot_workflows").select("*", { count: "exact", head: true }).eq("user_id", userId),
   ]);
 
-  const plan = (user?.plan ?? "free") as keyof typeof PLAN_AUTOPILOT_LIMIT;
+  const plan = parsePlan(user?.plan);
+  if (!canUseFeature(plan, "autopilot")) {
+    return NextResponse.json(
+      { error: featureDeniedMessage(plan, "autopilot"), upgrade_to: requiredPlanFor("autopilot") },
+      { status: 403 },
+    );
+  }
   const limit = PLAN_AUTOPILOT_LIMIT[plan];
   if (limit !== null && (count ?? 0) >= limit) {
     return NextResponse.json(

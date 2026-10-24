@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
+import { useSetCreditsRemaining } from "@/components/dashboard/workspace-state";
 import type { PersonIntentScore, DbPersonScore } from "@/lib/types";
 
 interface PeopleViewProps {
@@ -70,6 +71,7 @@ function parsePersonInput(input: string): { email?: string; linkedin?: string; n
 
 export function PeopleView({ totalCount, hotCount, initialScores }: PeopleViewProps) {
   const searchParams = useSearchParams();
+  const setCreditsRemaining = useSetCreditsRemaining();
   const [pageState, setPageState] = useState<PeopleState>("list");
   const [input, setInput] = useState("");
   const [inputType, setInputType] = useState<"email" | "linkedin" | "name">("email");
@@ -105,9 +107,11 @@ export function PeopleView({ totalCount, hotCount, initialScores }: PeopleViewPr
       if (parsed.title) params.set("title", parsed.title);
       const res = await fetch(`/api/v1/score/person?${params.toString()}`);
       if (!res.ok) { const err = await res.json() as { error?: string }; throw new Error(err.error ?? "Person scoring failed"); }
-      setResult(await res.json() as PersonIntentScore);
+      const scored = await res.json() as PersonIntentScore & { credits_remaining?: number };
+      if (typeof scored.credits_remaining === "number") setCreditsRemaining(scored.credits_remaining);
+      setResult(scored);
     } catch (e) { setError((e as Error).message); } finally { setLoading(false); }
-  }, [input]);
+  }, [input, setCreditsRemaining]);
 
   function handleCopyEmail() {
     if (!result) return;

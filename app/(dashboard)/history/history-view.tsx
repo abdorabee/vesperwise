@@ -2,8 +2,9 @@
 import { useState, useEffect, useRef } from "react";
 import type { CSSProperties } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { BandPill } from "@/components/score/band";
-import { toCSV, downloadCSV as triggerDownload, csvFilename, formatSignal } from "@/lib/csv";
+import { csvFilename, downloadAuthorizedCsv, formatSignal } from "@/lib/csv";
 import type { DbScore, ScoreBand } from "@/lib/types";
 import { AccountPanel } from "@/components/account-panel/account-panel";
 import { useAccountParam } from "@/components/account-panel/use-account-param";
@@ -310,7 +311,9 @@ export function HistoryView({ stats }: HistoryViewProps) {
       github_context: r.signals ? formatSignal(r.signals.github) : "",
       scored_at: new Date(r.created_at).toISOString(),
     }));
-    triggerDownload(toCSV(columns, csvRows), csvFilename("vesperwise-history"));
+    void downloadAuthorizedCsv(csvFilename("vesperwise-history"), columns, csvRows).catch((error: Error) => {
+      toast.error(error.message);
+    });
   }
 
   const maxBucketTotal = Math.max(...stats.activityData.map(b => b.hot + b.warm + b.cold), 1);
