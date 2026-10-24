@@ -1,11 +1,12 @@
+import { isGrantedPlan } from "@/lib/billing-plans";
 import { lowCreditCta } from "@/lib/plan-features";
 import type { DbUser } from "@/lib/types";
 
 /** Warn once this share of the plan allowance has been used. */
 export const LOW_CREDIT_USED_PCT = 80;
 
-/** Absolute threshold below which low credit warning always appears, regardless of plan. */
-export const LOW_CREDIT_ABSOLUTE_THRESHOLD = 20;
+/** Absolute threshold for granted plans (they shouldn't see low credits at high balances). */
+export const GRANTED_LOW_CREDIT_THRESHOLD = 100;
 
 /** @deprecated Remaining-balance form of the same threshold. Prefer LOW_CREDIT_USED_PCT. */
 export const LOW_CREDIT_PCT = 100 - LOW_CREDIT_USED_PCT;
@@ -14,6 +15,7 @@ export interface CreditStatusInput {
   creditsRemaining: number;
   creditCap: number;
   plan: DbUser["plan"];
+  polarSubscriptionId?: string | null;
 }
 
 export interface CreditStatus {
@@ -41,11 +43,15 @@ export function getCreditStatus({
   creditsRemaining,
   creditCap,
   plan,
+  polarSubscriptionId,
 }: CreditStatusInput): CreditStatus {
   const pct = creditPercent(creditsRemaining, creditCap);
   const usedPct = allowanceUsedPercent(creditsRemaining, creditCap);
 
-  const isLow = creditsRemaining < LOW_CREDIT_ABSOLUTE_THRESHOLD || usedPct >= LOW_CREDIT_USED_PCT;
+  const granted = isGrantedPlan(plan, polarSubscriptionId);
+  const isLow = granted
+    ? creditsRemaining < GRANTED_LOW_CREDIT_THRESHOLD
+    : usedPct >= LOW_CREDIT_USED_PCT;
 
   return {
     pct,

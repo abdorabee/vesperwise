@@ -8,7 +8,7 @@ import {
   retryStoredBulkWebhook,
   sweepStaleBulkJobs,
 } from "@/lib/bulk-job-runner";
-import { type BulkCompanyInput, type BulkScoredRow } from "@/lib/bulk-job";
+import { bulkScoreIdempotencyKey, type BulkCompanyInput, type BulkScoredRow } from "@/lib/bulk-job";
 import { canUseFeature, featureDeniedMessage, parsePlan, requiredPlanFor } from "@/lib/plan-features";
 import { redactPublicSources } from "@/lib/public-source";
 import { domainToCompanyName, scoreCompany } from "@/lib/score-service";
@@ -108,7 +108,7 @@ export async function POST(req: NextRequest) {
   }
 
   const businessProfile = (user?.business_profile as BusinessProfile | null) ?? null;
-  const score = async (company: BulkCompanyInput, index: number, idempotencyKey: string): Promise<BulkScoredRow> => {
+  const score = async (company: BulkCompanyInput, index: number): Promise<BulkScoredRow> => {
     const rawDomain = (company.domain ?? "").trim();
     const rawName = (company.name ?? "").trim();
     const domain = rawDomain || `${rawName.toLowerCase().replace(/\s+/g, "")}.com`;
@@ -118,8 +118,7 @@ export async function POST(req: NextRequest) {
       companyName: rawName || domainToCompanyName(domain),
       productCategory: user?.product_category ?? "B2B SaaS",
       businessProfile,
-      skipCredits: false,
-      idempotencyKey,
+      idempotencyKey: bulkScoreIdempotencyKey(job.id, index),
     });
     return {
       domain: result.domain,
@@ -131,9 +130,7 @@ export async function POST(req: NextRequest) {
     };
   };
 
-  const advanced = await advanceStoredBulkJob(supabase, job, (company, index, idempotencyKey) =>
-    score(company, index, idempotencyKey),
-  );
+  const advanced = await advanceStoredBulkJob(supabase, job, score);
   return NextResponse.json({
     job_id: job.id,
     status: advanced.status,
@@ -176,7 +173,7 @@ export async function GET(req: NextRequest) {
       .eq("id", userId)
       .single();
     const businessProfile = (user?.business_profile as BusinessProfile | null) ?? null;
-    const advanced = await advanceStoredBulkJob(supabase, job, async (company, index, idempotencyKey) => {
+    const advanced = await advanceStoredBulkJob(supabase, job, async (company, index) => {
       const rawDomain = (company.domain ?? "").trim();
       const rawName = (company.name ?? "").trim();
       const domain = rawDomain || `${rawName.toLowerCase().replace(/\s+/g, "")}.com`;
@@ -186,8 +183,7 @@ export async function GET(req: NextRequest) {
         companyName: rawName || domainToCompanyName(domain),
         productCategory: user?.product_category ?? "B2B SaaS",
         businessProfile,
-        skipCredits: false,
-        idempotencyKey,
+        idempotencyKey: bulkScoreIdempotencyKey(job.id, index),
       });
       return {
         domain: result.domain,

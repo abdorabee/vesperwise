@@ -18,7 +18,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const admin = createSupabaseAdmin();
   const { data: profile } = await admin
     .from("users")
-    .select("credits_remaining, onboarding_completed, plan, workspace_name, business_profile")
+    .select("credits_remaining, onboarding_completed, plan, workspace_name, business_profile, polar_subscription_id")
     .eq("id", userId)
     .maybeSingle();
 
@@ -27,6 +27,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const creditsRemaining = profile.credits_remaining ?? 0;
   const onboardingCompleted = profile.onboarding_completed ?? false;
   const plan = parsePlan(profile.plan);
+  const polarSubscriptionId = profile.polar_subscription_id;
 
   const onboardingRedirect = getOnboardingRedirect(onboardingCompleted, "dashboard");
   if (onboardingRedirect) redirect(onboardingRedirect);
@@ -50,6 +51,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     <DashboardShell
       creditsRemaining={creditsRemaining}
       plan={plan}
+      polarSubscriptionId={polarSubscriptionId}
       workspaceName={storedWorkspaceName(profile)}
       watchlistCount={watchlistCount ?? 0}
       pipelineHotCount={pipelineHotCount ?? 0}

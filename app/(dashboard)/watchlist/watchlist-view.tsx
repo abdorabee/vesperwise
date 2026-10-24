@@ -42,8 +42,6 @@ export function WatchlistView({ initial }: WatchlistViewProps) {
   const [showAll, setShowAll] = useState(false);
   const [adding, setAdding] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
-  // Removals wait out the undo window before the DELETE is sent.
-  const pendingRemovals = useRef(new Map<string, number>());
 
   useEffect(() => {
     setEntries(initial.entries);
@@ -55,18 +53,6 @@ export function WatchlistView({ initial }: WatchlistViewProps) {
     const q = searchParams.get("q")?.trim();
     if (q) setQuery(q);
   }, [searchParams]);
-
-  useEffect(() => {
-    const pending = pendingRemovals.current;
-    return () => {
-      // Leaving the page commits any removal still inside its undo window.
-      for (const [domain, timer] of pending) {
-        window.clearTimeout(timer);
-        void fetch(`/api/dashboard/watchlist?domain=${encodeURIComponent(domain)}`, { method: "DELETE", keepalive: true });
-      }
-      pending.clear();
-    };
-  }, []);
 
   useEffect(() => {
     function onFocusAdd() {
@@ -126,7 +112,7 @@ export function WatchlistView({ initial }: WatchlistViewProps) {
   function handleRemove(domain: string) {
     const index = entries.findIndex((entry) => entry.domain === domain);
     const entry = entries[index];
-    if (!entry || pendingRemovals.current.has(domain)) return;
+    if (!entry) return;
 
     setEntries((prev) => prev.filter((item) => item.domain !== domain));
     setSelected((prev) => {
@@ -147,28 +133,30 @@ export function WatchlistView({ initial }: WatchlistViewProps) {
       adjustCounts(domain, 1);
     };
 
-    const timer = window.setTimeout(async () => {
-      pendingRemovals.current.delete(domain);
-      try {
-        const res = await fetch(`/api/dashboard/watchlist?domain=${encodeURIComponent(domain)}`, { method: "DELETE" });
-        if (!res.ok) throw new Error("remove failed");
-      } catch {
-        restore();
-        toast.error(`Couldn't remove ${entry.company_name}. It's back on your watchlist.`);
-      }
-    }, 5000);
-    pendingRemovals.current.set(domain, timer);
+    // Send DELETE immediately
+    void fetch(`/api/dashboard/watchlist?domain=${encodeURIComponent(domain)}`, {
+      method: "DELETE",
+      keepalive: true,
+    }).catch((err) => {
+      console.error("[watchlist] remove failed", err);
+      restore();
+      toast.error(`Couldn't remove ${entry.company_name}. It's back on your watchlist.`);
+    });
 
     toast(`Removed ${entry.company_name}`, {
       duration: 5000,
       action: {
         label: "Undo",
         onClick: () => {
-          const pending = pendingRemovals.current.get(domain);
-          if (pending === undefined) return;
-          window.clearTimeout(pending);
-          pendingRemovals.current.delete(domain);
-          restore();
+          // Re-add via POST
+          void fetch("/api/dashboard/watchlist", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ domain, company_name: entry.company_name }),
+            keepalive: true,
+          })
+            .then(() => router.refresh())
+            .catch(() => toast.error("Failed to undo removal"));
         },
       },
     });

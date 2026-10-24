@@ -5,6 +5,12 @@ import { createSupabaseAdmin } from "@/lib/supabase";
 import { redactPublicSources } from "@/lib/public-source";
 import { canUseFeature, featureDeniedMessage, parsePlan, requiredPlanFor } from "@/lib/plan-features";
 import { scoreCompany, domainToCompanyName, InsufficientCreditsError } from "@/lib/score-service";
+import { cacheGet } from "@/lib/cache";
+import { scoreResultCacheKey } from "@/lib/score-service";
+import { getProfileHash } from "@/lib/business-profile";
+import { getActiveScoringVersion } from "@/lib/scoring-version";
+import { isDevCreditBypassEnabled } from "@/lib/dev-credit-bypass";
+import { randomUUID } from "crypto";
 
 const MAX_ROWS = 50;
 
@@ -45,13 +51,11 @@ export async function POST(req: NextRequest) {
   }
 
   // ── Seller profile ────────────────────────────────────────────────────────
-  // Individual score runs reserve credits atomically. Avoid pre-charging or
-  // requiring one credit per CSV row because personalized cache hits are free.
-  const skipCredits = process.env.DISABLE_CREDIT_CHECK === "true";
+  const skipCredits = isDevCreditBypassEnabled();
   const supabase = createSupabaseAdmin();
   const { data: user } = await supabase
     .from("users")
-    .select("plan, product_category, business_profile")
+    .select("plan, product_category, business_profile, credits_remaining")
     .eq("id", userId)
     .single();
   if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
@@ -64,6 +68,40 @@ export async function POST(req: NextRequest) {
     );
   }
   const businessProfile = (user.business_profile as import("@/lib/types").BusinessProfile) ?? null;
+
+  // ── Cost estimate: check cache to estimate fresh vs cached ─────────────────
+  const batchId = randomUUID();
+  const scoringVersion = getActiveScoringVersion();
+  const profileHash = getProfileHash(
+    user.product_category ?? "B2B SaaS",
+    businessProfile,
+  );
+
+  let estimatedFresh = 0;
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    const rawDomain = (row.domain ?? "").trim();
+    const rawCompany = (row.company ?? "").trim();
+    const domain = rawDomain || `${rawCompany.toLowerCase().replace(/\s+/g, "")}.com`;
+    
+    const cacheKey = scoreResultCacheKey(userId, domain, profileHash, scoringVersion);
+    const cached = await cacheGet(cacheKey);
+    if (!cached) estimatedFresh += 1;
+  }
+
+  const creditsRemaining = user.credits_remaining ?? 0;
+  if (!skipCredits && estimatedFresh > creditsRemaining) {
+    return NextResponse.json(
+      {
+        error: "Insufficient credits",
+        estimated_fresh: estimatedFresh,
+        credits_needed: estimatedFresh,
+        credits_remaining: creditsRemaining,
+        total_rows: rows.length,
+      },
+      { status: 402 },
+    );
+  }
 
   // ── Score each company sequentially ────────────────────────────────────────
   const results: Array<{
@@ -105,6 +143,7 @@ export async function POST(req: NextRequest) {
         productCategory: user.product_category ?? "B2B SaaS",
         businessProfile,
         skipCredits,
+        idempotencyKey: `bulk-inline:${userId}:${batchId}:${i}`,
       });
 
       if (
