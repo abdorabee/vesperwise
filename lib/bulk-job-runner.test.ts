@@ -1,5 +1,6 @@
+import https from "node:https";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { freshBulkState, type BulkScoredRow } from "@/lib/bulk-job";
+import { freshBulkState, type BulkCompanyInput, type BulkScoredRow } from "@/lib/bulk-job";
 import { advanceStoredBulkJob } from "@/lib/bulk-job-runner";
 
 vi.mock("node:dns/promises", () => ({
@@ -17,13 +18,13 @@ function scored(domain: string): BulkScoredRow {
   };
 }
 
-function leaseAdmin(jobId: string) {
+function leaseAdmin(jobId: string, companies: BulkCompanyInput[] = [{ domain: "acme.com" }, { domain: "beta.com" }]) {
   const job = {
     id: jobId,
     status: "processing",
     created_at: new Date().toISOString(),
     webhook_url: "https://example.com/hook",
-    results: freshBulkState([{ domain: "acme.com" }, { domain: "beta.com" }]),
+    results: freshBulkState(companies),
     lease_token: null as string | null,
     lease_until: null as string | null,
     webhook_sent_at: null as string | null,
@@ -81,13 +82,34 @@ function leaseAdmin(jobId: string) {
 
 describe("bulk job lease", () => {
   afterEach(() => {
+    vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
 
+  function silenceHttps() {
+    return vi.spyOn(https, "request").mockImplementation(((...args: unknown[]) => {
+      const callback = args[1] as (res: { statusCode?: number; resume: () => void; on: (event: string, fn: () => void) => unknown }) => void;
+      const res = {
+        statusCode: 204,
+        resume() {},
+        on(event: string, fn: () => void) {
+          if (event === "end") queueMicrotask(fn);
+          return res;
+        },
+      };
+      queueMicrotask(() => callback(res));
+      return {
+        end() {},
+        destroy() { return this; },
+        on() { return this; },
+        setTimeout() { return this; },
+      };
+    }) as unknown as typeof https.request);
+  }
+
   it("lets only one of two overlapping polls score and send the webhook", async () => {
     const admin = leaseAdmin("job-1");
-    const fetchMock = vi.fn(async () => new Response("ok"));
-    vi.stubGlobal("fetch", fetchMock);
+    const httpsMock = silenceHttps();
     const seen = new Set<string>();
 
     const score = async (_company: { domain?: string }, _index: number, key: string) => {
@@ -106,8 +128,50 @@ describe("bulk job lease", () => {
     expect(claimed).toHaveLength(1);
     expect(seen.size).toBe(2);
     expect([...seen].sort()).toEqual(["bulk:job-1:0", "bulk:job-1:1"]);
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(httpsMock).toHaveBeenCalledTimes(1);
     expect(admin.job.webhook_sent_at).toBeTruthy();
     expect(admin.job.status).toBe("completed");
+  });
+
+  it("lets the next poll claim as soon as a window finishes, and rejects a poll during it", async () => {
+    const companies = Array.from({ length: 21 }, (_, index) => ({ domain: `c${index}.example` }));
+    const admin = leaseAdmin("job-2", companies);
+    silenceHttps();
+    let releaseFirst: () => void = () => {};
+    const gate = new Promise<void>((resolve) => {
+      releaseFirst = resolve;
+    });
+    const keys: string[] = [];
+    let entered = 0;
+
+    const score = async (_company: BulkCompanyInput, _index: number, key: string) => {
+      entered += 1;
+      if (entered === 1) await gate;
+      if (keys.includes(key)) throw new Error(`double debit ${key}`);
+      keys.push(key);
+      return scored(key);
+    };
+
+    const running = advanceStoredBulkJob(admin as never, admin.job, score, 40);
+    await vi.waitUntil(() => entered === 1);
+    const during = await advanceStoredBulkJob(admin as never, admin.job, score, 5_000);
+    expect(during.claimed).toBe(false);
+    expect(keys).toEqual([]);
+
+    await new Promise((resolve) => setTimeout(resolve, 80));
+    releaseFirst();
+    const first = await running;
+
+    expect(first.claimed).toBe(true);
+    expect(first.status).toBe("processing");
+    expect(admin.job.lease_until).toBeNull();
+    expect(admin.job.lease_token).toBeNull();
+    expect(keys).toHaveLength(20);
+
+    const next = await advanceStoredBulkJob(admin as never, admin.job, score, 5_000);
+    expect(next.claimed).toBe(true);
+    expect(next.status).toBe("completed");
+    expect(keys).toHaveLength(21);
+    expect(new Set(keys).size).toBe(21);
   });
 });

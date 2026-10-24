@@ -133,9 +133,18 @@ export async function advanceStoredBulkJob(
   }
 
   const status = bulkJobStatus(next);
+  // Drop the lease when this window is done but companies remain, so the next
+  // poll can claim immediately. A poll that arrives while this window still
+  // holds the lease loses the atomic claim and does not score.
+  const releaseLease = status === "processing";
   const { data: saved, error: updateError } = await supabase
     .from("bulk_jobs")
-    .update({ status, completed: next.scored.length, results: next })
+    .update({
+      status,
+      completed: next.scored.length,
+      results: next,
+      ...(releaseLease ? { lease_token: null, lease_until: null } : {}),
+    })
     .eq("id", job.id)
     .eq("lease_token", token)
     .select("id")

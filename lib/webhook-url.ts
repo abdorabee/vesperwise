@@ -1,4 +1,5 @@
 import { lookup } from "node:dns/promises";
+import https from "node:https";
 import { isIP } from "node:net";
 
 const MAX_WEBHOOK_BODY_BYTES = 64 * 1024;
@@ -45,13 +46,74 @@ function isInternalV4(address: string): boolean {
   return false;
 }
 
+function ipv4FromHextets(hi: number, lo: number): string {
+  return `${hi >> 8}.${hi & 255}.${lo >> 8}.${lo & 255}`;
+}
+
+/** Expand an IPv6 address, including dotted IPv4 tails, into eight hextets. */
+function parseIpv6Hextets(address: string): number[] | null {
+  let input = address.toLowerCase().split("%")[0];
+  if (input.startsWith("[") && input.endsWith("]")) input = input.slice(1, -1);
+  let ipv4Tail: [number, number] | null = null;
+  if (input.includes(".")) {
+    const lastColon = input.lastIndexOf(":");
+    const parts = input.slice(lastColon + 1).split(".").map((part) => Number(part));
+    if (parts.length !== 4 || parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) {
+      return null;
+    }
+    const packed = ((parts[0] << 8) | parts[1]) * 65536 + ((parts[2] << 8) | parts[3]);
+    ipv4Tail = [(packed >>> 16) & 0xffff, packed & 0xffff];
+    input = input.slice(0, lastColon + 1);
+  }
+  const halves = input.split("::");
+  if (halves.length > 2) return null;
+  const parseSide = (side: string): number[] => {
+    if (!side) return [];
+    return side.split(":").filter((part) => part.length > 0).map((part) => {
+      if (!/^[0-9a-f]{1,4}$/.test(part)) throw new Error("bad hextet");
+      return parseInt(part, 16);
+    });
+  };
+  try {
+    const left = parseSide(halves[0] ?? "");
+    const right = halves.length === 2 ? parseSide(halves[1] ?? "") : [];
+    const tail = ipv4Tail ? [...ipv4Tail] : [];
+    const pieces = [...left, ...right, ...tail];
+    if (halves.length === 1) return pieces.length === 8 ? pieces : null;
+    const missing = 8 - pieces.length;
+    if (missing < 0) return null;
+    return [...left, ...Array(missing).fill(0), ...right, ...tail];
+  } catch {
+    return null;
+  }
+}
+
+function embeddedIpv4(hextets: number[]): string | null {
+  const zeros = (start: number, end: number) => hextets.slice(start, end).every((part) => part === 0);
+  // IPv4-mapped ::ffff:0:0/96, including the uncompressed 0:0:0:0:0:ffff:a.b.c.d form.
+  if (zeros(0, 5) && hextets[5] === 0xffff) return ipv4FromHextets(hextets[6], hextets[7]);
+  // Deprecated IPv4-compatible ::/96. :: and ::1 are handled as IPv6 themselves.
+  if (zeros(0, 6) && !(hextets[6] === 0 && hextets[7] <= 1)) {
+    return ipv4FromHextets(hextets[6], hextets[7]);
+  }
+  // NAT64 well-known prefix 64:ff9b::/96 and local prefix 64:ff9b:1::/48.
+  if (hextets[0] === 0x64 && hextets[1] === 0xff9b && zeros(2, 6)) {
+    return ipv4FromHextets(hextets[6], hextets[7]);
+  }
+  if (hextets[0] === 0x64 && hextets[1] === 0xff9b && hextets[2] === 1) {
+    return ipv4FromHextets(hextets[6], hextets[7]);
+  }
+  return null;
+}
+
 function isInternalV6(address: string): boolean {
-  const lower = address.toLowerCase().split("%")[0];
-  if (lower === "::" || lower === "::1") return true;
-  const mapped = lower.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/);
-  if (mapped) return isInternalV4(mapped[1]);
-  const first = parseInt(lower.split(":")[0] || "0", 16);
-  if (!Number.isFinite(first)) return true;
+  const hextets = parseIpv6Hextets(address);
+  if (!hextets) return true;
+  if (hextets.every((part) => part === 0)) return true;
+  if (hextets.slice(0, 7).every((part) => part === 0) && hextets[7] === 1) return true;
+  const embedded = embeddedIpv4(hextets);
+  if (embedded) return isInternalV4(embedded);
+  const first = hextets[0];
   if (first >= 0xfc00 && first <= 0xfdff) return true;
   if (first >= 0xfe80 && first <= 0xfebf) return true;
   if (first >= 0xff00) return true;
@@ -65,27 +127,87 @@ function blockedHostname(hostname: string): boolean {
   return false;
 }
 
-/** Returns an error string when the URL must not be called. */
-export async function webhookUrlError(raw: string, resolve: DnsLookup = publicDnsLookup): Promise<string | null> {
+export interface ResolvedWebhook {
+  url: URL;
+  address: string;
+}
+
+/** Resolve and classify a webhook URL. Callers must connect to `address`, not look the name up again. */
+export async function resolvePublicWebhook(
+  raw: string,
+  resolve: DnsLookup = publicDnsLookup,
+): Promise<ResolvedWebhook | { error: string }> {
   let url: URL;
   try {
     url = new URL(raw);
   } catch {
-    return "webhook_url is not a valid URL";
+    return { error: "webhook_url is not a valid URL" };
   }
-  if (url.username || url.password) return "webhook_url must not include credentials";
-  if (url.protocol !== "https:") return "webhook_url must use https";
-  if (!url.hostname || blockedHostname(url.hostname)) return "webhook_url host is not allowed";
+  if (url.username || url.password) return { error: "webhook_url must not include credentials" };
+  if (url.protocol !== "https:") return { error: "webhook_url must use https" };
+  if (!url.hostname || blockedHostname(url.hostname)) return { error: "webhook_url host is not allowed" };
   let addresses: string[];
   try {
     addresses = await resolve(url.hostname);
   } catch {
-    return "webhook_url host could not be resolved";
+    return { error: "webhook_url host could not be resolved" };
   }
   if (addresses.length === 0 || addresses.some((address) => isInternalAddress(address))) {
-    return "webhook_url host is not public";
+    return { error: "webhook_url host is not public" };
   }
-  return null;
+  return { url, address: addresses[0] };
+}
+
+/** Returns an error string when the URL must not be called. */
+export async function webhookUrlError(raw: string, resolve: DnsLookup = publicDnsLookup): Promise<string | null> {
+  const resolved = await resolvePublicWebhook(raw, resolve);
+  return "error" in resolved ? resolved.error : null;
+}
+
+function pinnedPost(url: URL, address: string, body: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const port = url.port ? Number(url.port) : 443;
+    const hostHeader = url.port ? `${url.hostname}:${url.port}` : url.hostname;
+    const req = https.request({
+      host: address,
+      port,
+      servername: url.hostname,
+      method: "POST",
+      path: `${url.pathname}${url.search}`,
+      headers: {
+        host: hostHeader,
+        "content-type": "application/json",
+        "content-length": Buffer.byteLength(body),
+      },
+      timeout: WEBHOOK_TIMEOUT_MS,
+    }, (res) => {
+      const status = res.statusCode ?? 0;
+      if (status >= 300 && status < 400) {
+        res.resume();
+        resolve();
+        return;
+      }
+      let received = 0;
+      res.on("data", (chunk: Buffer) => {
+        received += chunk.length;
+        if (received > MAX_WEBHOOK_BODY_BYTES) req.destroy();
+      });
+      res.on("end", () => resolve());
+      res.on("error", () => resolve());
+    });
+    req.on("timeout", () => {
+      req.destroy();
+      resolve();
+    });
+    req.on("error", (error) => {
+      if (req.destroyed) {
+        resolve();
+        return;
+      }
+      reject(error);
+    });
+    req.end(body);
+  });
 }
 
 export async function postBulkWebhook(
@@ -93,28 +215,11 @@ export async function postBulkWebhook(
   payload: unknown,
   resolve: DnsLookup = publicDnsLookup,
 ): Promise<void> {
-  const reason = await webhookUrlError(url, resolve);
-  if (reason) {
-    console.warn(`[bulk] webhook skipped: ${reason}`);
+  const resolved = await resolvePublicWebhook(url, resolve);
+  if ("error" in resolved) {
+    console.warn(`[bulk] webhook skipped: ${resolved.error}`);
     return;
   }
-  const response = await fetch(url, {
-    method: "POST",
-    redirect: "manual",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(payload),
-    signal: AbortSignal.timeout(WEBHOOK_TIMEOUT_MS),
-  });
-  if (!response.body) return;
-  const reader = response.body.getReader();
-  let received = 0;
-  try {
-    while (received <= MAX_WEBHOOK_BODY_BYTES) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      received += value?.byteLength ?? 0;
-    }
-  } finally {
-    await reader.cancel().catch(() => undefined);
-  }
+  // Connect to the address from this validation. Node must not resolve the name again.
+  await pinnedPost(resolved.url, resolved.address, JSON.stringify(payload));
 }
