@@ -3,7 +3,23 @@ import https from "node:https";
 import { isIP } from "node:net";
 
 const MAX_WEBHOOK_BODY_BYTES = 64 * 1024;
-const WEBHOOK_TIMEOUT_MS = 3_000;
+export const WEBHOOK_DEADLINE_MS = 5_000;
+export const WEBHOOK_CONNECT_TIMEOUT_MS = 2_000;
+
+export class WebhookDeliveryError extends Error {
+  readonly permanent: boolean;
+
+  constructor(message: string, permanent: boolean) {
+    super(message);
+    this.name = "WebhookDeliveryError";
+    this.permanent = permanent;
+  }
+}
+
+export interface WebhookSendOptions {
+  deadlineMs?: number;
+  connectTimeoutMs?: number;
+}
 
 const BLOCKED_HOSTS = new Set([
   "localhost",
@@ -129,33 +145,34 @@ function blockedHostname(hostname: string): boolean {
 
 export interface ResolvedWebhook {
   url: URL;
-  address: string;
+  addresses: string[];
 }
 
 /** Resolve and classify a webhook URL. Callers must connect to `address`, not look the name up again. */
 export async function resolvePublicWebhook(
   raw: string,
   resolve: DnsLookup = publicDnsLookup,
-): Promise<ResolvedWebhook | { error: string }> {
+): Promise<ResolvedWebhook | { error: string; permanent: boolean }> {
   let url: URL;
   try {
     url = new URL(raw);
   } catch {
-    return { error: "webhook_url is not a valid URL" };
+    return { error: "webhook_url is not a valid URL", permanent: true };
   }
-  if (url.username || url.password) return { error: "webhook_url must not include credentials" };
-  if (url.protocol !== "https:") return { error: "webhook_url must use https" };
-  if (!url.hostname || blockedHostname(url.hostname)) return { error: "webhook_url host is not allowed" };
+  if (url.username || url.password) return { error: "webhook_url must not include credentials", permanent: true };
+  if (url.protocol !== "https:") return { error: "webhook_url must use https", permanent: true };
+  if (!url.hostname || blockedHostname(url.hostname)) return { error: "webhook_url host is not allowed", permanent: true };
   let addresses: string[];
   try {
     addresses = await resolve(url.hostname);
-  } catch {
-    return { error: "webhook_url host could not be resolved" };
+  } catch (error) {
+    if (error instanceof WebhookDeliveryError) throw error;
+    return { error: "webhook_url host could not be resolved", permanent: false };
   }
   if (addresses.length === 0 || addresses.some((address) => isInternalAddress(address))) {
-    return { error: "webhook_url host is not public" };
+    return { error: "webhook_url host is not public", permanent: true };
   }
-  return { url, address: addresses[0] };
+  return { url, addresses };
 }
 
 /** Returns an error string when the URL must not be called. */
@@ -164,13 +181,77 @@ export async function webhookUrlError(raw: string, resolve: DnsLookup = publicDn
   return "error" in resolved ? resolved.error : null;
 }
 
-function pinnedPost(url: URL, address: string, body: string): Promise<void> {
+function deadlineError(): WebhookDeliveryError {
+  return new WebhookDeliveryError("webhook deadline exceeded", false);
+}
+
+function lookupWithinDeadline(resolve: DnsLookup, hostname: string, signal: AbortSignal): Promise<string[]> {
+  return new Promise((resolveAddresses, rejectAddresses) => {
+    let settled = false;
+    const finish = (fn: () => void) => {
+      if (settled) return;
+      settled = true;
+      signal.removeEventListener("abort", onAbort);
+      fn();
+    };
+    const onAbort = () => finish(() => rejectAddresses(deadlineError()));
+    if (signal.aborted) {
+      rejectAddresses(deadlineError());
+      return;
+    }
+    signal.addEventListener("abort", onAbort);
+    Promise.resolve()
+      .then(() => resolve(hostname))
+      .then(
+        (addresses) => finish(() => resolveAddresses(addresses)),
+        (error: unknown) => finish(() => {
+          rejectAddresses(error instanceof Error ? error : new Error(String(error)));
+        }),
+      );
+  });
+}
+
+function pinnedPost(
+  url: URL,
+  address: string,
+  body: string,
+  signal: AbortSignal,
+  connectTimeoutMs: number,
+  deadlineMs: number,
+): Promise<void> {
   return new Promise((resolve, reject) => {
+    let settled = false;
     const port = url.port ? Number(url.port) : 443;
     const hostHeader = url.port ? `${url.hostname}:${url.port}` : url.hostname;
+    const family = isIP(address);
+
+    const detach = () => {
+      clearTimeout(connectTimer);
+      signal.removeEventListener("abort", onAbort);
+    };
+    const fail = (error: Error) => {
+      if (settled) return;
+      settled = true;
+      detach();
+      req.destroy();
+      reject(error);
+    };
+    const succeed = () => {
+      if (settled) return;
+      settled = true;
+      detach();
+      resolve();
+    };
+    const onAbort = () => fail(deadlineError());
+    const connectTimer = setTimeout(() => {
+      fail(new WebhookDeliveryError("webhook connect timeout", false));
+    }, connectTimeoutMs);
+    connectTimer.unref?.();
+
     const req = https.request({
       host: address,
       port,
+      family: family === 4 || family === 6 ? family : undefined,
       servername: url.hostname,
       method: "POST",
       path: `${url.pathname}${url.search}`,
@@ -179,32 +260,54 @@ function pinnedPost(url: URL, address: string, body: string): Promise<void> {
         "content-type": "application/json",
         "content-length": Buffer.byteLength(body),
       },
-      timeout: WEBHOOK_TIMEOUT_MS,
+      timeout: deadlineMs,
+      signal,
+      lookup: (_hostname, options, callback) => {
+        const done = typeof options === "function" ? options : callback;
+        if (!done) return;
+        done(null, address, family || 4);
+      },
     }, (res) => {
+      clearTimeout(connectTimer);
       const status = res.statusCode ?? 0;
       if (status >= 300 && status < 400) {
-        res.resume();
-        resolve();
+        succeed();
+        res.destroy();
+        req.destroy();
         return;
       }
       let received = 0;
-      res.on("data", (chunk: Buffer) => {
-        received += chunk.length;
-        if (received > MAX_WEBHOOK_BODY_BYTES) req.destroy();
+      res.on("data", (chunk: Buffer | string) => {
+        if (settled) return;
+        received += typeof chunk === "string" ? Buffer.byteLength(chunk) : chunk.length;
+        if (received > MAX_WEBHOOK_BODY_BYTES) {
+          succeed();
+          res.destroy();
+          req.destroy();
+        }
       });
-      res.on("end", () => resolve());
-      res.on("error", () => resolve());
+      res.on("end", () => succeed());
+      res.on("error", () => succeed());
     });
-    req.on("timeout", () => {
-      req.destroy();
-      resolve();
+
+    if (signal.aborted) {
+      fail(deadlineError());
+      return;
+    }
+    signal.addEventListener("abort", onAbort);
+
+    req.on("socket", (socket) => {
+      socket.on("secureConnect", () => clearTimeout(connectTimer));
+      socket.on("connect", () => clearTimeout(connectTimer));
     });
+    req.on("timeout", () => fail(new WebhookDeliveryError("webhook socket timeout", false)));
     req.on("error", (error) => {
-      if (req.destroyed) {
-        resolve();
+      if (settled) return;
+      if (signal.aborted) {
+        fail(deadlineError());
         return;
       }
-      reject(error);
+      fail(error instanceof WebhookDeliveryError ? error : new WebhookDeliveryError(error.message, false));
     });
     req.end(body);
   });
@@ -214,12 +317,34 @@ export async function postBulkWebhook(
   url: string,
   payload: unknown,
   resolve: DnsLookup = publicDnsLookup,
+  options: WebhookSendOptions = {},
 ): Promise<void> {
-  const resolved = await resolvePublicWebhook(url, resolve);
-  if ("error" in resolved) {
-    console.warn(`[bulk] webhook skipped: ${resolved.error}`);
-    return;
+  const deadlineMs = options.deadlineMs ?? WEBHOOK_DEADLINE_MS;
+  const connectTimeoutMs = options.connectTimeoutMs ?? WEBHOOK_CONNECT_TIMEOUT_MS;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), deadlineMs);
+  timer.unref?.();
+  try {
+    const resolved = await resolvePublicWebhook(url, (hostname) =>
+      lookupWithinDeadline(resolve, hostname, controller.signal),
+    );
+    if ("error" in resolved) {
+      throw new WebhookDeliveryError(resolved.error, resolved.permanent);
+    }
+    const body = JSON.stringify(payload);
+    let lastError: Error | undefined;
+    for (const address of resolved.addresses) {
+      if (controller.signal.aborted) break;
+      try {
+        await pinnedPost(resolved.url, address, body, controller.signal, connectTimeoutMs, deadlineMs);
+        return;
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+        if (controller.signal.aborted) break;
+      }
+    }
+    throw lastError ?? deadlineError();
+  } finally {
+    clearTimeout(timer);
   }
-  // Connect to the address from this validation. Node must not resolve the name again.
-  await pinnedPost(resolved.url, resolved.address, JSON.stringify(payload));
 }

@@ -35,6 +35,7 @@ vi.mock("@/lib/score-service", () => ({
 vi.mock("@/lib/bulk-job-runner", () => ({
   sweepStaleBulkJobs: vi.fn(),
   advanceStoredBulkJob: vi.fn(),
+  retryStoredBulkWebhook: vi.fn(),
   freshBulkState: vi.fn(),
   isBulkState: vi.fn(),
 }));

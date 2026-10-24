@@ -5,6 +5,7 @@ import {
   assertPublicWebhookUrl,
   freshBulkState,
   isBulkState,
+  retryStoredBulkWebhook,
   sweepStaleBulkJobs,
 } from "@/lib/bulk-job-runner";
 import { bulkScoreIdempotencyKey, type BulkCompanyInput, type BulkScoredRow } from "@/lib/bulk-job";
@@ -153,7 +154,8 @@ export async function GET(req: NextRequest) {
   if (authResult instanceof NextResponse) return authResult;
   const { supabase, userId } = authResult;
 
-  await sweepStaleBulkJobs(supabase);
+  const webhookAttempts = new Set<string>();
+  await sweepStaleBulkJobs(supabase, Date.now(), webhookAttempts);
 
   const { data: job } = await supabase
     .from("bulk_jobs")
@@ -201,6 +203,10 @@ export async function GET(req: NextRequest) {
       created_at: job.created_at,
       credits_remaining: await creditsRemaining(supabase, userId),
     }));
+  }
+
+  if (job.status === "completed" || job.status === "failed") {
+    await retryStoredBulkWebhook(supabase, job, webhookAttempts);
   }
 
   return NextResponse.json(redactPublicSources(job));

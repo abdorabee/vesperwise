@@ -1,6 +1,6 @@
 import { timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { sweepStaleBulkJobs } from "@/lib/bulk-job-runner";
+import { retryUnsentBulkWebhooks, sweepStaleBulkJobs } from "@/lib/bulk-job-runner";
 import { createSupabaseAdmin } from "@/lib/supabase";
 
 function isAuthorized(req: NextRequest, secret: string): boolean {
@@ -19,6 +19,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const failed = await sweepStaleBulkJobs(createSupabaseAdmin());
-  return NextResponse.json({ failed });
+  const supabase = createSupabaseAdmin();
+  const attempted = new Set<string>();
+  const failed = await sweepStaleBulkJobs(supabase, Date.now(), attempted);
+  const webhooks = await retryUnsentBulkWebhooks(supabase, 20, attempted);
+  return NextResponse.json({ failed, webhooks });
 }

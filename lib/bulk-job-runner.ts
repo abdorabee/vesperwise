@@ -12,7 +12,7 @@ import {
   type BulkScoredRow,
 } from "@/lib/bulk-job";
 import { createSupabaseAdmin } from "@/lib/supabase";
-import { postBulkWebhook, webhookUrlError } from "@/lib/webhook-url";
+import { postBulkWebhook, WebhookDeliveryError, webhookUrlError, type WebhookSendOptions } from "@/lib/webhook-url";
 
 type Admin = ReturnType<typeof createSupabaseAdmin>;
 
@@ -27,15 +27,8 @@ interface StoredJob {
 }
 
 const BULK_LEASE_SECONDS = 120;
-
-export async function notifyBulkWebhook(url: string | null, payload: unknown): Promise<void> {
-  if (!url) return;
-  try {
-    await postBulkWebhook(url, payload);
-  } catch (error) {
-    console.error("[bulk] completion webhook failed", error);
-  }
-}
+export const WEBHOOK_ATTEMPT_CAP = 3;
+const WEBHOOK_ATTEMPT_LEASE_SECONDS = 15;
 
 export async function assertPublicWebhookUrl(url: string | null | undefined): Promise<string | null> {
   if (!url) return null;
@@ -65,7 +58,126 @@ async function markWebhookSent(supabase: Admin, jobId: string): Promise<boolean>
   return data === true;
 }
 
-export async function sweepStaleBulkJobs(supabase: Admin, now = Date.now()): Promise<number> {
+function webhookPayload(job: StoredJob) {
+  const state = isBulkState(job.results) ? job.results : null;
+  return {
+    job_id: job.id,
+    status: job.status,
+    completed: state?.scored.length ?? job.completed ?? 0,
+    total: state?.companies.length ?? job.total ?? 0,
+    credits_charged: state?.credits_charged ?? 0,
+    stopped: state?.stopped ?? null,
+    partial: state?.partial ?? false,
+  };
+}
+
+async function claimWebhookAttempt(supabase: Admin, jobId: string): Promise<number | null> {
+  const { data, error } = await supabase.rpc("claim_bulk_webhook_attempt", {
+    p_job_id: jobId,
+    p_max_attempts: WEBHOOK_ATTEMPT_CAP,
+    p_lease_seconds: WEBHOOK_ATTEMPT_LEASE_SECONDS,
+  });
+  if (error) {
+    console.error("[bulk] webhook attempt claim failed", error);
+    return null;
+  }
+  return typeof data === "number" ? data : null;
+}
+
+async function releaseWebhookAttempt(supabase: Admin, jobId: string): Promise<void> {
+  const { error } = await supabase.rpc("release_bulk_webhook_attempt", { p_job_id: jobId });
+  if (error) console.error("[bulk] webhook attempt release failed", error);
+}
+
+async function giveUpExhaustedWebhook(supabase: Admin, jobId: string): Promise<boolean> {
+  const { data, error } = await supabase.rpc("give_up_bulk_webhook", {
+    p_job_id: jobId,
+    p_max_attempts: WEBHOOK_ATTEMPT_CAP,
+  });
+  if (error) {
+    console.error("[bulk] webhook give-up failed", error);
+    return false;
+  }
+  return data === true;
+}
+
+/**
+ * Send the completion callback once. Transport failures leave webhook_sent_at
+ * unset so the next poll or sweep can retry, up to WEBHOOK_ATTEMPT_CAP.
+ * The flag is set only after a successful POST, a permanent URL rejection,
+ * or a logged give-up at the cap. Callers must persist the job first.
+ */
+export async function retryStoredBulkWebhook(
+  supabase: Admin,
+  job: StoredJob,
+  attempted: Set<string> = new Set(),
+  timing?: WebhookSendOptions,
+): Promise<void> {
+  if (!job.webhook_url) return;
+  if (job.status !== "completed" && job.status !== "failed") return;
+  if (attempted.has(job.id)) return;
+  attempted.add(job.id);
+
+  try {
+    const attempt = await claimWebhookAttempt(supabase, job.id);
+    if (attempt == null) {
+      if (await giveUpExhaustedWebhook(supabase, job.id)) {
+        console.error(`[bulk] webhook give-up ${job.id}: attempt cap reached without a successful send`);
+      }
+      return;
+    }
+
+    try {
+      await postBulkWebhook(job.webhook_url, webhookPayload(job), undefined, timing);
+      const marked = await markWebhookSent(supabase, job.id);
+      if (!marked) console.error("[bulk] webhook sent but flag was not stored", job.id);
+    } catch (error) {
+      const permanent = error instanceof WebhookDeliveryError && error.permanent;
+      const message = error instanceof Error ? error.message : String(error);
+      if (permanent || attempt >= WEBHOOK_ATTEMPT_CAP) {
+        console.error(`[bulk] webhook give-up ${job.id} after ${attempt} attempt(s): ${message}`);
+        await markWebhookSent(supabase, job.id);
+        return;
+      }
+      console.error(`[bulk] webhook failed ${job.id} attempt ${attempt}/${WEBHOOK_ATTEMPT_CAP}, left unsent: ${message}`);
+      await releaseWebhookAttempt(supabase, job.id);
+    }
+  } catch (error) {
+    console.error("[bulk] webhook delivery error", job.id, error);
+  }
+}
+
+export async function retryUnsentBulkWebhooks(
+  supabase: Admin,
+  limit = 20,
+  attempted: Set<string> = new Set(),
+): Promise<number> {
+  const { data, error } = await supabase
+    .from("bulk_jobs")
+    .select("id, status, completed, total, created_at, results, webhook_url")
+    .in("status", ["completed", "failed"])
+    .is("webhook_sent_at", null)
+    .not("webhook_url", "is", null)
+    .limit(limit);
+  if (error) {
+    console.error("[bulk] webhook retry scan failed", error);
+    return 0;
+  }
+
+  let retried = 0;
+  for (const job of (data ?? []) as StoredJob[]) {
+    if (attempted.has(job.id)) continue;
+    retried += 1;
+    await retryStoredBulkWebhook(supabase, job, attempted);
+  }
+  return retried;
+}
+
+export async function sweepStaleBulkJobs(
+  supabase: Admin,
+  now = Date.now(),
+  attempted: Set<string> = new Set(),
+): Promise<number> {
   const { data, error } = await supabase
     .from("bulk_jobs")
     .select("id, status, created_at, results, webhook_url")
@@ -93,15 +205,12 @@ export async function sweepStaleBulkJobs(supabase: Admin, now = Date.now()): Pro
     }
     if (!saved) continue;
     failed += 1;
-    if (await markWebhookSent(supabase, job.id)) {
-      await notifyBulkWebhook(job.webhook_url, {
-        job_id: job.id,
-        status: "failed",
-        stopped: "stale",
-        partial: next.partial,
-        completed: next.scored.length,
-      });
-    }
+    await retryStoredBulkWebhook(supabase, {
+      ...job,
+      status: "failed",
+      completed: next.scored.length,
+      results: next,
+    }, attempted);
   }
   return failed;
 }
@@ -111,6 +220,7 @@ export async function advanceStoredBulkJob(
   job: StoredJob,
   score: (company: BulkCompanyInput, index: number, idempotencyKey: string) => Promise<BulkScoredRow>,
   budgetMs?: number,
+  timing?: WebhookSendOptions,
 ): Promise<{ status: "processing" | "completed" | "failed"; state: BulkJobState; claimed: boolean }> {
   const token = randomUUID();
   const claimed = await claimBulkJob(supabase, job.id, token);
@@ -152,18 +262,12 @@ export async function advanceStoredBulkJob(
   if (updateError) console.error("[bulk] job update failed", updateError);
 
   if (saved && status !== "processing") {
-    const shouldSend = await markWebhookSent(supabase, job.id);
-    if (shouldSend) {
-      await notifyBulkWebhook(job.webhook_url, {
-        job_id: job.id,
-        status,
-        completed: next.scored.length,
-        total: next.companies.length,
-        credits_charged: next.credits_charged,
-        stopped: next.stopped,
-        partial: next.partial,
-      });
-    }
+    await retryStoredBulkWebhook(supabase, {
+      ...job,
+      status,
+      completed: next.scored.length,
+      results: next,
+    }, new Set(), timing);
   }
   return { status, state: next, claimed: true };
 }
