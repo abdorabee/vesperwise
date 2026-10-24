@@ -2,6 +2,7 @@ import { parseCsvRecords } from "@/lib/csv-parse";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { toCSVRaw } from "@/lib/csv";
+import { canUseFeature, featureDeniedMessage, parsePlan, requiredPlanFor } from "@/lib/plan-features";
 import { canonicalizeDomain } from "@/lib/score-service";
 import { createSupabaseAdmin } from "@/lib/supabase";
 import { getActiveScoringVersion } from "@/lib/scorer";
@@ -9,6 +10,16 @@ import { getActiveScoringVersion } from "@/lib/scorer";
 export async function POST(req: NextRequest) {
   const userId = await getUserId(req);
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const supabase = createSupabaseAdmin();
+  const { data: planRow } = await supabase.from("users").select("plan").eq("id", userId).maybeSingle();
+  const plan = parsePlan(planRow?.plan);
+  if (!canUseFeature(plan, "csv")) {
+    return NextResponse.json(
+      { error: featureDeniedMessage(plan, "csv"), upgrade_to: requiredPlanFor("csv") },
+      { status: 403 },
+    );
+  }
 
   const formData = await req.formData();
   const file = formData.get("file") as File | null;
@@ -34,7 +45,6 @@ export async function POST(req: NextRequest) {
       return [];
     }
   }))];
-  const supabase = createSupabaseAdmin();
   const scoringVersion = getActiveScoringVersion();
   const { data: scoreRows, error: scoreError } = domains.length > 0
     ? await supabase

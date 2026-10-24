@@ -17,6 +17,7 @@ import {
   type WatchlistQuickAddHandle,
 } from "@/components/watchlist/watchlist-quick-add";
 
+import { useFeatureGuard } from "@/components/dashboard/workspace-state";
 import { WATCHLIST_FOCUS_ADD_EVENT } from "@/lib/watchlist-events";
 
 interface WatchlistViewProps {
@@ -174,7 +175,10 @@ export function WatchlistView({ initial }: WatchlistViewProps) {
     });
   }
 
+  const guardCsv = useFeatureGuard("csv");
+
   function handleExport() {
+    if (guardCsv()) return;
     const csv = toCSV(
       [
         { key: "company", label: "Company" },

@@ -189,7 +189,7 @@ export interface DbUser {
   polar_subscription_id: string | null;
   subscription_renews_at: string | null;
   subscription_cancel_at_period_end: boolean;
-  plan: "free" | "starter" | "growth" | "pro" | "agency";
+  plan: "free" | "starter" | "plus" | "growth" | "pro" | "agency";
   credits_remaining: number;
   /** Portion of credits_remaining bought as one-time top-ups; survives renewals. */
   topup_credits: number;
@@ -423,15 +423,17 @@ export interface ApolloPersonData {
 
 export const PLAN_CREDITS: Record<DbUser["plan"], number> = {
   free: 20,
-  starter: 500,
-  growth: 2500,
-  pro: 8000,
+  starter: 100,
+  plus: 400,
+  growth: 1200,
+  pro: 3000,
   agency: 25000,
 };
 
 export const PLAN_WATCHLIST_LIMIT: Record<DbUser["plan"], number | null> = {
   free: 5,
-  starter: 50,
+  starter: 25,
+  plus: 75,
   growth: 250,
   pro: 1000,
   agency: null, // unlimited
@@ -439,7 +441,8 @@ export const PLAN_WATCHLIST_LIMIT: Record<DbUser["plan"], number | null> = {
 
 export const PLAN_RATE_LIMIT: Record<DbUser["plan"], number> = {
   free: 10,
-  starter: 100,
+  starter: 20,
+  plus: 60,
   growth: 100,
   pro: 100,
   agency: 100,
@@ -526,8 +529,9 @@ export interface DbAutopilotAction {
 }
 
 export const PLAN_AUTOPILOT_LIMIT: Record<DbUser["plan"], number | null> = {
-  free: 1,
-  starter: 5,
+  free: 0,
+  starter: 0,
+  plus: 3,
   growth: 20,
   pro: 50,
   agency: null, // unlimited

@@ -10,9 +10,9 @@ The `/bulk` page uses this path.
 
 ## Queued jobs
 
-`POST /api/v1/score/bulk` accepts up to 1,000 companies (`BULK_MAX_PER_JOB` in `lib/plan-features.ts`). A user may have 3 jobs in flight (`BULK_MAX_CONCURRENT`). The route checks `credits_remaining` against the company count, then inserts a `bulk_jobs` row with status `queued`. It does not decrement credits. The processor hand-off is still a TODO in `app/api/v1/score/bulk/route.ts`.
+`POST /api/v1/score/bulk` accepts up to 1,000 companies (`BULK_MAX_PER_JOB` in `lib/plan-features.ts`). A user may have 3 jobs in flight (`BULK_MAX_CONCURRENT`). Free and Starter receive 403. The route scores each company through `scoreCompany`: a cache hit is free, a miss debits one credit and writes a ledger row, and the job stops when credits run out. The reservation is atomic, so concurrent jobs cannot overspend.
 
-Queued jobs stay queued. The hiring-refresh and web-enrichment workers do not score bulk jobs.
+The hiring-refresh and web-enrichment workers do not score bulk jobs.
 
 ## Related
 

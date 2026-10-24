@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import type { CSSProperties } from "react";
 import { useRouter } from "next/navigation";
+import { useFeatureGuard } from "@/components/dashboard/workspace-state";
 import { BandPill } from "@/components/score/band";
 import { toCSV, downloadCSV as triggerDownload, csvFilename, formatSignal } from "@/lib/csv";
 import type { DbScore, ScoreBand } from "@/lib/types";
@@ -222,6 +223,7 @@ export function HistoryView({ stats }: HistoryViewProps) {
   const [openRunId, setOpenRunId] = useState<string | null>(null);
   const { account, openAccount, closeAccount } = useAccountParam();
   const router = useRouter();
+  const guardCsv = useFeatureGuard("csv");
 
   const requestRef = useRef<AbortController | null>(null);
 
@@ -267,6 +269,7 @@ export function HistoryView({ stats }: HistoryViewProps) {
   function handleBandFilter(band: ScoreBand | null) { setBandFilter(b => b === band ? null : band); setPage(1); }
 
   function exportCSV() {
+    if (guardCsv()) return;
     const columns = [
       { key: "company_name", label: "Company" },
       { key: "domain", label: "Domain" },

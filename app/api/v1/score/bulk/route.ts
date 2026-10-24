@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { errorResponse } from "@/lib/api-errors";
+import { runBulkScores } from "@/lib/bulk-runner";
+import { canUseFeature, featureDeniedMessage, parsePlan, requiredPlanFor } from "@/lib/plan-features";
 import { redactPublicSources } from "@/lib/public-source";
+import { domainToCompanyName, scoreCompany } from "@/lib/score-service";
 import { createSupabaseAdmin } from "@/lib/supabase";
-import type { BulkScoreRequest } from "@/lib/types";
+import type { BulkScoreRequest, BusinessProfile } from "@/lib/types";
 
 export async function POST(req: NextRequest) {
   const body = (await req.json()) as BulkScoreRequest;
@@ -40,15 +43,17 @@ export async function POST(req: NextRequest) {
     return errorResponse(401, "unauthorized", "Authentication required");
   }
 
-  // ── Credit check ────────────────────────────────────────────────────────────
   const { data: user } = await supabase
     .from("users")
-    .select("credits_remaining")
+    .select("plan, product_category, business_profile")
     .eq("id", userId)
     .single();
 
-  if (!user || user.credits_remaining < body.companies.length) {
-    return errorResponse(402, "insufficient_credits", `Insufficient credits. Need ${body.companies.length}, have ${user?.credits_remaining ?? 0}`);
+  const plan = parsePlan(user?.plan);
+  if (!canUseFeature(plan, "bulk")) {
+    return errorResponse(403, "plan_feature_required", featureDeniedMessage(plan, "bulk"), {
+      upgrade_to: requiredPlanFor("bulk"),
+    });
   }
 
   // ── Check concurrent job limit (max 3) ──────────────────────────────────────
@@ -80,12 +85,51 @@ export async function POST(req: NextRequest) {
     return errorResponse(500, "internal_error", "Failed to create job");
   }
 
-  // TODO: Hand off to the bulk scoring processor.
-  // await bulkQueue.add('score-bulk', { jobId: job.id, companies: body.companies, userId });
+  const businessProfile = (user?.business_profile as BusinessProfile | null) ?? null;
+  const summary = await runBulkScores(body.companies, async (company) => {
+    const row = company as { domain?: string; name?: string };
+    const rawDomain = (row.domain ?? "").trim();
+    const rawName = (row.name ?? "").trim();
+    const domain = rawDomain || `${rawName.toLowerCase().replace(/\s+/g, "")}.com`;
+    const result = await scoreCompany({
+      domain,
+      userId,
+      companyName: rawName || domainToCompanyName(domain),
+      productCategory: user?.product_category ?? "B2B SaaS",
+      businessProfile,
+    });
+    return {
+      domain: result.domain,
+      company_name: result.company,
+      intent_score: result.intent_score,
+      score_band: result.score_band,
+      cached: result.cached,
+      charged: result.charged,
+    };
+  });
+
+  const status = summary.stopped && summary.results.length === 0 ? "failed" : "completed";
+  await supabase
+    .from("bulk_jobs")
+    .update({
+      status,
+      completed: summary.results.length,
+      results: redactPublicSources({
+        scored: summary.results,
+        errors: summary.errors,
+        stopped: summary.stopped ? "insufficient_credits" : null,
+        credits_charged: summary.charged,
+      }),
+    })
+    .eq("id", job.id)
+    .eq("user_id", userId);
 
   return NextResponse.json({
     job_id: job.id,
     estimated_seconds: body.companies.length * 4,
+    completed: summary.results.length,
+    credits_charged: summary.charged,
+    stopped: summary.stopped ? "insufficient_credits" : null,
   });
 }
 

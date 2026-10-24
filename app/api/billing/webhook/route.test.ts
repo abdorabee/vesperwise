@@ -52,7 +52,7 @@ function subscriptionEvent(type: string, overrides: Record<string, unknown> = {}
     data: {
       id: "sub_1",
       customer_id: "cus_1",
-      product_id: "prod_unknown",
+      product_id: "prod_growth",
       current_period_start: "2026-10-01T00:00:00Z",
       current_period_end: "2026-11-01T00:00:00Z",
       cancel_at_period_end: false,
@@ -65,6 +65,13 @@ function subscriptionEvent(type: string, overrides: Record<string, unknown> = {}
 
 beforeEach(() => {
   vi.stubEnv("POLAR_WEBHOOK_SECRET", "whsec_test");
+  vi.stubEnv("POLAR_PRODUCT_STARTER", "prod_starter");
+  vi.stubEnv("POLAR_PRODUCT_PLUS", "prod_plus");
+  vi.stubEnv("POLAR_PRODUCT_GROWTH", "prod_growth");
+  vi.stubEnv("POLAR_PRODUCT_PRO", "prod_pro");
+  vi.stubEnv("POLAR_PRODUCT_TOPUP_25", "prod_topup_25");
+  vi.stubEnv("POLAR_PRODUCT_TOPUP_70", "prod_topup_70");
+  vi.stubEnv("POLAR_PRODUCT_TOPUP_140", "prod_topup_140");
   validateEvent.mockReset();
   rpc.mockReset().mockResolvedValue({ error: null });
   userUpdate.mockReset().mockResolvedValue({ error: null });
@@ -102,12 +109,25 @@ describe("POST /api/billing/webhook", () => {
   it("credits top-up purchases through the top-up RPC", async () => {
     validateEvent.mockResolvedValue({
       type: "order.paid",
-      data: { customer_id: "cus_1", metadata: { type: "topup", user_id: "user_1", credits: "500" } },
+      data: {
+        customer_id: "cus_1",
+        product_id: "prod_topup_70",
+        metadata: { type: "topup", user_id: "user_1", credits: "70" },
+      },
     });
 
     await POST(webhookRequest());
 
-    expect(rpc).toHaveBeenCalledWith("increment_topup_credits", { p_user_id: "user_1", p_amount: 500 });
+    expect(rpc).toHaveBeenCalledWith("increment_topup_credits", { p_user_id: "user_1", p_amount: 70 });
+  });
+
+  it("ignores unknown or archived product ids without failing the webhook", async () => {
+    validateEvent.mockResolvedValue(subscriptionEvent("subscription.updated", { product_id: "prod_archived" }));
+
+    const res = await POST(webhookRequest());
+
+    expect(res.status).toBe(200);
+    expect(userUpdate).not.toHaveBeenCalled();
   });
 
   it("does not refill credits on an update within the same period", async () => {

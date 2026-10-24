@@ -15,6 +15,7 @@ import { ScorePageFrame, ScoreWorkspaceLayout } from "@/components/score/score-w
 import { ScoreThreadDrawer } from "@/components/score/score-thread-drawer";
 import { ScoreThreadsColumn } from "@/components/score/score-threads-column";
 import { useScoreReportState } from "@/components/score/use-score-report-state";
+import { useSetCreditsRemaining } from "@/components/dashboard/workspace-state";
 import { extractDomain, loadChatSession, seedChatSession, streamChat } from "@/lib/chat-client";
 import { sanitizeUiBlocks, suggestionsFromBlocks, workspaceFromScore } from "@/lib/gen-ui";
 import { parseIncompleteCoverage, type IncompleteCoverageResult } from "@/lib/score-coverage";
@@ -44,7 +45,7 @@ function requireScorableResult(value: IntentScore): ScorableIntentScore {
 }
 
 type ScoreRequestOutcome =
-  | { kind: "scored"; result: ScorableIntentScore }
+  | { kind: "scored"; result: ScorableIntentScore; creditsRemaining?: number }
   | { kind: "coverage"; result: IncompleteCoverageResult };
 
 class ScoreRequestError extends Error {
@@ -65,11 +66,17 @@ function failureFrom(status: number, payload: unknown): ScoreFailure {
   };
 }
 
+function creditsFrom(payload: unknown): number | undefined {
+  if (!payload || typeof payload !== "object") return undefined;
+  const value = (payload as { credits_remaining?: unknown }).credits_remaining;
+  return typeof value === "number" ? value : undefined;
+}
+
 function outcomeFrom(ok: boolean, status: number, payload: unknown): ScoreRequestOutcome {
   const incomplete = parseIncompleteCoverage(payload);
   if (incomplete) return { kind: "coverage", result: incomplete };
   if (!ok) throw new ScoreRequestError(failureFrom(status, payload));
-  return { kind: "scored", result: requireScorableResult(payload as IntentScore) };
+  return { kind: "scored", result: requireScorableResult(payload as IntentScore), creditsRemaining: creditsFrom(payload) };
 }
 
 /**
@@ -128,6 +135,7 @@ function toolsOf(message: ThreadMessage): ToolChip[] {
 
 export function ScoreView(props: ScoreViewProps) {
   const { creditsRemaining, recentScores } = props;
+  const setCreditsRemaining = useSetCreditsRemaining();
   const searchParams = useSearchParams();
   const autoScoredRef = useRef<string | null>(null);
   const resetWorkspaceRef = useRef<() => void>(() => {});
@@ -203,6 +211,7 @@ export function ScoreView(props: ScoreViewProps) {
         return;
       }
       const result = outcome.result;
+      if (typeof outcome.creditsRemaining === "number") setCreditsRemaining(outcome.creditsRemaining);
       const blocks = workspaceFromScore(result);
       const billing = billingLabel(result);
       setMessages((current) => current.map((message) => message.id === thinkingId ? { id: thinkingId, role: "assistant", kind: "ui", blocks, content: "", tools: [], billing } : message));

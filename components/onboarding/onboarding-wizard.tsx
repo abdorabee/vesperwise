@@ -2,6 +2,7 @@
 
 import { useReducer, useState } from "react";
 import { useRouter } from "next/navigation";
+import { canUseFeature, featureDeniedMessage, type PlanKey } from "@/lib/plan-features";
 
 import { EmptyStateScreen } from "@/components/onboarding/screens/empty-state-screen";
 import { IcpDefinitionScreen } from "@/components/onboarding/screens/icp-definition-screen";
@@ -82,12 +83,14 @@ export default function OnboardingWizard({
   emailDomain,
   email,
   creditsRemaining,
+  plan = "free",
   readOnlyPreview = false,
 }: {
   initialProfile: Partial<BusinessProfile> | null;
   emailDomain: string | null;
   email: string;
   creditsRemaining: number;
+  plan?: PlanKey;
   /** Signed-out preview deploy: layout is browsable but nothing can be saved
    *  or scored, so say so up front instead of failing on a 401 later. */
   readOnlyPreview?: boolean;
@@ -305,7 +308,13 @@ export default function OnboardingWizard({
               Continue anyway
             </SecondaryButton>
           ) : scoredAccounts.length > 0 ? (
-            <SecondaryButton onClick={() => downloadCsv(hasCleared ? visibleAccounts : scoredAccounts)}>
+            <SecondaryButton onClick={() => {
+              if (!canUseFeature(plan, "csv")) {
+                setNotice(featureDeniedMessage(plan, "csv"));
+                return;
+              }
+              downloadCsv(hasCleared ? visibleAccounts : scoredAccounts);
+            }}>
               Export CSV
             </SecondaryButton>
           ) : undefined

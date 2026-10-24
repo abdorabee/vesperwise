@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { Download } from "lucide-react";
+import { useFeatureGuard } from "@/components/dashboard/workspace-state";
 
 import {
   BulkProcessingPanel,
@@ -29,6 +30,8 @@ export default function BulkScorerPage() {
   const [error, setError] = useState<string | null>(null);
   const [announcement, setAnnouncement] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const guardBulk = useFeatureGuard("bulk");
+  const guardCsv = useFeatureGuard("csv");
 
   function selectFile(candidate: File | null) {
     if (!candidate) return;
@@ -56,6 +59,7 @@ export default function BulkScorerPage() {
 
   async function handleSubmit() {
     if (!file || loading) return;
+    if (guardBulk() || guardCsv()) return;
 
     setLoading(true);
     setError(null);
@@ -94,6 +98,7 @@ export default function BulkScorerPage() {
   }
 
   function handleDownloadResults() {
+    if (guardCsv()) return;
     if (!response?.results.length) return;
 
     const columns = [

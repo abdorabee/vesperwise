@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
+import { PLAN_CREDITS } from "@/lib/types";
 import {
   LOW_CREDIT_PCT,
+  LOW_CREDIT_USED_PCT,
+  allowanceUsedPercent,
   creditPercent,
   getCreditStatus,
 } from "./credits-status";
@@ -12,16 +15,20 @@ describe("credits status", () => {
     expect(creditPercent(10, 0)).toBe(0);
   });
 
-  it("uses the shared low-credit threshold and keeps exactly 20 percent out of warning state", () => {
+  it("warns at 80 percent of the plan allowance used, from the remaining balance", () => {
+    expect(LOW_CREDIT_USED_PCT).toBe(80);
     expect(LOW_CREDIT_PCT).toBe(20);
+    expect(allowanceUsedPercent(20, 100)).toBe(80);
+    expect(allowanceUsedPercent(21, 100)).toBe(79);
+    expect(allowanceUsedPercent(150, 100)).toBe(0);
 
-    expect(getCreditStatus({ creditsRemaining: 19, creditCap: 100, plan: "starter" })).toMatchObject({
-      pct: 19,
+    expect(getCreditStatus({ creditsRemaining: 20, creditCap: 100, plan: "starter" })).toMatchObject({
+      pct: 20,
       isLow: true,
       cta: "Top up",
     });
-    expect(getCreditStatus({ creditsRemaining: 20, creditCap: 100, plan: "starter" })).toMatchObject({
-      pct: 20,
+    expect(getCreditStatus({ creditsRemaining: 21, creditCap: 100, plan: "starter" })).toMatchObject({
+      pct: 21,
       isLow: false,
       cta: "Top up",
     });
@@ -34,11 +41,11 @@ describe("credits status", () => {
       planLabel: "Free",
       summary: "3 of 20 credits remaining",
     });
-    expect(getCreditStatus({ creditsRemaining: 42, creditCap: 2500, plan: "growth" })).toMatchObject({
+    expect(getCreditStatus({ creditsRemaining: 42, creditCap: PLAN_CREDITS.growth, plan: "growth" })).toMatchObject({
       isLow: true,
       cta: "Top up",
       planLabel: "Growth",
-      summary: "42 of 2,500 credits remaining",
+      summary: "42 of 1,200 credits remaining",
     });
   });
 });

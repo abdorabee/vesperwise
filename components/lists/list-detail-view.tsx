@@ -7,6 +7,7 @@ import type { ListDetailData } from "@/lib/lists-types";
 import { ruleToDisplayParts } from "@/lib/lists-evaluator";
 import { isInnerInteractiveClick } from "@/lib/row-click";
 import { deltaLabel, formatRelativeTime } from "@/lib/lists-display";
+import { useFeatureGuard } from "@/components/dashboard/workspace-state";
 import { toCSV, downloadCSV, csvFilename } from "@/lib/csv";
 
 interface ListDetailViewProps {
@@ -19,6 +20,7 @@ interface ListDetailViewProps {
 
 export function ListDetailView({ detail, onOpenAccount, openDomain = null }: ListDetailViewProps) {
   const router = useRouter();
+  const guardCsv = useFeatureGuard("csv");
   const { list, stats, bandMix, accounts } = detail;
   const [search, setSearch] = useState("");
   const [sortDesc, setSortDesc] = useState(true);
@@ -44,6 +46,7 @@ export function ListDetailView({ detail, onOpenAccount, openDomain = null }: Lis
   }
 
   function handleExport() {
+    if (guardCsv()) return;
     const columns = [
       { key: "company", label: "Company" },
       { key: "domain", label: "Domain" },

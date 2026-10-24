@@ -634,7 +634,7 @@ export default function DocsView() {
               <ParamRow name="companies" type="array<{ domain?, name? }>" badge="required">1–{formatCount(BULK_MAX_PER_JOB)} companies. Your balance must cover one credit per company.</ParamRow>
               <ParamRow name="webhook_url" type="string" badge="optional" isLast>Stored with the job for completion callbacks.</ParamRow>
             </ParamTable>
-            <ApiNote><Strong>Early access.</Strong> Bulk jobs are accepted and queued, and background processing is still rolling out. For lists of up to 50 companies today, use CSV upload in the dashboard&apos;s Bulk page.</ApiNote>
+            <ApiNote>Plus, Growth and Pro. Each scored company costs one credit. A company already cached in the last 6 hours is free. The job stops when credits run out. Free and Starter receive 403.</ApiNote>
           </section>
 
           {/* Watchlist */}

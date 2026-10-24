@@ -61,12 +61,12 @@ OPENROUTER_API_KEY=
 POLAR_ACCESS_TOKEN=
 POLAR_WEBHOOK_SECRET=
 POLAR_PRODUCT_STARTER=
+POLAR_PRODUCT_PLUS=
 POLAR_PRODUCT_GROWTH=
 POLAR_PRODUCT_PRO=
-POLAR_PRODUCT_AGENCY=
-POLAR_PRODUCT_TOPUP_100=
-POLAR_PRODUCT_TOPUP_500=
-POLAR_PRODUCT_TOPUP_1000=
+POLAR_PRODUCT_TOPUP_25=
+POLAR_PRODUCT_TOPUP_70=
+POLAR_PRODUCT_TOPUP_140=
 
 # Vercel Cron (daily free-plan credit refill; the route returns 503 if unset)
 CRON_SECRET=
@@ -249,19 +249,20 @@ The dashboard shell has five zones: an icon rail, a per-page list column (⌘B),
 
 [Wiki](docs/wiki/billing.md)
 
-Plans: `free` · `starter` · `growth` · `pro` · `agency`
+Plans: `free` · `starter` · `plus` · `growth` · `pro` · `agency` (agency is not sold)
 
-Credits reset on subscription change (Polar webhook `subscription.created` / `subscription.updated`). One-time top-ups increment credits without changing plan (`order.paid`). A single company score reserves one credit. Prices are `PLAN_PRICE` in `lib/plan-features.ts`.
+Credits reset on subscription change (Polar webhook `subscription.created` / `subscription.updated`). One-time top-ups increment credits without changing plan (`order.paid`). A single company score reserves one credit. A 6-hour cache hit does not. Prices are `PLAN_PRICE` in `lib/plan-features.ts`.
 
 | Plan | Price | Credits/mo | Watchlist |
 |------|------:|-----------:|-----------|
 | Free | $0 | 20 | 5 |
-| Starter | $29 | 500 | 50 |
-| Growth | $79 | 2,500 | 250 |
-| Pro | $199 | 8,000 | 1,000 |
-| Agency | $499 | 25,000 | unlimited |
+| Starter | $10 | 100 | 25 |
+| Plus | $29 | 400 | 75 |
+| Growth | $79 | 1,200 | 250 |
+| Pro | $199 | 3,000 | 1,000 |
+| Agency | Contact us | 25,000 | unlimited |
 
-Top-ups: 100 credits for $10, 500 for $36, 1,000 for $65.
+Top-ups: 25 scores for $3, 70 for $8, 140 for $15.
 
 ### Autopilot
 
@@ -279,7 +280,7 @@ Scores individuals by email, LinkedIn URL, or name. Signals: career change (30 p
 
 [Wiki](docs/wiki/bulk-scoring.md)
 
-The dashboard CSV flow (`POST /api/v1/score/bulk-inline`) scores up to 50 companies inline and uses the same per-company cache and atomic charging behavior. The public queued bulk endpoint accepts up to 1,000 companies, allows three concurrent `bulk_jobs`, and checks that the workspace has enough credits. It does not debit them: the route only inserts a `queued` row, and the worker that would drain `bulk_jobs` is not wired up. The hiring-refresh and web-enrichment workers do not process bulk scoring jobs.
+The dashboard CSV flow (`POST /api/v1/score/bulk-inline`) scores up to 50 companies inline and uses the same per-company cache and atomic charging behavior. Free and Starter are blocked. The public bulk endpoint accepts up to 1,000 companies and three concurrent jobs. It debits one credit per scored company, leaves cache hits free, and stops when credits run out. The hiring-refresh and web-enrichment workers do not process bulk scoring jobs.
 
 ### Hiring refresh worker (Scrapling Phase 2)
 

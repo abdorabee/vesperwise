@@ -3,7 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { createSupabaseAdmin } from "@/lib/supabase";
 import { redactPublicSources } from "@/lib/public-source";
-import { scoreCompany, domainToCompanyName } from "@/lib/score-service";
+import { canUseFeature, featureDeniedMessage, parsePlan, requiredPlanFor } from "@/lib/plan-features";
+import { scoreCompany, domainToCompanyName, InsufficientCreditsError } from "@/lib/score-service";
 
 const MAX_ROWS = 50;
 
@@ -50,10 +51,18 @@ export async function POST(req: NextRequest) {
   const supabase = createSupabaseAdmin();
   const { data: user } = await supabase
     .from("users")
-    .select("product_category, business_profile")
+    .select("plan, product_category, business_profile")
     .eq("id", userId)
     .single();
   if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+  const plan = parsePlan(user.plan);
+  if (!canUseFeature(plan, "bulk") || !canUseFeature(plan, "csv")) {
+    const feature = canUseFeature(plan, "csv") ? "bulk" : "csv";
+    return NextResponse.json(
+      { error: featureDeniedMessage(plan, feature), upgrade_to: requiredPlanFor(feature) },
+      { status: 403 },
+    );
+  }
   const businessProfile = (user.business_profile as import("@/lib/types").BusinessProfile) ?? null;
 
   // ── Score each company sequentially ────────────────────────────────────────
@@ -132,6 +141,10 @@ export async function POST(req: NextRequest) {
         last_updated: result.last_updated ?? new Date().toISOString(),
       });
     } catch (err) {
+      if (err instanceof InsufficientCreditsError) {
+        errors.push({ domain, error: "Insufficient credits" });
+        break;
+      }
       console.error(`[bulk-inline] failed to score ${domain}:`, err);
       errors.push({ domain, error: (err as Error).message });
     }
