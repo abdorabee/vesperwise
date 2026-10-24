@@ -8,6 +8,7 @@ import {
   type SubscriptionEventType,
   type SubscriptionSnapshot,
 } from "@/lib/billing/subscription-sync";
+import { isArchivedPolarProduct } from "@/lib/billing/archived-products";
 import { CHECKOUT_PRODUCT_ENV, TOPUP_PACKS, type CheckoutPlan } from "@/lib/plan-features";
 
 function productToPlan(): Record<string, Plan> {
@@ -22,6 +23,19 @@ function topupCreditsByProduct(): Record<string, number> {
     .map((pack) => [process.env[pack.envKey]?.trim(), pack.credits] as const)
     .filter((entry): entry is [string, number] => Boolean(entry[0]));
   return Object.fromEntries(entries);
+}
+
+/** Mapped products credit the account. Archived ones are ignored. Anything else must retry. */
+function unmappedProductResponse(productId: string, eventType: string): NextResponse | null {
+  if (productId && isArchivedPolarProduct(productId)) {
+    console.warn(`[billing/webhook] ignoring archived product ${productId} on ${eventType}`);
+    return null;
+  }
+  console.error(`[billing/webhook] unmapped product ${productId || "(missing)"} on ${eventType}`);
+  return NextResponse.json(
+    { error: "Unmapped Polar product", product_id: productId || null },
+    { status: 500 },
+  );
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -63,10 +77,7 @@ async function syncSubscription(
   if (!stored) return null;
 
   const mappedPlan = productToPlan()[sub.product_id];
-  if (!mappedPlan) {
-    console.warn(`[billing/webhook] ignoring unknown product ${sub.product_id} on ${type}`);
-    return null;
-  }
+  if (!mappedPlan) return unmappedProductResponse(sub.product_id, type);
   const patch = computeBillingPatch(type, sub, mappedPlan, stored);
   if (Object.keys(patch).length === 0) return null;
 
@@ -141,7 +152,8 @@ async function routeEvent(admin: SupabaseAdmin, event: PolarEvent): Promise<Next
       const productId = "product_id" in event.data ? String(event.data.product_id ?? "") : "";
       const credits = topupCreditsByProduct()[productId];
       if (!credits) {
-        console.warn(`[billing/webhook] ignoring unknown top-up product ${productId || "(missing)"}`);
+        const ignored = unmappedProductResponse(productId, "order.paid");
+        if (ignored) return ignored;
         break;
       }
 

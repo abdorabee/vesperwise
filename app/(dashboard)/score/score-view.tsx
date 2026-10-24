@@ -282,6 +282,9 @@ export function ScoreView(props: ScoreViewProps) {
         pendingSeedRef.current = null;
       }
       const nextSession = await streamChat({ message: text, session_id: activeSession ?? undefined }, (event) => {
+        if (event.type === "done" && typeof event.credits_remaining === "number") {
+          setCreditsRemaining(event.credits_remaining);
+        }
         setMessages((currentMessages) => currentMessages.map((message) => {
           if (message.id !== thinkingId) return message;
           if (event.type === "text") {

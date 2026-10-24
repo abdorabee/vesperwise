@@ -1,3 +1,4 @@
+import { lowCreditCta } from "@/lib/plan-features";
 import type { DbUser } from "@/lib/types";
 
 /** Warn once this share of the plan allowance has been used. */
@@ -15,7 +16,7 @@ export interface CreditStatusInput {
 export interface CreditStatus {
   pct: number;
   isLow: boolean;
-  cta: "Upgrade" | "Top up";
+  cta: string;
   planLabel: string;
   summary: string;
 }
@@ -44,7 +45,7 @@ export function getCreditStatus({
   return {
     pct,
     isLow: usedPct >= LOW_CREDIT_USED_PCT,
-    cta: plan === "free" ? "Upgrade" : "Top up",
+    cta: lowCreditCta(plan),
     planLabel: plan.charAt(0).toUpperCase() + plan.slice(1),
     summary: `${creditsRemaining.toLocaleString()} of ${creditCap.toLocaleString()} credits remaining`,
   };

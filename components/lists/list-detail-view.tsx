@@ -7,8 +7,8 @@ import type { ListDetailData } from "@/lib/lists-types";
 import { ruleToDisplayParts } from "@/lib/lists-evaluator";
 import { isInnerInteractiveClick } from "@/lib/row-click";
 import { deltaLabel, formatRelativeTime } from "@/lib/lists-display";
-import { useFeatureGuard } from "@/components/dashboard/workspace-state";
-import { toCSV, downloadCSV, csvFilename } from "@/lib/csv";
+import { toast } from "sonner";
+import { csvFilename, downloadAuthorizedCsv } from "@/lib/csv";
 
 interface ListDetailViewProps {
   detail: ListDetailData;
@@ -20,7 +20,6 @@ interface ListDetailViewProps {
 
 export function ListDetailView({ detail, onOpenAccount, openDomain = null }: ListDetailViewProps) {
   const router = useRouter();
-  const guardCsv = useFeatureGuard("csv");
   const { list, stats, bandMix, accounts } = detail;
   const [search, setSearch] = useState("");
   const [sortDesc, setSortDesc] = useState(true);
@@ -46,7 +45,6 @@ export function ListDetailView({ detail, onOpenAccount, openDomain = null }: Lis
   }
 
   function handleExport() {
-    if (guardCsv()) return;
     const columns = [
       { key: "company", label: "Company" },
       { key: "domain", label: "Domain" },
@@ -61,7 +59,13 @@ export function ListDetailView({ detail, onOpenAccount, openDomain = null }: Lis
       band: a.score_band ?? "",
       qualify: a.qualifyReason,
     }));
-    downloadCSV(toCSV(columns, rows), csvFilename(`list-${list.name.replace(/\s+/g, "-").toLowerCase()}`));
+    void downloadAuthorizedCsv(
+      csvFilename(`list-${list.name.replace(/\s+/g, "-").toLowerCase()}`),
+      columns,
+      rows,
+    ).catch((error: Error) => {
+      toast.error(error.message);
+    });
   }
 
   async function handleDelete() {

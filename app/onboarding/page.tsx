@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 
 import OnboardingWizard from "@/components/onboarding/onboarding-wizard";
 import { WorkspaceSetupError } from "@/components/workspace-setup-error";
-import { parsePlan } from "@/lib/plan-features";
 import { getOnboardingRedirect } from "@/lib/onboarding-profile";
 import { getWorkspaceLabel, storedWorkspaceName } from "@/lib/workspace-label";
 import { createSupabaseAdmin } from "@/lib/supabase";
@@ -50,7 +49,7 @@ export default async function OnboardingPage() {
   const [admin, user] = await Promise.all([Promise.resolve(createSupabaseAdmin()), currentUser().catch(() => null)]);
   const { data: profile } = await admin
     .from("users")
-    .select("business_profile, onboarding_completed, workspace_name, credits_remaining, plan")
+    .select("business_profile, onboarding_completed, workspace_name, credits_remaining")
     .eq("id", userId)
     .maybeSingle();
 
@@ -82,7 +81,6 @@ export default async function OnboardingPage() {
       emailDomain={domainFromEmail(email)}
       email={email || "you@company.com"}
       creditsRemaining={profile?.credits_remaining ?? 20}
-      plan={parsePlan(profile?.plan)}
     />
   );
 }

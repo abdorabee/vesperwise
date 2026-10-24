@@ -2,7 +2,7 @@
 
 import { useReducer, useState } from "react";
 import { useRouter } from "next/navigation";
-import { canUseFeature, featureDeniedMessage, type PlanKey } from "@/lib/plan-features";
+import { downloadAuthorizedCsv } from "@/lib/csv";
 
 import { EmptyStateScreen } from "@/components/onboarding/screens/empty-state-screen";
 import { IcpDefinitionScreen } from "@/components/onboarding/screens/icp-definition-screen";
@@ -38,27 +38,6 @@ function describeRequestError(error: unknown): string {
   return "Something went wrong. Please try again.";
 }
 
-function csvEscape(value: string | number): string {
-  const s = String(value);
-  return /[,"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-}
-
-function downloadCsv(accounts: ScoredAccount[]) {
-  const header = "domain,company,score,band,top_driver";
-  const rows = accounts.map((a) =>
-    [a.domain, a.result.company, a.result.intent_score ?? "", a.result.score_band ?? "", topDriver(a.result)]
-      .map(csvEscape)
-      .join(",")
-  );
-  const blob = new Blob([[header, ...rows].join("\n")], { type: "text/csv" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = "vesperwise-icp-preview.csv";
-  link.click();
-  URL.revokeObjectURL(url);
-}
-
 async function addToWatchlist(
   accounts: ScoredAccount[]
 ): Promise<{ added: number; total: number; hitLimit: boolean }> {
@@ -83,14 +62,12 @@ export default function OnboardingWizard({
   emailDomain,
   email,
   creditsRemaining,
-  plan = "free",
   readOnlyPreview = false,
 }: {
   initialProfile: Partial<BusinessProfile> | null;
   emailDomain: string | null;
   email: string;
   creditsRemaining: number;
-  plan?: PlanKey;
   /** Signed-out preview deploy: layout is browsable but nothing can be saved
    *  or scored, so say so up front instead of failing on a 401 later. */
   readOnlyPreview?: boolean;
@@ -309,11 +286,24 @@ export default function OnboardingWizard({
             </SecondaryButton>
           ) : scoredAccounts.length > 0 ? (
             <SecondaryButton onClick={() => {
-              if (!canUseFeature(plan, "csv")) {
-                setNotice(featureDeniedMessage(plan, "csv"));
-                return;
-              }
-              downloadCsv(hasCleared ? visibleAccounts : scoredAccounts);
+              const accounts = hasCleared ? visibleAccounts : scoredAccounts;
+              void downloadAuthorizedCsv(
+                "vesperwise-icp-preview.csv",
+                [
+                  { key: "domain", label: "domain" },
+                  { key: "company", label: "company" },
+                  { key: "score", label: "score" },
+                  { key: "band", label: "band" },
+                  { key: "top_driver", label: "top_driver" },
+                ],
+                accounts.map((account) => ({
+                  domain: account.domain,
+                  company: account.result.company,
+                  score: account.result.intent_score ?? "",
+                  band: account.result.score_band ?? "",
+                  top_driver: topDriver(account.result),
+                })),
+              ).catch((error: Error) => setNotice(error.message));
             }}>
               Export CSV
             </SecondaryButton>

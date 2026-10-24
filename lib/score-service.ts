@@ -1374,6 +1374,8 @@ export async function scoreCompany(opts: ScoreCompanyOptions): Promise<StoredInt
   if (!normalizedIdempotencyKey) {
     const cached = await cacheGet<StoredIntentScore>(resultCacheKey);
     if (isStoredIntentScore(cached, scoringVersion)) {
+      // A 6-hour result-cache hit returns before begin_score_run, so it
+      // neither decrements credits_remaining nor inserts a credits_log row.
       emitAllSignals(onProgress, cached.signals);
       return {
         ...cached,

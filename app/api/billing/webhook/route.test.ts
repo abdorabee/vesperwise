@@ -121,13 +121,44 @@ describe("POST /api/billing/webhook", () => {
     expect(rpc).toHaveBeenCalledWith("increment_topup_credits", { p_user_id: "user_1", p_amount: 70 });
   });
 
-  it("ignores unknown or archived product ids without failing the webhook", async () => {
-    validateEvent.mockResolvedValue(subscriptionEvent("subscription.updated", { product_id: "prod_archived" }));
+  it("fails an unmapped product so Polar retries the paid event", async () => {
+    validateEvent.mockResolvedValue(subscriptionEvent("subscription.created", { product_id: "prod_new_unmapped" }));
+
+    const res = await POST(webhookRequest());
+
+    expect(res.status).toBe(500);
+    expect(userUpdate).not.toHaveBeenCalled();
+    expect(idempotencyDelete).toHaveBeenCalledWith("evt_1");
+    await expect(res.json()).resolves.toMatchObject({ product_id: "prod_new_unmapped" });
+  });
+
+  it("fails an unmapped top-up so the purchase is not dropped", async () => {
+    validateEvent.mockResolvedValue({
+      type: "order.paid",
+      data: {
+        customer_id: "cus_1",
+        product_id: "prod_topup_unknown",
+        metadata: { type: "topup", user_id: "user_1", credits: "25" },
+      },
+    });
+
+    const res = await POST(webhookRequest());
+
+    expect(res.status).toBe(500);
+    expect(rpc).not.toHaveBeenCalled();
+    expect(idempotencyDelete).toHaveBeenCalledWith("evt_1");
+  });
+
+  it("ignores an archived product id without retrying", async () => {
+    validateEvent.mockResolvedValue(subscriptionEvent("subscription.updated", {
+      product_id: "490f7958-4635-4780-9b71-5075d4e24738",
+    }));
 
     const res = await POST(webhookRequest());
 
     expect(res.status).toBe(200);
     expect(userUpdate).not.toHaveBeenCalled();
+    expect(idempotencyDelete).not.toHaveBeenCalled();
   });
 
   it("does not refill credits on an update within the same period", async () => {

@@ -10,7 +10,9 @@ The `/bulk` page uses this path.
 
 ## Queued jobs
 
-`POST /api/v1/score/bulk` accepts up to 1,000 companies (`BULK_MAX_PER_JOB` in `lib/plan-features.ts`). A user may have 3 jobs in flight (`BULK_MAX_CONCURRENT`). Free and Starter receive 403. The route scores each company through `scoreCompany`: a cache hit is free, a miss debits one credit and writes a ledger row, and the job stops when credits run out. The reservation is atomic, so concurrent jobs cannot overspend.
+`POST /api/v1/score/bulk` accepts up to 1,000 companies (`BULK_MAX_PER_JOB` in `lib/plan-features.ts`). A user may have 3 jobs in flight (`BULK_MAX_CONCURRENT`). Free and Starter receive 403. The route stores the company list on the job and scores in batches of 20 inside a 40 second budget (`maxDuration` 60). `GET /api/v1/score/bulk?job_id=` continues a processing job. A cache hit is free, a miss debits one credit and writes a ledger row, and the job stops when credits run out. The reservation is atomic, so concurrent jobs cannot overspend.
+
+A thrown error marks the job `failed` (partial when some companies were scored). Jobs left in `queued` or `processing` with no progress for 15 minutes are marked `failed` by the request path and by `GET /api/cron/sweep-bulk-jobs`, so they stop counting toward the concurrency cap. When the job reaches `completed` or `failed`, the optional `webhook_url` receives a JSON summary.
 
 The hiring-refresh and web-enrichment workers do not score bulk jobs.
 

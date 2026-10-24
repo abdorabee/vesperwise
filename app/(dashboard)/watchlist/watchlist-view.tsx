@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { toCSV, downloadCSV, csvFilename } from "@/lib/csv";
+import { csvFilename, downloadAuthorizedCsv } from "@/lib/csv";
 import type { WatchlistRange, WatchlistStats } from "@/lib/watchlist-stats";
 import { WatchlistPageHead } from "@/components/watchlist/watchlist-page-head";
 import { WatchlistAlertStrip } from "@/components/watchlist/watchlist-alert-strip";
@@ -17,7 +17,6 @@ import {
   type WatchlistQuickAddHandle,
 } from "@/components/watchlist/watchlist-quick-add";
 
-import { useFeatureGuard } from "@/components/dashboard/workspace-state";
 import { WATCHLIST_FOCUS_ADD_EVENT } from "@/lib/watchlist-events";
 
 interface WatchlistViewProps {
@@ -175,29 +174,26 @@ export function WatchlistView({ initial }: WatchlistViewProps) {
     });
   }
 
-  const guardCsv = useFeatureGuard("csv");
-
   function handleExport() {
-    if (guardCsv()) return;
-    const csv = toCSV(
-      [
-        { key: "company", label: "Company" },
-        { key: "domain", label: "Domain" },
-        { key: "score", label: "Score" },
-        { key: "band", label: "Band" },
-        { key: "last_scored", label: "Last Scored" },
-        { key: "delta", label: "Delta" },
-      ],
-      filtered.map((r) => ({
-        company: r.company_name,
-        domain: r.domain,
-        score: r.score ?? "",
-        band: r.score_band ?? "",
-        last_scored: r.last_scored ?? "",
-        delta: r.delta ?? "",
-      })),
-    );
-    downloadCSV(csv, csvFilename("watchlist"));
+    const columns = [
+      { key: "company", label: "Company" },
+      { key: "domain", label: "Domain" },
+      { key: "score", label: "Score" },
+      { key: "band", label: "Band" },
+      { key: "last_scored", label: "Last Scored" },
+      { key: "delta", label: "Delta" },
+    ];
+    const rows = filtered.map((r) => ({
+      company: r.company_name,
+      domain: r.domain,
+      score: r.score ?? "",
+      band: r.score_band ?? "",
+      last_scored: r.last_scored ?? "",
+      delta: r.delta ?? "",
+    }));
+    void downloadAuthorizedCsv(csvFilename("watchlist"), columns, rows).catch((error: Error) => {
+      toast.error(error.message);
+    });
   }
 
   function toggleSelect(domain: string) {

@@ -16,6 +16,10 @@
     {
       "path": "/api/cron/reset-free-credits",
       "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/sweep-bulk-jobs",
+      "schedule": "*/15 * * * *"
     }
   ]
 }

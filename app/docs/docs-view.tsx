@@ -632,7 +632,7 @@ export default function DocsView() {
             <Summary>Queue up to {formatCount(BULK_MAX_PER_JOB)} companies in one job, then poll <IC>GET /api/v1/score/bulk?job_id=…</IC> for <IC>status</IC>, <IC>completed</IC> and <IC>results</IC>.</Summary>
             <ParamTable>
               <ParamRow name="companies" type="array<{ domain?, name? }>" badge="required">1–{formatCount(BULK_MAX_PER_JOB)} companies. Your balance must cover one credit per company.</ParamRow>
-              <ParamRow name="webhook_url" type="string" badge="optional" isLast>Stored with the job for completion callbacks.</ParamRow>
+              <ParamRow name="webhook_url" type="string" badge="optional" isLast>Called with the job summary when the job is completed or failed.</ParamRow>
             </ParamTable>
             <ApiNote>Plus, Growth and Pro. Each scored company costs one credit. A company already cached in the last 6 hours is free. The job stops when credits run out. Free and Starter receive 403.</ApiNote>
           </section>

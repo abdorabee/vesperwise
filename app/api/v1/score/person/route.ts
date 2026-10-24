@@ -74,7 +74,15 @@ export async function GET(req: NextRequest) {
       businessProfile,
       skipCredits,
     });
-    return NextResponse.json(redactPublicSources(result));
+    const { data: balance } = await supabase
+      .from("users")
+      .select("credits_remaining")
+      .eq("id", userId)
+      .maybeSingle();
+    return NextResponse.json(redactPublicSources({
+      ...result,
+      credits_remaining: balance?.credits_remaining ?? null,
+    }));
   } catch (err) {
     console.error("[person-score] error:", err);
     const message = (err as Error).message ?? "Person scoring failed";

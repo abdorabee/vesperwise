@@ -69,6 +69,27 @@ export function toCSVRaw(
 /**
  * Trigger a browser file download with CSV content.
  */
+/**
+ * Ask the server to authorize the export, then download the CSV it returns.
+ * Free and Starter get 403 from `/api/v1/export/csv`.
+ */
+export async function downloadAuthorizedCsv(
+  filename: string,
+  columns: CsvColumn[],
+  rows: Array<Record<string, unknown>>,
+): Promise<void> {
+  const response = await fetch("/api/v1/export/csv", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ filename, columns, rows }),
+  });
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({})) as { error?: string };
+    throw new Error(payload.error ?? "Export failed");
+  }
+  downloadCSV(await response.text(), filename);
+}
+
 export function downloadCSV(content: string, filename: string): void {
   const blob = new Blob([content], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);

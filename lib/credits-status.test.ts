@@ -25,27 +25,39 @@ describe("credits status", () => {
     expect(getCreditStatus({ creditsRemaining: 20, creditCap: 100, plan: "starter" })).toMatchObject({
       pct: 20,
       isLow: true,
-      cta: "Top up",
+      cta: "Upgrade to Plus",
     });
     expect(getCreditStatus({ creditsRemaining: 21, creditCap: 100, plan: "starter" })).toMatchObject({
       pct: 21,
       isLow: false,
-      cta: "Top up",
+      cta: "Upgrade to Plus",
     });
   });
 
-  it("uses Upgrade for free plans and Top up for paid plans", () => {
+  it("names the next plan for paid upgrades and keeps Top up for Pro", () => {
     expect(getCreditStatus({ creditsRemaining: 3, creditCap: 20, plan: "free" })).toMatchObject({
       isLow: true,
       cta: "Upgrade",
       planLabel: "Free",
       summary: "3 of 20 credits remaining",
     });
+    expect(getCreditStatus({ creditsRemaining: 20, creditCap: PLAN_CREDITS.starter, plan: "starter" })).toMatchObject({
+      isLow: true,
+      cta: "Upgrade to Plus",
+    });
+    expect(getCreditStatus({ creditsRemaining: 80, creditCap: PLAN_CREDITS.plus, plan: "plus" })).toMatchObject({
+      isLow: true,
+      cta: "Upgrade to Growth",
+    });
     expect(getCreditStatus({ creditsRemaining: 42, creditCap: PLAN_CREDITS.growth, plan: "growth" })).toMatchObject({
       isLow: true,
-      cta: "Top up",
+      cta: "Upgrade to Pro",
       planLabel: "Growth",
       summary: "42 of 1,200 credits remaining",
+    });
+    expect(getCreditStatus({ creditsRemaining: 100, creditCap: PLAN_CREDITS.pro, plan: "pro" })).toMatchObject({
+      isLow: true,
+      cta: "Top up",
     });
   });
 });

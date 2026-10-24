@@ -111,6 +111,15 @@ export function featureDeniedMessage(plan: PlanKey, feature: GatedFeature): stri
   return `${FEATURE_LABEL[feature]} is not included on the ${PLAN_LABEL[plan]} plan. Upgrade to ${PLAN_LABEL[needed]}.`;
 }
 
+/** Low-credit prompt. Paid plans name the next rung; Pro and Agency top up. */
+export function lowCreditCta(plan: PlanKey): string {
+  if (plan === "starter") return "Upgrade to Plus";
+  if (plan === "plus") return "Upgrade to Growth";
+  if (plan === "growth") return "Upgrade to Pro";
+  if (plan === "free") return "Upgrade";
+  return "Top up";
+}
+
 function watchlistFeature(limit: number | null): string {
   return limit == null ? "Unlimited watchlist" : `Watchlist of ${formatCount(limit)} accounts`;
 }

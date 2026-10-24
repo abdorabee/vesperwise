@@ -158,11 +158,18 @@ export async function POST(req: NextRequest) {
   // Sort by score descending
   results.sort((a, b) => b.intent_score - a.intent_score);
 
+  const { data: balance } = await supabase
+    .from("users")
+    .select("credits_remaining")
+    .eq("id", userId)
+    .maybeSingle();
+
   return NextResponse.json({
     total: rows.length,
     scored: results.length,
     failed: errors.length,
     results,
     errors: errors.length > 0 ? errors : undefined,
+    credits_remaining: balance?.credits_remaining ?? null,
   });
 }

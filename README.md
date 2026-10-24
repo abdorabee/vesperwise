@@ -280,7 +280,7 @@ Scores individuals by email, LinkedIn URL, or name. Signals: career change (30 p
 
 [Wiki](docs/wiki/bulk-scoring.md)
 
-The dashboard CSV flow (`POST /api/v1/score/bulk-inline`) scores up to 50 companies inline and uses the same per-company cache and atomic charging behavior. Free and Starter are blocked. The public bulk endpoint accepts up to 1,000 companies and three concurrent jobs. It debits one credit per scored company, leaves cache hits free, and stops when credits run out. The hiring-refresh and web-enrichment workers do not process bulk scoring jobs.
+The dashboard CSV flow (`POST /api/v1/score/bulk-inline`) scores up to 50 companies inline and uses the same per-company cache and atomic charging behavior. Free and Starter are blocked. The public bulk endpoint accepts up to 1,000 companies and three concurrent jobs. It scores in bounded batches, debits one credit per scored company, leaves cache hits free, and stops when credits run out. A job that stops making progress is marked failed so it releases the concurrency cap. Polling `GET /api/v1/score/bulk?job_id=` continues a processing job, and `webhook_url` is called when the job finishes. The hiring-refresh and web-enrichment workers do not process bulk scoring jobs.
 
 ### Hiring refresh worker (Scrapling Phase 2)
 

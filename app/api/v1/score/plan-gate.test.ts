@@ -31,6 +31,8 @@ vi.mock("@/lib/score-service", () => ({
 }));
 
 const { POST: postBulkInline } = await import("./bulk-inline/route");
+const { POST: postPrioritize } = await import("../prioritize/route");
+const { POST: postExport } = await import("../export/csv/route");
 const { POST: postAutopilot } = await import("../../autopilot/workflows/route");
 
 function csvRequest() {
@@ -49,6 +51,26 @@ describe("plan gates return 403 for free and starter", () => {
     expect(response.status).toBe(403);
     const body = await response.json();
     expect(body.error).toMatch(/Upgrade to Plus/);
+  });
+
+  it.each(["free", "starter"])("blocks %s CSV prioritize", async (plan) => {
+    user.plan = plan;
+    const response = await postPrioritize(new NextRequest("http://localhost/api/v1/prioritize", { method: "POST" }));
+    expect(response.status).toBe(403);
+    const body = await response.json();
+    expect(body.error).toMatch(/Upgrade to Plus/);
+  });
+
+  it.each(["free", "starter"])("blocks %s CSV export", async (plan) => {
+    user.plan = plan;
+    const response = await postExport(new NextRequest("http://localhost/api/v1/export/csv", {
+      method: "POST",
+      body: JSON.stringify({ columns: [{ key: "domain", label: "Domain" }], rows: [] }),
+    }));
+    expect(response.status).toBe(403);
+    const body = await response.json();
+    expect(body.error).toMatch(/CSV upload and export/);
+    expect(body.upgrade_to).toBe("plus");
   });
 
   it("blocks starter autopilot create", async () => {

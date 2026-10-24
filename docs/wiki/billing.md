@@ -35,7 +35,7 @@ One-time packs (they add credits and do not change the plan):
 | `order.paid` | Add a known top-up pack |
 | Subscription ended / canceled path | Return the workspace to the free credit amount when the subscription is revoked |
 
-Product ids are read from the environment at request time. Sold plans: `POLAR_PRODUCT_STARTER`, `POLAR_PRODUCT_PLUS`, `POLAR_PRODUCT_GROWTH`, `POLAR_PRODUCT_PRO`. Top-ups: `POLAR_PRODUCT_TOPUP_25`, `POLAR_PRODUCT_TOPUP_70`, `POLAR_PRODUCT_TOPUP_140`. There is no agency checkout product. An unknown or archived product id is logged and ignored. It does not return 500.
+Product ids are read from the environment at request time. Sold plans: `POLAR_PRODUCT_STARTER`, `POLAR_PRODUCT_PLUS`, `POLAR_PRODUCT_GROWTH`, `POLAR_PRODUCT_PRO`. Top-ups: `POLAR_PRODUCT_TOPUP_25`, `POLAR_PRODUCT_TOPUP_70`, `POLAR_PRODUCT_TOPUP_140`. There is no agency checkout product. An archived previous product id is logged and ignored. Any other unmapped product id on a subscription or top-up event is logged and returned as 500 so Polar retries after `POLAR_PRODUCT_*` is set.
 
 ## Charging
 
