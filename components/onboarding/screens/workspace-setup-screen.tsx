@@ -24,7 +24,7 @@ export function WorkspaceSetupScreen({
 }) {
   return (
     <>
-      <div className="overflow-y-auto p-12 pb-0">
+      <div className="min-w-0 overflow-y-auto p-6 pb-0 sm:p-12 sm:pb-0">
         <div className="max-w-[520px]">
           <h1 className="m-0 font-sans text-[28px] font-semibold leading-[1.2] tracking-[-0.03em]">
             A few details, then you see <span className="text-[var(--brand)]">accounts</span>.
@@ -113,7 +113,8 @@ export function WorkspaceSetupScreen({
           ))}
         </div>
         <div className="mt-auto border-t border-white/[0.08] pt-6 text-[12px] leading-[1.6] text-[#666]">
-          Every answer is saved the moment you make it. Leaving and coming back resumes on the same step.
+          Your answers are kept as you move between steps and saved to your workspace when you finish. Leaving
+          before then starts this setup over.
         </div>
       </OnboardingRail>
     </>

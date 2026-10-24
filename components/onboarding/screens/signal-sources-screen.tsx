@@ -18,7 +18,7 @@ const SOURCES = [
 export function SignalSourcesScreen({ seedCount }: { seedCount: number }) {
   return (
     <>
-      <div className="overflow-y-auto p-12 pb-0">
+      <div className="min-w-0 overflow-y-auto p-6 pb-0 sm:p-12 sm:pb-0">
         <h1 className="m-0 font-sans text-[28px] font-semibold leading-[1.2] tracking-[-0.03em]">
           Six sources, already <span className="text-[var(--brand)]">watching</span>.
         </h1>
