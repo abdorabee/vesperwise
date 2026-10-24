@@ -2,7 +2,14 @@ import { lookup } from "node:dns/promises";
 import https from "node:https";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { freshBulkState, type BulkCompanyInput, type BulkScoredRow } from "@/lib/bulk-job";
-import { advanceStoredBulkJob, retryStoredBulkWebhook, retryUnsentBulkWebhooks, WEBHOOK_ATTEMPT_CAP } from "@/lib/bulk-job-runner";
+import {
+  advanceStoredBulkJob,
+  retryStoredBulkWebhook,
+  retryUnsentBulkWebhooks,
+  WEBHOOK_ATTEMPT_CAP,
+  WEBHOOK_RETRY_BUDGET_MS,
+  WEBHOOK_RETRY_LIMIT,
+} from "@/lib/bulk-job-runner";
 
 vi.mock("node:dns/promises", () => ({
   lookup: vi.fn(async () => [{ address: "1.1.1.1", family: 4 }]),
@@ -401,12 +408,8 @@ describe("bulk job lease", () => {
     error.mockRestore();
   });
 
-  it("retries the oldest unsent webhooks first", async () => {
+  function retryQueue(rows: Array<{ id: string; created_at: string; webhook_attempts: number }>) {
     const order: string[] = [];
-    const rows = [
-      { id: "newer", status: "completed", created_at: "2026-02-01T00:00:00.000Z", webhook_url: "https://example.com/new", results: null },
-      { id: "older", status: "completed", created_at: "2026-01-01T00:00:00.000Z", webhook_url: "https://example.com/old", results: null },
-    ];
     const chain = {
       select() { return chain; },
       in() { return chain; },
@@ -414,24 +417,62 @@ describe("bulk job lease", () => {
       not() { return chain; },
       order(column: string, options: { ascending: boolean }) {
         order.push(`${column}:${options.ascending}`);
-        rows.sort((left, right) => left.created_at.localeCompare(right.created_at));
         return chain;
       },
-      limit: async () => ({ data: rows, error: null }),
+      limit: async (count: number) => ({
+        data: [...rows]
+          .sort((left, right) => left.webhook_attempts - right.webhook_attempts || left.created_at.localeCompare(right.created_at))
+          .slice(0, count)
+          .map((row) => ({
+            ...row,
+            status: "completed",
+            webhook_url: `https://example.com/${row.id}`,
+            results: null,
+          })),
+        error: null,
+      }),
     };
     const seen: string[] = [];
     const supabase = {
       from: () => chain,
       rpc: async (_name: string, args: { p_job_id?: string }) => {
-        if (args.p_job_id) seen.push(args.p_job_id);
+        if (args.p_job_id && !seen.includes(args.p_job_id)) seen.push(args.p_job_id);
         return { data: null, error: null };
       },
     };
+    return { order, seen, supabase };
+  }
 
-    await retryUnsentBulkWebhooks(supabase as never, 20);
+  it("retries fresh webhooks before ones that already failed, oldest first within each", async () => {
+    const { order, seen, supabase } = retryQueue([
+      { id: "failed-old", created_at: "2026-01-01T00:00:00.000Z", webhook_attempts: 2 },
+      { id: "fresh-new", created_at: "2026-03-01T00:00:00.000Z", webhook_attempts: 0 },
+      { id: "fresh-old", created_at: "2026-02-01T00:00:00.000Z", webhook_attempts: 0 },
+    ]);
 
-    expect(order).toEqual(["created_at:true"]);
-    expect(seen[0]).toBe("older");
+    const retried = await retryUnsentBulkWebhooks(supabase as never);
+
+    expect(order).toEqual(["webhook_attempts:true", "created_at:true"]);
+    expect(seen).toEqual(["fresh-old", "fresh-new", "failed-old"]);
+    expect(retried).toBe(3);
+    expect(WEBHOOK_RETRY_LIMIT).toBe(8);
+    expect(WEBHOOK_RETRY_BUDGET_MS).toBe(40_000);
+  });
+
+  it("stops starting webhook sends once the sweep budget has elapsed", async () => {
+    const { seen, supabase } = retryQueue([
+      { id: "first", created_at: "2026-01-01T00:00:00.000Z", webhook_attempts: 0 },
+      { id: "second", created_at: "2026-01-02T00:00:00.000Z", webhook_attempts: 0 },
+      { id: "third", created_at: "2026-01-03T00:00:00.000Z", webhook_attempts: 0 },
+    ]);
+    const stamps = [0, 0, 10, 40];
+    let tick = 0;
+    const now = () => stamps[Math.min(tick++, stamps.length - 1)];
+
+    const retried = await retryUnsentBulkWebhooks(supabase as never, 8, new Set(), { budgetMs: 40, now });
+
+    expect(retried).toBe(2);
+    expect(seen).toEqual(["first", "second"]);
   });
 
   it("gives up immediately when the webhook host is not public", async () => {

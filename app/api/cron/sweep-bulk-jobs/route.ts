@@ -1,6 +1,6 @@
 import { timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { retryUnsentBulkWebhooks, sweepStaleBulkJobs } from "@/lib/bulk-job-runner";
+import { retryUnsentBulkWebhooks, sweepStaleBulkJobs, WEBHOOK_RETRY_LIMIT } from "@/lib/bulk-job-runner";
 import { createSupabaseAdmin } from "@/lib/supabase";
 
 export const maxDuration = 60;
@@ -22,8 +22,9 @@ export async function GET(req: NextRequest) {
   }
 
   const supabase = createSupabaseAdmin();
+  const startedAt = Date.now();
   const attempted = new Set<string>();
-  const failed = await sweepStaleBulkJobs(supabase, Date.now(), attempted);
-  const webhooks = await retryUnsentBulkWebhooks(supabase, 20, attempted);
+  const failed = await sweepStaleBulkJobs(supabase, startedAt, attempted);
+  const webhooks = await retryUnsentBulkWebhooks(supabase, WEBHOOK_RETRY_LIMIT, attempted, { startedAt });
   return NextResponse.json({ failed, webhooks });
 }

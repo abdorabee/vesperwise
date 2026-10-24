@@ -29,6 +29,9 @@ interface StoredJob {
 const BULK_LEASE_SECONDS = 120;
 export const WEBHOOK_ATTEMPT_CAP = 3;
 const WEBHOOK_ATTEMPT_LEASE_SECONDS = 15;
+export const WEBHOOK_RETRY_LIMIT = 8;
+/** Stop starting new sends here so the last one can finish inside maxDuration 60. */
+export const WEBHOOK_RETRY_BUDGET_MS = 40_000;
 
 export async function assertPublicWebhookUrl(url: string | null | undefined): Promise<string | null> {
   if (!url) return null;
@@ -149,15 +152,20 @@ export async function retryStoredBulkWebhook(
 
 export async function retryUnsentBulkWebhooks(
   supabase: Admin,
-  limit = 20,
+  limit = WEBHOOK_RETRY_LIMIT,
   attempted: Set<string> = new Set(),
+  options: { budgetMs?: number; now?: () => number; startedAt?: number } = {},
 ): Promise<number> {
+  const now = options.now ?? Date.now;
+  const startedAt = options.startedAt ?? now();
+  const budgetMs = options.budgetMs ?? WEBHOOK_RETRY_BUDGET_MS;
   const { data, error } = await supabase
     .from("bulk_jobs")
-    .select("id, status, completed, total, created_at, results, webhook_url")
+    .select("id, status, completed, total, created_at, results, webhook_url, webhook_attempts")
     .in("status", ["completed", "failed"])
     .is("webhook_sent_at", null)
     .not("webhook_url", "is", null)
+    .order("webhook_attempts", { ascending: true })
     .order("created_at", { ascending: true })
     .limit(limit);
   if (error) {
@@ -168,6 +176,7 @@ export async function retryUnsentBulkWebhooks(
   let retried = 0;
   for (const job of (data ?? []) as StoredJob[]) {
     if (attempted.has(job.id)) continue;
+    if (now() - startedAt >= budgetMs) break;
     retried += 1;
     await retryStoredBulkWebhook(supabase, job, attempted);
   }
