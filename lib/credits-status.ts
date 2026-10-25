@@ -26,6 +26,29 @@ export interface CreditStatus {
   summary: string;
 }
 
+/**
+ * Denominator for the billing balance. A granted plan was not sold at
+ * PLAN_CREDITS, so the visible allowance is what's left plus ledger debits.
+ */
+export function creditDenominator(input: {
+  granted: boolean;
+  creditsRemaining: number;
+  planAllowance: number;
+  debitTotal: number;
+}): number {
+  if (!input.granted) return input.planAllowance;
+  return Math.max(0, input.creditsRemaining) + Math.max(0, input.debitTotal);
+}
+
+/** Credits actually charged. Top-ups and resets are credits, not usage. */
+export function sumLedgerDebits(entries: readonly { type: string; amount: number }[]): number {
+  return entries.reduce((sum, entry) => {
+    if (entry.type !== "debit") return sum;
+    const amount = Number(entry.amount);
+    return Number.isFinite(amount) ? sum + amount : sum;
+  }, 0);
+}
+
 /** Share of the plan allowance left, 0-100. Top-ups can push credits above the cap. */
 export function creditPercent(creditsRemaining: number, creditCap: number): number {
   if (creditCap <= 0) return 0;

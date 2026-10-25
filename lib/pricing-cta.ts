@@ -33,6 +33,14 @@ export function pricingCardState(input: {
       included: false,
     };
   }
+  if (input.granted) {
+    return {
+      label: "Not your plan",
+      href: input.card === "agency" ? "/contact#contact-form" : "/billing",
+      current: false,
+      included: false,
+    };
+  }
   if (comparePlans(input.card, current) < 0) {
     return { label: "Included", href: "/billing", current: false, included: true };
   }

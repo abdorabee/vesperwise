@@ -111,7 +111,6 @@ export default function BulkScorerPage() {
       ) {
         const note = bulkCreditEstimateMessage({
           estimatedFresh: estimate.estimated_fresh,
-          estimatedCached: estimate.estimated_cached,
           creditsRemaining: estimate.credits_remaining,
         });
         setCostNote(note);

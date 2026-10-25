@@ -5,6 +5,8 @@ import { createSupabaseAdmin } from "@/lib/supabase";
 import { isGrantedPlan } from "@/lib/billing-plans";
 import PricingView from "./pricing-view";
 
+export const dynamic = "force-dynamic";
+
 const CANONICAL = "https://www.vesperwise.com/pricing";
 
 export const metadata: Metadata = {

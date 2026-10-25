@@ -1,4 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
+import { sumLedgerDebits } from "@/lib/credits-status";
 import { createSupabaseAdmin } from "@/lib/supabase";
 import { HistoryView } from "./history-view";
 
@@ -14,6 +15,7 @@ export interface ActivityBucket {
 export interface HistoryStats {
   totalCount: number;
   monthlyCount: number;
+  creditsUsed30d: number;
   priorMonthCount: number;
   hotCount: number;
   warmCount: number;
@@ -43,6 +45,7 @@ export default async function HistoryPage() {
     { count: flippedToHot },
     { data: lastScoreRow },
     { data: priorMonthRows },
+    { data: debitRows },
   ] = await Promise.all([
     supabase.from("scores").select("id", { count: "exact", head: true }).eq("user_id", userId),
     supabase.from("scores")
@@ -66,6 +69,11 @@ export default async function HistoryPage() {
       .eq("user_id", userId)
       .gte("created_at", sixtyDaysAgo)
       .lt("created_at", thirtyDaysAgo),
+    supabase.from("credits_log")
+      .select("amount, type")
+      .eq("user_id", userId)
+      .eq("type", "debit")
+      .gte("created_at", thirtyDaysAgo),
   ]);
 
   const rows = monthlyRows ?? [];
@@ -101,6 +109,9 @@ export default async function HistoryPage() {
   const stats: HistoryStats = {
     totalCount: totalCount ?? 0,
     monthlyCount,
+    creditsUsed30d: sumLedgerDebits(
+      (debitRows ?? []).map((row) => ({ type: row.type, amount: Number(row.amount) })),
+    ),
     priorMonthCount,
     hotCount,
     warmCount,

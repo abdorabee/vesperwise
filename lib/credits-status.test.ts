@@ -4,8 +4,10 @@ import {
   LOW_CREDIT_PCT,
   LOW_CREDIT_USED_PCT,
   allowanceUsedPercent,
+  creditDenominator,
   creditPercent,
   getCreditStatus,
+  sumLedgerDebits,
 } from "./credits-status";
 
 describe("credits status", () => {
@@ -59,5 +61,23 @@ describe("credits status", () => {
       isLow: true,
       cta: "Top up",
     });
+  });
+
+  it("keeps the sold plan allowance when the workspace was not granted", () => {
+    expect(creditDenominator({
+      granted: false,
+      creditsRemaining: 495,
+      planAllowance: PLAN_CREDITS.agency,
+      debitTotal: 5,
+    })).toBe(PLAN_CREDITS.agency);
+  });
+
+  it("counts credits used from ledger debits, not score runs or top-ups", () => {
+    expect(sumLedgerDebits([
+      { type: "debit", amount: 1 },
+      { type: "debit", amount: 1 },
+      { type: "credit", amount: 25 },
+      { type: "debit", amount: 3 },
+    ])).toBe(5);
   });
 });
