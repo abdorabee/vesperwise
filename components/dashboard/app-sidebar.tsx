@@ -49,6 +49,7 @@ import {
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   creditsRemaining: number;
   plan: DbUser["plan"];
+  polarSubscriptionId?: string | null;
   workspaceName?: string | null;
   watchlistCount?: number;
   pipelineHotCount?: number;
@@ -154,6 +155,7 @@ function NavClusterRow({
 export function AppSidebar({
   creditsRemaining,
   plan,
+  polarSubscriptionId,
   workspaceName,
   watchlistCount = 0,
   pipelineHotCount = 0,
@@ -277,8 +279,8 @@ export function AppSidebar({
       </SidebarContent>
 
       <SidebarFooter>
-        <SidebarCredits creditsRemaining={creditsRemaining} creditCap={creditCap} plan={plan} />
-        <NavUser creditsRemaining={creditsRemaining} creditCap={creditCap} />
+        <SidebarCredits creditsRemaining={creditsRemaining} creditCap={creditCap} plan={plan} polarSubscriptionId={polarSubscriptionId} />
+        <NavUser creditsRemaining={creditsRemaining} creditCap={creditCap} plan={plan} polarSubscriptionId={polarSubscriptionId} />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

@@ -31,9 +31,10 @@ afterEach(() => {
 
 describe("BulkScorerPage", () => {
   it("updates the status bar credits from the batch response", async () => {
+    // The page calls bulk-inline twice (cost estimate, then the batch); each needs a fresh body.
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue(
+      vi.fn().mockImplementation(async () =>
         new Response(
           JSON.stringify({ total: 1, scored: 1, failed: 0, results: [], credits_remaining: 16 }),
           { status: 200 },

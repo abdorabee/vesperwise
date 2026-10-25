@@ -37,6 +37,9 @@ describe("DashboardHomeView", () => {
       { id: "2", domain: "ramp.com", company_name: "Ramp", score: 62, score_band: "WARM", created_at: "2026-09-28T10:00:00Z" },
     ];
     const html = renderToStaticMarkup(<DashboardHomeView {...props(rows)} />);
+    expect(html).toContain("2 accounts scored");
+    expect(html).toContain("of 2 scored");
+    expect(html).not.toContain("accounts tracked");
     expect(html).toContain(">Home</h1>");
     expect(html).toContain("HOT now");
     expect(html).toContain("1,240");

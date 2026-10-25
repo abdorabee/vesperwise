@@ -1,3 +1,4 @@
+import { liveWatchlistScore } from "@/lib/watchlist-seed";
 import { createSupabaseAdmin } from "@/lib/supabase";
 import { fetchLists, fetchListMembers } from "@/lib/lists-data";
 import type { DbList } from "@/lib/lists-types";
@@ -207,14 +208,14 @@ export async function buildWatchlistStats(userId: string): Promise<WatchlistStat
       .order("score", { ascending: false, nullsFirst: false }),
     supabase
       .from("scores")
-      .select("domain, score, signals, created_at")
+      .select("domain, score, score_band, signals, created_at")
       .eq("user_id", userId)
       .gte("created_at", ninetyDaysAgo)
       .order("created_at", { ascending: false }),
     fetchLists(userId),
   ]);
 
-  const historyByDomain = new Map<string, { created_at: string; score: number }[]>();
+  const historyByDomain = new Map<string, { created_at: string; score: number; score_band: string | null }[]>();
   const latestSignals = new Map<string, SignalSet | null>();
 
   for (const row of scoreRows ?? []) {
@@ -222,7 +223,7 @@ export async function buildWatchlistStats(userId: string): Promise<WatchlistStat
     if (!latestSignals.has(d)) latestSignals.set(d, parseSignals(row.signals));
     const hist = historyByDomain.get(d) ?? [];
     if (hist.length < 24) {
-      hist.push({ created_at: row.created_at, score: row.score });
+      hist.push({ created_at: row.created_at, score: row.score, score_band: row.score_band });
       historyByDomain.set(d, hist);
     }
   }
@@ -244,9 +245,19 @@ export async function buildWatchlistStats(userId: string): Promise<WatchlistStat
   );
 
   const entries: WatchlistEnrichedEntry[] = (watchlistRows ?? []).map((row) => {
-    const w = row as WatchlistEntry;
-    const domain = w.domain.toLowerCase();
+    const stored = row as WatchlistEntry;
+    const domain = stored.domain.toLowerCase();
     const history = historyByDomain.get(domain) ?? [];
+    const w = liveWatchlistScore(
+      {
+        ...stored,
+        score: stored.score ?? null,
+        score_band: stored.score_band ?? null,
+        last_scored: stored.last_scored ?? null,
+        previous_score: stored.previous_score ?? null,
+      },
+      history,
+    );
     const signals = latestSignals.get(domain) ?? null;
     const delta =
       w.score != null && w.previous_score != null ? w.score - w.previous_score : null;

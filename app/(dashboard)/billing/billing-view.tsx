@@ -46,21 +46,24 @@ export function BillingView({ stats, email, workspaceLabel }: BillingViewProps) 
               workspaceLabel={workspaceLabel}
               hasPortal={!!stats.profile.polar_customer_id}
               cancelScheduled={stats.profile.subscription_cancel_at_period_end ?? false}
+              granted={granted}
               onTopUp={scrollToTopup}
             />
 
             <BillingHero stats={stats} />
 
-            <BillingHelpRow
-              stats={stats}
-              onScrollToTopup={scrollToTopup}
-              onComparePlans={scrollToPlans}
-            />
+            {granted ? null : (
+              <BillingHelpRow
+                stats={stats}
+                onScrollToTopup={scrollToTopup}
+                onComparePlans={scrollToPlans}
+              />
+            )}
 
             <BillingPlansGrid currentPlan={plan} granted={granted} />
 
             <div className="split-row">
-              <BillingTopupsPanel plan={plan} />
+              {granted ? null : <BillingTopupsPanel plan={plan} />}
               <BillingCostBreakdown stats={stats} />
             </div>
 

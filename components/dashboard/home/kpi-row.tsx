@@ -34,7 +34,7 @@ export function KpiRow({
         detail={
           <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
             {prior ? <Delta value={kpis.hotNow - prior.hotNow} /> : null}
-            <span>of {numberFormat.format(kpis.tracked)} tracked</span>
+            <span>of {numberFormat.format(kpis.tracked)} scored</span>
           </span>
         }
       />

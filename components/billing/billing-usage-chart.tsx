@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, type ReactElement } from "react";
+import { isGrantedPlan, type PlanKey } from "@/lib/billing-plans";
 import type { BillingStats, DailyUsageDay } from "@/lib/billing-stats";
 
 const SEGMENTS = [
@@ -67,7 +68,8 @@ export function BillingUsageChart({ stats }: BillingUsageChartProps) {
   const todayX = (effectiveTodayIdx + 0.5) * barStep;
 
   // Depletion: how many days past today
-  const depletionDays = stats.daysUntilDeplete;
+  const granted = isGrantedPlan((stats.profile.plan ?? "free") as PlanKey, stats.profile.polar_subscription_id);
+  const depletionDays = granted ? null : stats.daysUntilDeplete;
   const depletionIdx =
     depletionDays != null && stats.depletesBeforeRenewal
       ? effectiveTodayIdx + depletionDays

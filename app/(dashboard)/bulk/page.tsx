@@ -12,6 +12,10 @@ import {
   type BulkResponse,
 } from "@/components/bulk/bulk-workspace";
 import {
+  bulkCreditEstimateMessage,
+  bulkInsufficientCreditsMessage,
+} from "@/lib/bulk-inline";
+import {
   bulkTemplateCsv,
   formatCoverage,
   summarizeBulkCsv,
@@ -33,7 +37,9 @@ export default function BulkScorerPage() {
   const [response, setResponse] = useState<BulkResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [announcement, setAnnouncement] = useState("");
+  const [costNote, setCostNote] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const batchKey = useRef("");
   const guardBulk = useFeatureGuard("bulk");
   const setCreditsRemaining = useSetCreditsRemaining();
 
@@ -61,6 +67,8 @@ export default function BulkScorerPage() {
     setSummary(nextSummary);
     setResponse(null);
     setError(nextSummary.error);
+    setCostNote(null);
+    batchKey.current = crypto.randomUUID();
     setAnnouncement(
       nextSummary.error ??
         `${candidate.name} attached with ${nextSummary.rowCount} companies.`,
@@ -72,6 +80,8 @@ export default function BulkScorerPage() {
     setSummary(null);
     setResponse(null);
     setError(null);
+    setCostNote(null);
+    batchKey.current = "";
     setAnnouncement("CSV removed.");
     if (inputRef.current) inputRef.current.value = "";
   }
@@ -86,17 +96,70 @@ export default function BulkScorerPage() {
     setAnnouncement(`Scoring companies from ${file.name}.`);
 
     try {
+      if (!batchKey.current) batchKey.current = crypto.randomUUID();
+      const headers = { "Idempotency-Key": batchKey.current };
+
+      const estimateForm = new FormData();
+      estimateForm.append("file", file);
+      estimateForm.append("estimate", "1");
+      const estimateRes = await fetch("/api/v1/score/bulk-inline", {
+        method: "POST",
+        body: estimateForm,
+        headers,
+      });
+      const estimate = await estimateRes.json() as {
+        error?: string;
+        estimated_fresh?: number;
+        estimated_cached?: number;
+        credits_needed?: number;
+        credits_remaining?: number;
+      };
+      if (!estimateRes.ok) {
+        const message = estimate.error === "Insufficient credits"
+          ? bulkInsufficientCreditsMessage({
+              creditsNeeded: estimate.credits_needed ?? estimate.estimated_fresh ?? 0,
+              creditsRemaining: estimate.credits_remaining ?? 0,
+            })
+          : (estimate.error ?? "Scoring failed");
+        throw new Error(message);
+      }
+      if (
+        typeof estimate.estimated_fresh === "number" &&
+        typeof estimate.estimated_cached === "number" &&
+        typeof estimate.credits_remaining === "number"
+      ) {
+        const note = bulkCreditEstimateMessage({
+          estimatedFresh: estimate.estimated_fresh,
+          estimatedCached: estimate.estimated_cached,
+          creditsRemaining: estimate.credits_remaining,
+        });
+        setCostNote(note);
+        setAnnouncement(note);
+      }
+
       const form = new FormData();
       form.append("file", file);
 
       const res = await fetch("/api/v1/score/bulk-inline", {
         method: "POST",
         body: form,
+        headers,
       });
-      const data = await res.json() as BulkResponse & { error?: string; credits_remaining?: number };
+      const data = await res.json() as BulkResponse & {
+        error?: string;
+        credits_remaining?: number;
+        credits_needed?: number;
+        estimated_fresh?: number;
+      };
 
       if (!res.ok) {
-        throw new Error(data.error ?? "Scoring failed");
+        const message = data.error === "Insufficient credits"
+          ? bulkInsufficientCreditsMessage({
+              creditsNeeded: data.credits_needed ?? data.estimated_fresh ?? 0,
+              creditsRemaining: data.credits_remaining ?? 0,
+            })
+          : (data.error ?? "Scoring failed");
+        throw new Error(message);
       }
 
       if (typeof data.credits_remaining === "number") setCreditsRemaining(data.credits_remaining);
@@ -187,6 +250,7 @@ export default function BulkScorerPage() {
           <p className="page-sub">
             Score up to 50 companies in one batch, then export the ranked results.
           </p>
+          {costNote ? <p className="page-sub" data-slot="bulk-cost-estimate">{costNote}</p> : null}
         </div>
         <div className="page-actions">
           <button

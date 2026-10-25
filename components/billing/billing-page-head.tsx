@@ -9,10 +9,11 @@ interface BillingPageHeadProps {
   /** Polar customer exists, so the hosted customer portal can open. */
   hasPortal: boolean;
   cancelScheduled: boolean;
+  granted?: boolean;
   onTopUp: () => void;
 }
 
-export function BillingPageHead({ renewAt, workspaceLabel, hasPortal, cancelScheduled, onTopUp }: BillingPageHeadProps) {
+export function BillingPageHead({ renewAt, workspaceLabel, hasPortal, cancelScheduled, granted = false, onTopUp }: BillingPageHeadProps) {
   const renewDate = formatRenewDate(renewAt);
 
   return (
@@ -28,7 +29,16 @@ export function BillingPageHead({ renewAt, workspaceLabel, hasPortal, cancelSche
         <div className="sub">
           Your plan, credits and invoices ·{" "}
           <span>
-            {renewDate ? (
+            {granted ? (
+              renewDate ? (
+                <>
+                  Granted · expires{" "}
+                  <strong style={{ color: "var(--text-primary)", fontWeight: 500 }}>{renewDate}</strong>
+                </>
+              ) : (
+                "Granted plan · no charge"
+              )
+            ) : renewDate ? (
               <>
                 {cancelScheduled ? "Plan ends" : "Renews"}{" "}
                 <strong style={{ color: "var(--text-primary)", fontWeight: 500 }}>{renewDate}</strong>
@@ -45,12 +55,14 @@ export function BillingPageHead({ renewAt, workspaceLabel, hasPortal, cancelSche
             Manage billing
           </a>
         ) : null}
+        {granted ? null : (
         <button type="button" className="btn-primary" onClick={onTopUp}>
           <svg className="ic" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8">
             <path d="M6 2v8M2 6h8" />
           </svg>
           Top up credits
         </button>
+        )}
       </div>
     </div>
   );

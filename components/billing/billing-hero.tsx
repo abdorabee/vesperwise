@@ -52,7 +52,7 @@ export function BillingHero({ stats }: BillingHeroProps) {
         })
       : null;
 
-  const eyebrowWarn = stats.depletesBeforeRenewal;
+  const eyebrowWarn = !granted && stats.depletesBeforeRenewal;
 
   return (
     <div className="bill-hero">
@@ -138,7 +138,7 @@ export function BillingHero({ stats }: BillingHeroProps) {
 
         <div className="cb-cap">
           <span className="b">{stats.usedCredits.toLocaleString()} used</span>
-          {daysLeft != null && (
+          {!granted && daysLeft != null && (
             <>
               {" "}
               · resets in <span className="b">{daysLeft} days</span>
@@ -188,8 +188,17 @@ export function BillingHero({ stats }: BillingHeroProps) {
           </div>
           <div className="div" />
           <div className="stat">
-            <div className={`v${eyebrowWarn ? " warn" : ""}`}>{depleteDate ?? "—"}</div>
-            <div className="l">Likely to deplete</div>
+            {granted ? (
+              <>
+                <div className="v">{renewDate ?? "—"}</div>
+                <div className="l">{renewDate ? `Granted · expires ${renewDate}` : "No expiry"}</div>
+              </>
+            ) : (
+              <>
+                <div className={`v${eyebrowWarn ? " warn" : ""}`}>{depleteDate ?? "—"}</div>
+                <div className="l">Likely to deplete</div>
+              </>
+            )}
           </div>
           <div className="div" />
           <div className="stat">
@@ -241,7 +250,9 @@ export function BillingHero({ stats }: BillingHeroProps) {
         </div>
 
         <div className="ni-pm">
-          {stats.profile.polar_customer_id ? (
+          {granted ? (
+            <span>Granted plan · no payment required</span>
+          ) : stats.profile.polar_customer_id ? (
             <>
               <span>Payments handled by <span className="b">Polar</span></span>
               <a href="/api/billing/portal" style={{ marginLeft: "auto" }} className="b underline underline-offset-4">
