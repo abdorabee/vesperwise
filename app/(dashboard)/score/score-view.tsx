@@ -15,6 +15,7 @@ import { ScorePageFrame, ScoreWorkspaceLayout } from "@/components/score/score-w
 import { ScoreThreadDrawer } from "@/components/score/score-thread-drawer";
 import { ScoreThreadsColumn } from "@/components/score/score-threads-column";
 import { useScoreReportState } from "@/components/score/use-score-report-state";
+import { ScoreTour } from "@/components/tour/score-tour";
 import { useSetCreditsRemaining } from "@/components/dashboard/workspace-state";
 import { extractDomain, loadChatSession, seedChatSession, streamChat } from "@/lib/chat-client";
 import { sanitizeUiBlocks, suggestionsFromBlocks, workspaceFromScore } from "@/lib/gen-ui";
@@ -34,7 +35,7 @@ export interface RecentScore {
   created_at: string;
 }
 
-interface ScoreViewProps { creditsRemaining: number; recentScores: RecentScore[] }
+interface ScoreViewProps { creditsRemaining: number; recentScores: RecentScore[]; onboardingComplete: boolean }
 function nextId() { return crypto.randomUUID(); }
 
 function requireScorableResult(value: IntentScore): ScorableIntentScore {
@@ -134,7 +135,7 @@ function toolsOf(message: ThreadMessage): ToolChip[] {
 }
 
 export function ScoreView(props: ScoreViewProps) {
-  const { creditsRemaining, recentScores } = props;
+  const { creditsRemaining, recentScores, onboardingComplete } = props;
   const setCreditsRemaining = useSetCreditsRemaining();
   const searchParams = useSearchParams();
   const autoScoredRef = useRef<string | null>(null);
@@ -406,6 +407,7 @@ export function ScoreView(props: ScoreViewProps) {
           </ShellPanel>
         ) : null}
       </div>
+      <ScoreTour onboardingComplete={onboardingComplete} />
     </>
   );
 }

@@ -82,10 +82,11 @@ function NavRow({
   const Icon = item.icon;
   const active = isNavActive(pathname, item.href);
   const count = itemCount(item, counts);
+  const tour = item.label === "Chat" ? "chat" : undefined;
   return (
     <SidebarMenuItem>
       <SidebarMenuButton asChild isActive={active} tooltip={item.label}>
-        <Link href={item.href}>
+        <Link href={item.href} scroll={tour ? false : undefined} data-tour={tour}>
           <Icon />
           <span>{item.label}</span>
         </Link>

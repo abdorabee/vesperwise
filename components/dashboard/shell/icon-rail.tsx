@@ -75,14 +75,17 @@ function RailLink({
 }) {
   const Icon = item.icon;
   const active = isNavActive(pathname, item.href);
+  const tour = item.label === "Chat" ? "chat" : undefined;
 
   return (
     <RailTooltip label={item.label}>
       <Link
         href={item.href}
+        scroll={tour ? false : undefined}
         aria-label={item.label}
         aria-current={active ? "page" : undefined}
         data-active={active}
+        data-tour={tour}
         className="dashboard-rail-button"
       >
         <Icon className="size-4" />

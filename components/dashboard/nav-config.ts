@@ -3,6 +3,7 @@ import {
   LayoutGrid,
   Activity,
   Gauge,
+  MessageSquare,
   History,
   Eye,
   ListChecks,
@@ -31,6 +32,7 @@ export const NAV_MAIN: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutGrid },
   { href: "/pipeline", label: "Intent Hub", icon: Activity, hotCount: true },
   { href: "/score", label: "Score", icon: Gauge },
+  { href: "/score#chat", label: "Chat", icon: MessageSquare },
 ];
 
 /**
