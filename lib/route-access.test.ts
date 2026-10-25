@@ -38,6 +38,8 @@ describe("requiresAuth", () => {
     expect(requiresAuth("/api/contact", prod)).toBe(false);
     expect(requiresAuth("/api/billing/webhook", prod)).toBe(false);
     expect(requiresAuth("/api/billing/checkout", prod)).toBe(true);
+    expect(requiresAuth("/api/onboarding/pdf", prod)).toBe(true);
+    expect(requiresAuth("/api/onboarding/pdf", preview)).toBe(true);
   });
 
   it("covers every section in app/(dashboard)", () => {

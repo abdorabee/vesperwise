@@ -7,6 +7,11 @@ import {
   MAX_SEED_DOMAINS,
   normalizeDomainInput,
 } from "./business-profile";
+import {
+  guardPdfProfile,
+  type PdfFillableField,
+  type PdfFilledMap,
+} from "./onboarding-pdf-guards";
 import type { BusinessProfile } from "./types";
 
 // Re-exported so the onboarding screens keep importing them from here.
@@ -112,6 +117,8 @@ export type OnboardingFieldErrors = Partial<Record<keyof BusinessProfile, string
 export interface OnboardingState {
   step: number;
   profile: BusinessProfile;
+  /** Fields whose current value came from a PDF read and has not been edited. */
+  pdfFilled: PdfFilledMap;
   saveStatus: "idle" | "saving" | "error";
   saveError: string | null;
 }
@@ -125,6 +132,7 @@ export type OnboardingAction =
   | { type: "set_tech_stack_include"; tools: string[] }
   | { type: "set_tech_stack_exclude"; tools: string[] }
   | { type: "set_seed_domains"; domains: string[] }
+  | { type: "apply_pdf_profile"; profile: Partial<BusinessProfile> }
   | { type: "next_step" }
   | { type: "previous_step" }
   | { type: "go_to_step"; step: number }
@@ -162,9 +170,34 @@ export function createOnboardingState(
       seed_domains: cleanDomainList(profile?.seed_domains),
       workspace_name: cleanText(profile?.workspace_name),
     },
+    pdfFilled: {},
     saveStatus: "idle",
     saveError: null,
   };
+}
+
+const PDF_OPTION_SETS = {
+  productCategory: PRODUCT_CATEGORY_OPTIONS,
+  industries: INDUSTRY_OPTIONS,
+  companySize: COMPANY_SIZE_OPTIONS,
+  buyerRole: BUYER_ROLE_OPTIONS,
+  salesMotion: SALES_MOTION_OPTIONS,
+  dealSize: DEAL_SIZE_OPTIONS,
+  salesCycle: SALES_CYCLE_OPTIONS,
+  geography: GEOGRAPHY_OPTIONS,
+};
+
+function clearPdfFill(filled: PdfFilledMap, field: string): PdfFilledMap {
+  if (!(field in filled)) return filled;
+  const next = { ...filled };
+  delete next[field as PdfFillableField];
+  return next;
+}
+
+function fieldIsBlank(profile: BusinessProfile, field: PdfFillableField): boolean {
+  const value = profile[field];
+  if (Array.isArray(value)) return value.length === 0;
+  return !cleanText(value);
 }
 
 export function buildBusinessProfile(
@@ -271,6 +304,7 @@ export function onboardingReducer(
       return {
         ...state,
         profile: { ...state.profile, [action.field]: action.value },
+        pdfFilled: clearPdfFill(state.pdfFilled, action.field),
         saveStatus: "idle",
         saveError: null,
       };
@@ -278,6 +312,7 @@ export function onboardingReducer(
       return {
         ...state,
         profile: { ...state.profile, target_industries: action.industries },
+        pdfFilled: clearPdfFill(state.pdfFilled, "target_industries"),
         saveStatus: "idle",
         saveError: null,
       };
@@ -288,6 +323,7 @@ export function onboardingReducer(
           ...state.profile,
           target_industries: toggleInList(state.profile.target_industries, action.industry),
         },
+        pdfFilled: clearPdfFill(state.pdfFilled, "target_industries"),
         saveStatus: "idle",
         saveError: null,
       };
@@ -298,6 +334,7 @@ export function onboardingReducer(
           ...state.profile,
           geography: toggleInList(state.profile.geography ?? [], action.geo),
         },
+        pdfFilled: clearPdfFill(state.pdfFilled, "geography"),
         saveStatus: "idle",
         saveError: null,
       };
@@ -305,6 +342,7 @@ export function onboardingReducer(
       return {
         ...state,
         profile: { ...state.profile, geography: action.geography },
+        pdfFilled: clearPdfFill(state.pdfFilled, "geography"),
         saveStatus: "idle",
         saveError: null,
       };
@@ -312,6 +350,7 @@ export function onboardingReducer(
       return {
         ...state,
         profile: { ...state.profile, tech_stack_include: action.tools },
+        pdfFilled: clearPdfFill(state.pdfFilled, "tech_stack_include"),
         saveStatus: "idle",
         saveError: null,
       };
@@ -319,6 +358,7 @@ export function onboardingReducer(
       return {
         ...state,
         profile: { ...state.profile, tech_stack_exclude: action.tools },
+        pdfFilled: clearPdfFill(state.pdfFilled, "tech_stack_exclude"),
         saveStatus: "idle",
         saveError: null,
       };
@@ -326,9 +366,23 @@ export function onboardingReducer(
       return {
         ...state,
         profile: { ...state.profile, seed_domains: action.domains.slice(0, MAX_SEED_DOMAINS) },
+        pdfFilled: clearPdfFill(state.pdfFilled, "seed_domains"),
         saveStatus: "idle",
         saveError: null,
       };
+    case "apply_pdf_profile": {
+      const guarded = guardPdfProfile(action.profile, PDF_OPTION_SETS);
+      let profile = state.profile;
+      const pdfFilled: PdfFilledMap = { ...state.pdfFilled };
+      for (const field of guarded.filled) {
+        if (!fieldIsBlank(state.profile, field)) continue;
+        const value = guarded.profile[field];
+        if (value === undefined) continue;
+        profile = { ...profile, [field]: value };
+        pdfFilled[field] = true;
+      }
+      return { ...state, profile, pdfFilled, saveStatus: "idle", saveError: null };
+    }
     case "next_step":
       return { ...state, step: Math.min(MAX_STEP, state.step + 1) };
     case "previous_step":
