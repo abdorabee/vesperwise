@@ -29,6 +29,7 @@ export function BillingPlansGrid({ currentPlan, granted = false }: BillingPlansG
           const isCurrent = p.key === currentPlan;
           const isRecommended = p.key === "growth" && !isCurrent && !granted;
           const action = planCardAction(currentPlan, p.key, granted);
+          if (granted && !isCurrent) return null;
 
           return (
             <div
@@ -49,7 +50,7 @@ export function BillingPlansGrid({ currentPlan, granted = false }: BillingPlansG
 
               <div className="pc-price-row">
                 {p.contactOnly ? (
-                  <span className="pc-price">Contact us</span>
+                  <span className="pc-price">{granted && isCurrent ? "Granted" : "Contact us"}</span>
                 ) : (
                   <>
                     <span className="pc-price">

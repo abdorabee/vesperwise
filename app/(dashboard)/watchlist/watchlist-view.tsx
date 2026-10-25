@@ -18,6 +18,7 @@ import {
 } from "@/components/watchlist/watchlist-quick-add";
 
 import { WATCHLIST_FOCUS_ADD_EVENT } from "@/lib/watchlist-events";
+import { deleteWatchlistEntry, restoreWatchlistEntry } from "@/lib/watchlist-remove";
 
 interface WatchlistViewProps {
   initial: WatchlistStats;
@@ -133,12 +134,12 @@ export function WatchlistView({ initial }: WatchlistViewProps) {
       adjustCounts(domain, 1);
     };
 
-    // Send DELETE immediately
-    void fetch(`/api/dashboard/watchlist?domain=${encodeURIComponent(domain)}`, {
-      method: "DELETE",
-      keepalive: true,
-    }).catch((err) => {
-      console.error("[watchlist] remove failed", err);
+    const removal = deleteWatchlistEntry(domain);
+    void removal.then((res) => {
+      if (res.ok) return;
+      restore();
+      toast.error(`Couldn't remove ${entry.company_name}. It's back on your watchlist.`);
+    }).catch(() => {
       restore();
       toast.error(`Couldn't remove ${entry.company_name}. It's back on your watchlist.`);
     });
@@ -148,14 +149,14 @@ export function WatchlistView({ initial }: WatchlistViewProps) {
       action: {
         label: "Undo",
         onClick: () => {
-          // Re-add via POST
-          void fetch("/api/dashboard/watchlist", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ domain, company_name: entry.company_name }),
-            keepalive: true,
-          })
-            .then(() => router.refresh())
+          restore();
+          void removal
+            .catch(() => undefined)
+            .then(() => restoreWatchlistEntry(domain, entry.company_name))
+            .then((res) => {
+              if (!res.ok) toast.error("Failed to undo removal");
+              else router.refresh();
+            })
             .catch(() => toast.error("Failed to undo removal"));
         },
       },

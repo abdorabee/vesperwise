@@ -1,11 +1,13 @@
+type CreditBypassEnvironment = Readonly<Record<string, string | undefined>>;
+
 /**
- * Check if credit bypass is enabled. This is ONLY for development/testing and
- * should never be true in production. The env var check ensures it can't
- * accidentally be enabled in production environments.
+ * Zero-credit testing stays explicit and cannot turn on in production.
+ * `DISABLE_CREDIT_CHECK` is the legacy switch still set on Vercel; it follows
+ * the same production guard as `DEV_BYPASS_CREDITS`.
  */
-export function isDevCreditBypassEnabled(): boolean {
-  // Only allow bypass in explicit development environments
-  if (process.env.NODE_ENV === "production") return false;
-  if (process.env.VERCEL_ENV === "production") return false;
-  return process.env.DISABLE_CREDIT_CHECK === "true";
+export function isDevCreditBypassEnabled(
+  env: CreditBypassEnvironment = process.env,
+): boolean {
+  if (env.NODE_ENV === "production" || env.VERCEL_ENV === "production") return false;
+  return env.DEV_BYPASS_CREDITS === "true" || env.DISABLE_CREDIT_CHECK === "true";
 }

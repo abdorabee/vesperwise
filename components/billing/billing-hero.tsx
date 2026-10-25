@@ -188,8 +188,17 @@ export function BillingHero({ stats }: BillingHeroProps) {
           </div>
           <div className="div" />
           <div className="stat">
-            <div className={`v${eyebrowWarn ? " warn" : ""}`}>{!granted && depleteDate ? depleteDate : "—"}</div>
-            <div className="l">Likely to deplete</div>
+            {granted ? (
+              <>
+                <div className="v">{renewDate ?? "—"}</div>
+                <div className="l">{renewDate ? `Granted · expires ${renewDate}` : "No expiry"}</div>
+              </>
+            ) : (
+              <>
+                <div className={`v${eyebrowWarn ? " warn" : ""}`}>{depleteDate ?? "—"}</div>
+                <div className="l">Likely to deplete</div>
+              </>
+            )}
           </div>
           <div className="div" />
           <div className="stat">

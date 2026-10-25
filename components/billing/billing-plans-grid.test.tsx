@@ -26,11 +26,14 @@ describe("BillingPlansGrid renewal disclosure", () => {
     expect(html).not.toContain("Upgrade to");
   });
 
-  it("hides upgrade and downgrade for a granted plan", () => {
+  it("hides upgrade, downgrade and the agency contact tile for a granted plan", () => {
     const html = renderToStaticMarkup(<BillingPlansGrid currentPlan="agency" granted />);
     expect(html).toContain("Current plan");
+    expect(html).toContain("Granted");
+    expect(html).toContain("Your granted plan");
     expect(html).not.toContain("Upgrade to");
     expect(html).not.toContain("Downgrade");
-    expect(html).toContain("Contact us");
+    expect(html).not.toContain("Contact us");
+    expect(html).not.toContain("Switch any time");
   });
 });

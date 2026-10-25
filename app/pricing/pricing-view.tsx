@@ -11,6 +11,7 @@ import {
   planCreditsFeature,
 } from "@/lib/plan-features";
 import { renewalDisclosure } from "@/lib/billing-plans";
+import { pricingCardState } from "@/lib/pricing-cta";
 
 const FAQ: { q: string; a: string }[] = [
   {
@@ -42,6 +43,15 @@ interface PricingViewProps {
 }
 
 export default function PricingView({ signedIn, currentPlan, granted }: PricingViewProps) {
+  const agency = pricingCardState({
+    card: "agency",
+    currentPlan,
+    signedIn,
+    granted,
+    signedOutLabel: "Contact us",
+    signedOutHref: "/contact#contact-form",
+  });
+
   return (
     <div className="pricing-page">
       <style>{`
@@ -106,36 +116,21 @@ export default function PricingView({ signedIn, currentPlan, granted }: PricingV
       <div className="pp-wrap">
         <div className="pp-grid">
           {MARKETING_PLANS.map((plan) => {
-            const isCurrent = signedIn && plan.key === currentPlan;
-            const isGranted = isCurrent && granted;
-            const currentPlanKey = currentPlan as "free" | "starter" | "plus" | "growth" | "pro" | "agency" | null;
-            const planOrder = ["free", "starter", "plus", "growth", "pro"];
-            const currentIdx = currentPlanKey ? planOrder.indexOf(currentPlanKey) : -1;
-            const planIdx = planOrder.indexOf(plan.key);
-            const isLowerTier = currentIdx >= 0 && planIdx >= 0 && planIdx <= currentIdx;
-            
-            let ctaHref = "/signup";
-            let ctaText = plan.cta;
-
-            if (signedIn) {
-              if (isCurrent) {
-                ctaText = isGranted ? "Current (Granted)" : "Current plan";
-                ctaHref = "/billing";
-              } else if (isLowerTier) {
-                ctaText = "Included";
-                ctaHref = "/billing";
-              } else {
-                ctaText = "Upgrade";
-                ctaHref = "/billing";
-              }
-            }
+            const state = pricingCardState({
+              card: plan.key,
+              currentPlan,
+              signedIn,
+              granted,
+              signedOutLabel: plan.cta,
+              signedOutHref: "/signup",
+            });
 
             return (
               <div key={plan.key} className={`pp-card${plan.featured ? " featured" : ""}`}>
                 <div className="pp-name">
                   {plan.label}
                   {plan.featured ? <span className="pp-pill">Most popular</span> : null}
-                  {isGranted ? <span className="pp-pill" style={{ background: "var(--warm)" }}>Granted</span> : null}
+                  {state.current && granted ? <span className="pp-pill" style={{ background: "var(--warm)" }}>Granted</span> : null}
                 </div>
                 <div className="pp-blurb">{plan.blurb}</div>
                 <div className="pp-amt">
@@ -151,19 +146,23 @@ export default function PricingView({ signedIn, currentPlan, granted }: PricingV
                     </li>
                   ))}
                 </ul>
-                <Link href={ctaHref} className={`pp-btn${plan.featured && !isCurrent ? " primary" : ""}`}>
-                  {ctaText}
-                </Link>
-                {plan.price > 0 && !isCurrent ? <p className="pp-renewal">{renewalDisclosure(plan.price)}</p> : null}
+                {state.included ? (
+                  <span className="pp-btn">{state.label}</span>
+                ) : (
+                  <Link href={state.href} className={`pp-btn${plan.featured && !state.current ? " primary" : ""}`}>
+                    {state.label}
+                  </Link>
+                )}
+                {plan.price > 0 && !state.current && !state.included ? <p className="pp-renewal">{renewalDisclosure(plan.price)}</p> : null}
               </div>
             );
           })}
           <div className="pp-card">
             <div className="pp-name">
               Agency
-              {signedIn && currentPlan === "agency" ? (
+              {agency.current ? (
                 <span className="pp-pill" style={{ background: granted ? "var(--warm)" : "var(--brand)" }}>
-                  {granted ? "Current (Granted)" : "Current"}
+                  {granted ? "Granted" : "Current"}
                 </span>
               ) : null}
             </div>
@@ -178,11 +177,7 @@ export default function PricingView({ signedIn, currentPlan, granted }: PricingV
                 Granted workspaces keep their current access
               </li>
             </ul>
-            {signedIn && currentPlan === "agency" ? (
-              <Link href="/billing" className="pp-btn">{granted ? "Current (Granted)" : "Current plan"}</Link>
-            ) : (
-              <Link href="/contact#contact-form" className="pp-btn">Contact us</Link>
-            )}
+            <Link href={agency.href} className="pp-btn">{agency.label}</Link>
           </div>
         </div>
 

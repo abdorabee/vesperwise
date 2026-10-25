@@ -1,124 +1,74 @@
-import { describe, it, expect } from "vitest";
-import { getCreditStatus, GRANTED_LOW_CREDIT_THRESHOLD, LOW_CREDIT_USED_PCT } from "@/lib/credits-status";
+import { describe, expect, it } from "vitest";
+import { GRANTED_LOW_CREDIT_THRESHOLD, getCreditStatus } from "@/lib/credits-status";
 import { PLAN_CREDITS } from "@/lib/types";
 
-describe("Low Credits Status", () => {
-  it("should NOT flag 496/25,000 on granted agency plan as low", () => {
+describe("Low credits status", () => {
+  it("does not flag 496/25,000 on a granted agency plan", () => {
     const status = getCreditStatus({
       creditsRemaining: 496,
       creditCap: PLAN_CREDITS.agency,
       plan: "agency",
-      polarSubscriptionId: null, // Granted (no subscription)
+      polarSubscriptionId: null,
     });
 
+    expect(GRANTED_LOW_CREDIT_THRESHOLD).toBeLessThan(496);
     expect(status.isLow).toBe(false);
-    expect(status.pct).toBeGreaterThan(0);
   });
 
-  it("should flag granted plan below 100 credits as low", () => {
-    const status = getCreditStatus({
-      creditsRemaining: 99,
+  it("flags a granted plan only under the absolute threshold", () => {
+    expect(getCreditStatus({
+      creditsRemaining: GRANTED_LOW_CREDIT_THRESHOLD,
       creditCap: PLAN_CREDITS.agency,
       plan: "agency",
-      polarSubscriptionId: null, // Granted
-    });
+      polarSubscriptionId: null,
+    }).isLow).toBe(false);
 
-    expect(status.isLow).toBe(true);
+    expect(getCreditStatus({
+      creditsRemaining: GRANTED_LOW_CREDIT_THRESHOLD - 1,
+      creditCap: PLAN_CREDITS.agency,
+      plan: "agency",
+      polarSubscriptionId: null,
+    }).isLow).toBe(true);
   });
 
-  it("should use 80% rule for paid plans, not absolute threshold", () => {
-    // 19 credits on a free plan (20 total) = 5% remaining = 95% used
-    const freeUser = getCreditStatus({
+  it("does not flag a free user at 19 credits", () => {
+    const free = getCreditStatus({
       creditsRemaining: 19,
       creditCap: PLAN_CREDITS.free,
       plan: "free",
       polarSubscriptionId: null,
     });
+    expect(free.isLow).toBe(false);
 
-    // 95% used is > 80% threshold, so should be low
-    expect(freeUser.isLow).toBe(true);
-
-    // 80 of 100 credits remaining (20% used) should NOT be low
-    const starterUser = getCreditStatus({
-      creditsRemaining: 80,
-      creditCap: PLAN_CREDITS.starter,
-      plan: "starter",
-      polarSubscriptionId: "sub_123", // Paid
+    const low = getCreditStatus({
+      creditsRemaining: 4,
+      creditCap: PLAN_CREDITS.free,
+      plan: "free",
+      polarSubscriptionId: null,
     });
+    expect(low.isLow).toBe(true);
+  });
 
-    expect(starterUser.isLow).toBe(false);
-
-    // 20 of 100 credits remaining (80% used) should be low
-    const starterUserLow = getCreditStatus({
-      creditsRemaining: 20,
-      creditCap: PLAN_CREDITS.starter,
+  it("keeps the 80 percent rule for paid plans", () => {
+    expect(getCreditStatus({
+      creditsRemaining: 21,
+      creditCap: 100,
       plan: "starter",
       polarSubscriptionId: "sub_123",
-    });
+    }).isLow).toBe(false);
 
-    expect(starterUserLow.isLow).toBe(true);
-  });
+    expect(getCreditStatus({
+      creditsRemaining: 20,
+      creditCap: 100,
+      plan: "starter",
+      polarSubscriptionId: "sub_123",
+    }).isLow).toBe(true);
 
-  it("should treat free plan by usage percentage, not by granted threshold", () => {
-    // Free user with 19/20 credits = 5% used, should NOT be low
-    const freeHigh = getCreditStatus({
-      creditsRemaining: 19,
-      creditCap: PLAN_CREDITS.free,
-      plan: "free",
-      polarSubscriptionId: null,
-    });
-
-    // But if they have only 1 credit left out of 20, that's 95% used, should be low
-    const freeLow = getCreditStatus({
-      creditsRemaining: 1,
-      creditCap: PLAN_CREDITS.free,
-      plan: "free",
-      polarSubscriptionId: null,
-    });
-
-    expect(freeLow.isLow).toBe(true);
-  });
-
-  it("should use granted threshold for agency without subscription", () => {
-    const grantedAgency = getCreditStatus({
+    expect(getCreditStatus({
       creditsRemaining: 5000,
       creditCap: PLAN_CREDITS.agency,
       plan: "agency",
-      polarSubscriptionId: null, // No subscription = granted
-    });
-
-    expect(grantedAgency.isLow).toBe(false);
-
-    const grantedAgencyLow = getCreditStatus({
-      creditsRemaining: 50,
-      creditCap: PLAN_CREDITS.agency,
-      plan: "agency",
-      polarSubscriptionId: null,
-    });
-
-    expect(grantedAgencyLow.isLow).toBe(true);
-  });
-
-  it("should use usage percentage for paid agency plan", () => {
-    // Paid agency (has subscription) uses percentage rule
-    const paidAgency = getCreditStatus({
-      creditsRemaining: 5000,
-      creditCap: PLAN_CREDITS.agency,
-      plan: "agency",
-      polarSubscriptionId: "sub_agency123",
-    });
-
-    // 5000/25000 = 20% remaining = 80% used, should be at threshold
-    expect(paidAgency.isLow).toBe(true);
-
-    const paidAgencyHigh = getCreditStatus({
-      creditsRemaining: 20000,
-      creditCap: PLAN_CREDITS.agency,
-      plan: "agency",
-      polarSubscriptionId: "sub_agency123",
-    });
-
-    // 20000/25000 = 80% remaining = 20% used, should NOT be low
-    expect(paidAgencyHigh.isLow).toBe(false);
+      polarSubscriptionId: "sub_agency",
+    }).isLow).toBe(true);
   });
 });

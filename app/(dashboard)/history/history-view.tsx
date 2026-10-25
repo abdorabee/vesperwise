@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import type { CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { formatHistoryShare } from "@/lib/history-share";
 import { BandPill } from "@/components/score/band";
 import { csvFilename, downloadAuthorizedCsv, formatSignal } from "@/lib/csv";
 import type { DbScore, ScoreBand } from "@/lib/types";
@@ -428,13 +429,8 @@ export function HistoryView({ stats }: HistoryViewProps) {
                 {!isRescores && <span style={{ width: 7, height: 7, borderRadius: 999, background: color, boxShadow: `0 0 4px ${color}`, display: "inline-block", flexShrink: 0 }} />}
                 {label}
               </span>
-              <span style={{ fontFamily: "var(--font-mono)", fontWeight: 500, color: "var(--text-primary)", fontVariantNumeric: "tabular-nums", display: "flex", alignItems: "baseline", gap: 4 }}>
-                <span>{count}</span>
-                {stats.monthlyCount > 0 && (
-                  <span style={{ color: "var(--text-tertiary)", fontWeight: 400, fontSize: 11 }}>
-                    · {(count / stats.monthlyCount * 100).toFixed(1)}%
-                  </span>
-                )}
+              <span style={{ fontFamily: "var(--font-mono)", fontWeight: 500, color: "var(--text-primary)", fontVariantNumeric: "tabular-nums" }}>
+                {formatHistoryShare(count, stats.monthlyCount)}
               </span>
             </div>
           ))}

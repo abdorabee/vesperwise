@@ -48,7 +48,9 @@ export function getCreditStatus({
   const pct = creditPercent(creditsRemaining, creditCap);
   const usedPct = allowanceUsedPercent(creditsRemaining, creditCap);
 
-  const granted = isGrantedPlan(plan, polarSubscriptionId);
+  // Missing subscription id means "not provided", not "granted". Callers that
+  // know the row pass null for a comp plan and a Polar id for a paid one.
+  const granted = polarSubscriptionId !== undefined && isGrantedPlan(plan, polarSubscriptionId);
   const isLow = granted
     ? creditsRemaining < GRANTED_LOW_CREDIT_THRESHOLD
     : usedPct >= LOW_CREDIT_USED_PCT;

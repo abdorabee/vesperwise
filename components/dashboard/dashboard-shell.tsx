@@ -97,6 +97,7 @@ function DashboardShellFrame({
                 <AppSidebar
                   creditsRemaining={liveCredits}
                   plan={livePlan}
+                  polarSubscriptionId={polarSubscriptionId}
                   workspaceName={workspaceName}
                   watchlistCount={watchlistCount}
                   pipelineHotCount={pipelineHotCount}
@@ -107,6 +108,7 @@ function DashboardShellFrame({
                   <IconRail
                     creditsRemaining={liveCredits}
                     plan={livePlan}
+                    polarSubscriptionId={polarSubscriptionId}
                     watchlistCount={watchlistCount}
                     pipelineHotCount={pipelineHotCount}
                   />

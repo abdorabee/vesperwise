@@ -26,6 +26,7 @@ import { cn } from "@/lib/utils";
 interface IconRailProps {
   creditsRemaining: number;
   plan: DbUser["plan"];
+  polarSubscriptionId?: string | null;
   watchlistCount?: number;
   pipelineHotCount?: number;
 }
@@ -103,6 +104,7 @@ function RailLink({
 export function IconRail({
   creditsRemaining,
   plan,
+  polarSubscriptionId,
   watchlistCount = 0,
   pipelineHotCount = 0,
 }: IconRailProps) {
@@ -145,7 +147,7 @@ export function IconRail({
       <div data-slot="icon-rail-separator" className="dashboard-icon-rail__separator" />
       <div className="dashboard-icon-rail__bottom">
         <RailLink item={SETTINGS_ITEM} pathname={pathname} />
-        <NavUser creditsRemaining={creditsRemaining} creditCap={creditCap} variant="rail" />
+        <NavUser creditsRemaining={creditsRemaining} creditCap={creditCap} plan={plan} polarSubscriptionId={polarSubscriptionId} variant="rail" />
       </div>
     </nav>
   );
