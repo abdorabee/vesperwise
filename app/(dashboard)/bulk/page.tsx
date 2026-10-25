@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { Download } from "lucide-react";
-import { useFeatureGuard, useSetCreditsRemaining } from "@/components/dashboard/workspace-state";
+import { useFeatureGuard, useSetCreditsRemaining, useWorkspaceState } from "@/components/dashboard/workspace-state";
 
 import {
   BulkProcessingPanel,
@@ -14,7 +14,10 @@ import {
   bulkCreditEstimateMessage,
   bulkInsufficientCreditsMessage,
 } from "@/lib/bulk-inline";
+import { parseCsvRecords } from "@/lib/csv-parse";
+import { BULK_INLINE_MAX_ROWS, formatCount } from "@/lib/plan-features";
 import {
+  bulkCsvIssue,
   bulkTemplateCsv,
   formatCoverage,
   validateBulkFile,
@@ -36,10 +39,12 @@ export default function BulkScorerPage() {
   const [costNote, setCostNote] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const batchKey = useRef("");
+  const parseGeneration = useRef(0);
   const guardBulk = useFeatureGuard("bulk");
   const setCreditsRemaining = useSetCreditsRemaining();
+  const creditsRemaining = useWorkspaceState()?.creditsRemaining ?? 0;
 
-  function selectFile(candidate: File | null) {
+  async function selectFile(candidate: File | null) {
     if (!candidate) return;
 
     const validationError = validateBulkFile(candidate);
@@ -49,15 +54,44 @@ export default function BulkScorerPage() {
       return;
     }
 
+    const generation = ++parseGeneration.current;
     setFile(candidate);
     setResponse(null);
     setError(null);
     setCostNote(null);
     batchKey.current = crypto.randomUUID();
-    setAnnouncement(`${candidate.name} attached and ready to score.`);
+
+    let text: string;
+    try {
+      text = await candidate.text();
+    } catch {
+      if (generation !== parseGeneration.current) return;
+      const message = "Could not read that CSV.";
+      setError(message);
+      setAnnouncement(message);
+      return;
+    }
+    if (generation !== parseGeneration.current) return;
+
+    const rows = parseCsvRecords(text);
+    const issue = bulkCsvIssue(rows);
+    if (issue) {
+      setCostNote(null);
+      setError(issue);
+      setAnnouncement(issue);
+      return;
+    }
+
+    const note = bulkCreditEstimateMessage({
+      estimatedFresh: rows.length,
+      creditsRemaining,
+    });
+    setCostNote(note);
+    setAnnouncement(`${candidate.name} attached. ${note}`);
   }
 
   function clearFile() {
+    parseGeneration.current += 1;
     setFile(null);
     setResponse(null);
     setError(null);
@@ -104,19 +138,6 @@ export default function BulkScorerPage() {
           : (estimate.error ?? "Scoring failed");
         throw new Error(message);
       }
-      if (
-        typeof estimate.estimated_fresh === "number" &&
-        typeof estimate.estimated_cached === "number" &&
-        typeof estimate.credits_remaining === "number"
-      ) {
-        const note = bulkCreditEstimateMessage({
-          estimatedFresh: estimate.estimated_fresh,
-          creditsRemaining: estimate.credits_remaining,
-        });
-        setCostNote(note);
-        setAnnouncement(note);
-      }
-
       const form = new FormData();
       form.append("file", file);
 
@@ -228,7 +249,7 @@ export default function BulkScorerPage() {
         <div>
           <h1 className="page-title">Bulk score</h1>
           <p className="page-sub">
-            Score up to 50 companies in one batch, then export the ranked results.
+            Score up to {formatCount(BULK_INLINE_MAX_ROWS)} companies in one batch, then export the ranked results.
           </p>
           {costNote ? <p className="page-sub" data-slot="bulk-cost-estimate">{costNote}</p> : null}
         </div>

@@ -3,8 +3,7 @@ import LandingNav from "@/components/landing/LandingNav";
 import StickyMobileCta from "@/components/landing/sticky-mobile-cta";
 import SiteFooter from "@/components/site-footer";
 import {
-  BULK_MAX_CONCURRENT,
-  BULK_MAX_PER_JOB,
+  BULK_INLINE_MAX_ROWS,
   MARKETING_PLANS,
   MARKETING_TOPUPS,
   formatCount,
@@ -183,7 +182,7 @@ export default function PricingView({ signedIn, currentPlan, granted }: PricingV
         </div>
 
         <p className="pp-note">
-          Bulk scoring and CSV are on Plus and above. Jobs take up to {formatCount(BULK_MAX_PER_JOB)} companies, with {BULK_MAX_CONCURRENT} running at once. A cached company is free. Starter has no bulk, CSV or autopilot.
+          Bulk scoring and CSV are on Plus and above. Each file takes up to {formatCount(BULK_INLINE_MAX_ROWS)} companies. A cached company is free. Starter has no bulk, CSV or autopilot.
         </p>
 
         <section className="pp-topups" aria-labelledby="topups-title">

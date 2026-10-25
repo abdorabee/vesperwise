@@ -5,6 +5,7 @@ import { GET as bulkGet, POST as bulkPost } from "@/app/api/v1/score/bulk/route"
 import { auth } from "@clerk/nextjs/server";
 import { cacheGet } from "@/lib/cache";
 import { InsufficientCreditsError, scoreCompany } from "@/lib/score-service";
+import { BULK_INLINE_MAX_ROWS, BULK_MAX_PER_JOB } from "@/lib/plan-features";
 import { createSupabaseAdmin } from "@/lib/supabase";
 
 vi.mock("@clerk/nextjs/server", () => ({ auth: vi.fn() }));
@@ -243,6 +244,18 @@ describe("bulk charging", () => {
   describe("bulk-inline", () => {
     const csv = "domain\none.example\ntwo.example\nthree.example\n";
 
+    it("rejects a file above the dashboard batch cap", async () => {
+      const count = BULK_INLINE_MAX_ROWS + 1;
+      const rows = Array.from({ length: count }, (_, i) => `co${i}.example`).join("\n");
+      const response = await bulkInlinePost(inlineRequest(`domain\n${rows}\n`));
+      const body = await response.json();
+      expect(response.status).toBe(400);
+      expect(body.error).toBe(
+        `Maximum ${BULK_INLINE_MAX_ROWS} companies per batch. Your file has ${count} rows.`,
+      );
+      expect(mockScoreCompany).not.toHaveBeenCalled();
+    });
+
     it("debits one credit and one ledger row per fresh row", async () => {
       const response = await bulkInlinePost(inlineRequest(csv));
       const body = await response.json();
@@ -331,6 +344,15 @@ describe("bulk charging", () => {
   });
 
   describe("bulk job route", () => {
+    it("rejects a job above the queued cap", async () => {
+      const domains = Array.from({ length: BULK_MAX_PER_JOB + 1 }, (_, i) => `co${i}.example`);
+      const response = await bulkPost(bulkRequest(domains));
+      const body = await response.json();
+      expect(response.status).toBe(400);
+      expect(body.message).toBe(`Max ${BULK_MAX_PER_JOB.toLocaleString("en-US")} companies per job`);
+      expect(mockScoreCompany).not.toHaveBeenCalled();
+    });
+
     it("debits one credit and one ledger row per fresh company", async () => {
       const response = await bulkPost(bulkRequest(["one.example", "two.example", "three.example"]));
       const body = await response.json();

@@ -1,6 +1,8 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { BILLING_PLANS, BILLING_TOPUPS } from "@/lib/billing-plans";
-import { MARKETING_PLANS, MARKETING_TOPUPS, planFeatures } from "@/lib/plan-features";
+import { BULK_INLINE_MAX_ROWS, BULK_MAX_PER_JOB, MARKETING_PLANS, MARKETING_TOPUPS, planFeatures } from "@/lib/plan-features";
 import { PLAN_CREDITS, PLAN_WATCHLIST_LIMIT } from "@/lib/types";
 import { DEMO_ACCOUNTS, DEMO_PEOPLE, bandFor } from "@/components/landing/demo-accounts";
 
@@ -40,6 +42,26 @@ describe("plan features", () => {
     for (const plan of BILLING_PLANS) expect(plan.features).toEqual(planFeatures(plan.key));
     expect(BILLING_PLANS.find((plan) => plan.key === "agency")?.contactOnly).toBe(true);
     expect(BILLING_TOPUPS.map((t) => t.credits)).toEqual(MARKETING_TOPUPS.map((t) => t.credits));
+  });
+
+  it("shows the dashboard CSV cap on /bulk and /pricing, and keeps queued jobs at 1,000", () => {
+    expect(BULK_INLINE_MAX_ROWS).toBe(50);
+    expect(BULK_MAX_PER_JOB).toBe(1000);
+    const pages = [
+      "app/(dashboard)/bulk/page.tsx",
+      "app/pricing/pricing-view.tsx",
+      "components/bulk/bulk-workspace.tsx",
+    ];
+    for (const page of pages) {
+      expect(readFileSync(join(process.cwd(), page), "utf8")).toContain("BULK_INLINE_MAX_ROWS");
+    }
+    const pricing = readFileSync(join(process.cwd(), "app/pricing/pricing-view.tsx"), "utf8");
+    expect(pricing).not.toContain("BULK_MAX_PER_JOB");
+    const jobs = readFileSync(join(process.cwd(), "app/api/v1/score/bulk/route.ts"), "utf8");
+    expect(jobs).toContain("BULK_MAX_PER_JOB");
+    const inline = readFileSync(join(process.cwd(), "app/api/v1/score/bulk-inline/route.ts"), "utf8");
+    expect(inline).toContain("bulkCsvIssue");
+    expect(inline).not.toContain("MAX_ROWS");
   });
 });
 

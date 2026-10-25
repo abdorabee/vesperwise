@@ -27,8 +27,8 @@ export interface CreditStatus {
 }
 
 /**
- * Denominator for the billing balance. A granted plan was not sold at
- * PLAN_CREDITS, so the visible allowance is what's left plus ledger debits.
+ * Denominator for the billing balance. Always the plan's monthly quota
+ * (`PLAN_CREDITS`), including granted plans such as Agency.
  */
 export function creditDenominator(input: {
   granted: boolean;
@@ -36,8 +36,7 @@ export function creditDenominator(input: {
   planAllowance: number;
   debitTotal: number;
 }): number {
-  if (!input.granted) return input.planAllowance;
-  return Math.max(0, input.creditsRemaining) + Math.max(0, input.debitTotal);
+  return input.planAllowance;
 }
 
 /** Credits actually charged. Top-ups and resets are credits, not usage. */
