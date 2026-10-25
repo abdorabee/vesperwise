@@ -336,6 +336,12 @@ function getProfileHash(productCategory: string, businessProfile: BusinessProfil
   }));
 }
 
+/** Same profile hash `scoreCompany` uses for the result cache and credit run. */
+export function scoringProfileHash(productCategory: string, businessProfile: BusinessProfile | null | undefined): string {
+  const profile = normalizeBusinessProfile(businessProfile);
+  return getProfileHash(profile?.product_category || productCategory, profile);
+}
+
 function firstRpcRow<T>(data: unknown): T | null {
   if (Array.isArray(data)) return (data[0] as T | undefined) ?? null;
   return data && typeof data === "object" ? data as T : null;
@@ -1361,7 +1367,7 @@ export async function scoreCompany(opts: ScoreCompanyOptions): Promise<StoredInt
   const lookupCompany = companyName?.trim() || domainToCompanyName(lookupDomain);
   const profile = normalizeBusinessProfile(businessProfile);
   const effectiveProductCategory = profile?.product_category || productCategory;
-  const profileHash = getProfileHash(effectiveProductCategory, profile);
+  const profileHash = scoringProfileHash(productCategory, businessProfile);
   const normalizedIdempotencyKey = idempotencyKey?.trim();
   const scoringVersion = getActiveScoringVersion();
   const resultCacheKey = scoreResultCacheKey(

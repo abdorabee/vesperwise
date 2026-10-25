@@ -237,7 +237,7 @@ export function BandTrend({
   return (
     <PageSurface
       title="Band trend"
-      description={hasTrend ? `Tracked accounts per band at the end of each day · ${rangeLabel}` : "Current split of tracked accounts"}
+      description={hasTrend ? `Scored accounts per band at the end of each day · ${rangeLabel}` : "Current split of scored accounts"}
       action={
         hasTrend ? (
           <Button

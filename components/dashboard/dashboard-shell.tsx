@@ -22,6 +22,7 @@ interface DashboardShellProps {
   children: React.ReactNode;
   creditsRemaining: number;
   plan: DbUser["plan"];
+  polarSubscriptionId?: string | null;
   workspaceName?: string | null;
   watchlistCount?: number;
   pipelineHotCount?: number;
@@ -66,6 +67,7 @@ function DashboardShellFrame({
   children,
   creditsRemaining,
   plan,
+  polarSubscriptionId,
   workspaceName,
   watchlistCount,
   pipelineHotCount,
@@ -95,6 +97,7 @@ function DashboardShellFrame({
                 <AppSidebar
                   creditsRemaining={liveCredits}
                   plan={livePlan}
+                  polarSubscriptionId={polarSubscriptionId}
                   workspaceName={workspaceName}
                   watchlistCount={watchlistCount}
                   pipelineHotCount={pipelineHotCount}
@@ -105,6 +108,7 @@ function DashboardShellFrame({
                   <IconRail
                     creditsRemaining={liveCredits}
                     plan={livePlan}
+                    polarSubscriptionId={polarSubscriptionId}
                     watchlistCount={watchlistCount}
                     pipelineHotCount={pipelineHotCount}
                   />
@@ -115,6 +119,7 @@ function DashboardShellFrame({
                   <StatusBar
                     creditsRemaining={liveCredits}
                     plan={livePlan}
+                    polarSubscriptionId={polarSubscriptionId}
                     isMockSignals={isMockSignals}
                   />
                 }

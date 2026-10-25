@@ -77,11 +77,16 @@ export async function DELETE(req: NextRequest) {
   if (!domain) return NextResponse.json({ error: "domain required" }, { status: 400 });
 
   const supabase = createSupabaseAdmin();
-  await supabase
+  const { error } = await supabase
     .from("watchlist")
     .update({ is_active: false })
     .eq("user_id", userId)
     .eq("domain", domain.toLowerCase());
+
+  if (error) {
+    console.error("[watchlist DELETE] failed", error);
+    return NextResponse.json({ error: "Failed to remove from watchlist" }, { status: 500 });
+  }
 
   return NextResponse.json({ success: true });
 }

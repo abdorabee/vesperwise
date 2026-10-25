@@ -50,6 +50,8 @@ export { LOW_CREDIT_PCT, creditPercent };
 interface NavUserProps {
   creditsRemaining: number;
   creditCap: number;
+  plan?: DbUser["plan"];
+  polarSubscriptionId?: string | null;
   variant?: "sidebar" | "rail";
 }
 
@@ -67,9 +69,11 @@ function CreditBar({ pct, low }: { pct: number; low: boolean }) {
   );
 }
 
-function AccountCredits({ creditsRemaining, creditCap }: NavUserProps) {
+function AccountCredits({ creditsRemaining, creditCap, plan, polarSubscriptionId }: NavUserProps) {
   const creditPct = creditPercent(creditsRemaining, creditCap);
-  const low = allowanceUsedPercent(creditsRemaining, creditCap) >= LOW_CREDIT_USED_PCT;
+  const low = plan
+    ? getCreditStatus({ creditsRemaining, creditCap, plan, polarSubscriptionId }).isLow
+    : allowanceUsedPercent(creditsRemaining, creditCap) >= LOW_CREDIT_USED_PCT;
 
   return (
     <div data-slot="account-credits" className="px-2 py-1.5 text-xs">
@@ -100,11 +104,13 @@ export function SidebarCredits({
   creditsRemaining,
   creditCap,
   plan,
+  polarSubscriptionId,
 }: NavUserProps & { plan: DbUser["plan"] }) {
   const { pct, isLow: low, cta, summary } = getCreditStatus({
     creditsRemaining,
     creditCap,
     plan,
+    polarSubscriptionId,
   });
 
   return (
@@ -140,7 +146,7 @@ export function SidebarCredits({
   );
 }
 
-export function NavUser({ creditsRemaining, creditCap, variant = "sidebar" }: NavUserProps) {
+export function NavUser({ creditsRemaining, creditCap, plan, polarSubscriptionId, variant = "sidebar" }: NavUserProps) {
   const { user } = useUser();
   const { theme, toggleTheme } = useTheme();
   const { open: openSearch } = useDashboardSearch();
@@ -214,7 +220,7 @@ export function NavUser({ creditsRemaining, creditCap, variant = "sidebar" }: Na
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <AccountCredits creditsRemaining={creditsRemaining} creditCap={creditCap} />
+        <AccountCredits creditsRemaining={creditsRemaining} creditCap={creditCap} plan={plan} polarSubscriptionId={polarSubscriptionId} />
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
           <DropdownMenuItem onClick={openSearch}>

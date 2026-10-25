@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
+import { auth } from "@clerk/nextjs/server";
 import { STARTING_PRICE } from "@/lib/plan-features";
+import { createSupabaseAdmin } from "@/lib/supabase";
+import { isGrantedPlan } from "@/lib/billing-plans";
 import PricingView from "./pricing-view";
 
 const CANONICAL = "https://www.vesperwise.com/pricing";
@@ -20,6 +23,23 @@ export const metadata: Metadata = {
   },
 };
 
-export default function PricingPage() {
-  return <PricingView />;
+export default async function PricingPage() {
+  const { userId } = await auth();
+  let currentPlan: string | null = null;
+  let granted = false;
+
+  if (userId) {
+    const supabase = createSupabaseAdmin();
+    const { data } = await supabase
+      .from("users")
+      .select("plan, polar_subscription_id")
+      .eq("id", userId)
+      .maybeSingle();
+    if (data) {
+      currentPlan = data.plan;
+      granted = isGrantedPlan(data.plan, data.polar_subscription_id);
+    }
+  }
+
+  return <PricingView signedIn={!!userId} currentPlan={currentPlan} granted={granted} />;
 }

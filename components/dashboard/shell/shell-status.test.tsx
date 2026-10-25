@@ -31,4 +31,16 @@ describe("shell status slot", () => {
     expect(html).not.toContain('data-slot="statusbar-page-status"');
     expect(html).toContain("8 credits");
   });
+
+  it("does not mark a granted agency balance or a healthy free balance as low", () => {
+    const granted = renderToStaticMarkup(
+      <StatusBar creditsRemaining={496} plan="agency" polarSubscriptionId={null} />,
+    );
+    const free = renderToStaticMarkup(
+      <StatusBar creditsRemaining={19} plan="free" polarSubscriptionId={null} />,
+    );
+    expect(granted).not.toContain("Low credits");
+    expect(free).not.toContain("Low credits");
+    expect(granted).toContain("496 credits");
+  });
 });
