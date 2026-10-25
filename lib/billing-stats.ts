@@ -1,7 +1,8 @@
 import { createSupabaseAdmin } from "@/lib/supabase";
 import type { DbCreditLog, DbUser } from "@/lib/types";
 import { PLAN_CREDITS } from "@/lib/types";
-import { BILLING_TOPUPS, getPlanDef, type PlanKey } from "@/lib/billing-plans";
+import { BILLING_TOPUPS, getPlanDef, isGrantedPlan, type PlanKey } from "@/lib/billing-plans";
+import { creditDenominator, sumLedgerDebits } from "@/lib/credits-status";
 import { fetchPolarInvoices, type PolarInvoiceRow } from "@/lib/polar-invoices";
 
 export type CreditBucket = "Score" | "Bulk" | "People" | "Autopilot" | "Chat" | "Top-up" | "Reset" | "Other";
@@ -202,7 +203,7 @@ export async function buildBillingStats(userId: string): Promise<BillingStats> {
   };
 
   const plan = (p.plan ?? "free") as PlanKey;
-  const totalCredits = PLAN_CREDITS[plan] ?? PLAN_CREDITS.free;
+  const planAllowance = PLAN_CREDITS[plan] ?? PLAN_CREDITS.free;
   const creditsRemaining = p.credits_remaining ?? 0;
 
   const cycleStart = cycleStartDate(p.subscription_renews_at);
@@ -239,17 +240,21 @@ export async function buildBillingStats(userId: string): Promise<BillingStats> {
   }
 
   const bucketTotals = new Map<CreditBucket, number>();
-  let totalCycleDebits = 0;
   for (const log of cycleLogs) {
     if (log.type !== "debit") continue;
     const amt = Number(log.amount);
-    totalCycleDebits += amt;
     const bucket = classifyReason(log.reason, log.type);
     bucketTotals.set(bucket, (bucketTotals.get(bucket) ?? 0) + amt);
   }
 
-  const usedCredits = totalCycleDebits;
-  const costBuckets = buildCostBuckets(bucketTotals, totalCycleDebits);
+  const usedCredits = sumLedgerDebits(cycleLogs);
+  const totalCredits = creditDenominator({
+    granted: isGrantedPlan(plan, p.polar_subscription_id),
+    creditsRemaining,
+    planAllowance,
+    debitTotal: usedCredits,
+  });
+  const costBuckets = buildCostBuckets(bucketTotals, usedCredits);
 
   const debitsLast14d = logs
     .filter((l) => l.type === "debit" && new Date(l.created_at) >= fourteenDaysAgo)
@@ -348,7 +353,7 @@ export async function buildBillingStats(userId: string): Promise<BillingStats> {
     cycleStart: cycleStart.toISOString(),
     cycleTopupSpend,
     costBuckets,
-    totalCycleDebits,
+    totalCycleDebits: usedCredits,
     debitsLast14d,
     dailyUsage,
     ledger,

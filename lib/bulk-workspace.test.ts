@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { bulkCreditEstimateMessage } from "./bulk-inline";
 import {
   bulkTemplateCsv,
   formatBulkFileSize,
@@ -32,6 +33,26 @@ describe("formatBulkFileSize", () => {
     [1_048_576, "1 MB"],
   ])("formats %i bytes as %s", (bytes, expected) => {
     expect(formatBulkFileSize(bytes)).toBe(expected);
+  });
+});
+
+describe("bulkCreditEstimateMessage", () => {
+  it("says the run uses up to N credits and does not charge failed rows", () => {
+    expect(bulkCreditEstimateMessage({
+      estimatedFresh: 12,
+      creditsRemaining: 495,
+    })).toBe(
+      "This run uses up to 12 credits for 12 fresh scores. Failed rows are not charged. You have 495 left.",
+    );
+  });
+
+  it("pluralizes a single fresh score", () => {
+    expect(bulkCreditEstimateMessage({
+      estimatedFresh: 1,
+      creditsRemaining: 1500,
+    })).toBe(
+      "This run uses up to 1 credit for 1 fresh score. Failed rows are not charged. You have 1,500 left.",
+    );
   });
 });
 
