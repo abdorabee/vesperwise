@@ -98,7 +98,7 @@ export function SiteHeader() {
         <div className="ml-auto flex items-center gap-2">
           {isScore ? (
             <>
-              <Button type="button" variant="ghost" size="sm" className="rounded-lg md:hidden" aria-label="Open score threads" data-tour="chat" onClick={() => openScoreThreads()}>
+              <Button type="button" variant="ghost" size="sm" className="rounded-lg md:hidden" aria-label="Open score threads" onClick={() => openScoreThreads()}>
                 <History className="size-4" />
                 <span className="hidden sm:inline">Threads</span>
               </Button>

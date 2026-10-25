@@ -104,6 +104,13 @@ export const CRUMB: Record<string, { parent: string; current: string }> = {
   "/dev/shell": { parent: "Workspace", current: "Shell preview" },
 };
 
-export function isNavActive(pathname: string, href: string): boolean {
-  return pathname === href || (href !== "/dashboard" && pathname.startsWith(`${href}/`));
+export function isNavActive(pathname: string, href: string, hash = ""): boolean {
+  const hashIndex = href.indexOf("#");
+  const path = hashIndex === -1 ? href : href.slice(0, hashIndex);
+  const hrefHash = hashIndex === -1 ? "" : href.slice(hashIndex);
+  if (hrefHash) return pathname === path && hash === hrefHash;
+  const pathMatches = pathname === path || (path !== "/dashboard" && pathname.startsWith(`${path}/`));
+  if (!pathMatches) return false;
+  if (path === "/score" && hash === "#chat") return false;
+  return true;
 }

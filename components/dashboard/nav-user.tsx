@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useUser, SignOutButton } from "@clerk/nextjs";
 import {
   ChevronsUpDown,
@@ -153,12 +153,11 @@ export function NavUser({ creditsRemaining, creditCap, plan, polarSubscriptionId
   const { user } = useUser();
   const { theme, toggleTheme } = useTheme();
   const { open: openSearch } = useDashboardSearch();
-  const pathname = usePathname();
   const router = useRouter();
 
   function showMeAround() {
     replayScoreTour();
-    if (pathname !== "/score") router.push("/score");
+    if (window.location.pathname !== "/score") router.push("/score");
   }
 
   const displayName = user?.fullName || user?.firstName || "Account";
@@ -261,7 +260,7 @@ export function NavUser({ creditsRemaining, creditCap, plan, polarSubscriptionId
               Get Help
             </Link>
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={showMeAround}>
+          <DropdownMenuItem onSelect={() => showMeAround()}>
             <Compass />
             Show me around
           </DropdownMenuItem>
