@@ -25,9 +25,9 @@ const T = {
   accent: "var(--brand)",
   accentBg: "var(--brand-soft)",
   cyan: "var(--brand)",
-  hot: "#4ade80",
+  hot: "var(--hot)",
   hotBd: "rgba(74,222,128,0.25)",
-  warm: "#f5b544",
+  warm: "var(--warm)",
   warmBd: "rgba(245,181,68,0.25)",
   r: { sm: "4px", md: "6px", lg: "12px" },
   mono: "var(--font-code)",
@@ -40,7 +40,7 @@ const cm = {
   str:  (t: string) => <span style={{ color: T.ink }}>{t}</span>,
   num:  (t: string) => <span style={{ color: T.warm }}>{t}</span>,
   bool: (t: string) => <span style={{ color: T.hot }}>{t}</span>,
-  kw:   (t: string) => <span style={{ color: "#8a8f98" }}>{t}</span>,
+  kw:   (t: string) => <span style={{ color: "var(--cold)" }}>{t}</span>,
   fn:   (t: string) => <span style={{ color: T.txt }}>{t}</span>,
   flag: (t: string) => <span style={{ color: T.warm }}>{t}</span>,
   url:  (t: string) => <span style={{ color: T.ink }}>{t}</span>,
@@ -250,7 +250,7 @@ function CodeBlock({ label = "Request", panes, respStatus, respLatency, respCont
         </div>
         <button onClick={handleCopy} title="Copy" style={{ width: "28px", height: "28px", display: "grid", placeItems: "center", borderRadius: "4px", color: copied ? T.hot : T.txtQ, background: "transparent", marginLeft: "4px" }}>
           {copied
-            ? <svg viewBox="0 0 14 14" fill="none" stroke="#4ade80" strokeWidth="1.8" style={{ width: "13px", height: "13px" }}><path d="M3 7l3 3 5-7"/></svg>
+            ? <svg viewBox="0 0 14 14" fill="none" stroke="var(--hot)" strokeWidth="1.8" style={{ width: "13px", height: "13px" }}><path d="M3 7l3 3 5-7"/></svg>
             : <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: "13px", height: "13px" }}><rect x="4" y="4" width="8" height="8" rx="1"/><path d="M10 4V2.5A.5.5 0 0 0 9.5 2H2.5a.5.5 0 0 0-.5.5v7a.5.5 0 0 0 .5.5H4"/></svg>
           }
         </button>

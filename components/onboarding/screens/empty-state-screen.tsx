@@ -45,7 +45,7 @@ export function EmptyStateScreen({
             </div>
             <div className="bg-black px-[18px] py-4">
               <div className="font-mono text-[11px] uppercase tracking-[0.07em] text-[#666]">Highest score</div>
-              <div className="mt-2.5 font-mono text-2xl tabular-nums text-[#f5b544]">{highest}</div>
+              <div className="mt-2.5 font-mono text-2xl tabular-nums text-[var(--warm)]">{highest}</div>
             </div>
             <div className="bg-black px-[18px] py-4">
               <div className="font-mono text-[11px] uppercase tracking-[0.07em] text-[#666]">Close to threshold</div>
@@ -73,8 +73,8 @@ export function EmptyStateScreen({
                       <div className="font-mono text-[12.5px] leading-[1.3] text-white">{account.domain}</div>
                       <div className="mt-px truncate text-[11px] leading-[1.3] text-[#666]">{account.result.company}</div>
                     </div>
-                    <span className="inline-flex w-fit items-center gap-1 rounded-full bg-[#f5b544]/10 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.04em] text-[#f5b544]" style={{ border: "1px solid rgba(245,181,68,.25)" }}>
-                      <span className="h-[5px] w-[5px] rounded-full bg-[#f5b544]" />
+                    <span className="inline-flex w-fit items-center gap-1 rounded-full bg-[var(--warm)]/10 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.04em] text-[var(--warm)]" style={{ border: "1px solid rgba(245,181,68,.25)" }}>
+                      <span className="h-[5px] w-[5px] rounded-full bg-[var(--warm)]" />
                       Warm
                     </span>
                     <span className="truncate text-[12px] leading-[1.4] text-[#a0a0a0]">{topDriver(account.result)}</span>

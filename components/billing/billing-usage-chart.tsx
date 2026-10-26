@@ -7,8 +7,8 @@ import type { BillingStats, DailyUsageDay } from "@/lib/billing-stats";
 const SEGMENTS = [
   { key: "score" as const, label: "Score", color: "var(--foreground)" },
   { key: "bulk" as const, label: "Bulk", color: "#a0a0a0" },
-  { key: "people" as const, label: "People", color: "#4ade80" },
-  { key: "autopilot" as const, label: "Autopilot", color: "#f5b544" },
+  { key: "people" as const, label: "People", color: "var(--hot)" },
+  { key: "autopilot" as const, label: "Autopilot", color: "var(--warm)" },
   { key: "chat" as const, label: "Chat", color: "#8a8f98" },
 ];
 
@@ -155,8 +155,8 @@ export function BillingUsageChart({ stats }: BillingUsageChartProps) {
               <span
                 className="sw"
                 style={{
-                  background: "repeating-linear-gradient(45deg,#f5b544,#f5b544 2px,transparent 2px,transparent 4px)",
-                  border: "1px solid #f5b544",
+                  background: "repeating-linear-gradient(45deg,var(--warm),var(--warm) 2px,transparent 2px,transparent 4px)",
+                  border: "1px solid var(--warm)",
                   borderRadius: 2,
                 }}
               />

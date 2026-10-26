@@ -100,13 +100,13 @@ const S = {
 
 const AV_COLORS = [
   "linear-gradient(135deg,#dfff00,#dfff00)",
-  "linear-gradient(135deg,#4ade80,#22c55e)",
-  "linear-gradient(135deg,#f5b544,#8a8f98)",
-  "linear-gradient(135deg,#e8ff40,#dfff00)",
-  "linear-gradient(135deg,#f87171,#f5b544)",
-  "linear-gradient(135deg,#dfff00,#4ade80)",
+  "linear-gradient(135deg,var(--hot),#22c55e)",
+  "linear-gradient(135deg,var(--warm),var(--cold))",
   "linear-gradient(135deg,#dfff00,#dfff00)",
-  "linear-gradient(135deg,#8a8f98,#f87171)",
+  "linear-gradient(135deg,#f87171,var(--warm))",
+  "linear-gradient(135deg,#dfff00,var(--hot))",
+  "linear-gradient(135deg,#dfff00,#dfff00)",
+  "linear-gradient(135deg,var(--cold),#f87171)",
 ];
 
 function avColor(name: string) { return AV_COLORS[(name?.charCodeAt(0) ?? 0) % AV_COLORS.length]; }

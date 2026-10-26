@@ -33,14 +33,14 @@ export const STAGE_CONFIG: Record<StageKey, {
     label: "Warming",
     desc: "Follow Up",
     action: "Reference their recent signal",
-    color: "#f5b544",
+    color: "var(--warm)",
     badgeClass: "bg-amber-500/20 text-amber-400 border border-amber-500/30",
   },
   hot: {
     label: "Hot",
     desc: "Act Now",
     action: "Book a call — use trigger in pitch",
-    color: "#4ade80",
+    color: "var(--hot)",
     badgeClass: "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30",
   },
   engaged: {

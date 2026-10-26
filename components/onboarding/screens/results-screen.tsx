@@ -8,9 +8,9 @@ import { OnboardingRail, RailRow } from "@/components/onboarding/onboarding-shel
 import { Slider } from "@/components/ui/slider";
 
 const BAND_CHIP: { label: string; color: string }[] = [
-  { label: "HOT", color: "#4ade80" },
-  { label: "WARM", color: "#f5b544" },
-  { label: "COLD", color: "#8a8f98" },
+  { label: "HOT", color: "var(--hot)" },
+  { label: "WARM", color: "var(--warm)" },
+  { label: "COLD", color: "var(--cold)" },
 ];
 
 export function ResultsScreen({
