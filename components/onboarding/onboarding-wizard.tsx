@@ -431,6 +431,7 @@ export default function OnboardingWizard({
       showLedger
       credits={creditsRemaining}
       email={email}
+      signedIn={!readOnlyPreview}
       banner={banner}
       footer={footer}
     >

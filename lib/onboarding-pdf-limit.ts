@@ -14,7 +14,7 @@ const PDF_READ_TTL_SECONDS = Math.ceil(PDF_READ_WINDOW_MS / 1000);
 const MAX_RESERVE_ATTEMPTS = PDF_READ_LIMIT + 4;
 const UNAVAILABLE_RETRY_SECONDS = 60;
 
-export type PdfReadDecision = { ok: true } | { ok: false; retryAfterSeconds: number };
+export type PdfReadDecision = { ok: true; stamp: number } | { ok: false; retryAfterSeconds: number };
 
 type LoadResult =
   | { status: "missing" }
@@ -32,6 +32,8 @@ export interface PdfReadStore {
 
 export interface PdfReadLedger {
   tryReserve(userId: string, now: number): Promise<PdfReadDecision>;
+  /** Drop one reserved stamp after a server failure. Missing stamps are a no-op. */
+  release(userId: string, stamp: number, now: number): Promise<void>;
 }
 
 type VersionToken = { version: number };
@@ -75,17 +77,46 @@ async function reservePdfRead(
       loaded.status === "missing" ? { missing: true } : { missing: false, raw: loaded.raw },
       [...recent, now]
     );
-    if (committed === "committed") return { ok: true };
+    if (committed === "committed") return { ok: true, stamp: now };
     if (committed === "unavailable") return unavailable();
   }
 
   return unavailable();
 }
 
+/**
+ * Remove one reserved stamp. Compare-and-swap retries so a release cannot
+ * erase a read another request committed in between.
+ */
+async function releasePdfReadStamp(
+  store: PdfReadStore,
+  userId: string,
+  stamp: number,
+  now: number
+): Promise<void> {
+  if (!Number.isFinite(stamp) || !Number.isFinite(now)) return;
+
+  for (let attempt = 0; attempt < MAX_RESERVE_ATTEMPTS; attempt++) {
+    const loaded = await store.load(userId);
+    if (loaded.status !== "ready") return;
+
+    const recent = withinWindow(loaded.stamps, now);
+    const index = recent.indexOf(stamp);
+    if (index === -1) return;
+
+    const next = recent.slice(0, index).concat(recent.slice(index + 1));
+    const committed = await store.commit(userId, { missing: false, raw: loaded.raw }, next);
+    if (committed === "committed" || committed === "unavailable") return;
+  }
+}
+
 export function createPdfReadLedger(store: PdfReadStore): PdfReadLedger {
   return {
     tryReserve(userId, now) {
       return reservePdfRead(store, userId, now);
+    },
+    release(userId, stamp, now) {
+      return releasePdfReadStamp(store, userId, stamp, now);
     },
   };
 }
@@ -260,6 +291,10 @@ export const defaultPdfReadLedger: PdfReadLedger = {
     if (cacheDisabled()) return processLocalLedger.tryReserve(userId, now);
     return reservePdfRead(cachePdfReadStore, userId, now);
   },
+  release(userId, stamp, now) {
+    if (cacheDisabled()) return processLocalLedger.release(userId, stamp, now);
+    return releasePdfReadStamp(cachePdfReadStore, userId, stamp, now);
+  },
 };
 
 export async function consumePdfRead(
@@ -268,4 +303,14 @@ export async function consumePdfRead(
   ledger: PdfReadLedger = defaultPdfReadLedger
 ): Promise<PdfReadDecision> {
   return ledger.tryReserve(userId, now);
+}
+
+/** Give back a read that failed inside the server. Client rejections stay counted. */
+export async function releasePdfRead(
+  userId: string,
+  stamp: number,
+  now = Date.now(),
+  ledger: PdfReadLedger = defaultPdfReadLedger
+): Promise<void> {
+  await ledger.release(userId, stamp, now);
 }

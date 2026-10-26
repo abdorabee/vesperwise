@@ -1,7 +1,18 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { NextRequest } from "next/server";
 
-import { PDF_MAX_PAGES } from "./onboarding-pdf";
-import { readPdfDocument } from "./onboarding-pdf-read";
+import { PDF_MAX_PAGES, PDF_TOO_MANY_PAGES_MESSAGE, PDF_UNREADABLE_MESSAGE } from "./onboarding-pdf";
+import { readPdfDocument, wipePdfBytes } from "./onboarding-pdf-read";
+
+const clerkAuth = vi.fn(async (): Promise<{ userId: string | null }> => ({ userId: "user_pdf" }));
+vi.mock("@clerk/nextjs/server", () => ({ auth: () => clerkAuth() }));
+
+const consumePdfRead = vi.fn(async () => ({ ok: true as const, stamp: 4 }));
+const releasePdfRead = vi.fn<(userId: string, stamp: number) => Promise<void>>(async () => {});
+vi.mock("@/lib/onboarding-pdf-limit", () => ({
+  consumePdfRead: () => consumePdfRead(),
+  releasePdfRead: (userId: string, stamp: number) => releasePdfRead(userId, stamp),
+}));
 
 function buildTextPdf(pages: string[]): Uint8Array {
   const objects = new Map<number, string>();
@@ -43,6 +54,14 @@ function buildTextPdf(pages: string[]): Uint8Array {
   return new TextEncoder().encode(chunks.join(""));
 }
 
+const PITCH = "We sell software to healthcare companies across the United States today.";
+
+function pdfRequest(bytes: Uint8Array, name = "icp.pdf") {
+  const form = new FormData();
+  form.set("file", new File([Buffer.from(bytes)], name, { type: "application/pdf" }));
+  return new NextRequest("http://localhost/api/onboarding/pdf", { method: "POST", body: form });
+}
+
 describe("readPdfDocument", () => {
   it("reads text from a text PDF and stops at the page cap", async () => {
     const text = "We sell software to healthcare companies across the United States today.";
@@ -63,5 +82,85 @@ describe("readPdfDocument", () => {
   it("rejects a corrupt file instead of returning text", async () => {
     const junk = new TextEncoder().encode("%PDF-1.4 this is not a real document");
     await expect(readPdfDocument(junk)).rejects.toThrow();
+    expect(() => wipePdfBytes(junk)).not.toThrow();
+  });
+
+  it("reads a real PDF without detaching the caller buffer, then wipes that copy", async () => {
+    const bytes = buildTextPdf([PITCH]);
+    const before = bytes.slice();
+    const readable = await readPdfDocument(bytes);
+    expect(readable.pageCount).toBe(1);
+    expect(readable.text).toContain("software");
+    expect(readable.text).toContain("healthcare");
+    expect(bytes.byteLength).toBe(before.byteLength);
+    expect(Array.from(bytes)).toEqual(Array.from(before));
+
+    wipePdfBytes(bytes);
+    expect(bytes.every((byte) => byte === 0)).toBe(true);
+
+    const buffer = new ArrayBuffer(4);
+    const detached = new Uint8Array(buffer);
+    detached.fill(7);
+    buffer.transfer();
+    expect(detached.byteLength).toBe(0);
+    expect(() => wipePdfBytes(detached)).not.toThrow();
+  });
+});
+
+describe("POST /api/onboarding/pdf with a real PDF", () => {
+  beforeEach(() => {
+    clerkAuth.mockClear();
+    consumePdfRead.mockClear();
+    releasePdfRead.mockClear();
+    clerkAuth.mockResolvedValue({ userId: "user_pdf" });
+  });
+
+  it("prefills from a text PDF and does not 500 while wiping the upload", async () => {
+    const { POST } = await import("@/app/api/onboarding/pdf/route");
+    const response = await POST(pdfRequest(buildTextPdf([PITCH])));
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.discarded).toBe(true);
+    expect(body.profile.product_category).toBe("SaaS / Software");
+    expect(body.profile.target_industries).toEqual(["Healthcare"]);
+    expect(body.filled.length).toBeGreaterThan(0);
+    expect(JSON.stringify(body)).not.toContain(PITCH);
+    expect(releasePdfRead).not.toHaveBeenCalled();
+  });
+
+  it("asks for a manual fill when the PDF has no text", async () => {
+    const { POST } = await import("@/app/api/onboarding/pdf/route");
+    const response = await POST(pdfRequest(buildTextPdf([""]), "scan.pdf"));
+    expect(response.status).toBe(422);
+    expect((await response.json()).message).toBe(PDF_UNREADABLE_MESSAGE);
+    expect(releasePdfRead).not.toHaveBeenCalled();
+  });
+
+  it("rejects 21 pages and accepts 20", async () => {
+    const { POST } = await import("@/app/api/onboarding/pdf/route");
+    const tooLong = await POST(
+      pdfRequest(buildTextPdf(Array.from({ length: PDF_MAX_PAGES + 1 }, () => PITCH)), "long.pdf")
+    );
+    expect(tooLong.status).toBe(400);
+    expect((await tooLong.json()).message).toBe(PDF_TOO_MANY_PAGES_MESSAGE);
+    expect(releasePdfRead).not.toHaveBeenCalled();
+
+    const accepted = await POST(
+      pdfRequest(buildTextPdf(Array.from({ length: PDF_MAX_PAGES }, () => PITCH)), "deck.pdf")
+    );
+    expect(accepted.status).toBe(200);
+    const body = await accepted.json();
+    expect(body.discarded).toBe(true);
+    expect(body.profile.product_category).toBe("SaaS / Software");
+  });
+
+  it("does not reserve a read for three non-PDF uploads", async () => {
+    const { POST } = await import("@/app/api/onboarding/pdf/route");
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const response = await POST(pdfRequest(new TextEncoder().encode("hello"), `notes-${attempt}.txt`));
+      expect(response.status).toBe(400);
+      expect((await response.json()).code).toBe("not_pdf");
+    }
+    expect(consumePdfRead).not.toHaveBeenCalled();
   });
 });
