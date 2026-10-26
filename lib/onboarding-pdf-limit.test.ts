@@ -80,6 +80,7 @@ import {
   createPdfReadLedger,
   PDF_READ_LIMIT,
   PDF_READ_WINDOW_MS,
+  releasePdfRead,
 } from "./onboarding-pdf-limit";
 
 const CACHE_PREFIX = "onboarding:pdf-read:";
@@ -97,13 +98,13 @@ describe("consumePdfRead", () => {
     const ledger = createPdfReadLedger(createMemoryPdfReadStore());
     const now = 1_700_000_000_000;
     for (let i = 0; i < PDF_READ_LIMIT; i++) {
-      await expect(consumePdfRead("user_a", now + i, ledger)).resolves.toEqual({ ok: true });
+      await expect(consumePdfRead("user_a", now + i, ledger)).resolves.toMatchObject({ ok: true });
     }
     const blocked = await consumePdfRead("user_a", now + PDF_READ_LIMIT, ledger);
     expect(blocked.ok).toBe(false);
     if (!blocked.ok) expect(blocked.retryAfterSeconds).toBeGreaterThan(0);
 
-    await expect(consumePdfRead("user_b", now, ledger)).resolves.toEqual({ ok: true });
+    await expect(consumePdfRead("user_b", now, ledger)).resolves.toMatchObject({ ok: true });
   });
 
   it("opens the window again after it expires", async () => {
@@ -112,7 +113,7 @@ describe("consumePdfRead", () => {
     for (let i = 0; i < PDF_READ_LIMIT; i++) {
       await consumePdfRead("user_a", now, ledger);
     }
-    await expect(consumePdfRead("user_a", now + PDF_READ_WINDOW_MS, ledger)).resolves.toEqual({ ok: true });
+    await expect(consumePdfRead("user_a", now + PDF_READ_WINDOW_MS, ledger)).resolves.toMatchObject({ ok: true });
   });
 
   it("does not let concurrent consumes exceed the hourly cap", async () => {
@@ -177,7 +178,7 @@ describe("consumePdfRead", () => {
     const legacy = [now - 3_000, now - 2_000, now - 1_000];
     cacheRows.rows.set(openKey, legacy);
 
-    await expect(consumePdfRead("user_legacy", now)).resolves.toEqual({ ok: true });
+    await expect(consumePdfRead("user_legacy", now)).resolves.toMatchObject({ ok: true });
     const stored = cacheRows.rows.get(openKey) as { v: number; stamps: number[] };
     expect(stored).toEqual({ v: 1, stamps: [...legacy, now] });
 
@@ -186,5 +187,38 @@ describe("consumePdfRead", () => {
     cacheRows.rows.set(fullKey, full);
     await expect(consumePdfRead("user_full", now + PDF_READ_LIMIT)).resolves.toMatchObject({ ok: false });
     expect(cacheRows.rows.get(fullKey)).toBe(full);
+  });
+
+  it("returns one reserved read to the allowance without letting a burst past the cap", async () => {
+    const ledger = createPdfReadLedger(createMemoryPdfReadStore());
+    const now = 1_700_000_000_000;
+    const stamps: number[] = [];
+    for (let i = 0; i < PDF_READ_LIMIT; i++) {
+      const decision = await consumePdfRead("user_release", now + i, ledger);
+      expect(decision.ok).toBe(true);
+      if (decision.ok) stamps.push(decision.stamp);
+    }
+    await expect(consumePdfRead("user_release", now + PDF_READ_LIMIT, ledger)).resolves.toMatchObject({ ok: false });
+
+    await releasePdfRead("user_release", stamps[0], now + PDF_READ_LIMIT, ledger);
+    await releasePdfRead("user_release", now - 1, now + PDF_READ_LIMIT, ledger);
+    const again = await consumePdfRead("user_release", now + PDF_READ_LIMIT, ledger);
+    expect(again.ok).toBe(true);
+    await expect(consumePdfRead("user_release", now + PDF_READ_LIMIT + 1, ledger)).resolves.toMatchObject({
+      ok: false,
+    });
+  });
+
+  it("drops one cached stamp when a server failure releases the read", async () => {
+    vi.stubEnv("CACHE_DISABLED", "false");
+    const now = 1_700_000_000_000;
+    const reserved = await consumePdfRead("user_cache_release", now);
+    expect(reserved.ok).toBe(true);
+    if (!reserved.ok) return;
+    await releasePdfRead("user_cache_release", reserved.stamp, now);
+
+    const stored = cacheRows.rows.get(`${CACHE_PREFIX}user_cache_release`) as { v: number; stamps: number[] };
+    expect(stored.stamps).toEqual([]);
+    await expect(consumePdfRead("user_cache_release", now + 1)).resolves.toMatchObject({ ok: true });
   });
 });

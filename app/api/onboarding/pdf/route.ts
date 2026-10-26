@@ -8,8 +8,8 @@ import {
   PDF_RATE_LIMIT_MESSAGE,
   PDF_UNREADABLE_MESSAGE,
 } from "@/lib/onboarding-pdf";
-import { consumePdfRead } from "@/lib/onboarding-pdf-limit";
-import { readPdfDocument } from "@/lib/onboarding-pdf-read";
+import { consumePdfRead, releasePdfRead } from "@/lib/onboarding-pdf-limit";
+import { readPdfDocument, wipePdfBytes } from "@/lib/onboarding-pdf-read";
 
 export const runtime = "nodejs";
 
@@ -19,7 +19,9 @@ function isUpload(value: FormDataEntryValue | null): value is File {
 
 /**
  * Reads an onboarding PDF into profile fields. The bytes are wiped after
- * parsing and never written to storage. No credits are charged.
+ * parsing and never written to storage. No credits are charged. The hourly
+ * read cap is spent only after the size and header checks, and a server
+ * failure gives that read back.
  */
 export async function POST(req: NextRequest) {
   const { userId } = await auth();
@@ -35,17 +37,28 @@ export async function POST(req: NextRequest) {
   const file = form.get("file");
   if (!isUpload(file)) return errorResponse(400, "invalid_body", "Upload a PDF file.");
 
-  const limit = await consumePdfRead(userId);
-  if (!limit.ok) {
-    return errorResponse(429, "rate_limited", PDF_RATE_LIMIT_MESSAGE, {}, {
-      "Retry-After": String(limit.retryAfterSeconds),
-    });
+  const oversized = pdfUploadFailure({ size: file.size });
+  if (oversized) return errorResponse(oversized.status, oversized.code, oversized.message);
+
+  let bytes: Uint8Array;
+  try {
+    bytes = new Uint8Array(await file.arrayBuffer());
+  } catch {
+    return errorResponse(400, "invalid_body", "Upload a PDF file.");
   }
 
-  const bytes = new Uint8Array(await file.arrayBuffer());
+  let stamp: number | null = null;
   try {
-    const early = pdfUploadFailure({ size: file.size, header: bytes });
+    const early = pdfUploadFailure({ header: bytes });
     if (early) return errorResponse(early.status, early.code, early.message);
+
+    const limit = await consumePdfRead(userId);
+    if (!limit.ok) {
+      return errorResponse(429, "rate_limited", PDF_RATE_LIMIT_MESSAGE, {}, {
+        "Retry-After": String(limit.retryAfterSeconds),
+      });
+    }
+    stamp = limit.stamp;
 
     let parsed: { text: string; pageCount: number };
     try {
@@ -68,7 +81,17 @@ export async function POST(req: NextRequest) {
       profile: extracted.profile,
       filled: extracted.filled,
     });
+  } catch {
+    if (stamp !== null) {
+      try {
+        await releasePdfRead(userId, stamp);
+      } catch {
+        console.warn("[onboarding-pdf] read cap release failed");
+      }
+    }
+    console.warn("[onboarding-pdf] read failed");
+    return errorResponse(500, "internal_error", "Something went wrong reading that PDF. Try again.");
   } finally {
-    bytes.fill(0);
+    wipePdfBytes(bytes);
   }
 }
