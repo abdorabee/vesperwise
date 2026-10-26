@@ -3,17 +3,75 @@
 import { useState, type KeyboardEvent } from "react";
 
 import { ChipMultiSelect, RemovableChipInput, SegmentedControl } from "@/components/onboarding/chips";
+import { PdfFilledTag } from "@/components/onboarding/pdf-filled-tag";
 import { OnboardingRail, RailRow } from "@/components/onboarding/onboarding-shell";
+import type { PdfFilledMap } from "@/lib/onboarding-pdf-guards";
 import {
+  BUYER_ROLE_OPTIONS,
   COMPANY_SIZE_LABELS,
   COMPANY_SIZE_OPTIONS,
+  DEAL_SIZE_OPTIONS,
   GEOGRAPHY_OPTIONS,
   INDUSTRY_OPTIONS,
   MAX_SEED_DOMAINS,
+  SALES_CYCLE_OPTIONS,
+  SALES_MOTION_OPTIONS,
 } from "@/lib/onboarding-profile";
 import { estimateIcpMatches } from "@/lib/icp-match-estimate";
 import type { OnboardingFieldErrors } from "@/lib/onboarding-profile";
 import type { BusinessProfile } from "@/lib/types";
+
+type CommercialField = "buyer_role" | "sales_motion" | "deal_size" | "sales_cycle";
+
+const COMMERCIAL_FIELDS: { field: CommercialField; label: string; options: readonly string[] }[] = [
+  { field: "buyer_role", label: "Primary buyer", options: BUYER_ROLE_OPTIONS },
+  { field: "sales_motion", label: "Sales motion", options: SALES_MOTION_OPTIONS },
+  { field: "deal_size", label: "Deal size", options: DEAL_SIZE_OPTIONS },
+  { field: "sales_cycle", label: "Sales cycle", options: SALES_CYCLE_OPTIONS },
+];
+
+function FieldLabel({ label, filled }: { label: string; filled?: boolean }) {
+  return (
+    <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+      <div className="font-mono text-[11px] uppercase tracking-[0.07em] text-[#666]">{label}</div>
+      {filled && <PdfFilledTag />}
+    </div>
+  );
+}
+
+function SingleOptions({
+  options,
+  value,
+  onChange,
+}: {
+  options: readonly string[];
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div role="radiogroup" className="mt-3 flex flex-wrap gap-2">
+      {options.map((option) => {
+        const on = value === option;
+        return (
+          <button
+            key={option}
+            type="button"
+            role="radio"
+            aria-checked={on}
+            onClick={() => onChange(on ? "" : option)}
+            className={`flex h-8 items-center rounded-lg border px-3 font-sans text-[13px] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)] ${
+              on
+                ? "border-white/[0.13] bg-white/[0.06] text-white"
+                : "border-white/[0.08] bg-transparent text-[#a0a0a0] hover:border-white/[0.15]"
+            }`}
+          >
+            {option}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 export function IcpDefinitionScreen({
   profile,
@@ -25,6 +83,8 @@ export function IcpDefinitionScreen({
   onSetTechInclude,
   onSetTechExclude,
   onSetSeedDomains,
+  onUpdateCommercial,
+  pdfFilled = {},
 }: {
   profile: BusinessProfile;
   errors: OnboardingFieldErrors;
@@ -35,6 +95,8 @@ export function IcpDefinitionScreen({
   onSetTechInclude: (tools: string[]) => void;
   onSetTechExclude: (tools: string[]) => void;
   onSetSeedDomains: (domains: string[]) => void;
+  onUpdateCommercial?: (field: CommercialField, value: string) => void;
+  pdfFilled?: PdfFilledMap;
 }) {
   const [customIndustry, setCustomIndustry] = useState("");
   const [addingIndustry, setAddingIndustry] = useState(false);
@@ -65,6 +127,9 @@ export function IcpDefinitionScreen({
   }
 
   const estimate = estimateIcpMatches(profile);
+  const showCommercial = COMMERCIAL_FIELDS.some(
+    (field) => pdfFilled[field.field] || Boolean(profile[field.field]?.trim())
+  );
 
   return (
     <>
@@ -89,8 +154,8 @@ export function IcpDefinitionScreen({
 
           <div className="mt-10 flex flex-col gap-8">
             <div>
-              <div className="flex items-baseline justify-between">
-                <div className="font-mono text-[11px] uppercase tracking-[0.07em] text-[#666]">Industry</div>
+              <div className="flex items-baseline justify-between gap-3">
+                <FieldLabel label="Industry" filled={pdfFilled.target_industries} />
                 <div className="text-[12px] text-[#4a4a4a]">Sets the universe</div>
               </div>
               <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -129,8 +194,8 @@ export function IcpDefinitionScreen({
 
             <div className="grid grid-cols-2 gap-8">
               <div>
-                <div className="flex items-baseline justify-between">
-                  <div className="font-mono text-[11px] uppercase tracking-[0.07em] text-[#666]">Company size</div>
+                <div className="flex items-baseline justify-between gap-3">
+                  <FieldLabel label="Company size" filled={pdfFilled.company_size} />
                   <div className="text-[12px] text-[#4a4a4a]">Weights hiring signals</div>
                 </div>
                 <div className="mt-3">
@@ -144,8 +209,8 @@ export function IcpDefinitionScreen({
                 {errors.company_size && <p className="mt-2 text-[13px] text-red-300">{errors.company_size}</p>}
               </div>
               <div>
-                <div className="flex items-baseline justify-between">
-                  <div className="font-mono text-[11px] uppercase tracking-[0.07em] text-[#666]">Geography</div>
+                <div className="flex items-baseline justify-between gap-3">
+                  <FieldLabel label="Geography" filled={pdfFilled.geography} />
                   <div className="text-[12px] text-[#4a4a4a]">Filters news sources</div>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
@@ -155,8 +220,8 @@ export function IcpDefinitionScreen({
             </div>
 
             <div>
-              <div className="flex items-baseline justify-between">
-                <div className="font-mono text-[11px] uppercase tracking-[0.07em] text-[#666]">Tech stack</div>
+              <div className="flex items-baseline justify-between gap-3">
+                <FieldLabel label="Tech stack" filled={pdfFilled.tech_stack_include} />
                 <div className="text-[12px] text-[#4a4a4a]">
                   Strongest single predictor — a stack change is a buying window
                 </div>
@@ -177,16 +242,22 @@ export function IcpDefinitionScreen({
               </div>
               {showExclude && (
                 <div className="mt-2">
-                  <div className="mb-1.5 text-[12px] text-[#4a4a4a]">Disqualifies a candidate</div>
+                  <div className="mb-1.5 flex items-baseline gap-2 text-[12px] text-[#4a4a4a]">
+                    Disqualifies a candidate
+                    {pdfFilled.tech_stack_exclude && <PdfFilledTag />}
+                  </div>
                   <RemovableChipInput values={profile.tech_stack_exclude ?? []} onChange={onSetTechExclude} placeholder="Exclude a tool…" />
                 </div>
               )}
             </div>
 
             <div>
-              <div className="flex items-baseline justify-between">
-                <div className="font-mono text-[11px] uppercase tracking-[0.07em] text-[#666]">
-                  Preview accounts <span className="normal-case text-[#4a4a4a]">— required, at least one</span>
+              <div className="flex items-baseline justify-between gap-3">
+                <div className="flex flex-wrap items-baseline gap-x-2">
+                  <div className="font-mono text-[11px] uppercase tracking-[0.07em] text-[#666]">
+                    Preview accounts <span className="normal-case text-[#4a4a4a]">— required, at least one</span>
+                  </div>
+                  {pdfFilled.seed_domains && <PdfFilledTag />}
                 </div>
                 <div className="text-[12px] text-[#4a4a4a]">Up to {MAX_SEED_DOMAINS}, scored for real</div>
               </div>
@@ -203,6 +274,21 @@ export function IcpDefinitionScreen({
               </div>
               {errors.seed_domains && <p className="mt-2 text-[13px] text-red-300">{errors.seed_domains}</p>}
             </div>
+
+            {showCommercial && onUpdateCommercial && (
+              <div className="flex flex-col gap-6 border-t border-white/[0.08] pt-8">
+                {COMMERCIAL_FIELDS.map((field) => (
+                  <div key={field.field}>
+                    <FieldLabel label={field.label} filled={pdfFilled[field.field]} />
+                    <SingleOptions
+                      options={field.options}
+                      value={profile[field.field] ?? ""}
+                      onChange={(value) => onUpdateCommercial(field.field, value)}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
       </div>
 
