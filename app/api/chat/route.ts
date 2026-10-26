@@ -10,6 +10,7 @@ import { copilotSdkTools } from "@/lib/copilot-ai-tools";
 import { CHAT_CREDIT_COST } from "@/lib/types";
 import type { DbUser } from "@/lib/types";
 import { sanitizeUiBlocks } from "@/lib/gen-ui";
+import type { UiDiagnostic } from "@/lib/gen-ui-repair";
 import { redactPublicSources } from "@/lib/public-source";
 import { serializePresentation, type ToolChip } from "@/lib/score-presentation";
 
@@ -24,6 +25,31 @@ function openRouterProvider() {
     baseURL: "https://openrouter.ai/api/v1",
     name: "openrouter",
   });
+}
+
+function stripUiDiagnostics(output: unknown): unknown {
+  if (!output || typeof output !== "object" || Array.isArray(output) || !("diagnostics" in output)) return output;
+  const rest = { ...(output as Record<string, unknown>) };
+  delete rest.diagnostics;
+  return rest;
+}
+
+function uiDiagnostics(output: unknown): UiDiagnostic[] {
+  if (!output || typeof output !== "object" || Array.isArray(output) || !("diagnostics" in output)) return [];
+  const diagnostics = (output as { diagnostics?: unknown }).diagnostics;
+  return Array.isArray(diagnostics) ? diagnostics.filter((item): item is UiDiagnostic => {
+    return Boolean(item) && typeof item === "object" && typeof (item as { code?: unknown }).code === "string";
+  }) : [];
+}
+
+function warnUiDiagnostics(output: unknown) {
+  const diagnostics = uiDiagnostics(output);
+  if (diagnostics.length === 0) return;
+  const countsByCode = diagnostics.reduce<Record<string, number>>((counts, item) => {
+    counts[item.code] = (counts[item.code] ?? 0) + 1;
+    return counts;
+  }, {});
+  console.warn("[gen-ui] repaired blocks", countsByCode);
 }
 
 export async function POST(req: NextRequest) {
@@ -175,8 +201,10 @@ export async function POST(req: NextRequest) {
           }
           if (part.type === "tool-result") {
             const output = redactPublicSources(part.output);
-            streamedTools = streamedTools.map((tool) => tool.name === part.toolName && tool.status === "running" ? { ...tool, status: "done", result: output } : tool);
+            let toolResultOutput = output;
             if (part.toolName === "present_ui") {
+              warnUiDiagnostics(output);
+              toolResultOutput = stripUiDiagnostics(output);
               const blocks = redactPublicSources(sanitizeUiBlocks(
                 output && typeof output === "object" && "blocks" in output
                   ? (output as { blocks: unknown }).blocks
@@ -185,7 +213,8 @@ export async function POST(req: NextRequest) {
               presentation = blocks;
               send({ type: "ui", blocks, billing: billingLabel });
             }
-            send({ type: "tool_result", name: part.toolName, result: output });
+            streamedTools = streamedTools.map((tool) => tool.name === part.toolName && tool.status === "running" ? { ...tool, status: "done", result: toolResultOutput } : tool);
+            send({ type: "tool_result", name: part.toolName, result: toolResultOutput });
             continue;
           }
           if (part.type === "error") {
