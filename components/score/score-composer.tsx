@@ -8,7 +8,7 @@ import type { UiSuggestion } from "@/lib/gen-ui";
 
 export function ScoreComposer({ onSubmit, suggestions = [], busy, initial = false, autoFocus = false }: { onSubmit: (value: string) => void; suggestions?: UiSuggestion[]; busy: boolean; initial?: boolean; autoFocus?: boolean }) {
   return (
-    <div data-tour="composer" className={initial ? "w-full" : "score-chat-composer"}>
+    <div id="chat" data-tour="composer" className={initial ? "w-full" : "score-chat-composer"}>
       {!initial && suggestions.length > 0 ? <Suggestions className="mb-3 flex flex-wrap gap-2 overflow-visible">{suggestions.map((item, index) => <Suggestion key={item.prompt} suggestion={item.prompt} index={index} disabled={busy} onClick={onSubmit}>{item.label}</Suggestion>)}</Suggestions> : null}
       <PromptInput className="score-elements-input" onSubmit={({ text }) => { const value = text.trim(); if (value) onSubmit(value); }}>
         <PromptInputBody><PromptInputTextarea placeholder={initial ? "Enter a company domain" : "Ask a follow-up or score another domain"} disabled={busy} autoFocus={autoFocus} aria-label={initial ? "Company domain" : "Chat message"} /></PromptInputBody>

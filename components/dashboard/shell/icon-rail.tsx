@@ -20,6 +20,8 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { followScoreChatLink, followScoreLink } from "@/lib/score-chat";
+import { useLocationHash } from "@/lib/use-location-hash";
 import { PLAN_CREDITS, type DbUser } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -67,14 +69,16 @@ function RailTooltip({
 function RailLink({
   item,
   pathname,
+  hash,
   count,
 }: {
   item: NavItem;
   pathname: string;
+  hash: string;
   count?: string;
 }) {
   const Icon = item.icon;
-  const active = isNavActive(pathname, item.href);
+  const active = isNavActive(pathname, item.href, hash);
   const tour = item.label === "Chat" ? "chat" : undefined;
 
   return (
@@ -87,6 +91,10 @@ function RailLink({
         data-active={active}
         data-tour={tour}
         className="dashboard-rail-button"
+        onClick={(event) => {
+          if (item.href === "/score#chat") followScoreChatLink(event);
+          else if (item.href === "/score") followScoreLink(event);
+        }}
       >
         <Icon className="size-4" />
         <span className="sr-only">{item.label}</span>
@@ -112,6 +120,7 @@ export function IconRail({
   pipelineHotCount = 0,
 }: IconRailProps) {
   const pathname = usePathname();
+  const hash = useLocationHash();
   const { open: openSearch } = useDashboardSearch();
   const counts = { watchlist: watchlistCount, pipelineHot: pipelineHotCount };
   const creditCap = PLAN_CREDITS[plan] ?? PLAN_CREDITS.free;
@@ -130,6 +139,7 @@ export function IconRail({
             key={item.href}
             item={item}
             pathname={pathname}
+            hash={hash}
             count={countForItem(item, counts)}
           />
         ))}
@@ -149,7 +159,7 @@ export function IconRail({
       <div className="dashboard-icon-rail__spacer" />
       <div data-slot="icon-rail-separator" className="dashboard-icon-rail__separator" />
       <div className="dashboard-icon-rail__bottom">
-        <RailLink item={SETTINGS_ITEM} pathname={pathname} />
+        <RailLink item={SETTINGS_ITEM} pathname={pathname} hash={hash} />
         <NavUser creditsRemaining={creditsRemaining} creditCap={creditCap} plan={plan} polarSubscriptionId={polarSubscriptionId} variant="rail" />
       </div>
     </nav>

@@ -3,6 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
+import { useOptionalSidebar } from "@/components/ui/sidebar";
 
 export const SCORE_TOUR_SEEN_KEY = "vesperwise-tour-seen";
 export const SCORE_TOUR_REPLAY_EVENT = "vesperwise-tour-replay";
@@ -12,6 +13,7 @@ const CARD_EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
 const CARD_MOTION = `top 280ms ${CARD_EASE}, left 280ms ${CARD_EASE}`;
 const HOLE_PAD = 8;
 const CARD_GAP = 14;
+const MOBILE_MAX = 767;
 
 const STEPS = [
   {
@@ -60,12 +62,19 @@ interface Placement {
   transition: string;
 }
 
+let replayNonce = 0;
+
 function readSeen(): string | null {
   try {
     return window.localStorage.getItem(SCORE_TOUR_SEEN_KEY);
   } catch {
     return "1";
   }
+}
+
+function readTourSnapshot() {
+  const seen = readSeen() ?? "";
+  return `${seen}|${replayNonce}`;
 }
 
 function emitStore() {
@@ -94,8 +103,9 @@ export function replayScoreTour() {
   try {
     window.localStorage.removeItem(SCORE_TOUR_SEEN_KEY);
   } catch {
-    // The replay event still opens the tour on this page.
+    // The nonce still opens the tour on this page.
   }
+  replayNonce += 1;
   emitStore();
   window.dispatchEvent(new Event(SCORE_TOUR_REPLAY_EVENT));
 }
@@ -111,6 +121,10 @@ function subscribeReduced(onStoreChange: () => void) {
   return () => media.removeEventListener("change", onStoreChange);
 }
 
+function isMobileWidth() {
+  return window.innerWidth <= MOBILE_MAX;
+}
+
 function isOnScreen(node: HTMLElement) {
   const style = window.getComputedStyle(node);
   if (style.display === "none" || style.visibility === "hidden" || style.opacity === "0") return false;
@@ -119,44 +133,91 @@ function isOnScreen(node: HTMLElement) {
   return rect.bottom > 0 && rect.right > 0 && rect.top < window.innerHeight && rect.left < window.innerWidth;
 }
 
+function isChatControl(node: HTMLElement) {
+  return /chat/i.test(`${node.getAttribute("aria-label") ?? ""} ${node.textContent ?? ""}`);
+}
+
+function chatCandidates() {
+  return Array.from(document.querySelectorAll<HTMLElement>('[data-tour="chat"]')).filter(isChatControl);
+}
+
+function hasBox(node: HTMLElement) {
+  const rect = node.getBoundingClientRect();
+  return rect.width >= 2 && rect.height >= 2;
+}
+
+function bestChat() {
+  const sized = chatCandidates().filter(hasBox);
+  const visible = sized.filter(isOnScreen);
+  const pool = visible.length > 0 ? visible : sized;
+  return pool.find((node) => node.closest("[data-mobile='true']")) ?? pool[0] ?? null;
+}
+
 function pickTarget(name: string): HTMLElement | null {
+  if (name === "chat") return bestChat();
   const nodes = Array.from(document.querySelectorAll<HTMLElement>(`[data-tour="${name}"]`));
-  if (nodes.length === 0) return null;
-  const visible = nodes.filter(isOnScreen);
-  if (name === "chat") {
-    const labeled = visible.find((node) => /chat/i.test(`${node.getAttribute("aria-label") ?? ""} ${node.textContent ?? ""}`));
-    if (labeled) return labeled;
+  return nodes.find(isOnScreen) ?? nodes.find(hasBox) ?? null;
+}
+
+function visualOf(node: HTMLElement) {
+  if (node.classList.contains("score-elements-input")) return node;
+  return node.querySelector<HTMLElement>(".score-elements-input") ?? node;
+}
+
+function bringIntoView(node: HTMLElement) {
+  if (isOnScreen(node) && node.getBoundingClientRect().top >= 0 && node.getBoundingClientRect().bottom <= window.innerHeight) return;
+  if (typeof node.scrollIntoView === "function") {
+    node.scrollIntoView({ block: "center", inline: "nearest", behavior: "auto" });
   }
-  return visible[0] ?? nodes[0] ?? null;
 }
 
 function toBox(rect: DOMRect): Box {
   return { top: rect.top, left: rect.left, width: rect.width, height: rect.height };
 }
 
-function placeCard(anchor: Box | null, card: { width: number; height: number }, reduced: boolean, reveal: boolean): Placement {
+function overlaps(a: Box, b: Box) {
+  return a.left < b.left + b.width && a.left + a.width > b.left && a.top < b.top + b.height && a.top + a.height > b.top;
+}
+
+function placeCard(anchor: Box | null, card: { width: number; height: number }, reduced: boolean, reveal: boolean, avoid: Box[] = []): Placement {
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
   const width = Math.min(288, Math.max(220, viewportWidth - 24));
   const height = card.height || 180;
   const transition = reveal || reduced ? "none" : CARD_MOTION;
-  if (!anchor) {
-    return {
-      top: Math.max(12, (viewportHeight - height) / 2),
-      left: Math.max(12, (viewportWidth - width) / 2),
-      width,
-      transition,
-    };
-  }
-  const below = anchor.top + anchor.height + CARD_GAP;
-  const above = anchor.top - CARD_GAP - height;
-  let top = below;
-  if (below + height > viewportHeight - 12 && above >= 12) top = above;
-  else if (below + height > viewportHeight - 12) top = Math.max(12, viewportHeight - height - 12);
-  let left = anchor.left;
-  if (left + width > viewportWidth - 12) left = viewportWidth - 12 - width;
-  if (left < 12) left = 12;
-  return { top, left, width, transition };
+  const centered = {
+    top: Math.max(12, (viewportHeight - height) / 2),
+    left: Math.max(12, (viewportWidth - width) / 2),
+    width,
+    transition,
+  };
+  if (!anchor) return centered;
+
+  const requested = [
+    { top: anchor.top + anchor.height + CARD_GAP, left: anchor.left },
+    { top: anchor.top - CARD_GAP - height, left: anchor.left },
+    { top: anchor.top, left: anchor.left + anchor.width + CARD_GAP },
+    { top: anchor.top, left: anchor.left - CARD_GAP - width },
+    { top: 12, left: Math.max(12, (viewportWidth - width) / 2) },
+  ];
+  const fitted = requested.map((item) => ({
+    top: Math.max(12, Math.min(item.top, viewportHeight - height - 12)),
+    left: Math.max(12, Math.min(item.left, viewportWidth - width - 12)),
+  }));
+
+  let best = fitted[0];
+  let bestScore = Number.POSITIVE_INFINITY;
+  fitted.forEach((item, index) => {
+    const box = { ...item, width, height };
+    let penalty = index;
+    if (overlaps(box, anchor)) penalty += 100;
+    for (const block of avoid) if (overlaps(box, block)) penalty += 500;
+    if (penalty < bestScore) {
+      best = item;
+      bestScore = penalty;
+    }
+  });
+  return { top: best.top, left: best.left, width, transition };
 }
 
 function Spotlight({ box }: { box: Box }) {
@@ -194,28 +255,34 @@ function Spotlight({ box }: { box: Box }) {
 }
 
 export function ScoreTour({ onboardingComplete }: { onboardingComplete: boolean }) {
-  const seen = useSyncExternalStore(subscribeSeen, readSeen, () => "pending");
+  const sidebar = useOptionalSidebar();
+  const snap = useSyncExternalStore(subscribeSeen, readTourSnapshot, () => "1|0");
+  const [seen, nonceRaw] = snap.split("|");
+  const nonce = Number(nonceRaw) || 0;
   const reduced = useSyncExternalStore(subscribeReduced, readReducedMotion, () => false);
-  const open = onboardingComplete && seen === null;
+  const [dismissedNonce, setDismissedNonce] = useState(nonce);
   const [step, setStep] = useState(0);
+  const [stepNonce, setStepNonce] = useState(nonce);
   const [anchor, setAnchor] = useState<Box | null>(null);
   const [placement, setPlacement] = useState<Placement | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const revealRef = useRef(true);
+  const appliedNonce = useRef(nonce);
+  if (nonce !== stepNonce) {
+    setStepNonce(nonce);
+    setStep(0);
+  }
+  const open = onboardingComplete && (seen === "" || nonce > dismissedNonce);
   const current = STEPS[step];
 
   function dismiss() {
     revealRef.current = true;
+    setDismissedNonce(nonce);
     writeSeen();
   }
 
   useEffect(() => {
-    const replay = () => {
-      revealRef.current = true;
-      setStep(0);
-    };
-    window.addEventListener(SCORE_TOUR_REPLAY_EVENT, replay);
-    return () => window.removeEventListener(SCORE_TOUR_REPLAY_EVENT, replay);
+    emitStore();
   }, []);
 
   useEffect(() => {
@@ -223,51 +290,88 @@ export function ScoreTour({ onboardingComplete }: { onboardingComplete: boolean 
     const onKey = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
       revealRef.current = true;
+      setDismissedNonce(nonce);
       writeSeen();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open]);
-
-  useEffect(() => {
-    if (!open || !current.target) return;
-    const target = pickTarget(current.target);
-    if (typeof target?.scrollIntoView === "function") {
-      target.scrollIntoView({ block: "nearest", inline: "nearest", behavior: reduced ? "auto" : "smooth" });
-    }
-  }, [open, current.target, reduced]);
+  }, [open, nonce]);
 
   useLayoutEffect(() => {
     if (!open) return;
+    if (appliedNonce.current !== nonce) {
+      appliedNonce.current = nonce;
+      revealRef.current = true;
+    }
     let frame = 0;
+    let late = 0;
+    let observer: ResizeObserver | null = null;
+    let ticks = 0;
+    const mobile = isMobileWidth();
+
+    if (mobile && sidebar?.openMobile && current.target !== "chat") sidebar.setOpenMobile(false);
+
     const measure = () => {
+      if (current.target === "chat" && isMobileWidth() && !bestChat()) {
+        if (sidebar && !sidebar.openMobile) {
+          sidebar.setOpenMobile(true);
+          return;
+        }
+        if (chatCandidates().length === 0 || ticks >= 12) {
+          setStep((index) => Math.min(STEPS.length - 1, index + 1));
+          return;
+        }
+        ticks += 1;
+        frame = window.requestAnimationFrame(measure);
+        return;
+      }
+
       const target = current.target ? pickTarget(current.target) : null;
-      const rect = target?.getBoundingClientRect();
-      const nextAnchor = target && rect && rect.width >= 2 && rect.height >= 2 && isOnScreen(target) ? toBox(rect) : null;
+      const visual = target ? visualOf(target) : null;
+      if (visual) bringIntoView(visual);
+      const rect = visual?.getBoundingClientRect();
+      const nextAnchor = visual && rect && isOnScreen(visual) ? toBox(rect) : null;
+      const avoid: Box[] = [];
+      if (current.target && current.target !== "composer") {
+        const composer = pickTarget("composer");
+        const composerVisual = composer ? visualOf(composer) : null;
+        const composerRect = composerVisual?.getBoundingClientRect();
+        if (composerVisual && composerRect && composerRect.width >= 2 && isOnScreen(composerVisual)) avoid.push(toBox(composerRect));
+      }
       const card = cardRef.current;
       const nextPlacement = placeCard(
         nextAnchor,
         { width: card?.offsetWidth || 288, height: card?.offsetHeight || 180 },
         reduced || readReducedMotion(),
         revealRef.current,
+        avoid,
       );
       revealRef.current = false;
       setAnchor(nextAnchor);
       setPlacement(nextPlacement);
     };
+
     measure();
     const schedule = () => {
-      cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(measure);
+      window.cancelAnimationFrame(frame);
+      frame = window.requestAnimationFrame(measure);
     };
+    if (typeof ResizeObserver === "function") {
+      observer = new ResizeObserver(schedule);
+      const watched = current.target ? pickTarget(current.target) : null;
+      if (watched) observer.observe(visualOf(watched));
+    }
+    late = window.setTimeout(measure, 320);
     window.addEventListener("resize", schedule);
     window.addEventListener("scroll", schedule, true);
     return () => {
-      cancelAnimationFrame(frame);
+      window.cancelAnimationFrame(frame);
+      window.clearTimeout(late);
+      observer?.disconnect();
       window.removeEventListener("resize", schedule);
       window.removeEventListener("scroll", schedule, true);
     };
-  }, [open, current.target, reduced, step]);
+  }, [open, current.target, reduced, step, sidebar, nonce]);
 
   if (!open || typeof document === "undefined") return null;
 
@@ -313,14 +417,15 @@ export function ScoreTour({ onboardingComplete }: { onboardingComplete: boolean 
             Skip
           </button>
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setStep((index) => Math.max(0, index - 1))}
-              disabled={step === 0}
-              className="inline-flex h-8 items-center rounded-md border border-border bg-background px-3 text-sm font-medium text-foreground hover:bg-accent disabled:pointer-events-none disabled:opacity-45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              Back
-            </button>
+            {step > 0 ? (
+              <button
+                type="button"
+                onClick={() => setStep((index) => Math.max(0, index - 1))}
+                className="inline-flex h-8 items-center rounded-md border border-border bg-background px-3 text-sm font-medium text-foreground hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                Back
+              </button>
+            ) : null}
             <button
               type="button"
               onClick={() => {
