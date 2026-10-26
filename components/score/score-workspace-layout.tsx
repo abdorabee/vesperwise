@@ -18,7 +18,7 @@ export function ScoreWorkspaceLayout({ thread, composer, header, className }: Sc
   return (
     <section aria-label="Score conversation" className={cn("flex min-h-0 flex-1 flex-col", className)}>
       {header ? <div data-slot="score-workspace-header" className="shrink-0 pb-3">{header}</div> : null}
-      <div data-slot="score-thread" className="min-h-0 flex-1">{thread}</div>
+      <div data-slot="score-thread" data-tour="result" className="min-h-0 flex-1">{thread}</div>
       <div data-slot="score-composer" className="sticky bottom-0 z-10 shrink-0 bg-gradient-to-t from-background via-background to-transparent pt-6 pb-1">{composer}</div>
     </section>
   );

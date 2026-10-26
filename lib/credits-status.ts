@@ -26,6 +26,28 @@ export interface CreditStatus {
   summary: string;
 }
 
+/**
+ * Denominator for the billing balance. Always the plan's monthly quota
+ * (`PLAN_CREDITS`), including granted plans such as Agency.
+ */
+export function creditDenominator(input: {
+  granted: boolean;
+  creditsRemaining: number;
+  planAllowance: number;
+  debitTotal: number;
+}): number {
+  return input.planAllowance;
+}
+
+/** Credits actually charged. Top-ups and resets are credits, not usage. */
+export function sumLedgerDebits(entries: readonly { type: string; amount: number }[]): number {
+  return entries.reduce((sum, entry) => {
+    if (entry.type !== "debit") return sum;
+    const amount = Number(entry.amount);
+    return Number.isFinite(amount) ? sum + amount : sum;
+  }, 0);
+}
+
 /** Share of the plan allowance left, 0-100. Top-ups can push credits above the cap. */
 export function creditPercent(creditsRemaining: number, creditCap: number): number {
   if (creditCap <= 0) return 0;

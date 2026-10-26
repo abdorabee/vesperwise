@@ -67,9 +67,15 @@ export const TOPUP_PACKS: {
   { amount: "140", credits: 140, price: 15, envKey: "POLAR_PRODUCT_TOPUP_140", bestValue: true },
 ];
 
-/** Maximum companies per bulk job and concurrent jobs (enforced in app/api/v1/score/bulk). */
+/** Maximum companies per queued bulk job and concurrent jobs (enforced in app/api/v1/score/bulk). */
 export const BULK_MAX_PER_JOB = 1000;
 export const BULK_MAX_CONCURRENT = 3;
+
+/**
+ * Companies per dashboard CSV batch. Enforced by POST /api/v1/score/bulk-inline,
+ * which is the route /bulk calls. Queued API jobs use BULK_MAX_PER_JOB.
+ */
+export const BULK_INLINE_MAX_ROWS = 50;
 
 export type GatedFeature = "bulk" | "csv" | "autopilot" | "treg";
 

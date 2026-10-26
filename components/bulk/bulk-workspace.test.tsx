@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
+import { BULK_INLINE_MAX_ROWS, formatCount } from "@/lib/plan-features";
 import {
   BulkProcessingPanel,
   BulkResultsPanel,
@@ -37,7 +38,9 @@ describe("BulkUploadPanel", () => {
     expect(html).toContain("stripe.com");
     expect(html).toContain("domain");
     expect(html).toContain("company");
-    expect(html).toContain("50 companies");
+    expect(html).toContain(`Up to ${formatCount(BULK_INLINE_MAX_ROWS)} companies`);
+    expect(html).toContain(`Up to ${formatCount(BULK_INLINE_MAX_ROWS)} companies`);
+    expect(BULK_INLINE_MAX_ROWS).toBe(50);
   });
 
   it("renders the selected file summary and enables submission", () => {
@@ -80,11 +83,11 @@ describe("BulkUploadPanel", () => {
           rowCount: 51,
           column: "domain",
           sample: ["a.com"],
-          error: "This CSV has 51 rows. The limit is 50 per batch.",
+          error: "Maximum 50 companies per batch. Your file has 51 rows.",
         }}
         loading={false}
         dragActive={false}
-        error="This CSV has 51 rows. The limit is 50 per batch."
+        error="Maximum 50 companies per batch. Your file has 51 rows."
         onBrowse={noop}
         onRemove={noop}
         onSubmit={noop}

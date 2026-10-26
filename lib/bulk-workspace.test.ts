@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
+import { parseCsvRecords } from "./csv-parse";
+import { bulkCreditEstimateMessage } from "./bulk-inline";
+import { BULK_INLINE_MAX_ROWS } from "./plan-features";
 import {
+  bulkCsvIssue,
   bulkTemplateCsv,
   formatBulkFileSize,
   formatCoverage,
@@ -33,6 +37,47 @@ describe("formatBulkFileSize", () => {
     [1_048_576, "1 MB"],
   ])("formats %i bytes as %s", (bytes, expected) => {
     expect(formatBulkFileSize(bytes)).toBe(expected);
+  });
+});
+
+describe("bulkCreditEstimateMessage", () => {
+  it("says the run uses up to N credits and does not charge failed rows", () => {
+    expect(bulkCreditEstimateMessage({
+      estimatedFresh: 12,
+      creditsRemaining: 495,
+    })).toBe(
+      "This run uses up to 12 credits for 12 fresh scores. Failed rows are not charged. You have 495 left.",
+    );
+  });
+
+  it("pluralizes a single fresh score", () => {
+    expect(bulkCreditEstimateMessage({
+      estimatedFresh: 1,
+      creditsRemaining: 1500,
+    })).toBe(
+      "This run uses up to 1 credit for 1 fresh score. Failed rows are not charged. You have 1,500 left.",
+    );
+  });
+});
+
+describe("bulk CSV credit estimate", () => {
+  it("builds the banner from the parsed row count before a run starts", () => {
+    const csv = ["domain,company", ...Array.from({ length: 12 }, (_, i) => `co${i}.example,Co ${i}`)].join("\n");
+    const rows = parseCsvRecords(csv);
+    expect(bulkCsvIssue(rows)).toBeNull();
+    expect(bulkCreditEstimateMessage({
+      estimatedFresh: rows.length,
+      creditsRemaining: 495,
+    })).toBe(
+      "This run uses up to 12 credits for 12 fresh scores. Failed rows are not charged. You have 495 left.",
+    );
+  });
+
+  it("rejects a file over the enforced batch size", () => {
+    const rows = Array.from({ length: BULK_INLINE_MAX_ROWS + 1 }, () => ({ domain: "acme.com" }));
+    expect(bulkCsvIssue(rows)).toBe(
+      `Maximum ${BULK_INLINE_MAX_ROWS} companies per batch. Your file has ${rows.length} rows.`,
+    );
   });
 });
 
@@ -72,21 +117,19 @@ describe("summarizeBulkCsv", () => {
 
   it("rejects files without a domain or company header", () => {
     expect(summarizeBulkCsv("name\nAcme\n").error).toBe(
-      "Add a domain or company column header.",
+      "CSV must have a 'domain' or 'company' column",
     );
   });
 
   it("rejects files with no company rows", () => {
-    expect(summarizeBulkCsv("domain\n").error).toBe(
-      "This CSV has no company rows.",
-    );
+    expect(summarizeBulkCsv("domain\n").error).toBe("No rows found in CSV");
   });
 
   it("rejects batches over the 50 row limit", () => {
     const rows = Array.from({ length: 51 }, (_, i) => `c${i}.com`).join("\n");
 
     expect(summarizeBulkCsv(`domain\n${rows}`).error).toBe(
-      "This CSV has 51 rows. The limit is 50 per batch.",
+      "Maximum 50 companies per batch. Your file has 51 rows.",
     );
   });
 });

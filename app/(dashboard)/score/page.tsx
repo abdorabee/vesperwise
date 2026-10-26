@@ -14,7 +14,7 @@ export default async function ScorePage() {
   let recentScores: RecentScore[] = [];
 
   const [userResult, scoresResult] = await Promise.all([
-    supabase.from("users").select("credits_remaining").eq("id", userId).single(),
+    supabase.from("users").select("credits_remaining, onboarding_completed").eq("id", userId).single(),
     supabase
       .from("scores")
       .select("domain, company_name, score, score_band, created_at")
@@ -26,5 +26,5 @@ export default async function ScorePage() {
   if (userResult.data) creditsRemaining = userResult.data.credits_remaining;
   if (scoresResult.data) recentScores = scoresResult.data as RecentScore[];
 
-  return <ScoreView creditsRemaining={creditsRemaining} recentScores={recentScores} />;
+  return <ScoreView creditsRemaining={creditsRemaining} recentScores={recentScores} onboardingComplete={userResult.data?.onboarding_completed === true} />;
 }

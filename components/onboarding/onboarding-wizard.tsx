@@ -12,6 +12,7 @@ import { SignalSourcesScreen } from "@/components/onboarding/screens/signal-sour
 import { WorkspaceSetupScreen } from "@/components/onboarding/screens/workspace-setup-screen";
 import { OnboardingFooter, OnboardingShell, PrimaryButton, SecondaryButton } from "@/components/onboarding/onboarding-shell";
 import { scoredAccountsFromEntries, topDriver, type ScoredAccount } from "@/components/onboarding/results-shared";
+import { PDF_MAX_BYTES, PDF_TOO_LARGE_MESSAGE } from "@/lib/onboarding-pdf";
 import { useScoringRun } from "@/lib/onboarding-run";
 import { summarizeRun } from "@/lib/onboarding-run-summary";
 import {
@@ -81,9 +82,11 @@ export default function OnboardingWizard({
   // Set when a finish attempt partially succeeded, so we can offer an escape
   // hatch rather than trapping the user on the last screen.
   const [finishAttempted, setFinishAttempted] = useState(false);
+  const [pdfNotice, setPdfNotice] = useState<string | null>(null);
+  const [pdfReading, setPdfReading] = useState(false);
   const run = useScoringRun();
 
-  const { profile, step, saveStatus, saveError } = state;
+  const { profile, step, saveStatus, saveError, pdfFilled } = state;
 
   function clearError(field: keyof BusinessProfile) {
     setErrors((current) => {
@@ -106,6 +109,44 @@ export default function OnboardingWizard({
 
   function toggleGeography(geo: string) {
     dispatch({ type: "toggle_geography", geo });
+  }
+
+  async function uploadPdf(file: File) {
+    if (readOnlyPreview) {
+      setPdfNotice("Sign in to upload a PDF.");
+      return;
+    }
+    if (file.size > PDF_MAX_BYTES) {
+      setPdfNotice(PDF_TOO_LARGE_MESSAGE);
+      return;
+    }
+    setPdfReading(true);
+    setPdfNotice(null);
+    try {
+      const body = new FormData();
+      body.set("file", file);
+      if (emailDomain) body.set("exclude_domain", emailDomain);
+      const response = await fetch("/api/onboarding/pdf", { method: "POST", body });
+      const payload = (await response.json().catch(() => null)) as {
+        message?: string;
+        profile?: Partial<BusinessProfile>;
+        filled?: string[];
+      } | null;
+      if (!response.ok) {
+        setPdfNotice(payload?.message ?? "We couldn't read this PDF. Fill it in manually.");
+        return;
+      }
+      dispatch({ type: "apply_pdf_profile", profile: payload?.profile ?? {} });
+      setPdfNotice(
+        (payload?.filled?.length ?? 0) > 0
+          ? "Filled from your PDF. Review each answer before you continue. The file was discarded and isn't stored."
+          : "We read the PDF and discarded it. It didn't include answers we could use, so fill the wizard in manually."
+      );
+    } catch (error) {
+      setPdfNotice(describeRequestError(error));
+    } finally {
+      setPdfReading(false);
+    }
   }
 
   function goNext(validateStep: number) {
@@ -191,7 +232,17 @@ export default function OnboardingWizard({
 
   if (step === 0) {
     content = (
-      <WorkspaceSetupScreen profile={profile} emailDomain={emailDomain} errors={errors} onUpdateField={updateField} />
+      <WorkspaceSetupScreen
+        profile={profile}
+        emailDomain={emailDomain}
+        errors={errors}
+        onUpdateField={updateField}
+        pdfProductFilled={Boolean(pdfFilled.product_category)}
+        pdfNotice={pdfNotice}
+        pdfReading={pdfReading}
+        readOnlyPreview={readOnlyPreview}
+        onPdfFile={(file) => void uploadPdf(file)}
+      />
     );
     footer = (
       <OnboardingFooter
@@ -217,6 +268,8 @@ export default function OnboardingWizard({
           dispatch({ type: "set_seed_domains", domains });
           clearError("seed_domains");
         }}
+        pdfFilled={pdfFilled}
+        onUpdateCommercial={(field, value) => dispatch({ type: "update_field", field, value })}
       />
     );
     footer = (
@@ -378,6 +431,7 @@ export default function OnboardingWizard({
       showLedger
       credits={creditsRemaining}
       email={email}
+      signedIn={!readOnlyPreview}
       banner={banner}
       footer={footer}
     >

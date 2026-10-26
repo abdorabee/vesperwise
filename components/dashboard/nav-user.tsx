@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useUser, SignOutButton } from "@clerk/nextjs";
 import {
   ChevronsUpDown,
   CircleHelp,
   Coins,
+  Compass,
   CreditCard,
   Key,
   LogOut,
@@ -14,6 +16,7 @@ import {
   Settings,
   Sun,
 } from "lucide-react";
+import { replayScoreTour } from "@/components/tour/score-tour";
 import { useDashboardSearch } from "@/components/dashboard/search-provider";
 import {
   Avatar,
@@ -150,6 +153,12 @@ export function NavUser({ creditsRemaining, creditCap, plan, polarSubscriptionId
   const { user } = useUser();
   const { theme, toggleTheme } = useTheme();
   const { open: openSearch } = useDashboardSearch();
+  const router = useRouter();
+
+  function showMeAround() {
+    replayScoreTour();
+    if (window.location.pathname !== "/score") router.push("/score");
+  }
 
   const displayName = user?.fullName || user?.firstName || "Account";
   const email = user?.primaryEmailAddress?.emailAddress ?? "";
@@ -250,6 +259,10 @@ export function NavUser({ creditsRemaining, creditCap, plan, polarSubscriptionId
               <CircleHelp />
               Get Help
             </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => showMeAround()}>
+            <Compass />
+            Show me around
           </DropdownMenuItem>
           <DropdownMenuItem onClick={toggleTheme}>
             {theme === "dark" ? <Sun /> : <Moon />}

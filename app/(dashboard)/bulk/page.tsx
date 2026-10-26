@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { Download } from "lucide-react";
-import { useFeatureGuard, useSetCreditsRemaining } from "@/components/dashboard/workspace-state";
+import { useFeatureGuard, useSetCreditsRemaining, useWorkspaceState } from "@/components/dashboard/workspace-state";
 
 import {
   BulkProcessingPanel,
@@ -15,6 +15,7 @@ import {
   bulkCreditEstimateMessage,
   bulkInsufficientCreditsMessage,
 } from "@/lib/bulk-inline";
+import { BULK_INLINE_MAX_ROWS, formatCount } from "@/lib/plan-features";
 import {
   bulkTemplateCsv,
   formatCoverage,
@@ -40,8 +41,10 @@ export default function BulkScorerPage() {
   const [costNote, setCostNote] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const batchKey = useRef("");
+  const parseGeneration = useRef(0);
   const guardBulk = useFeatureGuard("bulk");
   const setCreditsRemaining = useSetCreditsRemaining();
+  const creditsRemaining = useWorkspaceState()?.creditsRemaining ?? 0;
 
   async function selectFile(candidate: File | null) {
     if (!candidate) return;
@@ -53,29 +56,44 @@ export default function BulkScorerPage() {
       return;
     }
 
-    let nextSummary: BulkCsvSummary;
+    const generation = ++parseGeneration.current;
+    setFile(candidate);
+    setSummary(null);
+    setResponse(null);
+    setError(null);
+    setCostNote(null);
+    batchKey.current = crypto.randomUUID();
+
+    let text: string;
     try {
-      nextSummary = summarizeBulkCsv(await candidate.text());
+      text = await candidate.text();
     } catch {
-      const message = "This file could not be read. Try exporting it again.";
+      if (generation !== parseGeneration.current) return;
+      const message = "Could not read that CSV.";
       setError(message);
       setAnnouncement(message);
       return;
     }
+    if (generation !== parseGeneration.current) return;
 
-    setFile(candidate);
+    const nextSummary = summarizeBulkCsv(text);
     setSummary(nextSummary);
-    setResponse(null);
-    setError(nextSummary.error);
-    setCostNote(null);
-    batchKey.current = crypto.randomUUID();
-    setAnnouncement(
-      nextSummary.error ??
-        `${candidate.name} attached with ${nextSummary.rowCount} companies.`,
-    );
+    if (nextSummary.error) {
+      setError(nextSummary.error);
+      setAnnouncement(nextSummary.error);
+      return;
+    }
+
+    const note = bulkCreditEstimateMessage({
+      estimatedFresh: nextSummary.rowCount,
+      creditsRemaining,
+    });
+    setCostNote(note);
+    setAnnouncement(`${candidate.name} attached with ${nextSummary.rowCount} companies. ${note}`);
   }
 
   function clearFile() {
+    parseGeneration.current += 1;
     setFile(null);
     setSummary(null);
     setResponse(null);
@@ -87,7 +105,7 @@ export default function BulkScorerPage() {
   }
 
   async function handleSubmit() {
-    if (!file || loading || summary?.error) return;
+    if (!file || !summary || loading || summary.error) return;
     if (guardBulk()) return;
 
     setLoading(true);
@@ -123,20 +141,6 @@ export default function BulkScorerPage() {
           : (estimate.error ?? "Scoring failed");
         throw new Error(message);
       }
-      if (
-        typeof estimate.estimated_fresh === "number" &&
-        typeof estimate.estimated_cached === "number" &&
-        typeof estimate.credits_remaining === "number"
-      ) {
-        const note = bulkCreditEstimateMessage({
-          estimatedFresh: estimate.estimated_fresh,
-          estimatedCached: estimate.estimated_cached,
-          creditsRemaining: estimate.credits_remaining,
-        });
-        setCostNote(note);
-        setAnnouncement(note);
-      }
-
       const form = new FormData();
       form.append("file", file);
 
@@ -248,7 +252,7 @@ export default function BulkScorerPage() {
         <div>
           <h1 className="page-title">Bulk score</h1>
           <p className="page-sub">
-            Score up to 50 companies in one batch, then export the ranked results.
+            Score up to {formatCount(BULK_INLINE_MAX_ROWS)} companies in one batch, then export the ranked results.
           </p>
           {costNote ? <p className="page-sub" data-slot="bulk-cost-estimate">{costNote}</p> : null}
         </div>

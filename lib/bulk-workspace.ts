@@ -1,8 +1,21 @@
-import { parseCsvRecords, parseCsvRows } from "./csv-parse";
+import { BULK_INLINE_MAX_ROWS } from "@/lib/plan-features";
 
+import { parseCsvRecords, parseCsvRows } from "./csv-parse";
 
 interface BulkFileLike {
   name: string;
+}
+
+/** Same rejection the dashboard CSV route returns, so the page can show it before Score. */
+export function bulkCsvIssue(rows: Array<Record<string, string>>): string | null {
+  if (rows.length === 0) return "No rows found in CSV";
+  if (rows.length > BULK_INLINE_MAX_ROWS) {
+    return `Maximum ${BULK_INLINE_MAX_ROWS} companies per batch. Your file has ${rows.length} rows.`;
+  }
+  if (!rows[0]?.domain && !rows[0]?.company) {
+    return "CSV must have a 'domain' or 'company' column";
+  }
+  return null;
 }
 
 export function validateBulkFile(file: BulkFileLike): string | null {
@@ -30,7 +43,6 @@ export function formatCoverage(coverage: number): string {
   return `${Math.round(coverage * 100)}%`;
 }
 
-export const BULK_MAX_ROWS = 50;
 const SAMPLE_SIZE = 5;
 
 export interface BulkCsvSummary {
@@ -64,18 +76,6 @@ export function summarizeBulkCsv(text: string): BulkCsvSummary {
     rowCount: records.length,
     column,
     sample,
-    error: bulkCsvError(records.length, column),
+    error: bulkCsvIssue(records),
   };
-}
-
-function bulkCsvError(
-  rowCount: number,
-  column: BulkCsvSummary["column"],
-): string | null {
-  if (!column) return "Add a domain or company column header.";
-  if (rowCount === 0) return "This CSV has no company rows.";
-  if (rowCount > BULK_MAX_ROWS) {
-    return `This CSV has ${rowCount} rows. The limit is ${BULK_MAX_ROWS} per batch.`;
-  }
-  return null;
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { GRANTED_LOW_CREDIT_THRESHOLD, getCreditStatus } from "@/lib/credits-status";
+import { GRANTED_LOW_CREDIT_THRESHOLD, creditDenominator, getCreditStatus } from "@/lib/credits-status";
 import { PLAN_CREDITS } from "@/lib/types";
 
 describe("Low credits status", () => {
@@ -47,6 +47,16 @@ describe("Low credits status", () => {
       polarSubscriptionId: null,
     });
     expect(low.isLow).toBe(true);
+  });
+
+  it("uses the agency monthly quota as the billing denominator", () => {
+    expect(PLAN_CREDITS.agency).toBe(25_000);
+    expect(creditDenominator({
+      granted: true,
+      creditsRemaining: 495,
+      planAllowance: PLAN_CREDITS.agency,
+      debitTotal: 5,
+    })).toBe(25_000);
   });
 
   it("keeps the 80 percent rule for paid plans", () => {

@@ -3,8 +3,7 @@ import LandingNav from "@/components/landing/LandingNav";
 import StickyMobileCta from "@/components/landing/sticky-mobile-cta";
 import SiteFooter from "@/components/site-footer";
 import {
-  BULK_MAX_CONCURRENT,
-  BULK_MAX_PER_JOB,
+  BULK_INLINE_MAX_ROWS,
   MARKETING_PLANS,
   MARKETING_TOPUPS,
   formatCount,
@@ -12,6 +11,7 @@ import {
 } from "@/lib/plan-features";
 import { renewalDisclosure } from "@/lib/billing-plans";
 import { pricingCardState } from "@/lib/pricing-cta";
+import { PricingBottomCta } from "./pricing-bottom-cta";
 
 const FAQ: { q: string; a: string }[] = [
   {
@@ -102,7 +102,7 @@ export default function PricingView({ signedIn, currentPlan, granted }: PricingV
         @media (max-width: 640px) { .pp-hero h1 { font-size: 32px; } }
       `}</style>
 
-      <LandingNav />
+      <LandingNav signedIn={signedIn} />
       <main id="main">
 
       <section className="pp-hero">
@@ -149,11 +149,11 @@ export default function PricingView({ signedIn, currentPlan, granted }: PricingV
                 {state.included ? (
                   <span className="pp-btn">{state.label}</span>
                 ) : (
-                  <Link href={state.href} className={`pp-btn${plan.featured && !state.current ? " primary" : ""}`}>
+                  <Link href={state.href} className={`pp-btn${plan.featured && !state.current && !granted ? " primary" : ""}`}>
                     {state.label}
                   </Link>
                 )}
-                {plan.price > 0 && !state.current && !state.included ? <p className="pp-renewal">{renewalDisclosure(plan.price)}</p> : null}
+                {plan.price > 0 && !state.current && !state.included && !granted ? <p className="pp-renewal">{renewalDisclosure(plan.price)}</p> : null}
               </div>
             );
           })}
@@ -182,7 +182,7 @@ export default function PricingView({ signedIn, currentPlan, granted }: PricingV
         </div>
 
         <p className="pp-note">
-          Bulk scoring and CSV are on Plus and above. Jobs take up to {formatCount(BULK_MAX_PER_JOB)} companies, with {BULK_MAX_CONCURRENT} running at once. A cached company is free. Starter has no bulk, CSV or autopilot.
+          Bulk scoring and CSV are on Plus and above. Each file takes up to {formatCount(BULK_INLINE_MAX_ROWS)} companies. A cached company is free. Starter has no bulk, CSV or autopilot.
         </p>
 
         <section className="pp-topups" aria-labelledby="topups-title">
@@ -214,20 +214,11 @@ export default function PricingView({ signedIn, currentPlan, granted }: PricingV
         </section>
       </div>
 
-      <section className="pp-cta">
-        <h2>Score your first 20 accounts free.</h2>
-        <p>No card required. Upgrade when the scores start booking meetings.</p>
-        <div className="row">
-          <Link href={signedIn ? "/dashboard" : "/signup"} className="pp-btn primary">
-            {signedIn ? "Go to dashboard" : "Start scoring free"}
-          </Link>
-          <Link href="/contact#contact-form" className="pp-btn">Contact us</Link>
-        </div>
-      </section>
+      <PricingBottomCta signedIn={signedIn} />
 
       </main>
       <SiteFooter />
-      <StickyMobileCta />
+      <StickyMobileCta signedIn={signedIn} />
     </div>
   );
 }

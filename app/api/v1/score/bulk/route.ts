@@ -9,7 +9,7 @@ import {
   sweepStaleBulkJobs,
 } from "@/lib/bulk-job-runner";
 import { bulkScoreIdempotencyKey, type BulkCompanyInput, type BulkScoredRow } from "@/lib/bulk-job";
-import { canUseFeature, featureDeniedMessage, parsePlan, requiredPlanFor } from "@/lib/plan-features";
+import { BULK_MAX_CONCURRENT, BULK_MAX_PER_JOB, canUseFeature, featureDeniedMessage, formatCount, parsePlan, requiredPlanFor } from "@/lib/plan-features";
 import { redactPublicSources } from "@/lib/public-source";
 import { domainToCompanyName, scoreCompany } from "@/lib/score-service";
 import { createSupabaseAdmin } from "@/lib/supabase";
@@ -51,8 +51,8 @@ export async function POST(req: NextRequest) {
   if (!body.companies || body.companies.length === 0) {
     return errorResponse(400, "invalid_request", "No companies provided");
   }
-  if (body.companies.length > 1000) {
-    return errorResponse(400, "invalid_request", "Max 1,000 companies per job");
+  if (body.companies.length > BULK_MAX_PER_JOB) {
+    return errorResponse(400, "invalid_request", `Max ${formatCount(BULK_MAX_PER_JOB)} companies per job`);
   }
 
   const authResult = await authenticate(req);
@@ -80,8 +80,8 @@ export async function POST(req: NextRequest) {
     .eq("user_id", userId)
     .in("status", ["queued", "processing"]);
 
-  if ((count ?? 0) >= 3) {
-    return errorResponse(429, "too_many_jobs", "Max 3 concurrent bulk jobs allowed");
+  if ((count ?? 0) >= BULK_MAX_CONCURRENT) {
+    return errorResponse(429, "too_many_jobs", `Max ${BULK_MAX_CONCURRENT} concurrent bulk jobs allowed`);
   }
 
   const webhookError = await assertPublicWebhookUrl(body.webhook_url);

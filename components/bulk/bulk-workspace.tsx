@@ -16,11 +16,11 @@ import {
 } from "lucide-react";
 
 import {
-  BULK_MAX_ROWS,
   formatBulkFileSize,
   formatCoverage,
   type BulkCsvSummary,
 } from "../../lib/bulk-workspace";
+import { BULK_INLINE_MAX_ROWS, formatCount } from "../../lib/plan-features";
 import type { SignalSet } from "../../lib/types";
 
 export interface BulkResult {
@@ -204,7 +204,7 @@ export function BulkUploadPanel({
   onDrop,
   onFileChange,
 }: BulkUploadPanelProps) {
-  const isReady = Boolean(file) && !error && !summary?.error;
+  const isReady = Boolean(file && summary) && !error && !summary?.error;
   const submitLabel = summary && isReady
     ? `Score ${pluralCompanies(summary.rowCount)}`
     : "Score companies";
@@ -257,7 +257,7 @@ export function BulkUploadPanel({
       <footer className="bulk-upload-actions">
         <ul className="bulk-rules" id="bulk-file-requirements">
           <li><code>domain</code> or <code>company</code> column</li>
-          <li>Up to {BULK_MAX_ROWS} companies</li>
+          <li>Up to {formatCount(BULK_INLINE_MAX_ROWS)} companies</li>
           <li>1 credit per new score · cached are free</li>
         </ul>
         <div className="bulk-action-group">

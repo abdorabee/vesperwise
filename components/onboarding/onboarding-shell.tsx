@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { SignOutButton } from "@clerk/nextjs";
 
 const PHASES = [
   { n: "01", label: "Workspace" },
@@ -49,11 +50,13 @@ export function OnboardingHeader({
   showLedger,
   credits,
   email,
+  signedIn = false,
 }: {
   phase: number;
   showLedger: boolean;
   credits: number;
   email: string;
+  signedIn?: boolean;
 }) {
   return (
     <div className="flex h-[56px] flex-none items-center justify-between border-b border-white/[0.08] px-6">
@@ -71,6 +74,16 @@ export function OnboardingHeader({
         <span className="text-[#666]">{credits} credits</span>
         <span className="hidden h-4 w-px bg-white/[0.08] sm:block" />
         <span className="hidden truncate text-[#a0a0a0] sm:inline">{email}</span>
+        {signedIn && (
+          <SignOutButton redirectUrl="/">
+            <button
+              type="button"
+              className="shrink-0 text-[12px] font-medium text-[#a0a0a0] underline-offset-2 hover:text-white hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]"
+            >
+              Sign out
+            </button>
+          </SignOutButton>
+        )}
       </div>
     </div>
   );
@@ -189,6 +202,7 @@ export function OnboardingShell({
   showLedger,
   credits,
   email,
+  signedIn = false,
   banner,
   footer,
   children,
@@ -197,6 +211,7 @@ export function OnboardingShell({
   showLedger: boolean;
   credits: number;
   email: string;
+  signedIn?: boolean;
   /** Full-width notice between header and body. Kept out of the grid below so
    *  the grid always has exactly two children (content + rail). */
   banner?: ReactNode;
@@ -206,7 +221,7 @@ export function OnboardingShell({
   return (
     <main className="onboarding-shell min-h-[100dvh] bg-black text-[#f7f8f8]">
       <div className="mx-auto flex min-h-[100dvh] max-w-[1280px] flex-col border-x border-white/[0.13]">
-        <OnboardingHeader phase={phase} showLedger={showLedger} credits={credits} email={email} />
+        <OnboardingHeader phase={phase} showLedger={showLedger} credits={credits} email={email} signedIn={signedIn} />
         {banner}
         <div className="grid flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-[1fr_320px] lg:overflow-hidden">{children}</div>
         {footer}

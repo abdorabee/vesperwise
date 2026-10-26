@@ -28,14 +28,13 @@ export function bulkInlineRowIdempotencyKey(userId: string, batchKey: string, in
 
 export function bulkCreditEstimateMessage(input: {
   estimatedFresh: number;
-  estimatedCached: number;
   creditsRemaining: number;
 }): string {
   const fresh = input.estimatedFresh;
-  const cached = input.estimatedCached;
-  const freshLabel = `${fresh} fresh score${fresh === 1 ? "" : "s"}`;
-  const cachedLabel = cached > 0 ? ` · ${cached} cached free` : "";
-  return `This run uses ${fresh} credit${fresh === 1 ? "" : "s"} for ${freshLabel}${cachedLabel}. You have ${input.creditsRemaining.toLocaleString("en-US")} left.`;
+  const credits = `${fresh} credit${fresh === 1 ? "" : "s"}`;
+  const scores = `${fresh} fresh score${fresh === 1 ? "" : "s"}`;
+  const left = input.creditsRemaining.toLocaleString("en-US");
+  return `This run uses up to ${credits} for ${scores}. Failed rows are not charged. You have ${left} left.`;
 }
 
 export function bulkInsufficientCreditsMessage(input: {

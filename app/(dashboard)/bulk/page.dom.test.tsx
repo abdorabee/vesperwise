@@ -10,6 +10,7 @@ const guardBulk = vi.fn(() => false);
 vi.mock("@/components/dashboard/workspace-state", () => ({
   useFeatureGuard: () => guardBulk,
   useSetCreditsRemaining: () => setCreditsRemaining,
+  useWorkspaceState: () => ({ creditsRemaining: 20 }),
 }));
 
 function attachCsv(text: string) {
