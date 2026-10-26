@@ -1,4 +1,5 @@
 import { parseCsvRecords } from "@/lib/csv-parse";
+import { bulkCsvIssue } from "@/lib/bulk-workspace";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { createSupabaseAdmin } from "@/lib/supabase";
@@ -22,8 +23,6 @@ import {
 } from "@/lib/bulk-inline";
 import type { BusinessProfile } from "@/lib/types";
 
-const MAX_ROWS = 50;
-
 function rowDomain(row: { domain?: string; company?: string }): string {
   const rawDomain = (row.domain ?? "").trim();
   const rawCompany = (row.company ?? "").trim();
@@ -44,23 +43,9 @@ export async function POST(req: NextRequest) {
 
   const text = await file.text();
   const rows = parseCsvRecords(text);
-
-  if (rows.length === 0) {
-    return NextResponse.json({ error: "No rows found in CSV" }, { status: 400 });
-  }
-  if (rows.length > MAX_ROWS) {
-    return NextResponse.json(
-      { error: `Maximum ${MAX_ROWS} companies per batch. Your file has ${rows.length} rows.` },
-      { status: 400 },
-    );
-  }
-
-  const sampleRow = rows[0];
-  if (!sampleRow.domain && !sampleRow.company) {
-    return NextResponse.json(
-      { error: "CSV must have a 'domain' or 'company' column" },
-      { status: 400 },
-    );
+  const issue = bulkCsvIssue(rows);
+  if (issue) {
+    return NextResponse.json({ error: issue }, { status: 400 });
   }
 
   const skipCredits = isDevCreditBypassEnabled();

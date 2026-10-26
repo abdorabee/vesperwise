@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
+import { BULK_INLINE_MAX_ROWS, formatCount } from "@/lib/plan-features";
 import {
   BulkProcessingPanel,
   BulkResultsPanel,
@@ -35,7 +36,9 @@ describe("BulkUploadPanel", () => {
     expect(html).toContain('<h3 id="bulk-format-heading">CSV requirements</h3>');
     expect(html).toContain("domain");
     expect(html).toContain("company");
-    expect(html).toContain("50 companies");
+    expect(html).toContain(`Up to ${formatCount(BULK_INLINE_MAX_ROWS)} companies`);
+    expect(html).toContain(`Maximum ${formatCount(BULK_INLINE_MAX_ROWS)} companies`);
+    expect(BULK_INLINE_MAX_ROWS).toBe(50);
   });
 
   it("renders the selected file summary and enables submission", () => {

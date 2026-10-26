@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import type { CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { formatHistoryShare } from "@/lib/history-share";
+import { formatCreditPace, formatHistoryShare } from "@/lib/history-share";
 import { BandPill } from "@/components/score/band";
 import { csvFilename, downloadAuthorizedCsv, formatSignal } from "@/lib/csv";
 import type { DbScore, ScoreBand } from "@/lib/types";
@@ -442,7 +442,7 @@ export function HistoryView({ stats }: HistoryViewProps) {
           { label: "Total runs", num: stats.totalCount.toLocaleString(), delta: `▲ ${stats.monthlyCount} this month`, hot: false, flat: false },
           { label: "Avg score", num: stats.avgScore || "—", delta: null, hot: false, flat: false },
           { label: "Bands flipped to HOT", num: String(stats.flippedToHot), delta: "last 7 days", hot: true, flat: false },
-          { label: "Credits used (30d)", num: String(stats.creditsUsed30d), delta: `≈ ${Math.round(stats.creditsUsed30d / 30)}/day pace`, hot: false, flat: true },
+          { label: "Credits used (30d)", num: String(stats.creditsUsed30d), delta: formatCreditPace(stats.creditsUsed30d), hot: false, flat: true },
         ].map(({ label, num, delta, hot, flat }) => (
           <div key={label} style={S.statCard}>
             <div style={S.statLabel}>{label}</div>

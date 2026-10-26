@@ -49,14 +49,14 @@ describe("Low credits status", () => {
     expect(low.isLow).toBe(true);
   });
 
-  it("uses remaining plus ledger debits instead of the agency allowance", () => {
+  it("uses the agency monthly quota as the billing denominator", () => {
     expect(PLAN_CREDITS.agency).toBe(25_000);
     expect(creditDenominator({
       granted: true,
       creditsRemaining: 495,
       planAllowance: PLAN_CREDITS.agency,
       debitTotal: 5,
-    })).toBe(500);
+    })).toBe(25_000);
   });
 
   it("keeps the 80 percent rule for paid plans", () => {
