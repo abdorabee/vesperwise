@@ -38,11 +38,24 @@ describe("Score motion contract", () => {
   });
 
   it("uses the shared easing, restrained offsets, and reduced-motion fallback", () => {
-    expect(allCss).toContain("cubic-bezier(0.22, 1, 0.36, 1)");
+    expect(allCss).not.toContain("cubic-bezier(0.22, 1, 0.36, 1)");
+    expect(allCss).toContain("score-artifact-in 240ms var(--ease-out)");
     expect(allCss).toContain("translateY(6px)");
     expect(allCss).toContain("translateY(4px)");
     expect(allCss).toContain("@media (prefers-reduced-motion: reduce)");
     expect(allCss).toContain("animation: none !important");
+  });
+
+  it("plays the artifact entrance only for freshly generated scores", () => {
+    expect(css).toMatch(
+      /\[data-motion="generated"\][^{]*\.score-artifact\[data-slot="score-artifact"\]\s*\{\s*animation: score-artifact-in/,
+    );
+    expect(css).not.toMatch(/^\.score-artifact\[data-slot="score-artifact"\]\s*\{\s*animation/m);
+  });
+
+  it("swaps score threads instantly instead of fading the chat", () => {
+    expect(view).not.toContain("transitioning");
+    expect(view).not.toContain("opacity-0");
   });
 
   it("uses the branded ThinkingOrb for active score research", () => {
@@ -56,7 +69,7 @@ describe("Score motion contract", () => {
       "animation: score-meter-fill-in 600ms cubic-bezier(0.33, 1, 0.68, 1)",
     );
     expect(motionCss).toMatch(
-      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.route-enter[\s\S]*\.text-swap-in[\s\S]*\.headline-shimmer[\s\S]*\[data-motion="generated"\] \.score-meter-fill/,
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.text-swap-in[\s\S]*\.headline-shimmer[\s\S]*\[data-motion="generated"\] \.score-meter-fill/,
     );
   });
 

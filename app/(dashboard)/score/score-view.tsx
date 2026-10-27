@@ -27,6 +27,7 @@ import { SCORE_NEW_EVENT, SCORE_OPEN_THREADS_EVENT } from "@/lib/score-workspace
 import { SCORE_CHAT_EVENT, runScoreChatFocus } from "@/lib/score-chat";
 import type { StoredWorkspaceScore } from "@/lib/stored-score";
 import { CHAT_CREDIT_COST, type IntentScore, type ScoreBand } from "@/lib/types";
+import { useShellStatus } from "@/components/dashboard/shell/shell-status";
 type ScorableIntentScore = IntentScore & { intent_score: number; score_band: ScoreBand };
 
 export interface RecentScore {
@@ -149,7 +150,8 @@ export function ScoreView(props: ScoreViewProps) {
   const [busy, setBusy] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [threadsOpen, setThreadsOpen] = useState(false);
-  const [transitioning, setTransitioning] = useState(false);
+  const [restoring, setRestoring] = useState(false);
+  useShellStatus(restoring ? { text: "Opening thread…", busy: true } : null);
   const [watchlistByDomain, setWatchlistByDomain] = useState<Record<string, "adding" | "added">>({});
   // A restored result has no chat session yet; seed one lazily on the first follow-up.
   const pendingSeedRef = useRef<Parameters<typeof seedChatSession>[0] | null>(null);
@@ -167,16 +169,12 @@ export function ScoreView(props: ScoreViewProps) {
 
   function resetWorkspace() {
     if (busy) return;
-    setTransitioning(true);
-    window.setTimeout(() => {
-      setMessages([]);
-      setSessionId(null);
-      pendingSeedRef.current = null;
-      autoScoredRef.current = null;
-      setReportPanelOpen(false);
-      setSelectedReportId(null);
-      setTransitioning(false);
-    }, 180);
+    setMessages([]);
+    setSessionId(null);
+    pendingSeedRef.current = null;
+    autoScoredRef.current = null;
+    setReportPanelOpen(false);
+    setSelectedReportId(null);
   }
 
   resetWorkspaceRef.current = resetWorkspace;
@@ -353,7 +351,8 @@ export function ScoreView(props: ScoreViewProps) {
 
   async function restoreThread(id: string) {
     if (busy) return;
-    setTransitioning(true);
+    // The old thread stays on screen while the fetch runs, then the new one swaps in at once.
+    setRestoring(true);
     try {
       const payload = await loadChatSession(id);
       const restored = payload.messages.flatMap<ThreadMessage>((row) => {
@@ -370,7 +369,7 @@ export function ScoreView(props: ScoreViewProps) {
     } catch (reason) {
       setMessages([{ id: nextId(), role: "error", content: (reason as Error).message }]);
     } finally {
-      window.setTimeout(() => setTransitioning(false), 180);
+      setRestoring(false);
     }
   }
 
@@ -424,7 +423,7 @@ export function ScoreView(props: ScoreViewProps) {
   return (
     <>
       <ScoreThreadsColumn activeId={sessionId} busy={busy} onNewScore={resetWorkspace} onSelect={(id) => void restoreThread(id)} />
-      <div className={`score-chat transition-opacity duration-200 motion-reduce:transition-none ${transitioning ? "opacity-0" : "opacity-100"}`}>
+      <div className="score-chat" aria-busy={restoring || undefined}>
         {!active ? <ScorePageFrame mode="entry"><ScoreEmptyState onSubmit={(value) => void submitMessage(value)} onOpenRecent={(domain) => void openLastScore(domain)} recentScores={recentScores} creditsRemaining={creditsRemaining} busy={busy} /></ScorePageFrame> : <ScorePageFrame mode="workspace"><ScoreWorkspaceLayout header={workspaceHeader} thread={thread} composer={<ScoreComposer busy={busy} suggestions={suggestions} onSubmit={(value) => void submitMessage(value)} />} /></ScorePageFrame>}
         <ScoreThreadDrawer open={threadsOpen} onOpenChange={setThreadsOpen} onSelect={(id) => void restoreThread(id)} onNewScore={resetWorkspace} activeId={sessionId} busy={busy} />
         {selectedReport ? (

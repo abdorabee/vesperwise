@@ -6978,7 +6978,12 @@ button.signal-card.gen-axis.is-selected {
 }
 
 .score-message {
-  animation: score-message-in 200ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: score-message-in 200ms var(--ease-out) both;
+}
+
+/* Reopened threads appear at once; only new turns animate in. */
+.score-message[data-restored] {
+  animation: none;
 }
 
 .score-message-user[data-motion="submitted"] {
@@ -6990,7 +6995,7 @@ button.signal-card.gen-axis.is-selected {
   border-radius: 0.875rem;
   background: var(--background);
   box-shadow: 0 10px 30px rgb(0 0 0 / 0.06), 0 1px 3px rgb(0 0 0 / 0.08);
-  transition: border-color 150ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 150ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: border-color 150ms var(--ease-out), box-shadow 150ms var(--ease-out);
 }
 
 .score-elements-input:focus-within {
@@ -7025,16 +7030,16 @@ button.signal-card.gen-axis.is-selected {
 
 /* A source row settles in place the moment its provider actually returns. */
 .score-research-land {
-  animation: score-row-in 200ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: score-row-in 200ms var(--ease-out) both;
 }
 
-.score-artifact[data-slot="score-artifact"] {
-  animation: score-artifact-in 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+[data-motion="generated"] .score-artifact[data-slot="score-artifact"] {
+  animation: score-artifact-in 240ms var(--ease-out) both;
 }
 
 [data-motion="generated"] .score-artifact-row {
   opacity: 0;
-  animation: score-row-in 200ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: score-row-in 200ms var(--ease-out) forwards;
 }
 
 [data-motion="generated"] .score-artifact-row:nth-child(1) { animation-delay: 60ms; }
@@ -7042,16 +7047,16 @@ button.signal-card.gen-axis.is-selected {
 [data-motion="generated"] .score-artifact-row:nth-child(3) { animation-delay: 200ms; }
 [data-motion="generated"] .score-artifact-row:nth-child(4) { animation-delay: 270ms; }
 /* Band lands once the 600ms count-up settles; fresh scores only, never restores. */
-[data-motion="generated"] .score-band-land { opacity: 0; filter: blur(4px); animation: score-band-land 150ms cubic-bezier(0.22, 1, 0.36, 1) 600ms forwards; }
-[data-motion="generated"] .score-artifact-copy { opacity: 0; animation: score-message-in 200ms cubic-bezier(0.22, 1, 0.36, 1) 340ms forwards; }
+[data-motion="generated"] .score-band-land { opacity: 0; filter: blur(4px); animation: score-band-land 150ms var(--ease-out) 600ms forwards; }
+[data-motion="generated"] .score-artifact-copy { opacity: 0; animation: score-message-in 200ms var(--ease-out) 340ms forwards; }
 [data-motion="generated"] .score-artifact-action,
-[data-motion="generated"] .score-artifact-actions { opacity: 0; animation: score-message-in 200ms cubic-bezier(0.22, 1, 0.36, 1) 420ms forwards; }
+[data-motion="generated"] .score-artifact-actions { opacity: 0; animation: score-message-in 200ms var(--ease-out) 420ms forwards; }
 
 .score-artifact-archive > summary::-webkit-details-marker { display: none; }
-.score-artifact-archive[open] > div { animation: score-artifact-in 220ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.score-artifact-archive[open] > div { animation: score-artifact-in 220ms var(--ease-out) both; }
 
 .score-bloub {
-  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1), opacity 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform 220ms var(--ease-out), opacity 220ms var(--ease-out);
 }
 
 @keyframes score-prompt-in {
@@ -8007,16 +8012,6 @@ button.signal-card.gen-axis.is-selected {
     box-shadow: 0 0 0 5px color-mix(in oklab, var(--accent) 18%, transparent);
   }
 
-  @media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
-      animation-duration: 0.001ms !important;
-      animation-iteration-count: 1 !important;
-      scroll-behavior: auto !important;
-      transition-duration: 0.001ms !important;
-    }
-  }
 }
 
 @layer components {
@@ -8192,8 +8187,15 @@ button.signal-card.gen-axis.is-selected {
     overflow: hidden;
   }
 
+  /* Dashboard KPIs are seen constantly, so they change color on hover but do not lift. */
   .kpi,
-  .stat-card,
+  .stat-card {
+    transition:
+      border-color 100ms var(--apple-ease),
+      box-shadow 100ms var(--apple-ease),
+      background 100ms var(--apple-ease);
+  }
+
   .billing-page .hero-card,
   .lists-page .list-card,
   .billing-page .plan-card-c,
@@ -8205,13 +8207,19 @@ button.signal-card.gen-axis.is-selected {
       background 180ms var(--apple-ease);
   }
 
+  .billing-page .hero-card:hover,
+  .lists-page .list-card:hover,
+  .billing-page .plan-card-c:hover,
+  .billing-page .topup-card:hover {
+    transform: translateY(-1px);
+  }
+
   .kpi:hover,
   .stat-card:hover,
   .billing-page .hero-card:hover,
   .lists-page .list-card:hover,
   .billing-page .plan-card-c:hover,
   .billing-page .topup-card:hover {
-    transform: translateY(-1px);
     border-color: color-mix(in oklab, var(--brand) 24%, var(--hairline));
     box-shadow:
       0 1px 0 rgba(255, 255, 255, 0.05) inset,
@@ -8421,7 +8429,7 @@ button.signal-card.gen-axis.is-selected {
   .activity-row,
   .msg-row,
   [data-slot="table-row"] {
-    transition: background 140ms var(--apple-ease), transform 140ms var(--apple-ease);
+    transition: background 100ms var(--apple-ease);
   }
 
   .wl-row:hover,

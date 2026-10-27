@@ -32,7 +32,7 @@ export function ScoreConversationThread({
     <Conversation className="score-chat-thread">
       <ConversationContent className="score-chat-col">
         {messages.map((message) => {
-          if (message.role === "user") return <div key={message.id} className="score-message score-message-user score-user-bubble-in ml-auto max-w-[85%] rounded-2xl rounded-br-md bg-muted px-4 py-2.5 text-sm leading-5 text-foreground" data-motion={message.restored ? "restored" : "submitted"}>{message.content}</div>;
+          if (message.role === "user") return <div key={message.id} data-restored={message.restored || undefined} className="score-message score-message-user score-user-bubble-in ml-auto max-w-[85%] rounded-2xl rounded-br-md bg-muted px-4 py-2.5 text-sm leading-5 text-foreground" data-motion={message.restored ? "restored" : "submitted"}>{message.content}</div>;
           if (message.role === "error") {
             if (message.failure) return <div key={message.id} className="score-message"><ScoreErrorCard failure={message.failure} domain={message.domain} onRetry={onRetryScore} onReset={onReset} /></div>;
             return <div key={message.id} className="score-message flex items-start gap-2 text-sm text-destructive" role="alert"><AlertCircle className="mt-0.5 size-4 shrink-0" />{message.content}</div>;
@@ -51,9 +51,9 @@ export function ScoreConversationThread({
           }
           if (message.kind === "ui") {
             const report = reportForMessage(message);
-            return <div key={message.id} className="score-message space-y-4"><ToolTrace tools={message.tools} billing={message.billing} />{message.content ? <MessageResponse streaming={message.id === activeStreamingMessageId} className="text-sm leading-6 text-foreground/85">{message.content}</MessageResponse> : null}<ScoreResultCard report={report} onView={() => onOpenReport(report)} /></div>;
+            return <div key={message.id} data-restored={message.restored || undefined} className="score-message space-y-4"><ToolTrace tools={message.tools} billing={message.billing} />{message.content ? <MessageResponse streaming={message.id === activeStreamingMessageId} className="text-sm leading-6 text-foreground/85">{message.content}</MessageResponse> : null}<ScoreResultCard report={report} onView={() => onOpenReport(report)} /></div>;
           }
-          return <div key={message.id} className="score-message space-y-3"><ToolTrace tools={message.tools} />{message.content ? <MessageResponse streaming={message.id === activeStreamingMessageId} className="text-sm leading-6 text-foreground/85">{message.content}</MessageResponse> : null}</div>;
+          return <div key={message.id} data-restored={message.restored || undefined} className="score-message space-y-3"><ToolTrace tools={message.tools} />{message.content ? <MessageResponse streaming={message.id === activeStreamingMessageId} className="text-sm leading-6 text-foreground/85">{message.content}</MessageResponse> : null}</div>;
         })}
       </ConversationContent>
       <ConversationScrollButton />
