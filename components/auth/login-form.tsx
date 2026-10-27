@@ -1,10 +1,11 @@
 "use client";
 
-import { useClerk, useSignIn } from "@clerk/nextjs";
+import { useClerk, useSignIn, useUser } from "@clerk/nextjs";
 import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useMemo, useState, type FormEvent } from "react";
+import { Suspense, useEffect, useMemo, useState, type FormEvent } from "react";
+import { captureScoreChatFromLocation, postAuthScorePath } from "@/lib/score-chat";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,10 +26,18 @@ type Step = "credentials" | "forgot-code" | "forgot-password" | "mfa";
 
 function LoginFormInner() {
   const { signIn, errors, fetchStatus } = useSignIn();
+  const { isSignedIn } = useUser();
   const clerk = useClerk();
   const router = useRouter();
   const searchParams = useSearchParams();
   const avatar = useAuthAvatar();
+
+  useEffect(() => {
+    captureScoreChatFromLocation();
+    if (!isSignedIn) return;
+    const dest = postAuthScorePath();
+    if (dest) router.replace(dest);
+  }, [isSignedIn, router]);
 
   const [email, setEmail] = useState(searchParams.get("email") ?? "");
   const [password, setPassword] = useState("");

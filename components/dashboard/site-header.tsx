@@ -60,7 +60,7 @@ export function SiteHeader() {
   }
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 border-b bg-background px-4 transition-[width,height] duration-200 ease-linear motion-reduce:transition-none">
+    <header data-slot="site-header" className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 border-b bg-background px-4 transition-[width,height] duration-200 ease-linear motion-reduce:transition-none">
       <div className="flex min-w-0 w-full items-center gap-2">
         <SidebarTrigger className="-ml-1 size-11 shrink-0 md:hidden">
           {isMobile ? <Menu /> : <PanelLeft />}

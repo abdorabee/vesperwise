@@ -1,4 +1,5 @@
 import type { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
+import { postAuthScorePath } from "@/lib/score-chat";
 
 type OAuthStrategy = `oauth_${string}`;
 
@@ -66,14 +67,16 @@ export async function finalizeToDashboard(
   finalize: FinalizeNavigate,
   router: AppRouterInstance
 ) {
+  const dest = postAuthScorePath() ?? "/dashboard";
   const { error } = await finalize({
     navigate: ({ decorateUrl }) => {
-      const url = decorateUrl("/dashboard");
-      if (url.startsWith("http")) {
-        window.location.href = url;
+      const url = decorateUrl(dest.split("#")[0]);
+      const next = dest.includes("#") && !url.includes("#") ? `${url}${dest.slice(dest.indexOf("#"))}` : url;
+      if (next.startsWith("http")) {
+        window.location.href = next;
         return;
       }
-      router.push(url);
+      router.push(next);
     },
   });
   return error;
