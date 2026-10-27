@@ -7,6 +7,7 @@ import { useFeatureGuard, useSetCreditsRemaining, useWorkspaceState } from "@/co
 import {
   BulkProcessingPanel,
   BulkResultsPanel,
+  BulkResultsPreview,
   BulkUploadPanel,
   type BulkResponse,
 } from "@/components/bulk/bulk-workspace";
@@ -14,13 +15,13 @@ import {
   bulkCreditEstimateMessage,
   bulkInsufficientCreditsMessage,
 } from "@/lib/bulk-inline";
-import { parseCsvRecords } from "@/lib/csv-parse";
 import { BULK_INLINE_MAX_ROWS, formatCount } from "@/lib/plan-features";
 import {
-  bulkCsvIssue,
   bulkTemplateCsv,
   formatCoverage,
+  summarizeBulkCsv,
   validateBulkFile,
+  type BulkCsvSummary,
 } from "@/lib/bulk-workspace";
 import {
   csvFilename,
@@ -31,6 +32,7 @@ import {
 
 export default function BulkScorerPage() {
   const [file, setFile] = useState<File | null>(null);
+  const [summary, setSummary] = useState<BulkCsvSummary | null>(null);
   const [loading, setLoading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [response, setResponse] = useState<BulkResponse | null>(null);
@@ -56,6 +58,7 @@ export default function BulkScorerPage() {
 
     const generation = ++parseGeneration.current;
     setFile(candidate);
+    setSummary(null);
     setResponse(null);
     setError(null);
     setCostNote(null);
@@ -73,26 +76,26 @@ export default function BulkScorerPage() {
     }
     if (generation !== parseGeneration.current) return;
 
-    const rows = parseCsvRecords(text);
-    const issue = bulkCsvIssue(rows);
-    if (issue) {
-      setCostNote(null);
-      setError(issue);
-      setAnnouncement(issue);
+    const nextSummary = summarizeBulkCsv(text);
+    setSummary(nextSummary);
+    if (nextSummary.error) {
+      setError(nextSummary.error);
+      setAnnouncement(nextSummary.error);
       return;
     }
 
     const note = bulkCreditEstimateMessage({
-      estimatedFresh: rows.length,
+      estimatedFresh: nextSummary.rowCount,
       creditsRemaining,
     });
     setCostNote(note);
-    setAnnouncement(`${candidate.name} attached. ${note}`);
+    setAnnouncement(`${candidate.name} attached with ${nextSummary.rowCount} companies. ${note}`);
   }
 
   function clearFile() {
     parseGeneration.current += 1;
     setFile(null);
+    setSummary(null);
     setResponse(null);
     setError(null);
     setCostNote(null);
@@ -102,7 +105,7 @@ export default function BulkScorerPage() {
   }
 
   async function handleSubmit() {
-    if (!file || loading) return;
+    if (!file || !summary || loading || summary.error) return;
     if (guardBulk()) return;
 
     setLoading(true);
@@ -268,6 +271,7 @@ export default function BulkScorerPage() {
       <div className="bulk-workspace">
         <BulkUploadPanel
           file={file}
+          summary={summary}
           loading={loading}
           dragActive={dragActive}
           error={error}
@@ -290,15 +294,17 @@ export default function BulkScorerPage() {
           onDrop={(event) => {
             event.preventDefault();
             setDragActive(false);
-            if (!loading) selectFile(event.dataTransfer.files[0] ?? null);
+            if (!loading) void selectFile(event.dataTransfer.files[0] ?? null);
           }}
           onFileChange={(event) => {
-            selectFile(event.currentTarget.files?.[0] ?? null);
+            void selectFile(event.currentTarget.files?.[0] ?? null);
             event.currentTarget.value = "";
           }}
         />
 
         {loading && file ? <BulkProcessingPanel fileName={file.name} /> : null}
+
+        {!loading && !response ? <BulkResultsPreview /> : null}
 
         {response ? (
           <BulkResultsPanel

@@ -1,5 +1,7 @@
 import { BULK_INLINE_MAX_ROWS } from "@/lib/plan-features";
 
+import { parseCsvRecords, parseCsvRows } from "./csv-parse";
+
 interface BulkFileLike {
   name: string;
 }
@@ -39,4 +41,41 @@ export function formatBulkFileSize(bytes: number): string {
 
 export function formatCoverage(coverage: number): string {
   return `${Math.round(coverage * 100)}%`;
+}
+
+const SAMPLE_SIZE = 5;
+
+export interface BulkCsvSummary {
+  rowCount: number;
+  column: "domain" | "company" | null;
+  sample: string[];
+  error: string | null;
+}
+
+/** Client-side preflight that mirrors the bulk-inline route's CSV checks. */
+export function summarizeBulkCsv(text: string): BulkCsvSummary {
+  const records = parseCsvRecords(text);
+  const headers = new Set(
+    (parseCsvRows(text.replace(/^﻿/, ""))[0] ?? []).map((header) =>
+      header.trim().toLowerCase(),
+    ),
+  );
+  const column = headers.has("domain")
+    ? "domain"
+    : headers.has("company")
+      ? "company"
+      : null;
+  const sample = column
+    ? records
+        .map((record) => record[column])
+        .filter((value) => value !== "")
+        .slice(0, SAMPLE_SIZE)
+    : [];
+
+  return {
+    rowCount: records.length,
+    column,
+    sample,
+    error: bulkCsvIssue(records),
+  };
 }

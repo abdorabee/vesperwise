@@ -8,6 +8,7 @@ import {
   bulkTemplateCsv,
   formatBulkFileSize,
   formatCoverage,
+  summarizeBulkCsv,
   validateBulkFile,
 } from "./bulk-workspace";
 
@@ -83,5 +84,52 @@ describe("bulk CSV credit estimate", () => {
 describe("formatCoverage", () => {
   it("converts fractional coverage to a whole percentage", () => {
     expect(formatCoverage(0.836)).toBe("84%");
+  });
+});
+
+describe("summarizeBulkCsv", () => {
+  it("counts rows and samples the domain column", () => {
+    const summary = summarizeBulkCsv(
+      "Domain,Company\nstripe.com,Stripe\nlinear.app,Linear\n\nnotion.so,Notion\n",
+    );
+
+    expect(summary).toEqual({
+      rowCount: 3,
+      column: "domain",
+      sample: ["stripe.com", "linear.app", "notion.so"],
+      error: null,
+    });
+  });
+
+  it("falls back to the company column when domain is absent", () => {
+    const summary = summarizeBulkCsv("company\nAcme\n");
+
+    expect(summary.column).toBe("company");
+    expect(summary.sample).toEqual(["Acme"]);
+    expect(summary.error).toBeNull();
+  });
+
+  it("caps the sample at five entries", () => {
+    const rows = Array.from({ length: 8 }, (_, i) => `c${i}.com`).join("\n");
+
+    expect(summarizeBulkCsv(`domain\n${rows}`).sample).toHaveLength(5);
+  });
+
+  it("rejects files without a domain or company header", () => {
+    expect(summarizeBulkCsv("name\nAcme\n").error).toBe(
+      "CSV must have a 'domain' or 'company' column",
+    );
+  });
+
+  it("rejects files with no company rows", () => {
+    expect(summarizeBulkCsv("domain\n").error).toBe("No rows found in CSV");
+  });
+
+  it("rejects batches over the 50 row limit", () => {
+    const rows = Array.from({ length: 51 }, (_, i) => `c${i}.com`).join("\n");
+
+    expect(summarizeBulkCsv(`domain\n${rows}`).error).toBe(
+      "Maximum 50 companies per batch. Your file has 51 rows.",
+    );
   });
 });

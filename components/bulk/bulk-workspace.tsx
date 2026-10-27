@@ -7,16 +7,19 @@ import type {
 } from "react";
 import {
   AlertTriangle,
-  Check,
   Download,
   FileSpreadsheet,
-  FileText,
   LoaderCircle,
+  Sparkles,
   Upload,
   X,
 } from "lucide-react";
 
-import { formatBulkFileSize, formatCoverage } from "../../lib/bulk-workspace";
+import {
+  formatBulkFileSize,
+  formatCoverage,
+  type BulkCsvSummary,
+} from "../../lib/bulk-workspace";
 import { BULK_INLINE_MAX_ROWS, formatCount } from "../../lib/plan-features";
 import type { SignalSet } from "../../lib/types";
 
@@ -57,6 +60,7 @@ interface BulkFileSummary {
 
 interface BulkUploadPanelProps {
   file: BulkFileSummary | null;
+  summary: BulkCsvSummary | null;
   loading: boolean;
   dragActive: boolean;
   error: string | null;
@@ -71,8 +75,122 @@ interface BulkUploadPanelProps {
   onFileChange: ChangeEventHandler<HTMLInputElement>;
 }
 
+const SAMPLE_ROWS = [
+  ["stripe.com", "Stripe"],
+  ["linear.app", "Linear"],
+  ["notion.so", "Notion"],
+] as const;
+
+function pluralCompanies(count: number): string {
+  return `${count} ${count === 1 ? "company" : "companies"}`;
+}
+
+function CsvSample() {
+  return (
+    <div className="bulk-csv-sample" aria-hidden="true">
+      <div className="bulk-csv-row is-head">
+        <span>domain</span>
+        <span>company</span>
+      </div>
+      {SAMPLE_ROWS.map(([domain, company]) => (
+        <div className="bulk-csv-row" key={domain}>
+          <span>{domain}</span>
+          <span>{company}</span>
+        </div>
+      ))}
+      <div className="bulk-csv-row is-fade">
+        <span>…</span>
+        <span />
+      </div>
+    </div>
+  );
+}
+
+function EmptyDropTarget({
+  dragActive,
+  disabled,
+  onBrowse,
+}: {
+  dragActive: boolean;
+  disabled: boolean;
+  onBrowse: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className="bulk-drop-target"
+      aria-label="Choose a CSV file"
+      disabled={disabled}
+      onClick={onBrowse}
+    >
+      <span className="bulk-drop-lead">
+        <span className="bulk-drop-icon" aria-hidden="true">
+          <Upload />
+        </span>
+        <span className="bulk-drop-title">
+          {dragActive ? "Release to attach" : "Drop a CSV of companies"}
+        </span>
+        <span className="bulk-drop-copy">
+          or <span className="bulk-drop-link">browse files</span>
+        </span>
+      </span>
+      <CsvSample />
+    </button>
+  );
+}
+
+function SelectedFile({
+  file,
+  summary,
+  disabled,
+  onRemove,
+}: {
+  file: BulkFileSummary;
+  summary: BulkCsvSummary | null;
+  disabled: boolean;
+  onRemove: () => void;
+}) {
+  const extra = summary ? summary.rowCount - summary.sample.length : 0;
+
+  return (
+    <div className="bulk-selected">
+      <div className="bulk-selected-file">
+        <div className="bulk-file-icon" aria-hidden="true">
+          <FileSpreadsheet />
+        </div>
+        <div className="bulk-file-copy">
+          <strong>{file.name}</strong>
+          <span>
+            {formatBulkFileSize(file.size)}
+            {summary ? ` · ${pluralCompanies(summary.rowCount)}` : ""}
+            {summary?.column ? ` · ${summary.column} column` : ""}
+          </span>
+        </div>
+        <button
+          type="button"
+          className="bulk-icon-button"
+          aria-label={`Remove ${file.name}`}
+          disabled={disabled}
+          onClick={onRemove}
+        >
+          <X />
+        </button>
+      </div>
+      {summary?.sample.length ? (
+        <ul className="bulk-sample-list" aria-label="First companies in this file">
+          {summary.sample.map((value, index) => (
+            <li key={`${value}-${index}`}>{value}</li>
+          ))}
+          {extra > 0 ? <li className="is-more">+{extra} more</li> : null}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
+
 export function BulkUploadPanel({
   file,
+  summary,
   loading,
   dragActive,
   error,
@@ -86,140 +204,120 @@ export function BulkUploadPanel({
   onDrop,
   onFileChange,
 }: BulkUploadPanelProps) {
+  const isReady = Boolean(file && summary) && !error && !summary?.error;
+  const submitLabel = summary && isReady
+    ? `Score ${pluralCompanies(summary.rowCount)}`
+    : "Score companies";
+
   return (
-    <section className="bulk-panel bulk-upload-panel" aria-labelledby="bulk-upload-heading">
-      <header className="bulk-panel-head">
-        <h2 id="bulk-upload-heading">Upload CSV</h2>
-        <span className="bulk-panel-meta">Up to {formatCount(BULK_INLINE_MAX_ROWS)} companies</span>
-      </header>
+    <section className="bulk-panel bulk-upload-panel" aria-label="Upload CSV">
+      <input
+        ref={inputRef}
+        id="bulk-csv-input"
+        className="sr-only"
+        type="file"
+        accept=".csv,text/csv"
+        disabled={loading}
+        aria-label="CSV file"
+        aria-describedby="bulk-file-requirements"
+        onChange={onFileChange}
+      />
 
-      <div className="bulk-upload-grid">
-        <div className="bulk-upload-main">
-          <input
-            ref={inputRef}
-            id="bulk-csv-input"
-            className="sr-only"
-            type="file"
-            accept=".csv,text/csv"
+      <div
+        className={`bulk-drop-shell${dragActive ? " is-dragging" : ""}${loading ? " is-disabled" : ""}${file ? " has-file" : ""}`}
+        aria-busy={loading}
+        onDragEnter={onDragEnter}
+        onDragLeave={onDragLeave}
+        onDragOver={onDragOver}
+        onDrop={onDrop}
+      >
+        {file ? (
+          <SelectedFile
+            file={file}
+            summary={summary}
             disabled={loading}
-            aria-label="CSV file"
-            aria-describedby="bulk-file-requirements"
-            onChange={onFileChange}
+            onRemove={onRemove}
           />
-
-          <div
-            className={`bulk-drop-shell${dragActive ? " is-dragging" : ""}${loading ? " is-disabled" : ""}`}
-            aria-busy={loading}
-            onDragEnter={onDragEnter}
-            onDragLeave={onDragLeave}
-            onDragOver={onDragOver}
-            onDrop={onDrop}
-          >
-            {file ? (
-              <div className="bulk-selected-file">
-                <div className="bulk-file-icon" aria-hidden="true">
-                  <FileSpreadsheet />
-                </div>
-                <div className="bulk-file-copy">
-                  <strong>{file.name}</strong>
-                  <span>{formatBulkFileSize(file.size)} · Ready to score</span>
-                </div>
-                <button
-                  type="button"
-                  className="bulk-icon-button"
-                  aria-label={`Remove ${file.name}`}
-                  disabled={loading}
-                  onClick={onRemove}
-                >
-                  <X />
-                </button>
-              </div>
-            ) : (
-              <button
-                type="button"
-                className="bulk-drop-target"
-                aria-label="Choose a CSV file"
-                disabled={loading}
-                onClick={onBrowse}
-              >
-                <span className="bulk-drop-icon" aria-hidden="true">
-                  <Upload />
-                </span>
-                <span className="bulk-drop-title">
-                  {dragActive ? "Drop the CSV to attach it" : "Drop a CSV here"}
-                </span>
-                <span className="bulk-drop-copy">or choose a file from your device</span>
-              </button>
-            )}
-          </div>
-
-          {error ? (
-            <div className="bulk-inline-error" role="alert">
-              <AlertTriangle aria-hidden="true" />
-              <span>{error}</span>
-            </div>
-          ) : null}
-
-          <div className="bulk-upload-actions">
-            <div className="bulk-upload-status">
-              <span className={`bulk-status-dot${file ? " is-ready" : ""}`} aria-hidden="true" />
-              {file ? "Ready to score" : "No file selected"}
-            </div>
-            <div className="bulk-action-group">
-              {file ? (
-                <button
-                  type="button"
-                  className="tb-btn outlined"
-                  disabled={loading}
-                  onClick={onBrowse}
-                >
-                  Replace file
-                </button>
-              ) : null}
-              <button
-                type="button"
-                className="btn-primary bulk-submit"
-                disabled={!file || loading}
-                onClick={onSubmit}
-              >
-                {loading ? <LoaderCircle className="bulk-spin" aria-hidden="true" /> : <Upload aria-hidden="true" />}
-                {loading ? "Scoring…" : "Score companies"}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <aside
-          className="bulk-format-guide"
-          id="bulk-file-requirements"
-          aria-labelledby="bulk-format-heading"
-        >
-          <div className="bulk-guide-head">
-            <FileText aria-hidden="true" />
-            <div>
-              <h3 id="bulk-format-heading">CSV requirements</h3>
-              <span>Keep the first row as column headers.</span>
-            </div>
-          </div>
-          <ul className="bulk-checklist">
-            <li>
-              <Check aria-hidden="true" />
-              <span><code>domain</code> or <code>company</code> header</span>
-            </li>
-            <li>
-              <Check aria-hidden="true" />
-              One company per row
-            </li>
-            <li>
-              <Check aria-hidden="true" />
-              Maximum {formatCount(BULK_INLINE_MAX_ROWS)} companies
-            </li>
-          </ul>
-          <p className="bulk-guide-note">
-            Cached scores are free. New successful scores use one credit each.
-          </p>
-        </aside>
+        ) : (
+          <EmptyDropTarget
+            dragActive={dragActive}
+            disabled={loading}
+            onBrowse={onBrowse}
+          />
+        )}
       </div>
+
+      {error ? (
+        <div className="bulk-inline-error" role="alert">
+          <AlertTriangle aria-hidden="true" />
+          <span>{error}</span>
+        </div>
+      ) : null}
+
+      <footer className="bulk-upload-actions">
+        <ul className="bulk-rules" id="bulk-file-requirements">
+          <li><code>domain</code> or <code>company</code> column</li>
+          <li>Up to {formatCount(BULK_INLINE_MAX_ROWS)} companies</li>
+          <li>1 credit per new score · cached are free</li>
+        </ul>
+        <div className="bulk-action-group">
+          {file ? (
+            <button
+              type="button"
+              className="tb-btn outlined"
+              disabled={loading}
+              onClick={onBrowse}
+            >
+              Replace file
+            </button>
+          ) : null}
+          <button
+            type="button"
+            className="btn-primary bulk-submit"
+            disabled={!isReady || loading}
+            onClick={onSubmit}
+          >
+            {loading ? <LoaderCircle className="bulk-spin" aria-hidden="true" /> : <Sparkles aria-hidden="true" />}
+            {loading ? "Scoring…" : submitLabel}
+          </button>
+        </div>
+      </footer>
+    </section>
+  );
+}
+
+const PREVIEW_COLUMNS = ["Company", "Score", "Band", "Coverage", "AI thesis"];
+
+export function BulkResultsPreview() {
+  return (
+    <section className="bulk-panel bulk-results-preview" aria-labelledby="bulk-preview-heading">
+      <header className="bulk-results-head">
+        <h2 id="bulk-preview-heading">Ranked results</h2>
+        <span className="bulk-panel-meta">Sorted by intent · export as CSV</span>
+      </header>
+      <div className="bulk-preview-grid" aria-hidden="true">
+        <div className="bulk-preview-row is-head">
+          {PREVIEW_COLUMNS.map((column) => (
+            <span key={column}>{column}</span>
+          ))}
+        </div>
+        {[0, 1, 2, 3].map((row) => (
+          <div className="bulk-preview-row" key={row}>
+            <span className="bulk-preview-company">
+              <i className="bulk-ghost is-mark" />
+              <i className="bulk-ghost is-name" />
+            </span>
+            <span><i className="bulk-ghost is-num" /></span>
+            <span><i className="bulk-ghost is-pill" /></span>
+            <span><i className="bulk-ghost is-num" /></span>
+            <span><i className="bulk-ghost is-text" /></span>
+          </div>
+        ))}
+      </div>
+      <p className="bulk-preview-note">
+        Attach a CSV above. Each company gets an intent score, band, and a short
+        thesis you can export.
+      </p>
     </section>
   );
 }
