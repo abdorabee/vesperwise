@@ -2,9 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildBusinessProfile,
+  COMPANY_SIZE_LABELS,
   createOnboardingState,
   findIncompleteStep,
   getOnboardingRedirect,
+  isEmailDerivedWorkspaceName,
   MAX_STEP,
   normalizeDomainInput,
   onboardingReducer,
@@ -312,6 +314,25 @@ describe("onboardingReducer", () => {
     state = onboardingReducer(state, { type: "update_field", field: "company_size", value: "Startups (1-50)" });
     expect(state.pdfFilled.company_size).toBeUndefined();
     expect(state.profile.company_size).toBe("Startups (1-50)");
+  });
+
+  it("replaces an email-derived workspace name from the PDF and tags it", () => {
+    const state = onboardingReducer(
+      createOnboardingState({ workspace_name: "abdelrahman+qa3" }),
+      {
+        type: "apply_pdf_profile",
+        email: "abdelrahman+qa3@example.com",
+        profile: {
+          workspace_name: "Northwind Signal",
+          product_category: "Revenue intelligence",
+        },
+      }
+    );
+    expect(isEmailDerivedWorkspaceName("abdelrahman+qa3", "abdelrahman+qa3@example.com")).toBe(true);
+    expect(state.profile.workspace_name).toBe("Northwind Signal");
+    expect(state.pdfFilled.workspace_name).toBe(true);
+    expect(state.pdfFilled.product_category).toBe(true);
+    expect(COMPANY_SIZE_LABELS["Mid-Market (201-1000)"]).toBe("Mid-Market 100–1,000");
   });
 
   it("prefills a safe company name and product phrase when those fields are empty", () => {

@@ -99,11 +99,29 @@ export function ensureScoreChatHash() {
   return true;
 }
 
-export function focusScoreChat(root: ParentNode): boolean {
-  const field = root.querySelector<HTMLElement>("#chat textarea, #chat input");
+export const SCORE_CHAT_COMPOSER_SELECTOR = '[placeholder="Enter a company domain"]';
+
+export function scoreChatComposer(root: ParentNode): HTMLElement | null {
+  return (
+    root.querySelector<HTMLElement>(SCORE_CHAT_COMPOSER_SELECTOR) ??
+    root.querySelector<HTMLElement>("#chat textarea, #chat input")
+  );
+}
+
+export function scoreChatComposerHasFocus(root: ParentNode = document): boolean {
+  const active = document.activeElement;
+  if (!(active instanceof HTMLElement)) return false;
+  if (typeof active.matches === "function" && active.matches(SCORE_CHAT_COMPOSER_SELECTOR)) return true;
+  const field = scoreChatComposer(root);
+  return field !== null && (active === field || field.contains(active));
+}
+
+/** Same call the empty Score page uses for autoFocus: focus the domain field, do not steal scroll. */
+export function focusScoreChat(root: ParentNode, options?: { scroll?: boolean }): boolean {
+  const field = scoreChatComposer(root);
   if (!field) return false;
-  if (typeof field.scrollIntoView === "function") {
-    field.scrollIntoView({ block: "center", inline: "nearest", behavior: "auto" });
+  if (options?.scroll !== false && typeof field.scrollIntoView === "function") {
+    field.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "auto" });
   }
   if (typeof field.focus === "function") field.focus({ preventScroll: true });
   return true;
@@ -131,19 +149,23 @@ export function followScoreLink(event: { preventDefault(): void }) {
   return true;
 }
 
-/** Focus the composer after mount, hydration, or a late #chat. Retries for about a second. */
+const FOCUS_HOLD_MS = 1800;
+
+/** Focus the composer after mount, hydration, or a late #chat. Retries for ~1–2s until it stays focused. */
 export function runScoreChatFocus(root: ParentNode, onFocused?: () => void): () => void {
   let cancelled = false;
   let frame = 0;
   let timer = 0;
+  let announced = false;
+  let scrolled = false;
   const started = Date.now();
 
-  const finish = (ok: boolean) => {
-    if (!ok) return false;
+  const hold = () => {
+    if (announced) return;
+    announced = true;
     clearScoreChatArm();
     forgetScoreChat();
     onFocused?.();
-    return true;
   };
 
   const tick = () => {
@@ -151,15 +173,26 @@ export function runScoreChatFocus(root: ParentNode, onFocused?: () => void): () 
     captureScoreChatFromLocation();
     if (!scoreChatShouldOpen(typeof window === "undefined" ? "" : window.location.hash)) return;
     ensureScoreChatHash();
-    if (finish(focusScoreChat(root))) return;
-    if (Date.now() - started >= 1000) return;
+    if (!scoreChatComposerHasFocus(root)) {
+      focusScoreChat(root, { scroll: !scrolled });
+      scrolled = true;
+    }
+    if (scoreChatComposerHasFocus(root)) hold();
+    if (Date.now() - started >= FOCUS_HOLD_MS) return;
     window.cancelAnimationFrame(frame);
     window.clearTimeout(timer);
     frame = window.requestAnimationFrame(tick);
     timer = window.setTimeout(tick, 50);
   };
 
+  const onFocusIn = () => {
+    if (cancelled || Date.now() - started >= FOCUS_HOLD_MS) return;
+    if (!scoreChatShouldOpen(typeof window === "undefined" ? "" : window.location.hash)) return;
+    if (!scoreChatComposerHasFocus(root)) focusScoreChat(root, { scroll: false });
+  };
+
   tick();
+  window.addEventListener("focusin", onFocusIn, true);
   const observer = typeof MutationObserver === "function"
     ? new MutationObserver(() => { if (!cancelled) tick(); })
     : null;
@@ -170,6 +203,7 @@ export function runScoreChatFocus(root: ParentNode, onFocused?: () => void): () 
     cancelled = true;
     window.cancelAnimationFrame(frame);
     window.clearTimeout(timer);
+    window.removeEventListener("focusin", onFocusIn, true);
     observer?.disconnect();
   };
 }

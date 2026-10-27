@@ -155,12 +155,6 @@ function scrollRoot() {
   return document.querySelector<HTMLElement>("[data-slot='page-container']");
 }
 
-function scrollToTop() {
-  const root = scrollRoot();
-  if (root) root.scrollTop = 0;
-  else window.scrollTo(0, 0);
-}
-
 function isChatControl(node: HTMLElement) {
   return /chat/i.test(`${node.getAttribute("aria-label") ?? ""} ${node.textContent ?? ""}`);
 }
@@ -195,8 +189,11 @@ function visualOf(node: HTMLElement) {
 function bringIntoView(node: HTMLElement) {
   if (isMobileWidth()) {
     const inset = headerInset() + HEADER_GAP;
-    if (isFullyVisible(node, inset)) return;
     node.style.scrollMarginTop = `${inset}px`;
+    if (isFullyVisible(node, inset)) return;
+    const root = scrollRoot();
+    const rect = node.getBoundingClientRect();
+    if (root) root.scrollTop += rect.top - inset;
     if (typeof node.scrollIntoView === "function") {
       node.scrollIntoView({ block: "start", inline: "nearest", behavior: "auto" });
     }
@@ -206,6 +203,14 @@ function bringIntoView(node: HTMLElement) {
   if (typeof node.scrollIntoView === "function") {
     node.scrollIntoView({ block: "center", inline: "nearest", behavior: "auto" });
   }
+}
+
+function clampBoxBelowHeader(box: Box): Box {
+  if (!isMobileWidth()) return box;
+  const minTop = headerInset();
+  if (box.top >= minTop) return box;
+  const cut = minTop - box.top;
+  return { top: minTop, left: box.left, width: box.width, height: Math.max(0, box.height - cut) };
 }
 
 function toBox(rect: DOMRect): Box {
@@ -230,9 +235,24 @@ function placeCard(anchor: Box | null, card: { width: number; height: number }, 
   };
   if (!anchor) return centered;
 
+  const clampLeft = (left: number) => Math.max(12, Math.min(left, viewportWidth - width - 12));
+  const belowTop = anchor.top + anchor.height + gap;
+  const aboveTop = anchor.top - gap - height;
+  const below = { top: belowTop, left: clampLeft(anchor.left), width, height };
+  const above = { top: aboveTop, left: clampLeft(anchor.left), width, height };
+  const blocked = (box: Box) => overlaps(box, anchor) || avoid.some((block) => overlaps(box, block));
+  const inViewport = (box: Box) => box.top >= 12 && box.top + box.height <= viewportHeight - 12;
+
+  if (inViewport(below) && !blocked(below)) {
+    return { top: below.top, left: below.left, width, transition };
+  }
+  if (inViewport(above) && !blocked(above)) {
+    return { top: above.top, left: above.left, width, transition };
+  }
+
   const requested = [
-    { top: anchor.top + anchor.height + gap, left: anchor.left },
-    { top: anchor.top - gap - height, left: anchor.left },
+    { top: belowTop, left: anchor.left },
+    { top: aboveTop, left: anchor.left },
     { top: anchor.top, left: anchor.left + anchor.width + gap },
     { top: anchor.top, left: anchor.left - gap - width },
     { top: 12, left: Math.max(12, (viewportWidth - width) / 2) },
@@ -242,12 +262,12 @@ function placeCard(anchor: Box | null, card: { width: number; height: number }, 
     left: Math.max(12, Math.min(item.left, viewportWidth - width - 12)),
   }));
 
-  let best = fitted[0];
+  let best = fitted[1] ?? fitted[0];
   let bestScore = Number.POSITIVE_INFINITY;
   fitted.forEach((item, index) => {
     const box = { ...item, width, height };
     let penalty = index;
-    if (overlaps(box, anchor)) penalty += 100;
+    if (overlaps(box, anchor)) penalty += 1000;
     for (const block of avoid) if (overlaps(box, block)) penalty += 500;
     if (penalty < bestScore) {
       best = item;
@@ -258,11 +278,14 @@ function placeCard(anchor: Box | null, card: { width: number; height: number }, 
 }
 
 function Spotlight({ box }: { box: Box }) {
+  const safe = clampBoxBelowHeader(box);
+  const minTop = isMobileWidth() ? headerInset() : 0;
+  const top = Math.max(minTop, safe.top - HOLE_PAD);
   const hole: Box = {
-    top: box.top - HOLE_PAD,
-    left: box.left - HOLE_PAD,
-    width: box.width + HOLE_PAD * 2,
-    height: box.height + HOLE_PAD * 2,
+    top,
+    left: safe.left - HOLE_PAD,
+    width: safe.width + HOLE_PAD * 2,
+    height: Math.max(0, safe.top + safe.height + HOLE_PAD - top),
   };
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
@@ -305,6 +328,7 @@ export function ScoreTour({ onboardingComplete }: { onboardingComplete: boolean 
   const cardRef = useRef<HTMLDivElement>(null);
   const revealRef = useRef(true);
   const appliedNonce = useRef(nonce);
+  const lastStepRef = useRef(step);
   if (nonce !== stepNonce) {
     setStepNonce(nonce);
     setStep(0);
@@ -345,6 +369,7 @@ export function ScoreTour({ onboardingComplete }: { onboardingComplete: boolean 
     let afterScroll = 0;
     let observer: ResizeObserver | null = null;
     let ticks = 0;
+    let skippedMissing = false;
     const mobile = isMobileWidth();
     const waitForDrawer = mobile && current.target === "chat";
 
@@ -366,12 +391,20 @@ export function ScoreTour({ onboardingComplete }: { onboardingComplete: boolean 
         return;
       }
 
+      if (current.target === "result" && document.querySelectorAll('[data-tour="result"]').length === 0) {
+        if (!skippedMissing) {
+          skippedMissing = true;
+          const forward = lastStepRef.current <= step;
+          setStep((index) => (forward ? Math.min(STEPS.length - 1, index + 1) : Math.max(0, index - 1)));
+        }
+        return;
+      }
+
       const target = current.target ? pickTarget(current.target) : null;
       const visual = target ? visualOf(target) : null;
       if (visual) bringIntoView(visual);
-      else if (current.target && isMobileWidth()) scrollToTop();
       const rect = visual?.getBoundingClientRect();
-      const nextAnchor = visual && rect && isOnScreen(visual) ? toBox(rect) : null;
+      const nextAnchor = visual && rect && isOnScreen(visual) ? clampBoxBelowHeader(toBox(rect)) : null;
       const avoid: Box[] = [];
       if (current.target && current.target !== "composer") {
         const composer = pickTarget("composer");
@@ -421,6 +454,7 @@ export function ScoreTour({ onboardingComplete }: { onboardingComplete: boolean 
       const watched = current.target ? pickTarget(current.target) : null;
       if (watched) observer.observe(visualOf(watched));
     }
+    lastStepRef.current = step;
     window.addEventListener("resize", schedule);
     window.addEventListener("scroll", schedule, true);
     return () => {
@@ -452,6 +486,7 @@ export function ScoreTour({ onboardingComplete }: { onboardingComplete: boolean 
         data-slot="score-tour"
         data-reduced-motion={reduced ? "true" : "false"}
         data-step={current.id}
+        tabIndex={-1}
         className="pointer-events-auto fixed z-[81] rounded-lg border border-border bg-popover p-4 text-popover-foreground shadow-md motion-reduce:!transition-none"
         style={{ top: shown.top, left: shown.left, width: shown.width, transition: shown.transition }}
       >
