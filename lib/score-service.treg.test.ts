@@ -361,4 +361,27 @@ describe("getEvidenceSnapshot treg fallback integration", () => {
     expect(snapshot.signals.funding.score).toBe(0);
     expect(snapshot.rows).not.toContainEqual(shadowRow);
   });
+
+  it("does not call paid treg fallbacks when the plan cannot use them", async () => {
+    vi.stubEnv("TREG_TOKEN", "token");
+    vi.stubEnv("TREG_FALLBACK_SHADOW_MODE", "false");
+    vi.stubEnv("TREG_PROMOTED_SIGNALS", "funding");
+    setPrimaryFunding("unavailable");
+    const storedTreg = evidenceRow({
+      source: "treg-aviato",
+      status: "ok",
+      raw_payload: signal("funding", { source: "treg-aviato", status: "ok", score: 20 }),
+    });
+    const { getEvidenceSnapshot } = await import("./score-service");
+    const snapshot = await getEvidenceSnapshot(
+      supabaseFor([storedTreg]) as unknown as Parameters<typeof getEvidenceSnapshot>[0],
+      "acme.com",
+      undefined,
+      { allowTreg: false },
+    );
+
+    expect(mocks.fetchTregFallbackSignal).not.toHaveBeenCalled();
+    expect(snapshot.signals.funding.status).toBe("unavailable");
+    expect(snapshot.rows.some((row) => String(row.source).startsWith("treg-"))).toBe(false);
+  });
 });

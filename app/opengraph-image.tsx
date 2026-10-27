@@ -1,4 +1,5 @@
 import { ImageResponse } from "next/og";
+import { STARTING_PRICE } from "@/lib/plan-features";
 
 export const runtime = "edge";
 export const alt = "VesperWise — B2B Intent Scoring for MENA";
@@ -82,7 +83,7 @@ export default function OGImage() {
         {/* Stats row */}
         <div style={{ display: "flex", gap: 48 }}>
           {[
-            { value: "$29/mo", label: "Starting price" },
+            { value: `$${STARTING_PRICE}/mo`, label: "Starting price" },
             { value: "4 triggers", label: "Funding · Hiring · News · Technology" },
             { value: "6h", label: "Personalized result cache" },
           ].map((stat) => (

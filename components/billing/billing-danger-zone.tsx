@@ -3,17 +3,33 @@ import { formatRenewDate } from "@/lib/billing-stats";
 
 interface BillingDangerZoneProps {
   currentPlan: PlanKey;
+  granted?: boolean;
   isPaid: boolean;
   cancelScheduled: boolean;
   renewsAt?: string | null;
 }
 
 export function BillingDangerZone({
+  currentPlan,
+  granted = false,
   isPaid,
   cancelScheduled,
   renewsAt,
 }: BillingDangerZoneProps) {
   const renewDate = formatRenewDate(renewsAt ?? null);
+
+  if (granted) {
+    return (
+      <div className="danger">
+        <div className="danger-row">
+          <div>
+            <div className="l">{currentPlan} plan</div>
+            <div className="h">Granted, no charge. This workspace is not billed.</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!isPaid) {
     return (

@@ -24,9 +24,9 @@ export interface DashboardHomeViewProps {
 }
 
 function subtitle(kpis: HomeKpis): string {
-  const tracked = `${kpis.tracked.toLocaleString("en-US")} account${kpis.tracked === 1 ? "" : "s"} tracked`;
-  if (kpis.newHot7d > 0) return `${tracked} · ${kpis.newHot7d} turned HOT this week`;
-  return `${tracked} · ${kpis.hotNow} HOT right now`;
+  const scored = `${kpis.tracked.toLocaleString("en-US")} account${kpis.tracked === 1 ? "" : "s"} scored`;
+  if (kpis.newHot7d > 0) return `${scored} · ${kpis.newHot7d} turned HOT this week`;
+  return `${scored} · ${kpis.hotNow} HOT right now`;
 }
 
 export default function DashboardHomeView({

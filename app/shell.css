@@ -6,6 +6,14 @@
   --statusbar-h: 28px;
 }
 
+@media (max-width: 767px) {
+  [data-tour="composer"],
+  [data-tour="result"],
+  [data-tour="credits"] {
+    scroll-margin-top: calc(var(--header-height, 4rem) + 12px);
+  }
+}
+
 .dashboard-app-frame {
   display: grid;
   width: 100%;

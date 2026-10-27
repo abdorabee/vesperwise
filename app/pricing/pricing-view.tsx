@@ -3,19 +3,20 @@ import LandingNav from "@/components/landing/LandingNav";
 import StickyMobileCta from "@/components/landing/sticky-mobile-cta";
 import SiteFooter from "@/components/site-footer";
 import {
-  BULK_MAX_CONCURRENT,
-  BULK_MAX_PER_JOB,
+  BULK_INLINE_MAX_ROWS,
   MARKETING_PLANS,
   MARKETING_TOPUPS,
   formatCount,
   planCreditsFeature,
 } from "@/lib/plan-features";
 import { renewalDisclosure } from "@/lib/billing-plans";
+import { pricingCardState } from "@/lib/pricing-cta";
+import { PricingBottomCta } from "./pricing-bottom-cta";
 
 const FAQ: { q: string; a: string }[] = [
   {
     q: "What is a credit?",
-    a: "One credit scores one company. Results are cached for 6 hours, so asking for the same company again inside that window costs nothing. Bulk API jobs (early access) reserve one credit per company when the job is created.",
+    a: "One credit scores one company. Results are cached for 6 hours, so asking for the same company again inside that window costs nothing and writes no charge. Bulk jobs charge one credit for each company that is actually scored, and stop if the balance runs out.",
   },
   {
     q: "What happens when I run out?",
@@ -35,7 +36,22 @@ const FAQ: { q: string; a: string }[] = [
   },
 ];
 
-export default function PricingView() {
+interface PricingViewProps {
+  signedIn: boolean;
+  currentPlan: string | null;
+  granted: boolean;
+}
+
+export default function PricingView({ signedIn, currentPlan, granted }: PricingViewProps) {
+  const agency = pricingCardState({
+    card: "agency",
+    currentPlan,
+    signedIn,
+    granted,
+    signedOutLabel: "Contact us",
+    signedOutHref: "/contact#contact-form",
+  });
+
   return (
     <div className="pricing-page">
       <style>{`
@@ -46,7 +62,7 @@ export default function PricingView() {
         .pp-wrap { max-width: 1320px; margin: 0 auto; padding: 64px 16px 80px; }
         .pp-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
         @media (min-width: 720px) { .pp-grid { grid-template-columns: repeat(2, 1fr); } }
-        @media (min-width: 1180px) { .pp-grid { grid-template-columns: repeat(5, 1fr); } }
+        @media (min-width: 1180px) { .pp-grid { grid-template-columns: repeat(3, 1fr); } }
         .pp-card { border: 1px solid var(--border); border-radius: 12px; padding: 24px 20px; background: var(--card); display: flex; flex-direction: column; }
         .pp-card.featured { border-color: var(--brand-border); box-shadow: 0 0 0 1px var(--brand-border); }
         .pp-name { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 600; letter-spacing: -0.011em; margin-bottom: 4px; }
@@ -86,7 +102,7 @@ export default function PricingView() {
         @media (max-width: 640px) { .pp-hero h1 { font-size: 32px; } }
       `}</style>
 
-      <LandingNav />
+      <LandingNav signedIn={signedIn} />
       <main id="main">
 
       <section className="pp-hero">
@@ -99,36 +115,74 @@ export default function PricingView() {
 
       <div className="pp-wrap">
         <div className="pp-grid">
-          {MARKETING_PLANS.map((plan) => (
-            <div key={plan.key} className={`pp-card${plan.featured ? " featured" : ""}`}>
-              <div className="pp-name">
-                {plan.label}
-                {plan.featured ? <span className="pp-pill">Most popular</span> : null}
+          {MARKETING_PLANS.map((plan) => {
+            const state = pricingCardState({
+              card: plan.key,
+              currentPlan,
+              signedIn,
+              granted,
+              signedOutLabel: plan.cta,
+              signedOutHref: "/signup",
+            });
+
+            return (
+              <div key={plan.key} className={`pp-card${plan.featured ? " featured" : ""}`}>
+                <div className="pp-name">
+                  {plan.label}
+                  {plan.featured ? <span className="pp-pill">Most popular</span> : null}
+                  {state.current && granted ? <span className="pp-pill" style={{ background: "var(--warm)" }}>Granted</span> : null}
+                </div>
+                <div className="pp-blurb">{plan.blurb}</div>
+                <div className="pp-amt">
+                  <span className="num">${formatCount(plan.price)}</span>
+                  <span className="per"> / mo</span>
+                </div>
+                <div className="pp-unit">{plan.perScore ?? "No card required"}</div>
+                <ul className="pp-feats">
+                  {[planCreditsFeature(plan.key), ...plan.features].map((feat) => (
+                    <li key={feat}>
+                      <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M3 7l3 3 5-7" /></svg>
+                      {feat}
+                    </li>
+                  ))}
+                </ul>
+                {state.included ? (
+                  <span className="pp-btn">{state.label}</span>
+                ) : (
+                  <Link href={state.href} className={`pp-btn${plan.featured && !state.current && !granted ? " primary" : ""}`}>
+                    {state.label}
+                  </Link>
+                )}
+                {plan.price > 0 && !state.current && !state.included && !granted ? <p className="pp-renewal">{renewalDisclosure(plan.price)}</p> : null}
               </div>
-              <div className="pp-blurb">{plan.blurb}</div>
-              <div className="pp-amt">
-                <span className="num">${formatCount(plan.price)}</span>
-                <span className="per"> / mo</span>
-              </div>
-              <div className="pp-unit">{plan.perScore ?? "No card required"}</div>
-              <ul className="pp-feats">
-                {[planCreditsFeature(plan.key), ...plan.features].map((feat) => (
-                  <li key={feat}>
-                    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M3 7l3 3 5-7" /></svg>
-                    {feat}
-                  </li>
-                ))}
-              </ul>
-              <Link href="/signup" className={`pp-btn${plan.featured ? " primary" : ""}`}>
-                {plan.cta}
-              </Link>
-              {plan.price > 0 ? <p className="pp-renewal">{renewalDisclosure(plan.price)}</p> : null}
+            );
+          })}
+          <div className="pp-card">
+            <div className="pp-name">
+              Agency
+              {agency.current ? (
+                <span className="pp-pill" style={{ background: granted ? "var(--warm)" : "var(--brand)" }}>
+                  {granted ? "Granted" : "Current"}
+                </span>
+              ) : null}
             </div>
-          ))}
+            <div className="pp-blurb">For a workspace that needs a granted plan.</div>
+            <div className="pp-amt">
+              <span className="num" style={{ fontSize: 28 }}>Contact us</span>
+            </div>
+            <div className="pp-unit">Not sold online</div>
+            <ul className="pp-feats">
+              <li>
+                <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M3 7l3 3 5-7" /></svg>
+                Granted workspaces keep their current access
+              </li>
+            </ul>
+            <Link href={agency.href} className="pp-btn">{agency.label}</Link>
+          </div>
         </div>
 
         <p className="pp-note">
-          Bulk API jobs are in early access: they take up to {formatCount(BULK_MAX_PER_JOB)} companies each, with {BULK_MAX_CONCURRENT} jobs running at once on any plan. For lists of up to 50 companies today, use CSV upload.
+          Bulk scoring and CSV are on Plus and above. Each file takes up to {formatCount(BULK_INLINE_MAX_ROWS)} companies. A cached company is free. Starter has no bulk, CSV or autopilot.
         </p>
 
         <section className="pp-topups" aria-labelledby="topups-title">
@@ -160,18 +214,11 @@ export default function PricingView() {
         </section>
       </div>
 
-      <section className="pp-cta">
-        <h2>Score your first 20 accounts free.</h2>
-        <p>No card required. Upgrade when the scores start booking meetings.</p>
-        <div className="row">
-          <Link href="/signup" className="pp-btn primary">Start scoring free</Link>
-          <Link href="/contact#contact-form" className="pp-btn">Contact us</Link>
-        </div>
-      </section>
+      <PricingBottomCta signedIn={signedIn} />
 
       </main>
       <SiteFooter />
-      <StickyMobileCta />
+      <StickyMobileCta signedIn={signedIn} />
     </div>
   );
 }

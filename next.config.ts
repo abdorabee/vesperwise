@@ -16,6 +16,7 @@ const SECURITY_HEADERS = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  serverExternalPackages: ["unpdf"],
   async headers() {
     return [{ source: "/:path*", headers: SECURITY_HEADERS }];
   },

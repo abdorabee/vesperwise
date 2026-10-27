@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import VesperWiseLogo from "@/components/vesperwise-logo";
+import { useMarketingSignedIn } from "@/components/landing/use-marketing-session";
 
 const NAV_ITEMS = [
   { label: "Product",    href: "/#product" },
@@ -11,7 +12,8 @@ const NAV_ITEMS = [
   { label: "About",      href: "/about" },
 ];
 
-export default function LandingNav() {
+export default function LandingNav({ signedIn = false }: { signedIn?: boolean }) {
+  const authed = useMarketingSignedIn(signedIn);
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const drawerRef = useRef<HTMLDivElement>(null);
@@ -111,12 +113,17 @@ export default function LandingNav() {
             </svg>
           </button>
 
-          {/* Desktop CTAs */}
-          <a href="/login" className="btn btn-ghost">Log in</a>
-          <a href="/signup" className="btn btn-secondary">
-            Sign up
-            <svg className="arrow" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 6h6M7 4l2 2-2 2"/></svg>
-          </a>
+          {authed ? (
+            <Link href="/dashboard" className="btn btn-secondary">Dashboard</Link>
+          ) : (
+            <>
+              <a href="/login" className="btn btn-ghost">Log in</a>
+              <a href="/signup" className="btn btn-secondary">
+                Sign up
+                <svg className="arrow" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 6h6M7 4l2 2-2 2"/></svg>
+              </a>
+            </>
+          )}
         </div>
       </nav>
 
@@ -165,14 +172,21 @@ export default function LandingNav() {
               </a>
             ))}
 
-            {/* CTAs */}
-            <a href="/login" className="btn btn-ghost nav-mob-cta" onClick={() => setOpen(false)}>
-              Log in
-            </a>
-            <a href="/signup" className="btn btn-accent btn-lg nav-mob-cta" onClick={() => setOpen(false)}>
-              Start free
-              <svg className="arrow" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 6h6M7 4l2 2-2 2"/></svg>
-            </a>
+            {authed ? (
+              <Link href="/dashboard" className="btn btn-accent btn-lg nav-mob-cta" onClick={() => setOpen(false)}>
+                Dashboard
+              </Link>
+            ) : (
+              <>
+                <a href="/login" className="btn btn-ghost nav-mob-cta" onClick={() => setOpen(false)}>
+                  Log in
+                </a>
+                <a href="/signup" className="btn btn-accent btn-lg nav-mob-cta" onClick={() => setOpen(false)}>
+                  Start free
+                  <svg className="arrow" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 6h6M7 4l2 2-2 2"/></svg>
+                </a>
+              </>
+            )}
           </div>
         </div>
       )}

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { toCSV, downloadCSV, csvFilename } from "@/lib/csv";
+import { csvFilename, downloadAuthorizedCsv } from "@/lib/csv";
 import type { WatchlistRange, WatchlistStats } from "@/lib/watchlist-stats";
 import { WatchlistPageHead } from "@/components/watchlist/watchlist-page-head";
 import { WatchlistAlertStrip } from "@/components/watchlist/watchlist-alert-strip";
@@ -18,6 +18,7 @@ import {
 } from "@/components/watchlist/watchlist-quick-add";
 
 import { WATCHLIST_FOCUS_ADD_EVENT } from "@/lib/watchlist-events";
+import { deleteWatchlistEntry, restoreWatchlistEntry } from "@/lib/watchlist-remove";
 
 interface WatchlistViewProps {
   initial: WatchlistStats;
@@ -42,8 +43,6 @@ export function WatchlistView({ initial }: WatchlistViewProps) {
   const [showAll, setShowAll] = useState(false);
   const [adding, setAdding] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
-  // Removals wait out the undo window before the DELETE is sent.
-  const pendingRemovals = useRef(new Map<string, number>());
 
   useEffect(() => {
     setEntries(initial.entries);
@@ -55,18 +54,6 @@ export function WatchlistView({ initial }: WatchlistViewProps) {
     const q = searchParams.get("q")?.trim();
     if (q) setQuery(q);
   }, [searchParams]);
-
-  useEffect(() => {
-    const pending = pendingRemovals.current;
-    return () => {
-      // Leaving the page commits any removal still inside its undo window.
-      for (const [domain, timer] of pending) {
-        window.clearTimeout(timer);
-        void fetch(`/api/dashboard/watchlist?domain=${encodeURIComponent(domain)}`, { method: "DELETE", keepalive: true });
-      }
-      pending.clear();
-    };
-  }, []);
 
   useEffect(() => {
     function onFocusAdd() {
@@ -126,7 +113,7 @@ export function WatchlistView({ initial }: WatchlistViewProps) {
   function handleRemove(domain: string) {
     const index = entries.findIndex((entry) => entry.domain === domain);
     const entry = entries[index];
-    if (!entry || pendingRemovals.current.has(domain)) return;
+    if (!entry) return;
 
     setEntries((prev) => prev.filter((item) => item.domain !== domain));
     setSelected((prev) => {
@@ -147,53 +134,55 @@ export function WatchlistView({ initial }: WatchlistViewProps) {
       adjustCounts(domain, 1);
     };
 
-    const timer = window.setTimeout(async () => {
-      pendingRemovals.current.delete(domain);
-      try {
-        const res = await fetch(`/api/dashboard/watchlist?domain=${encodeURIComponent(domain)}`, { method: "DELETE" });
-        if (!res.ok) throw new Error("remove failed");
-      } catch {
-        restore();
-        toast.error(`Couldn't remove ${entry.company_name}. It's back on your watchlist.`);
-      }
-    }, 5000);
-    pendingRemovals.current.set(domain, timer);
+    const removal = deleteWatchlistEntry(domain);
+    void removal.then((res) => {
+      if (res.ok) return;
+      restore();
+      toast.error(`Couldn't remove ${entry.company_name}. It's back on your watchlist.`);
+    }).catch(() => {
+      restore();
+      toast.error(`Couldn't remove ${entry.company_name}. It's back on your watchlist.`);
+    });
 
     toast(`Removed ${entry.company_name}`, {
       duration: 5000,
       action: {
         label: "Undo",
         onClick: () => {
-          const pending = pendingRemovals.current.get(domain);
-          if (pending === undefined) return;
-          window.clearTimeout(pending);
-          pendingRemovals.current.delete(domain);
           restore();
+          void removal
+            .catch(() => undefined)
+            .then(() => restoreWatchlistEntry(domain, entry.company_name))
+            .then((res) => {
+              if (!res.ok) toast.error("Failed to undo removal");
+              else router.refresh();
+            })
+            .catch(() => toast.error("Failed to undo removal"));
         },
       },
     });
   }
 
   function handleExport() {
-    const csv = toCSV(
-      [
-        { key: "company", label: "Company" },
-        { key: "domain", label: "Domain" },
-        { key: "score", label: "Score" },
-        { key: "band", label: "Band" },
-        { key: "last_scored", label: "Last Scored" },
-        { key: "delta", label: "Delta" },
-      ],
-      filtered.map((r) => ({
-        company: r.company_name,
-        domain: r.domain,
-        score: r.score ?? "",
-        band: r.score_band ?? "",
-        last_scored: r.last_scored ?? "",
-        delta: r.delta ?? "",
-      })),
-    );
-    downloadCSV(csv, csvFilename("watchlist"));
+    const columns = [
+      { key: "company", label: "Company" },
+      { key: "domain", label: "Domain" },
+      { key: "score", label: "Score" },
+      { key: "band", label: "Band" },
+      { key: "last_scored", label: "Last Scored" },
+      { key: "delta", label: "Delta" },
+    ];
+    const rows = filtered.map((r) => ({
+      company: r.company_name,
+      domain: r.domain,
+      score: r.score ?? "",
+      band: r.score_band ?? "",
+      last_scored: r.last_scored ?? "",
+      delta: r.delta ?? "",
+    }));
+    void downloadAuthorizedCsv(csvFilename("watchlist"), columns, rows).catch((error: Error) => {
+      toast.error(error.message);
+    });
   }
 
   function toggleSelect(domain: string) {

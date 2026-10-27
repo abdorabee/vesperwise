@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { watchlistScoreFields } from "@/lib/watchlist-seed";
+import { liveWatchlistScore, watchlistScoreFields } from "@/lib/watchlist-seed";
 
 describe("watchlistScoreFields", () => {
   it("copies score, band and timestamp from the latest score row", () => {
@@ -10,6 +10,25 @@ describe("watchlistScoreFields", () => {
 
   it("returns nothing when the account was never scored", () => {
     expect(watchlistScoreFields(null)).toEqual({});
+  });
+
+  it("shows the latest scores row instead of the watchlist snapshot", () => {
+    const displayed = liveWatchlistScore(
+      {
+        score: 34,
+        score_band: "COLD" as const,
+        last_scored: "2026-09-01T00:00:00Z",
+        previous_score: 20,
+      },
+      [
+        { score: 33, score_band: "COLD", created_at: "2026-10-20T00:00:00Z" },
+        { score: 34, score_band: "COLD", created_at: "2026-09-01T00:00:00Z" },
+      ],
+    );
+    expect(displayed.score).toBe(33);
+    expect(displayed.score_band).toBe("COLD");
+    expect(displayed.last_scored).toBe("2026-10-20T00:00:00Z");
+    expect(displayed.previous_score).toBe(34);
   });
 
   it("ignores unscorable or malformed rows", () => {

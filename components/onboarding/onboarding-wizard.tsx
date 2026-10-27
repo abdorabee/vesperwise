@@ -2,6 +2,7 @@
 
 import { useReducer, useState } from "react";
 import { useRouter } from "next/navigation";
+import { downloadAuthorizedCsv } from "@/lib/csv";
 
 import { EmptyStateScreen } from "@/components/onboarding/screens/empty-state-screen";
 import { IcpDefinitionScreen } from "@/components/onboarding/screens/icp-definition-screen";
@@ -11,7 +12,9 @@ import { SignalSourcesScreen } from "@/components/onboarding/screens/signal-sour
 import { WorkspaceSetupScreen } from "@/components/onboarding/screens/workspace-setup-screen";
 import { OnboardingFooter, OnboardingShell, PrimaryButton, SecondaryButton } from "@/components/onboarding/onboarding-shell";
 import { scoredAccountsFromEntries, topDriver, type ScoredAccount } from "@/components/onboarding/results-shared";
+import { clientPdfTooLarge, PDF_TOO_LARGE_MESSAGE } from "@/lib/onboarding-pdf";
 import { useScoringRun } from "@/lib/onboarding-run";
+import { summarizeRun } from "@/lib/onboarding-run-summary";
 import {
   buildBusinessProfile,
   createOnboardingState,
@@ -35,27 +38,6 @@ function describeRequestError(error: unknown): string {
   }
   if (error instanceof Error && error.message) return error.message;
   return "Something went wrong. Please try again.";
-}
-
-function csvEscape(value: string | number): string {
-  const s = String(value);
-  return /[,"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-}
-
-function downloadCsv(accounts: ScoredAccount[]) {
-  const header = "domain,company,score,band,top_driver";
-  const rows = accounts.map((a) =>
-    [a.domain, a.result.company, a.result.intent_score ?? "", a.result.score_band ?? "", topDriver(a.result)]
-      .map(csvEscape)
-      .join(",")
-  );
-  const blob = new Blob([[header, ...rows].join("\n")], { type: "text/csv" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = "vesperwise-icp-preview.csv";
-  link.click();
-  URL.revokeObjectURL(url);
 }
 
 async function addToWatchlist(
@@ -100,9 +82,11 @@ export default function OnboardingWizard({
   // Set when a finish attempt partially succeeded, so we can offer an escape
   // hatch rather than trapping the user on the last screen.
   const [finishAttempted, setFinishAttempted] = useState(false);
+  const [pdfNotice, setPdfNotice] = useState<string | null>(null);
+  const [pdfReading, setPdfReading] = useState(false);
   const run = useScoringRun();
 
-  const { profile, step, saveStatus, saveError } = state;
+  const { profile, step, saveStatus, saveError, pdfFilled } = state;
 
   function clearError(field: keyof BusinessProfile) {
     setErrors((current) => {
@@ -125,6 +109,44 @@ export default function OnboardingWizard({
 
   function toggleGeography(geo: string) {
     dispatch({ type: "toggle_geography", geo });
+  }
+
+  async function uploadPdf(file: File) {
+    if (readOnlyPreview) {
+      setPdfNotice("Sign in to upload a PDF.");
+      return;
+    }
+    if (clientPdfTooLarge(file.size)) {
+      setPdfNotice(PDF_TOO_LARGE_MESSAGE);
+      return;
+    }
+    setPdfReading(true);
+    setPdfNotice(null);
+    try {
+      const body = new FormData();
+      body.set("file", file);
+      if (emailDomain) body.set("exclude_domain", emailDomain);
+      const response = await fetch("/api/onboarding/pdf", { method: "POST", body });
+      const payload = (await response.json().catch(() => null)) as {
+        message?: string;
+        profile?: Partial<BusinessProfile>;
+        filled?: string[];
+      } | null;
+      if (!response.ok) {
+        setPdfNotice(payload?.message ?? "We couldn't read this PDF. Fill it in manually.");
+        return;
+      }
+      dispatch({ type: "apply_pdf_profile", profile: payload?.profile ?? {} });
+      setPdfNotice(
+        (payload?.filled?.length ?? 0) > 0
+          ? "Filled from your PDF. Review each answer before you continue. The file was discarded and isn't stored."
+          : "We read the PDF and discarded it. It didn't include answers we could use, so fill the wizard in manually."
+      );
+    } catch (error) {
+      setPdfNotice(describeRequestError(error));
+    } finally {
+      setPdfReading(false);
+    }
   }
 
   function goNext(validateStep: number) {
@@ -210,7 +232,18 @@ export default function OnboardingWizard({
 
   if (step === 0) {
     content = (
-      <WorkspaceSetupScreen profile={profile} emailDomain={emailDomain} errors={errors} onUpdateField={updateField} />
+      <WorkspaceSetupScreen
+        profile={profile}
+        emailDomain={emailDomain}
+        errors={errors}
+        onUpdateField={updateField}
+        pdfProductFilled={Boolean(pdfFilled.product_category)}
+        pdfWorkspaceFilled={Boolean(pdfFilled.workspace_name)}
+        pdfNotice={pdfNotice}
+        pdfReading={pdfReading}
+        readOnlyPreview={readOnlyPreview}
+        onPdfFile={(file) => void uploadPdf(file)}
+      />
     );
     footer = (
       <OnboardingFooter
@@ -236,6 +269,8 @@ export default function OnboardingWizard({
           dispatch({ type: "set_seed_domains", domains });
           clearError("seed_domains");
         }}
+        pdfFilled={pdfFilled}
+        onUpdateCommercial={(field, value) => dispatch({ type: "update_field", field, value })}
       />
     );
     footer = (
@@ -266,16 +301,25 @@ export default function OnboardingWizard({
       />
     );
   } else if (step === 3) {
-    const anyDone = run.entries.some((e) => e.status === "done" || e.status === "error");
+    const summary = summarizeRun(run.entries, run.running);
     content = <ScoringRunScreen entries={run.entries} />;
     footer = (
       <OnboardingFooter
-        caption="Scoring your ICP preview"
+        caption={
+          summary.allFailed
+            ? `None of the ${summary.total} could be scored right now · your answers still save`
+            : "Scoring your ICP preview"
+        }
         back={{ label: "Back", onClick: () => dispatch({ type: "previous_step" }), disabled: run.running }}
-        secondary={<SecondaryButton inert>Email me instead</SecondaryButton>}
+        secondary={summary.allFailed ? undefined : <SecondaryButton inert>Email me instead</SecondaryButton>}
         primary={
-          <PrimaryButton disabled={!anyDone} onClick={() => dispatch({ type: "next_step" })}>
-            See the {run.entries.filter((e) => e.status === "done").length} ready now
+          <PrimaryButton
+            disabled={!summary.canContinue || saveStatus === "saving"}
+            // Nothing scored means there is nothing to review on the results
+            // screen, so save the profile and go straight to the dashboard.
+            onClick={() => (summary.allFailed ? void finishWithWatchlist([]) : dispatch({ type: "next_step" }))}
+          >
+            {saveStatus === "saving" ? "Saving..." : summary.continueLabel}
           </PrimaryButton>
         }
       />
@@ -305,7 +349,26 @@ export default function OnboardingWizard({
               Continue anyway
             </SecondaryButton>
           ) : scoredAccounts.length > 0 ? (
-            <SecondaryButton onClick={() => downloadCsv(hasCleared ? visibleAccounts : scoredAccounts)}>
+            <SecondaryButton onClick={() => {
+              const accounts = hasCleared ? visibleAccounts : scoredAccounts;
+              void downloadAuthorizedCsv(
+                "vesperwise-icp-preview.csv",
+                [
+                  { key: "domain", label: "domain" },
+                  { key: "company", label: "company" },
+                  { key: "score", label: "score" },
+                  { key: "band", label: "band" },
+                  { key: "top_driver", label: "top_driver" },
+                ],
+                accounts.map((account) => ({
+                  domain: account.domain,
+                  company: account.result.company,
+                  score: account.result.intent_score ?? "",
+                  band: account.result.score_band ?? "",
+                  top_driver: topDriver(account.result),
+                })),
+              ).catch((error: Error) => setNotice(error.message));
+            }}>
               Export CSV
             </SecondaryButton>
           ) : undefined
@@ -369,6 +432,7 @@ export default function OnboardingWizard({
       showLedger
       credits={creditsRemaining}
       email={email}
+      signedIn={!readOnlyPreview}
       banner={banner}
       footer={footer}
     >

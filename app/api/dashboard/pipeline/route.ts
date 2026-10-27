@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { redactPublicSources } from "@/lib/public-source";
 import { createSupabaseAdmin } from "@/lib/supabase";
+import { liveWatchlistScore } from "@/lib/watchlist-seed";
+import type { ScoreBand } from "@/lib/types";
 
 export interface PipelineSignals {
   funding?: { score: number; max: number };
@@ -69,7 +71,7 @@ export async function GET() {
   // Fetch last 3 scores per domain (for trend computation + AI fields)
   const { data: recentScores } = await supabase
     .from("scores")
-    .select("id, domain, score, score_status, data_coverage, created_at, email_subject, talk_track, ai_summary, key_triggers, urgency, signals")
+    .select("id, domain, score, score_band, score_status, data_coverage, created_at, email_subject, talk_track, ai_summary, key_triggers, urgency, signals")
     .eq("user_id", userId)
     .in("domain", domains)
     .order("created_at", { ascending: false })
@@ -90,6 +92,8 @@ export async function GET() {
   const scoresByDomain = new Map<string, Array<{
     id: string;
     score: number;
+    score_band: ScoreBand | null;
+    created_at: string;
     score_status: "complete" | "partial";
     data_coverage: number | null;
     email_subject: string | null;
@@ -100,32 +104,42 @@ export async function GET() {
     signals: PipelineSignals | null;
   }>>();
   for (const s of recentScores ?? []) {
-    if (!scoresByDomain.has(s.domain)) scoresByDomain.set(s.domain, []);
-    const arr = scoresByDomain.get(s.domain)!;
+    const domain = String(s.domain).toLowerCase();
+    if (!scoresByDomain.has(domain)) scoresByDomain.set(domain, []);
+    const arr = scoresByDomain.get(domain)!;
     if (arr.length < 3) arr.push(s);
   }
 
   // Build pipeline companies
   const companies: PipelineCompany[] = watchlist.map((w) => {
-    const scores = scoresByDomain.get(w.domain) ?? [];
+    const scores = scoresByDomain.get(String(w.domain).toLowerCase()) ?? [];
     const latest = scores[0] ?? null;
     const previous = scores[1] ?? null;
     const trend = latest && previous ? latest.score - previous.score : null;
+    const displayed = liveWatchlistScore(
+      {
+        score: w.score ?? null,
+        score_band: w.score_band ?? null,
+        last_scored: w.last_scored ?? null,
+        previous_score: w.previous_score ?? null,
+      },
+      scores.map((row) => ({ score: row.score, score_band: row.score_band, created_at: row.created_at })),
+    );
 
     return {
       id: w.id,
       domain: w.domain,
       company_name: w.company_name,
-      score: w.score ?? null,
-      score_band: w.score_band ?? null,
-      last_scored: w.last_scored ?? null,
+      score: displayed.score,
+      score_band: displayed.score_band,
+      last_scored: displayed.last_scored,
       trend,
       email_subject: latest?.email_subject ?? null,
       talk_track: latest?.talk_track ?? null,
       ai_summary: latest?.ai_summary ?? null,
       key_triggers: latest?.key_triggers ?? null,
       urgency: latest?.urgency ?? null,
-      pipeline_stage: w.pipeline_stage ?? defaultStage(w.score_band ?? null),
+      pipeline_stage: w.pipeline_stage ?? defaultStage(displayed.score_band),
       signals: latest?.signals ? redactPublicSources(latest.signals) : null,
       score_id: latest?.id ?? null,
       score_status: latest?.score_status ?? null,

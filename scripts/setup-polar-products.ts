@@ -1,9 +1,10 @@
 /**
  * Polar.sh Product Setup Script
  *
- * Creates all 7 VesperWise products in your Polar account:
+ * Creates VesperWise products in your Polar account:
  *   - 4 subscription plans  (monthly recurring)
  *   - 3 credit top-up packs (one-time purchase)
+ * Agency is not sold. Do not create an agency product.
  *
  * Usage:
  *   POLAR_ACCESS_TOKEN=your_token npx tsx scripts/setup-polar-products.ts
@@ -31,73 +32,67 @@ const SUBSCRIPTION_PLANS = [
     envKey: "POLAR_PRODUCT_STARTER",
     name: "VesperWise Starter",
     description:
-      "Perfect for individual SDRs and small sales teams getting started with intent data. " +
-      "Includes 500 intent scores per month, 50 watchlist companies, full CSV export, " +
-      "and API access to integrate with your existing workflow.",
+      "For one person scoring a named-account list. " +
+      "100 account scores per month, watchlist of 25, 20 API requests per minute. " +
+      "No bulk, CSV or autopilot. Monthly credits do not roll over.",
+    priceAmount: 1000, // $10.00
+  },
+  {
+    envKey: "POLAR_PRODUCT_PLUS",
+    name: "VesperWise Plus",
+    description:
+      "For a rep who scores lists. " +
+      "400 account scores per month, watchlist of 75, 60 API requests per minute, " +
+      "bulk scoring and CSV upload and export. Autopilot is coming soon.",
     priceAmount: 2900, // $29.00
   },
   {
     envKey: "POLAR_PRODUCT_GROWTH",
     name: "VesperWise Growth",
     description:
-      "Built for growing sales teams that need more scale and automation. " +
-      "Includes 2,500 intent scores per month, 250 watchlist companies, " +
-      "bulk scorer for CSV uploads, and 5 Autopilot workflows to automate " +
-      "outreach triggers based on buying signals.",
+      "For a sales team scoring its pipeline. " +
+      "1,200 account scores per month, watchlist of 250, 100 API requests per minute, " +
+      "bulk scoring and CSV upload and export. Autopilot is coming soon.",
     priceAmount: 7900, // $79.00
   },
   {
     envKey: "POLAR_PRODUCT_PRO",
     name: "VesperWise Pro",
     description:
-      "For high-velocity sales teams and revenue operations. " +
-      "Includes 8,000 intent scores per month, 1,000 watchlist companies, " +
-      "People scorer for contact-level intent signals, and 50 Autopilot " +
-      "workflows. Ideal for teams running multi-channel outreach at scale.",
+      "For teams scoring large books of accounts. " +
+      "3,000 account scores per month, watchlist of 1,000, 100 API requests per minute, " +
+      "bulk scoring and CSV upload and export. Autopilot is coming soon.",
     priceAmount: 19900, // $199.00
-  },
-  {
-    envKey: "POLAR_PRODUCT_AGENCY",
-    name: "VesperWise Agency",
-    description:
-      "Designed for agencies and enterprise teams managing multiple clients or segments. " +
-      "Includes 25,000 intent scores per month, unlimited watchlist companies, " +
-      "unlimited Autopilot workflows, and priority support. " +
-      "Full access to every feature in the platform.",
-    priceAmount: 49900, // $499.00
   },
 ] as const;
 
 const TOPUP_PACKS = [
   {
-    envKey: "POLAR_PRODUCT_TOPUP_100",
-    name: "VesperWise Credits — 100 Pack",
+    envKey: "POLAR_PRODUCT_TOPUP_25",
+    name: "VesperWise Credits — 25 Pack",
     description:
-      "One-time purchase of 100 intent scoring credits. " +
-      "Credits are added immediately to your account balance and never expire. " +
-      "Stack on top of your monthly subscription allowance.",
-    priceAmount: 900,  // $9.00
-    credits: 100,
+      "One-time purchase of 25 account scores. " +
+      "Credits are added to the current balance and do not change the plan.",
+    priceAmount: 300, // $3.00
+    credits: 25,
   },
   {
-    envKey: "POLAR_PRODUCT_TOPUP_500",
-    name: "VesperWise Credits — 500 Pack",
+    envKey: "POLAR_PRODUCT_TOPUP_70",
+    name: "VesperWise Credits — 70 Pack",
     description:
-      "One-time purchase of 500 intent scoring credits at a discounted rate ($0.078/credit). " +
-      "Credits are added immediately to your account balance and never expire. " +
-      "Best value for occasional high-volume scoring needs.",
-    priceAmount: 3900, // $39.00
-    credits: 500,
+      "One-time purchase of 70 account scores. " +
+      "Credits are added to the current balance and do not change the plan.",
+    priceAmount: 800, // $8.00
+    credits: 70,
   },
   {
-    envKey: "POLAR_PRODUCT_TOPUP_1000",
-    name: "VesperWise Credits — 1,000 Pack",
+    envKey: "POLAR_PRODUCT_TOPUP_140",
+    name: "VesperWise Credits — 140 Pack",
     description:
-      "One-time purchase of 1,000 intent scoring credits at the lowest per-credit rate ($0.069/credit). " +
-      "Credits are added immediately to your account balance and never expire. " +
-      "Ideal for bulk campaigns and end-of-quarter pushes.",
-    priceAmount: 6900, // $69.00
-    credits: 1000,
+      "One-time purchase of 140 account scores. " +
+      "Credits are added to the current balance and do not change the plan.",
+    priceAmount: 1500, // $15.00
+    credits: 140,
   },
 ] as const;
 

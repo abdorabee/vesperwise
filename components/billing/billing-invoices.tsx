@@ -1,4 +1,5 @@
 import type { BillingStats } from "@/lib/billing-stats";
+import { isGrantedPlan, type PlanKey } from "@/lib/billing-plans";
 
 interface BillingInvoicesProps {
   stats: BillingStats;
@@ -8,6 +9,8 @@ interface BillingInvoicesProps {
 export function BillingInvoices({ stats, workspaceLabel }: BillingInvoicesProps) {
   const hasCustomer = !!stats.profile.polar_customer_id;
   const invoices = stats.invoices;
+  const plan = (stats.profile.plan ?? "free") as PlanKey;
+  const granted = isGrantedPlan(plan, stats.profile.polar_subscription_id);
 
   return (
     <div className="panel">
@@ -69,9 +72,11 @@ export function BillingInvoices({ stats, workspaceLabel }: BillingInvoicesProps)
         </>
       ) : (
         <div className="panel-body" style={{ color: "var(--text-tertiary)", fontSize: 13, padding: "20px 18px" }}>
-          {hasCustomer
-            ? "No invoices yet. Charges will appear here after your first payment."
-            : "No invoices yet. Subscribe to a plan to start billing."}
+          {granted
+            ? "Granted plan · no invoices"
+            : hasCustomer
+              ? "No invoices yet. Charges will appear here after your first payment."
+              : "No invoices yet. Subscribe to a plan to start billing."}
         </div>
       )}
     </div>

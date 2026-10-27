@@ -35,7 +35,7 @@ export function ResultsScreen({
 
   return (
     <>
-      <div className="overflow-y-auto p-12">
+      <div className="min-w-0 overflow-y-auto p-6 sm:p-12">
         <div className="flex items-end justify-between gap-8">
             <div>
               <h1 className="m-0 font-sans text-[28px] font-semibold leading-[1.2] tracking-[-0.03em]">

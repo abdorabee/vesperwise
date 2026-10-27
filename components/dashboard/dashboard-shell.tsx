@@ -10,6 +10,7 @@ import { ShellStatusProvider } from "@/components/dashboard/shell/shell-status";
 import { StatusBar } from "@/components/dashboard/shell/status-bar";
 import { SiteHeader } from "@/components/dashboard/site-header";
 import { SearchProvider } from "@/components/dashboard/search-provider";
+import { useWorkspaceState, WorkspaceStateProvider } from "@/components/dashboard/workspace-state";
 import {
   PageContainer,
   type PageContainerSize,
@@ -21,6 +22,7 @@ interface DashboardShellProps {
   children: React.ReactNode;
   creditsRemaining: number;
   plan: DbUser["plan"];
+  polarSubscriptionId?: string | null;
   workspaceName?: string | null;
   watchlistCount?: number;
   pipelineHotCount?: number;
@@ -53,15 +55,27 @@ function pageContainerSize(pathname: string): PageContainerSize {
   return "default";
 }
 
-export default function DashboardShell({
+export default function DashboardShell(props: DashboardShellProps) {
+  return (
+    <WorkspaceStateProvider initialCredits={props.creditsRemaining} plan={props.plan}>
+      <DashboardShellFrame {...props} />
+    </WorkspaceStateProvider>
+  );
+}
+
+function DashboardShellFrame({
   children,
   creditsRemaining,
   plan,
+  polarSubscriptionId,
   workspaceName,
   watchlistCount,
   pipelineHotCount,
   isMockSignals = false,
 }: DashboardShellProps) {
+  const workspace = useWorkspaceState();
+  const liveCredits = workspace?.creditsRemaining ?? creditsRemaining;
+  const livePlan = workspace?.plan ?? plan;
   const pathname = usePathname();
   const containerSize = pageContainerSize(pathname);
 
@@ -81,8 +95,9 @@ export default function DashboardShell({
             >
               <div className="md:hidden">
                 <AppSidebar
-                  creditsRemaining={creditsRemaining}
-                  plan={plan}
+                  creditsRemaining={liveCredits}
+                  plan={livePlan}
+                  polarSubscriptionId={polarSubscriptionId}
                   workspaceName={workspaceName}
                   watchlistCount={watchlistCount}
                   pipelineHotCount={pipelineHotCount}
@@ -91,8 +106,9 @@ export default function DashboardShell({
               <AppFrame
                 rail={
                   <IconRail
-                    creditsRemaining={creditsRemaining}
-                    plan={plan}
+                    creditsRemaining={liveCredits}
+                    plan={livePlan}
+                    polarSubscriptionId={polarSubscriptionId}
                     watchlistCount={watchlistCount}
                     pipelineHotCount={pipelineHotCount}
                   />
@@ -101,8 +117,9 @@ export default function DashboardShell({
                 panel={<ShellPanelSlot />}
                 statusBar={
                   <StatusBar
-                    creditsRemaining={creditsRemaining}
-                    plan={plan}
+                    creditsRemaining={liveCredits}
+                    plan={livePlan}
+                    polarSubscriptionId={polarSubscriptionId}
                     isMockSignals={isMockSignals}
                   />
                 }

@@ -3,7 +3,7 @@ export type ChatSseEvent =
   | { type: "tool_call"; name: string; args: Record<string, unknown> }
   | { type: "tool_result"; name: string; result: unknown }
   | { type: "ui"; blocks: unknown; billing?: string }
-  | { type: "done"; session_id: string }
+  | { type: "done"; session_id: string; credits_remaining?: number | null }
   | { type: "error"; message: string };
 
 import type { UiBlock } from "@/lib/gen-ui";

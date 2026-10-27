@@ -216,7 +216,16 @@ export async function POST(req: NextRequest) {
           .update({ updated_at: new Date().toISOString() })
           .eq("id", sessionId);
 
-        send({ type: "done", session_id: sessionId });
+        const { data: balance } = await supabase
+          .from("users")
+          .select("credits_remaining")
+          .eq("id", userId)
+          .maybeSingle();
+        send({
+          type: "done",
+          session_id: sessionId,
+          credits_remaining: balance?.credits_remaining ?? null,
+        });
         controller.close();
       } catch (err) {
         console.error("[chat] error:", err);

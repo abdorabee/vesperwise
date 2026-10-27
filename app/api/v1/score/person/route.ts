@@ -4,6 +4,7 @@ import { auth } from "@clerk/nextjs/server";
 import { createSupabaseAdmin } from "@/lib/supabase";
 import { redactPublicSources } from "@/lib/public-source";
 import { scorePerson } from "@/lib/person-score-service";
+import { isDevCreditBypassEnabled } from "@/lib/dev-credit-bypass";
 import type { BusinessProfile } from "@/lib/types";
 
 export async function GET(req: NextRequest) {
@@ -43,7 +44,7 @@ export async function GET(req: NextRequest) {
   }
 
   // ── Credit check ────────────────────────────────────────────────────────────
-  const skipCredits = process.env.DISABLE_CREDIT_CHECK === "true";
+  const skipCredits = isDevCreditBypassEnabled();
   if (userId && !skipCredits) {
     const { data: user } = await supabase
       .from("users")
@@ -74,7 +75,15 @@ export async function GET(req: NextRequest) {
       businessProfile,
       skipCredits,
     });
-    return NextResponse.json(redactPublicSources(result));
+    const { data: balance } = await supabase
+      .from("users")
+      .select("credits_remaining")
+      .eq("id", userId)
+      .maybeSingle();
+    return NextResponse.json(redactPublicSources({
+      ...result,
+      credits_remaining: balance?.credits_remaining ?? null,
+    }));
   } catch (err) {
     console.error("[person-score] error:", err);
     const message = (err as Error).message ?? "Person scoring failed";

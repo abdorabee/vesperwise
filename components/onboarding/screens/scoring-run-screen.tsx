@@ -30,6 +30,8 @@ export function ScoringRunScreen({ entries }: { entries: ScoringRunEntry[] }) {
   const total = entries.length;
   const settledCount = entries.filter((e) => e.status === "done" || e.status === "error").length;
   const doneEntries = entries.filter((e) => e.status === "done" && e.result);
+  const failedEntries = entries.filter((e) => e.status === "error");
+  const allFailed = total > 0 && failedEntries.length === total;
   const cleared = doneEntries.filter((e) => (e.result!.intent_score ?? 0) >= 75).length;
   const pct = total > 0 ? Math.round((settledCount / total) * 100) : 0;
 
@@ -64,7 +66,7 @@ export function ScoringRunScreen({ entries }: { entries: ScoringRunEntry[] }) {
 
   return (
     <>
-      <div className="overflow-y-auto p-12 pb-0">
+      <div className="min-w-0 overflow-y-auto p-6 pb-0 sm:p-12 sm:pb-0">
         <div className="max-w-[600px]">
           <div className="flex items-end justify-between gap-8">
             <div>
@@ -122,6 +124,23 @@ export function ScoringRunScreen({ entries }: { entries: ScoringRunEntry[] }) {
               </div>
             ))}
           </div>
+
+          {failedEntries.length > 0 && (
+            <div className="mt-6 rounded-xl border border-[#f5b544]/25 bg-[#f5b544]/[0.06] px-4 py-3 text-[12.5px] leading-[1.6]">
+              <div className="text-[#f5b544]">
+                {allFailed
+                  ? "None of these accounts could be scored right now. Your profile is still saved when you continue, and you can score accounts from the dashboard later."
+                  : `${failedEntries.length} of ${total} couldn't be scored. The rest are still ready.`}
+              </div>
+              <ul className="mt-2 flex flex-col gap-1 text-[#a0a0a0]">
+                {failedEntries.map((e) => (
+                  <li key={e.domain}>
+                    <span className="font-mono text-white">{e.domain}</span> — {e.error ?? "Scoring failed"}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           <p className="mt-6 text-[12.5px] leading-[1.6] text-[#666]">
             Feel free to keep this tab open — every account here is being scored with the real pipeline, not a

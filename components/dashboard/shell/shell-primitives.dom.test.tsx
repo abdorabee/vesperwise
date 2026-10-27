@@ -43,7 +43,7 @@ afterEach(() => {
 });
 
 function expectNoUpdateLoop() {
-  const loopErrors = consoleError.mock.calls.filter((args) => String(args[0]).includes("Maximum update depth"));
+  const loopErrors = consoleError.mock.calls.filter((args: unknown[]) => String(args[0]).includes("Maximum update depth"));
   expect(loopErrors).toEqual([]);
 }
 

@@ -9,7 +9,7 @@ import {
   type DemoAccount,
   type DemoBand,
 } from "@/components/landing/demo-accounts";
-import { BULK_MAX_PER_JOB, MARKETING_PLANS, formatCount, getMarketingPlan } from "@/lib/plan-features";
+import { BULK_MAX_PER_JOB, MARKETING_PLANS, formatCount } from "@/lib/plan-features";
 import { PLAN_CREDITS } from "@/lib/types";
 
 const BAND_VAR: Record<DemoBand, string> = { HOT: "var(--hot)", WARM: "var(--warm)", COLD: "var(--cold)" };
@@ -68,8 +68,7 @@ export default function LandingPage() {
     { band: "WARM", label: "Warm" },
     { band: "COLD", label: "Cold" },
   ];
-  const teaserPlans = MARKETING_PLANS.filter((p) => p.key !== "agency");
-  const agency = getMarketingPlan("agency");
+  const teaserPlans = MARKETING_PLANS;
   const signalRows: { key: keyof DemoAccount["mix"]; label: string; icon: string; desc: string; context?: boolean }[] = [
     { key: "funding", label: "Funding", icon: "ic-funding", desc: "Series B announced 4 days ago" },
     { key: "hiring", label: "Hiring", icon: "ic-hiring", desc: "+22 open roles in Engineering and RevOps vs. last month" },
@@ -311,7 +310,7 @@ export default function LandingPage() {
             <div className="feat-card">
               <div className="feat-head">
                 <h3>One API call. Any company.</h3>
-                <p>POST a domain and get back a 0–100 score, its band, the reason it matters now and a next step. Bulk jobs of up to {formatCount(BULK_MAX_PER_JOB)} companies are in early access. <a href="/docs">Read the API docs</a>.</p>
+                <p>POST a domain and get back a 0–100 score, its band, the reason it matters now and a next step. Bulk jobs of up to {formatCount(BULK_MAX_PER_JOB)} companies are on Plus and above. <a href="/docs">Read the API docs</a>.</p>
               </div>
               <div className="feat-visual" aria-hidden="true">
                 <div className="code-surface">
@@ -395,7 +394,7 @@ export default function LandingPage() {
           </div>
 
           <p className="landing-pricing-note">
-            Need more? {agency.label} is ${agency.price}/mo for {formatCount(agency.credits)} scores, and top-up packs start at 100 credits.{" "}
+            Need a larger workspace? Contact us. Top-up packs start at 25 credits.{" "}
             <a href="/pricing">See all plans</a>
           </p>
         </div>

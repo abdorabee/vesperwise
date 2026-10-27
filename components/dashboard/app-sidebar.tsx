@@ -9,6 +9,8 @@ import { cn } from "@/lib/utils";
 import { PLAN_CREDITS, type DbUser } from "@/lib/types";
 import { getWorkspaceLabel } from "@/lib/workspace-label";
 import { useDashboardSearch } from "@/components/dashboard/search-provider";
+import { followScoreChatLink, followScoreLink } from "@/lib/score-chat";
+import { useLocationHash } from "@/lib/use-location-hash";
 import {
   NAV_LIBRARY_CLUSTERS,
   NAV_MAIN,
@@ -49,6 +51,7 @@ import {
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   creditsRemaining: number;
   plan: DbUser["plan"];
+  polarSubscriptionId?: string | null;
   workspaceName?: string | null;
   watchlistCount?: number;
   pipelineHotCount?: number;
@@ -72,19 +75,30 @@ function itemCount(
 function NavRow({
   item,
   pathname,
+  hash,
   counts,
 }: {
   item: NavItem;
   pathname: string;
+  hash: string;
   counts: NavCounts;
 }) {
   const Icon = item.icon;
-  const active = isNavActive(pathname, item.href);
+  const active = isNavActive(pathname, item.href, hash);
   const count = itemCount(item, counts);
+  const tour = item.label === "Chat" ? "chat" : undefined;
   return (
     <SidebarMenuItem>
       <SidebarMenuButton asChild isActive={active} tooltip={item.label}>
-        <Link href={item.href}>
+        <Link
+          href={item.href}
+          scroll={tour ? false : undefined}
+          data-tour={tour}
+          onClick={(event) => {
+            if (item.href === "/score#chat") followScoreChatLink(event);
+            else if (item.href === "/score") followScoreLink(event);
+          }}
+        >
           <Icon />
           <span>{item.label}</span>
         </Link>
@@ -154,12 +168,14 @@ function NavClusterRow({
 export function AppSidebar({
   creditsRemaining,
   plan,
+  polarSubscriptionId,
   workspaceName,
   watchlistCount = 0,
   pipelineHotCount = 0,
   ...props
 }: AppSidebarProps) {
   const pathname = usePathname();
+  const hash = useLocationHash();
   const { open: openSearch } = useDashboardSearch();
   const { setOpenMobile } = useSidebar();
   const { user } = useUser();
@@ -223,6 +239,7 @@ export function AppSidebar({
                     key={`${item.href}-${item.label}`}
                     item={item}
                     pathname={pathname}
+                    hash={hash}
                     counts={counts}
                   />
                 ))}
@@ -255,6 +272,7 @@ export function AppSidebar({
                     key={`${item.href}-${item.label}`}
                     item={item}
                     pathname={pathname}
+                    hash={hash}
                     counts={counts}
                   />
                 ))}
@@ -277,8 +295,8 @@ export function AppSidebar({
       </SidebarContent>
 
       <SidebarFooter>
-        <SidebarCredits creditsRemaining={creditsRemaining} creditCap={creditCap} plan={plan} />
-        <NavUser creditsRemaining={creditsRemaining} creditCap={creditCap} />
+        <SidebarCredits creditsRemaining={creditsRemaining} creditCap={creditCap} plan={plan} polarSubscriptionId={polarSubscriptionId} />
+        <NavUser creditsRemaining={creditsRemaining} creditCap={creditCap} plan={plan} polarSubscriptionId={polarSubscriptionId} />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

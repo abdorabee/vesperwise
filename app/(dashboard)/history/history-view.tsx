@@ -2,8 +2,10 @@
 import { useState, useEffect, useRef } from "react";
 import type { CSSProperties } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { formatCreditPace, formatHistoryShare } from "@/lib/history-share";
 import { BandPill } from "@/components/score/band";
-import { toCSV, downloadCSV as triggerDownload, csvFilename, formatSignal } from "@/lib/csv";
+import { csvFilename, downloadAuthorizedCsv, formatSignal } from "@/lib/csv";
 import type { DbScore, ScoreBand } from "@/lib/types";
 import { AccountPanel } from "@/components/account-panel/account-panel";
 import { useAccountParam } from "@/components/account-panel/use-account-param";
@@ -310,7 +312,9 @@ export function HistoryView({ stats }: HistoryViewProps) {
       github_context: r.signals ? formatSignal(r.signals.github) : "",
       scored_at: new Date(r.created_at).toISOString(),
     }));
-    triggerDownload(toCSV(columns, csvRows), csvFilename("vesperwise-history"));
+    void downloadAuthorizedCsv(csvFilename("vesperwise-history"), columns, csvRows).catch((error: Error) => {
+      toast.error(error.message);
+    });
   }
 
   const maxBucketTotal = Math.max(...stats.activityData.map(b => b.hot + b.warm + b.cold), 1);
@@ -426,12 +430,7 @@ export function HistoryView({ stats }: HistoryViewProps) {
                 {label}
               </span>
               <span style={{ fontFamily: "var(--font-mono)", fontWeight: 500, color: "var(--text-primary)", fontVariantNumeric: "tabular-nums" }}>
-                {count}
-                {stats.monthlyCount > 0 && (
-                  <span style={{ color: "var(--text-tertiary)", fontWeight: 400, marginLeft: 6, fontSize: 11 }}>
-                    {Math.round(count / stats.monthlyCount * 100 * 10) / 10}%
-                  </span>
-                )}
+                {formatHistoryShare(count, stats.monthlyCount)}
               </span>
             </div>
           ))}
@@ -443,7 +442,7 @@ export function HistoryView({ stats }: HistoryViewProps) {
           { label: "Total runs", num: stats.totalCount.toLocaleString(), delta: `▲ ${stats.monthlyCount} this month`, hot: false, flat: false },
           { label: "Avg score", num: stats.avgScore || "—", delta: null, hot: false, flat: false },
           { label: "Bands flipped to HOT", num: String(stats.flippedToHot), delta: "last 7 days", hot: true, flat: false },
-          { label: "Credits used (30d)", num: String(stats.monthlyCount), delta: `≈ ${Math.round(stats.monthlyCount / 30)}/day pace`, hot: false, flat: true },
+          { label: "Credits used (30d)", num: String(stats.creditsUsed30d), delta: formatCreditPace(stats.creditsUsed30d), hot: false, flat: true },
         ].map(({ label, num, delta, hot, flat }) => (
           <div key={label} style={S.statCard}>
             <div style={S.statLabel}>{label}</div>

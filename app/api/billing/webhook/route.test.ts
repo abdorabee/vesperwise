@@ -52,7 +52,7 @@ function subscriptionEvent(type: string, overrides: Record<string, unknown> = {}
     data: {
       id: "sub_1",
       customer_id: "cus_1",
-      product_id: "prod_unknown",
+      product_id: "prod_growth",
       current_period_start: "2026-10-01T00:00:00Z",
       current_period_end: "2026-11-01T00:00:00Z",
       cancel_at_period_end: false,
@@ -65,6 +65,13 @@ function subscriptionEvent(type: string, overrides: Record<string, unknown> = {}
 
 beforeEach(() => {
   vi.stubEnv("POLAR_WEBHOOK_SECRET", "whsec_test");
+  vi.stubEnv("POLAR_PRODUCT_STARTER", "prod_starter");
+  vi.stubEnv("POLAR_PRODUCT_PLUS", "prod_plus");
+  vi.stubEnv("POLAR_PRODUCT_GROWTH", "prod_growth");
+  vi.stubEnv("POLAR_PRODUCT_PRO", "prod_pro");
+  vi.stubEnv("POLAR_PRODUCT_TOPUP_25", "prod_topup_25");
+  vi.stubEnv("POLAR_PRODUCT_TOPUP_70", "prod_topup_70");
+  vi.stubEnv("POLAR_PRODUCT_TOPUP_140", "prod_topup_140");
   validateEvent.mockReset();
   rpc.mockReset().mockResolvedValue({ error: null });
   userUpdate.mockReset().mockResolvedValue({ error: null });
@@ -102,12 +109,105 @@ describe("POST /api/billing/webhook", () => {
   it("credits top-up purchases through the top-up RPC", async () => {
     validateEvent.mockResolvedValue({
       type: "order.paid",
-      data: { customer_id: "cus_1", metadata: { type: "topup", user_id: "user_1", credits: "500" } },
+      data: {
+        customer_id: "cus_1",
+        product_id: "prod_topup_70",
+        metadata: { type: "topup", user_id: "user_1", credits: "70" },
+      },
     });
 
     await POST(webhookRequest());
 
-    expect(rpc).toHaveBeenCalledWith("increment_topup_credits", { p_user_id: "user_1", p_amount: 500 });
+    expect(rpc).toHaveBeenCalledWith("increment_topup_credits", { p_user_id: "user_1", p_amount: 70 });
+  });
+
+  it("fails an unmapped product so Polar retries the paid event", async () => {
+    validateEvent.mockResolvedValue(subscriptionEvent("subscription.created", { product_id: "prod_new_unmapped" }));
+
+    const res = await POST(webhookRequest());
+
+    expect(res.status).toBe(500);
+    expect(userUpdate).not.toHaveBeenCalled();
+    expect(idempotencyDelete).toHaveBeenCalledWith("evt_1");
+    await expect(res.json()).resolves.toMatchObject({ product_id: "prod_new_unmapped" });
+  });
+
+  it("acknowledges order.paid for a plan product without granting top-up credits", async () => {
+    validateEvent.mockResolvedValue({
+      type: "order.paid",
+      data: {
+        customer_id: "cus_1",
+        product_id: "prod_growth",
+        metadata: { user_id: "user_1", plan: "growth" },
+      },
+    });
+
+    const res = await POST(webhookRequest());
+
+    expect(res.status).toBe(200);
+    expect(rpc).not.toHaveBeenCalled();
+    expect(userUpdate).not.toHaveBeenCalled();
+  });
+
+  it("ignores order.paid for an archived product", async () => {
+    validateEvent.mockResolvedValue({
+      type: "order.paid",
+      data: {
+        customer_id: "cus_1",
+        product_id: "490f7958-4635-4780-9b71-5075d4e24738",
+        metadata: { type: "topup", user_id: "user_1", credits: "100" },
+      },
+    });
+
+    const res = await POST(webhookRequest());
+
+    expect(res.status).toBe(200);
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it("still downgrades when an unmapped product is revoked", async () => {
+    validateEvent.mockResolvedValue(subscriptionEvent("subscription.revoked", {
+      product_id: "prod_unknown",
+      status: "canceled",
+    }));
+
+    const res = await POST(webhookRequest());
+
+    expect(res.status).toBe(200);
+    expect(userUpdate).toHaveBeenCalledWith(
+      "users",
+      expect.objectContaining({ plan: "free" }),
+      "user_1",
+    );
+  });
+
+  it("fails an unmapped top-up so the purchase is not dropped", async () => {
+    validateEvent.mockResolvedValue({
+      type: "order.paid",
+      data: {
+        customer_id: "cus_1",
+        product_id: "prod_topup_unknown",
+        metadata: { type: "topup", user_id: "user_1", credits: "25" },
+      },
+    });
+
+    const res = await POST(webhookRequest());
+
+    expect(res.status).toBe(500);
+    expect(rpc).not.toHaveBeenCalled();
+    expect(idempotencyDelete).toHaveBeenCalledWith("evt_1");
+  });
+
+  it("ignores an archived product id without retrying", async () => {
+    validateEvent.mockResolvedValue(subscriptionEvent("subscription.updated", {
+      product_id: "490f7958-4635-4780-9b71-5075d4e24738",
+    }));
+
+    const res = await POST(webhookRequest());
+
+    expect(res.status).toBe(200);
+    expect(userUpdate).not.toHaveBeenCalled();
+    expect(idempotencyDelete).not.toHaveBeenCalled();
   });
 
   it("does not refill credits on an update within the same period", async () => {

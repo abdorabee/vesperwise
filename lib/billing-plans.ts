@@ -20,18 +20,22 @@ export interface BillingPlanDef {
   features: string[];
   heroFeatures: string[];
   tier: number;
+  /** Agency is no longer sold. The card is a contact link. */
+  contactOnly: boolean;
 }
 
 export interface TopupDef {
-  amount: "100" | "500" | "1000";
+  amount: "25" | "70" | "140";
   credits: number;
   price: number;
   bestValue?: boolean;
+  envKey: string;
 }
 
 const PLAN_COLOR: Record<PlanKey, string> = {
   free: "var(--text-quaternary)",
   starter: "var(--cyan)",
+  plus: "var(--accent)",
   growth: "var(--accent-2)",
   pro: "var(--brand)",
   agency: "var(--warm)",
@@ -51,6 +55,7 @@ export const BILLING_PLANS: BillingPlanDef[] = PLAN_ORDER.map((key, tier) => ({
   tier,
   features: planFeatures(key),
   heroFeatures: planFeaturesWithCredits(key),
+  contactOnly: key === "agency",
 }));
 
 export const BILLING_TOPUPS: TopupDef[] = TOPUP_PACKS.map((t) => ({ ...t }));
@@ -86,7 +91,7 @@ export function planYourTopupRate(planKey: PlanKey): string {
   return `$${(base.price / base.credits).toFixed(2)}`;
 }
 
-/** Top-up card unit rate — matches IntentIQ Billing.html (`$0.072 / credit`) */
+/** Top-up card unit rate. */
 export function topupUnitRate(price: number, credits: number): string {
   if (credits <= 0) return "—";
   return `$${(price / credits).toFixed(3)} / credit`;
@@ -98,4 +103,18 @@ export function planRank(key: PlanKey): number {
 
 export function comparePlans(a: PlanKey, b: PlanKey): number {
   return planRank(a) - planRank(b);
+}
+
+/** A paid-looking plan with no Polar subscription was granted, not bought. */
+export function isGrantedPlan(plan: PlanKey, polarSubscriptionId: string | null | undefined): boolean {
+  return plan !== "free" && !polarSubscriptionId;
+}
+
+export type PlanCardAction = "current" | "upgrade" | "downgrade" | "contact" | "hidden";
+
+export function planCardAction(current: PlanKey, card: PlanKey, granted: boolean): PlanCardAction {
+  if (card === current) return "current";
+  if (card === "agency") return "contact";
+  if (granted) return "hidden";
+  return comparePlans(card, current) > 0 ? "upgrade" : "downgrade";
 }

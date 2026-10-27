@@ -55,7 +55,7 @@ describe("computeBillingPatch", () => {
     const patch = computeBillingPatch("subscription.created", sub(), "growth", freeUser);
 
     expect(patch.plan).toBe("growth");
-    expect(patch.credits_remaining).toBe(2500 + 100);
+    expect(patch.credits_remaining).toBe(1200 + 100);
     expect(patch.subscription_period_start).toBe(PERIOD_1);
   });
 
@@ -67,7 +67,7 @@ describe("computeBillingPatch", () => {
       growthUser
     );
 
-    expect(patch.credits_remaining).toBe(2500 + 1000);
+    expect(patch.credits_remaining).toBe(1200 + 1000);
     expect(patch.subscription_period_start).toBe(PERIOD_2);
   });
 
@@ -92,7 +92,7 @@ describe("computeBillingPatch", () => {
     const patch = computeBillingPatch("subscription.updated", sub({ product_id: "prod_pro" }), "pro", growthUser);
 
     expect(patch.plan).toBe("pro");
-    expect(patch.credits_remaining).toBe(8000 + 1000);
+    expect(patch.credits_remaining).toBe(3000 + 1000);
   });
 
   it("clears the cancel flag on uncancel without touching credits", () => {
@@ -118,6 +118,7 @@ describe("computeBillingPatch", () => {
 
 describe("grantCredits", () => {
   it("never subtracts for a negative top-up value", () => {
-    expect(grantCredits("starter", -5)).toBe(500);
+    expect(grantCredits("starter", -5)).toBe(100);
+    expect(grantCredits("plus", 0)).toBe(400);
   });
 });

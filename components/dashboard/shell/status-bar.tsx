@@ -10,14 +10,15 @@ import { getCreditStatus } from "@/lib/credits-status";
 interface StatusBarProps {
   creditsRemaining: number;
   plan: DbUser["plan"];
+  polarSubscriptionId?: string | null;
   isMockSignals?: boolean;
 }
 
-export function StatusBar({ creditsRemaining, plan, isMockSignals = false }: StatusBarProps) {
+export function StatusBar({ creditsRemaining, plan, polarSubscriptionId, isMockSignals = false }: StatusBarProps) {
   const { open: openSearch } = useDashboardSearch();
   const pageStatus = useShellStatusValue();
   const creditCap = PLAN_CREDITS[plan] ?? PLAN_CREDITS.free;
-  const status = getCreditStatus({ creditsRemaining, creditCap, plan });
+  const status = getCreditStatus({ creditsRemaining, creditCap, plan, polarSubscriptionId });
 
   return (
     <div data-slot="dashboard-status-bar" className="dashboard-status-bar">

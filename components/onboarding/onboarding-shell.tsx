@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { SignOutButton } from "@clerk/nextjs";
 
 const PHASES = [
   { n: "01", label: "Workspace" },
@@ -49,24 +50,40 @@ export function OnboardingHeader({
   showLedger,
   credits,
   email,
+  signedIn = false,
 }: {
   phase: number;
   showLedger: boolean;
   credits: number;
   email: string;
+  signedIn?: boolean;
 }) {
   return (
     <div className="flex h-[56px] flex-none items-center justify-between border-b border-white/[0.08] px-6">
-      <div className="flex items-center gap-8">
+      <div className="flex min-w-0 items-center gap-8">
         <div className="text-[15px] font-semibold tracking-[-0.03em]">
           VESPERWISE<span className="text-[var(--brand)]">.</span>
         </div>
-        {showLedger && <StepLedger phase={phase} />}
+        {showLedger && (
+          <div className="hidden lg:block">
+            <StepLedger phase={phase} />
+          </div>
+        )}
       </div>
       <div className="flex items-center gap-4 text-xs">
         <span className="text-[#666]">{credits} credits</span>
-        <span className="h-4 w-px bg-white/[0.08]" />
-        <span className="text-[#a0a0a0]">{email}</span>
+        <span className="hidden h-4 w-px bg-white/[0.08] sm:block" />
+        <span className="hidden truncate text-[#a0a0a0] sm:inline">{email}</span>
+        {signedIn && (
+          <SignOutButton redirectUrl="/">
+            <button
+              type="button"
+              className="shrink-0 text-[12px] font-medium text-[#a0a0a0] underline-offset-2 hover:text-white hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]"
+            >
+              Sign out
+            </button>
+          </SignOutButton>
+        )}
       </div>
     </div>
   );
@@ -74,7 +91,7 @@ export function OnboardingHeader({
 
 export function OnboardingRail({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div className="flex min-h-full flex-col overflow-y-auto border-l border-white/[0.08] bg-[#050505] p-6">
+    <div className="flex min-h-full flex-col overflow-y-auto border-t border-white/[0.08] bg-[#050505] p-6 lg:border-l lg:border-t-0">
       <div className="font-mono text-[11px] uppercase tracking-[0.09em] text-[#666]">{title}</div>
       <div className="mt-6 flex flex-1 flex-col">{children}</div>
     </div>
@@ -104,9 +121,9 @@ export function OnboardingFooter({
   primary: ReactNode;
 }) {
   return (
-    <div className="flex h-[72px] flex-none items-center justify-between border-t border-white/[0.08] px-6">
+    <div className="flex min-h-[72px] flex-none flex-wrap items-center justify-between gap-3 border-t border-white/[0.08] px-6 py-4">
       <div className="text-xs text-[#666]">{caption}</div>
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         {back && (
           <button
             type="button"
@@ -173,7 +190,8 @@ export function SecondaryButton({
 }
 
 /**
- * Header + [content | 320px rail] grid + footer. `children` must be exactly
+ * Header + [content | 320px rail] grid + footer. Below `lg` the rail stacks
+ * under the content instead, so the content column never gets squeezed. `children` must be exactly
  * two elements: the screen's own left content (its own 48px padding) and an
  * <OnboardingRail>. The grid lives here, at zero gap, matching the design's
  * `flex:1;display:grid;grid-template-columns:1fr 320px` — the border-left on
@@ -184,6 +202,7 @@ export function OnboardingShell({
   showLedger,
   credits,
   email,
+  signedIn = false,
   banner,
   footer,
   children,
@@ -192,6 +211,7 @@ export function OnboardingShell({
   showLedger: boolean;
   credits: number;
   email: string;
+  signedIn?: boolean;
   /** Full-width notice between header and body. Kept out of the grid below so
    *  the grid always has exactly two children (content + rail). */
   banner?: ReactNode;
@@ -201,9 +221,9 @@ export function OnboardingShell({
   return (
     <main className="onboarding-shell min-h-[100dvh] bg-black text-[#f7f8f8]">
       <div className="mx-auto flex min-h-[100dvh] max-w-[1280px] flex-col border-x border-white/[0.13]">
-        <OnboardingHeader phase={phase} showLedger={showLedger} credits={credits} email={email} />
+        <OnboardingHeader phase={phase} showLedger={showLedger} credits={credits} email={email} signedIn={signedIn} />
         {banner}
-        <div className="grid flex-1 grid-cols-[1fr_320px] overflow-hidden">{children}</div>
+        <div className="grid flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-[1fr_320px] lg:overflow-hidden">{children}</div>
         {footer}
       </div>
     </main>

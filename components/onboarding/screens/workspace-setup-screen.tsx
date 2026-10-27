@@ -1,6 +1,10 @@
 "use client";
 
+import { useRef, type ChangeEvent } from "react";
+
+import { PdfFilledTag } from "@/components/onboarding/pdf-filled-tag";
 import { OnboardingRail } from "@/components/onboarding/onboarding-shell";
+import { PDF_DISCARD_NOTE } from "@/lib/onboarding-pdf";
 import type { BusinessProfile } from "@/lib/types";
 import type { OnboardingFieldErrors } from "@/lib/onboarding-profile";
 
@@ -16,15 +20,35 @@ export function WorkspaceSetupScreen({
   emailDomain,
   errors,
   onUpdateField,
+  pdfProductFilled = false,
+  pdfWorkspaceFilled = false,
+  pdfNotice = null,
+  pdfReading = false,
+  readOnlyPreview = false,
+  onPdfFile,
 }: {
   profile: BusinessProfile;
   emailDomain: string | null;
   errors: OnboardingFieldErrors;
   onUpdateField: (field: "workspace_name" | "product_category", value: string) => void;
+  pdfProductFilled?: boolean;
+  pdfWorkspaceFilled?: boolean;
+  pdfNotice?: string | null;
+  pdfReading?: boolean;
+  readOnlyPreview?: boolean;
+  onPdfFile?: (file: File) => void;
 }) {
+  const pdfInput = useRef<HTMLInputElement>(null);
+
+  function choosePdf(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (file) onPdfFile?.(file);
+  }
+
   return (
     <>
-      <div className="overflow-y-auto p-12 pb-0">
+      <div className="min-w-0 overflow-y-auto p-6 pb-0 sm:p-12 sm:pb-0">
         <div className="max-w-[520px]">
           <h1 className="m-0 font-sans text-[28px] font-semibold leading-[1.2] tracking-[-0.03em]">
             A few details, then you see <span className="text-[var(--brand)]">accounts</span>.
@@ -34,9 +58,45 @@ export function WorkspaceSetupScreen({
           </p>
 
           <div className="mt-12 flex max-w-[520px] flex-col gap-6">
+            <div className="rounded-lg border border-dashed border-white/[0.13] p-4">
+              <div className="text-[13px] font-medium text-white">Upload a PDF instead</div>
+              <p className="mt-1 text-[12px] leading-[1.5] text-[#666]">
+                An ICP doc, one-pager, or pitch deck. We prefill only what the file states, and you review each
+                answer before anything is saved. Reading it is free — scoring still uses credits.
+              </p>
+              <p className="mt-2 text-[12px] leading-[1.5] text-[#666]">{PDF_DISCARD_NOTE}</p>
+              <div className="mt-3">
+                <input
+                  ref={pdfInput}
+                  type="file"
+                  accept="application/pdf,.pdf"
+                  className="sr-only"
+                  onChange={choosePdf}
+                  disabled={readOnlyPreview || pdfReading}
+                />
+                <button
+                  type="button"
+                  disabled={readOnlyPreview || pdfReading || !onPdfFile}
+                  onClick={() => pdfInput.current?.click()}
+                  className="inline-flex h-9 items-center rounded-lg border border-white/[0.13] px-3 font-sans text-[13px] font-medium text-white hover:border-white/[0.25] disabled:cursor-not-allowed disabled:text-[#666]"
+                >
+                  {pdfReading ? "Reading PDF…" : "Choose PDF"}
+                </button>
+              </div>
+              {readOnlyPreview && (
+                <p className="mt-3 text-[12px] leading-[1.5] text-[#a0a0a0]">Sign in to upload a PDF.</p>
+              )}
+              {pdfNotice && (
+                <p role="status" className="mt-3 text-[13px] leading-[1.5] text-[#a0a0a0]">
+                  {pdfNotice}
+                </p>
+              )}
+            </div>
+
             <div>
-              <label htmlFor="workspace-name" className="block font-mono text-[11px] uppercase tracking-[0.07em] text-[#666]">
+              <label htmlFor="workspace-name" className="flex items-baseline gap-2 font-mono text-[11px] uppercase tracking-[0.07em] text-[#666]">
                 Workspace
+                {pdfWorkspaceFilled && <PdfFilledTag />}
               </label>
               <input
                 id="workspace-name"
@@ -64,8 +124,9 @@ export function WorkspaceSetupScreen({
             )}
 
             <div>
-              <label htmlFor="product-category" className="block font-mono text-[11px] uppercase tracking-[0.07em] text-[#666]">
+              <label htmlFor="product-category" className="flex items-baseline gap-2 font-mono text-[11px] uppercase tracking-[0.07em] text-[#666]">
                 What you sell
+                {pdfProductFilled && <PdfFilledTag />}
               </label>
               <input
                 id="product-category"
@@ -113,7 +174,8 @@ export function WorkspaceSetupScreen({
           ))}
         </div>
         <div className="mt-auto border-t border-white/[0.08] pt-6 text-[12px] leading-[1.6] text-[#666]">
-          Every answer is saved the moment you make it. Leaving and coming back resumes on the same step.
+          Your answers are kept as you move between steps and saved to your workspace when you finish. Leaving
+          before then starts this setup over.
         </div>
       </OnboardingRail>
     </>

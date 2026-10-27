@@ -2,7 +2,7 @@
 
 import {
   BILLING_PLANS,
-  comparePlans,
+  planCardAction,
   planCreditsUnit,
   renewalDisclosure,
   type PlanKey,
@@ -10,23 +10,26 @@ import {
 
 interface BillingPlansGridProps {
   currentPlan: PlanKey;
+  /** Plan was granted (no Polar subscription). Hide upgrade and downgrade. */
+  granted?: boolean;
 }
 
-export function BillingPlansGrid({ currentPlan }: BillingPlansGridProps) {
+export function BillingPlansGrid({ currentPlan, granted = false }: BillingPlansGridProps) {
   return (
     <>
       <div className="section-head" id="plans">
         <div>
           <div className="h">Plans</div>
-          <div className="s">Switch any time — unused credits don&apos;t roll over.</div>
+          <div className="s">{granted ? "Your granted plan" : "Switch any time — unused credits don't roll over."}</div>
         </div>
       </div>
 
       <div className="plans-grid">
         {BILLING_PLANS.map((p) => {
           const isCurrent = p.key === currentPlan;
-          const isRecommended = p.key === "growth" && !isCurrent;
-          const rank = comparePlans(p.key, currentPlan);
+          const isRecommended = p.key === "growth" && !isCurrent && !granted;
+          const action = planCardAction(currentPlan, p.key, granted);
+          if (granted && !isCurrent) return null;
 
           return (
             <div
@@ -46,11 +49,17 @@ export function BillingPlansGrid({ currentPlan }: BillingPlansGridProps) {
               </div>
 
               <div className="pc-price-row">
-                <span className="pc-price">
-                  <span className="cur">$</span>
-                  {p.price}
-                </span>
-                <span className="pc-per">{p.price === 0 ? "/ forever" : "/ mo"}</span>
+                {p.contactOnly ? (
+                  <span className="pc-price">{granted && isCurrent ? "Granted" : "Contact us"}</span>
+                ) : (
+                  <>
+                    <span className="pc-price">
+                      <span className="cur">$</span>
+                      {p.price}
+                    </span>
+                    <span className="pc-per">{p.price === 0 ? "/ forever" : "/ mo"}</span>
+                  </>
+                )}
               </div>
 
               <div className="pc-credits">
@@ -67,33 +76,31 @@ export function BillingPlansGrid({ currentPlan }: BillingPlansGridProps) {
                 ))}
               </ul>
 
-              {isCurrent ? (
+              {action === "current" ? (
                 <div className="pc-cta current">Current plan</div>
-              ) : rank > 0 ? (
-                p.key === "agency" ? (
-                  <a href="mailto:sales@vesperwise.com" className="pc-cta outline">
-                    Talk to sales
-                  </a>
-                ) : (
-                  <form action="/api/billing/checkout" method="POST">
-                    <input type="hidden" name="plan" value={p.key} />
-                    <button
-                      type="submit"
-                      className={`pc-cta${isRecommended ? " solid" : " outline"}`}
-                      aria-describedby={`renewal-${p.key}`}
-                    >
-                      {`Upgrade to ${p.label}`}
-                    </button>
-                    <p id={`renewal-${p.key}`} className="pc-renewal">
-                      {renewalDisclosure(p.price)} <a href="/terms#s3">Terms</a>
-                    </p>
-                  </form>
-                )
-              ) : (
+              ) : action === "contact" ? (
+                <a href="/contact#contact-form" className="pc-cta outline">
+                  Contact us
+                </a>
+              ) : action === "upgrade" ? (
+                <form action="/api/billing/checkout" method="POST">
+                  <input type="hidden" name="plan" value={p.key} />
+                  <button
+                    type="submit"
+                    className={`pc-cta${isRecommended ? " solid" : " outline"}`}
+                    aria-describedby={`renewal-${p.key}`}
+                  >
+                    {`Upgrade to ${p.label}`}
+                  </button>
+                  <p id={`renewal-${p.key}`} className="pc-renewal">
+                    {renewalDisclosure(p.price)} <a href="/terms#s3">Terms</a>
+                  </p>
+                </form>
+              ) : action === "downgrade" ? (
                 <a href="/api/billing/portal" className="pc-cta outline">
                   Downgrade
                 </a>
-              )}
+              ) : null}
             </div>
           );
         })}

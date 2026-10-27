@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 
 import { formatBulkFileSize, formatCoverage } from "../../lib/bulk-workspace";
+import { BULK_INLINE_MAX_ROWS, formatCount } from "../../lib/plan-features";
 import type { SignalSet } from "../../lib/types";
 
 export interface BulkResult {
@@ -89,7 +90,7 @@ export function BulkUploadPanel({
     <section className="bulk-panel bulk-upload-panel" aria-labelledby="bulk-upload-heading">
       <header className="bulk-panel-head">
         <h2 id="bulk-upload-heading">Upload CSV</h2>
-        <span className="bulk-panel-meta">Up to 50 companies</span>
+        <span className="bulk-panel-meta">Up to {formatCount(BULK_INLINE_MAX_ROWS)} companies</span>
       </header>
 
       <div className="bulk-upload-grid">
@@ -211,7 +212,7 @@ export function BulkUploadPanel({
             </li>
             <li>
               <Check aria-hidden="true" />
-              Maximum 50 companies
+              Maximum {formatCount(BULK_INLINE_MAX_ROWS)} companies
             </li>
           </ul>
           <p className="bulk-guide-note">

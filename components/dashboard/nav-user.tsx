@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useUser, SignOutButton } from "@clerk/nextjs";
 import {
   ChevronsUpDown,
   CircleHelp,
   Coins,
+  Compass,
   CreditCard,
   Key,
   LogOut,
@@ -14,6 +16,7 @@ import {
   Settings,
   Sun,
 } from "lucide-react";
+import { replayScoreTour } from "@/components/tour/score-tour";
 import { useDashboardSearch } from "@/components/dashboard/search-provider";
 import {
   Avatar,
@@ -39,6 +42,8 @@ import { cn } from "@/lib/utils";
 import type { DbUser } from "@/lib/types";
 import {
   LOW_CREDIT_PCT,
+  LOW_CREDIT_USED_PCT,
+  allowanceUsedPercent,
   creditPercent,
   getCreditStatus,
 } from "@/lib/credits-status";
@@ -48,6 +53,8 @@ export { LOW_CREDIT_PCT, creditPercent };
 interface NavUserProps {
   creditsRemaining: number;
   creditCap: number;
+  plan?: DbUser["plan"];
+  polarSubscriptionId?: string | null;
   variant?: "sidebar" | "rail";
 }
 
@@ -65,8 +72,11 @@ function CreditBar({ pct, low }: { pct: number; low: boolean }) {
   );
 }
 
-function AccountCredits({ creditsRemaining, creditCap }: NavUserProps) {
+function AccountCredits({ creditsRemaining, creditCap, plan, polarSubscriptionId }: NavUserProps) {
   const creditPct = creditPercent(creditsRemaining, creditCap);
+  const low = plan
+    ? getCreditStatus({ creditsRemaining, creditCap, plan, polarSubscriptionId }).isLow
+    : allowanceUsedPercent(creditsRemaining, creditCap) >= LOW_CREDIT_USED_PCT;
 
   return (
     <div data-slot="account-credits" className="px-2 py-1.5 text-xs">
@@ -83,7 +93,7 @@ function AccountCredits({ creditsRemaining, creditCap }: NavUserProps) {
         </span>
       </div>
       <div className="mt-2">
-        <CreditBar pct={creditPct} low={creditPct < LOW_CREDIT_PCT} />
+        <CreditBar pct={creditPct} low={low} />
       </div>
     </div>
   );
@@ -97,11 +107,13 @@ export function SidebarCredits({
   creditsRemaining,
   creditCap,
   plan,
+  polarSubscriptionId,
 }: NavUserProps & { plan: DbUser["plan"] }) {
   const { pct, isLow: low, cta, summary } = getCreditStatus({
     creditsRemaining,
     creditCap,
     plan,
+    polarSubscriptionId,
   });
 
   return (
@@ -137,10 +149,16 @@ export function SidebarCredits({
   );
 }
 
-export function NavUser({ creditsRemaining, creditCap, variant = "sidebar" }: NavUserProps) {
+export function NavUser({ creditsRemaining, creditCap, plan, polarSubscriptionId, variant = "sidebar" }: NavUserProps) {
   const { user } = useUser();
   const { theme, toggleTheme } = useTheme();
   const { open: openSearch } = useDashboardSearch();
+  const router = useRouter();
+
+  function showMeAround() {
+    replayScoreTour();
+    if (window.location.pathname !== "/score") router.push("/score");
+  }
 
   const displayName = user?.fullName || user?.firstName || "Account";
   const email = user?.primaryEmailAddress?.emailAddress ?? "";
@@ -211,7 +229,7 @@ export function NavUser({ creditsRemaining, creditCap, variant = "sidebar" }: Na
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <AccountCredits creditsRemaining={creditsRemaining} creditCap={creditCap} />
+        <AccountCredits creditsRemaining={creditsRemaining} creditCap={creditCap} plan={plan} polarSubscriptionId={polarSubscriptionId} />
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
           <DropdownMenuItem onClick={openSearch}>
@@ -241,6 +259,10 @@ export function NavUser({ creditsRemaining, creditCap, variant = "sidebar" }: Na
               <CircleHelp />
               Get Help
             </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => showMeAround()}>
+            <Compass />
+            Show me around
           </DropdownMenuItem>
           <DropdownMenuItem onClick={toggleTheme}>
             {theme === "dark" ? <Sun /> : <Moon />}

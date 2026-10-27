@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import LandingPage from "@/components/landing/LandingPage";
+import { STARTING_PRICE } from "@/lib/plan-features";
 
 const CANONICAL = "https://www.vesperwise.com";
 
@@ -10,7 +11,7 @@ export const metadata: Metadata = {
   description:
     "VesperWise tracks hiring spikes, funding rounds, tech stack changes, news mentions, " +
     "with web authority and GitHub activity as supporting context, and scores every company 0–100 " +
-    "with the evidence and a next step. Free to start; paid plans from $29/mo.",
+    `with the evidence and a next step. Free to start; paid plans from $${STARTING_PRICE}/mo.`,
   alternates: {
     canonical: CANONICAL,
   },
@@ -43,7 +44,7 @@ const jsonLd = {
       offers: {
         "@type": "Offer",
         priceCurrency: "USD",
-        description: "Free tier available. Paid plans from $29/mo.",
+        description: `Free tier available. Paid plans from $${STARTING_PRICE}/mo.`,
       },
     },
     {

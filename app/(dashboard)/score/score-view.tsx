@@ -15,12 +15,16 @@ import { ScorePageFrame, ScoreWorkspaceLayout } from "@/components/score/score-w
 import { ScoreThreadDrawer } from "@/components/score/score-thread-drawer";
 import { ScoreThreadsColumn } from "@/components/score/score-threads-column";
 import { useScoreReportState } from "@/components/score/use-score-report-state";
+import { ScoreTour } from "@/components/tour/score-tour";
+import { useOptionalSidebar } from "@/components/ui/sidebar";
+import { useSetCreditsRemaining } from "@/components/dashboard/workspace-state";
 import { extractDomain, loadChatSession, seedChatSession, streamChat } from "@/lib/chat-client";
 import { sanitizeUiBlocks, suggestionsFromBlocks, workspaceFromScore } from "@/lib/gen-ui";
 import { parseIncompleteCoverage, type IncompleteCoverageResult } from "@/lib/score-coverage";
 import { parsePersistedPresentation, type ToolChip } from "@/lib/score-presentation";
 import { createSseParser, type ScoreProgressEvent } from "@/lib/score-progress";
 import { SCORE_NEW_EVENT, SCORE_OPEN_THREADS_EVENT } from "@/lib/score-workspace-events";
+import { SCORE_CHAT_EVENT, runScoreChatFocus } from "@/lib/score-chat";
 import type { StoredWorkspaceScore } from "@/lib/stored-score";
 import { CHAT_CREDIT_COST, type IntentScore, type ScoreBand } from "@/lib/types";
 import { useShellStatus } from "@/components/dashboard/shell/shell-status";
@@ -34,7 +38,7 @@ export interface RecentScore {
   created_at: string;
 }
 
-interface ScoreViewProps { creditsRemaining: number; recentScores: RecentScore[] }
+interface ScoreViewProps { creditsRemaining: number; recentScores: RecentScore[]; onboardingComplete: boolean }
 function nextId() { return crypto.randomUUID(); }
 
 function requireScorableResult(value: IntentScore): ScorableIntentScore {
@@ -45,7 +49,7 @@ function requireScorableResult(value: IntentScore): ScorableIntentScore {
 }
 
 type ScoreRequestOutcome =
-  | { kind: "scored"; result: ScorableIntentScore }
+  | { kind: "scored"; result: ScorableIntentScore; creditsRemaining?: number }
   | { kind: "coverage"; result: IncompleteCoverageResult };
 
 class ScoreRequestError extends Error {
@@ -66,11 +70,17 @@ function failureFrom(status: number, payload: unknown): ScoreFailure {
   };
 }
 
+function creditsFrom(payload: unknown): number | undefined {
+  if (!payload || typeof payload !== "object") return undefined;
+  const value = (payload as { credits_remaining?: unknown }).credits_remaining;
+  return typeof value === "number" ? value : undefined;
+}
+
 function outcomeFrom(ok: boolean, status: number, payload: unknown): ScoreRequestOutcome {
   const incomplete = parseIncompleteCoverage(payload);
   if (incomplete) return { kind: "coverage", result: incomplete };
   if (!ok) throw new ScoreRequestError(failureFrom(status, payload));
-  return { kind: "scored", result: requireScorableResult(payload as IntentScore) };
+  return { kind: "scored", result: requireScorableResult(payload as IntentScore), creditsRemaining: creditsFrom(payload) };
 }
 
 /**
@@ -128,10 +138,14 @@ function toolsOf(message: ThreadMessage): ToolChip[] {
 }
 
 export function ScoreView(props: ScoreViewProps) {
-  const { creditsRemaining, recentScores } = props;
+  const { creditsRemaining, recentScores, onboardingComplete } = props;
+  const setCreditsRemaining = useSetCreditsRemaining();
+  const sidebar = useOptionalSidebar();
   const searchParams = useSearchParams();
   const autoScoredRef = useRef<string | null>(null);
   const resetWorkspaceRef = useRef<() => void>(() => {});
+  const sidebarRef = useRef(sidebar);
+  sidebarRef.current = sidebar;
   const [messages, setMessages] = useState<ThreadMessage[]>([]);
   const [busy, setBusy] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -164,6 +178,27 @@ export function ScoreView(props: ScoreViewProps) {
   }
 
   resetWorkspaceRef.current = resetWorkspace;
+
+  useEffect(() => {
+    let stop = () => {};
+    const openChat = () => {
+      stop();
+      stop = runScoreChatFocus(document, () => {
+        const nav = sidebarRef.current;
+        if (nav?.openMobile) nav.setOpenMobile(false);
+      });
+    };
+    openChat();
+    window.addEventListener("hashchange", openChat);
+    window.addEventListener(SCORE_CHAT_EVENT, openChat);
+    window.addEventListener("pageshow", openChat);
+    return () => {
+      stop();
+      window.removeEventListener("hashchange", openChat);
+      window.removeEventListener(SCORE_CHAT_EVENT, openChat);
+      window.removeEventListener("pageshow", openChat);
+    };
+  }, []);
 
   useEffect(() => {
     const openThreads = () => setThreadsOpen(true);
@@ -201,6 +236,7 @@ export function ScoreView(props: ScoreViewProps) {
         return;
       }
       const result = outcome.result;
+      if (typeof outcome.creditsRemaining === "number") setCreditsRemaining(outcome.creditsRemaining);
       const blocks = workspaceFromScore(result);
       const billing = billingLabel(result);
       setMessages((current) => current.map((message) => message.id === thinkingId ? { id: thinkingId, role: "assistant", kind: "ui", blocks, content: "", tools: [], billing } : message));
@@ -271,6 +307,9 @@ export function ScoreView(props: ScoreViewProps) {
         pendingSeedRef.current = null;
       }
       const nextSession = await streamChat({ message: text, session_id: activeSession ?? undefined }, (event) => {
+        if (event.type === "done" && typeof event.credits_remaining === "number") {
+          setCreditsRemaining(event.credits_remaining);
+        }
         setMessages((currentMessages) => currentMessages.map((message) => {
           if (message.id !== thinkingId) return message;
           if (event.type === "text") {
@@ -393,6 +432,7 @@ export function ScoreView(props: ScoreViewProps) {
           </ShellPanel>
         ) : null}
       </div>
+      <ScoreTour onboardingComplete={onboardingComplete} />
     </>
   );
 }

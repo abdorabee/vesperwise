@@ -9,6 +9,7 @@ import {
   type SearchNavItem,
   type SearchResultItem,
 } from "@/lib/dashboard-search";
+import { followScoreChatLink, followScoreLink } from "@/lib/score-chat";
 
 interface SearchPaletteProps {
   open: boolean;
@@ -153,7 +154,13 @@ export function SearchPalette({ open, onOpenChange }: SearchPaletteProps) {
       setRemote(EMPTY);
       setActiveIndex(0);
       onOpenChange(false);
-      router.push(row.type === "page" ? row.item.href : row.item.href);
+      const href = row.item.href;
+      let handled = false;
+      const event = { preventDefault() { handled = true; } };
+      if (href === "/score#chat") followScoreChatLink(event);
+      else if (href === "/score") followScoreLink(event);
+      if (handled) return;
+      router.push(href);
     },
     [onOpenChange, router],
   );

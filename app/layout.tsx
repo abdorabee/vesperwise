@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
 import { GoogleAnalytics } from "@/components/google-analytics";
 import { CookieBanner } from "@/components/cookie-banner";
+import { STARTING_PRICE } from "@/lib/plan-features";
 import "./globals.css";
 import "./theme-overrides.css";
 import "./shell.css";
@@ -62,7 +63,7 @@ export const metadata: Metadata = {
     title: "VesperWise — B2B Buyer Intent Signals for SMB Sales Teams",
     description:
       "Track hiring spikes, funding rounds, tech stack changes, and news mentions. " +
-      "Surface companies ready to buy before your competitors do. From $29/mo.",
+      `Surface companies ready to buy before your competitors do. From $${STARTING_PRICE}/mo.`,
     images: [
       {
         url: "/opengraph-image",
@@ -128,7 +129,7 @@ export default function RootLayout({
         <head>
           <script
             dangerouslySetInnerHTML={{
-              __html: `(function(){try{var t=localStorage.getItem('intentiq-theme');var d=document.documentElement;if(t==='light'){d.classList.remove('dark');}else{d.classList.add('dark');}}catch(e){}})();`,
+              __html: `(function(){try{var t=localStorage.getItem('intentiq-theme');var d=document.documentElement;if(t==='light'){d.classList.remove('dark');}else{d.classList.add('dark');}}catch(e){}})();try{var h=location.hash;var s=location.search;if(h==='#chat'||/(?:%23|#)chat/.test(s)){sessionStorage.setItem('vesperwise-open-chat','1');}}catch(e){}`,
             }}
           />
         </head>
