@@ -1,7 +1,10 @@
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
-import { PDF_MAX_PAGES, PDF_TOO_MANY_PAGES_MESSAGE, PDF_UNREADABLE_MESSAGE } from "./onboarding-pdf";
+import { extractProfileFromPdfText, PDF_MAX_PAGES, PDF_TOO_MANY_PAGES_MESSAGE, PDF_UNREADABLE_MESSAGE } from "./onboarding-pdf";
 import { readPdfDocument, wipePdfBytes } from "./onboarding-pdf-read";
 
 const clerkAuth = vi.fn(async (): Promise<{ userId: string | null }> => ({ userId: "user_pdf" }));
@@ -152,6 +155,23 @@ describe("POST /api/onboarding/pdf with a real PDF", () => {
     const body = await accepted.json();
     expect(body.discarded).toBe(true);
     expect(body.profile.product_category).toBe("SaaS / Software");
+  });
+
+  it("maps the QA 5-page ICP brief from the uploaded PDF", async () => {
+    const bytes = new Uint8Array(
+      readFileSync(join(dirname(fileURLToPath(import.meta.url)), "fixtures/icp-realistic-5pages.pdf"))
+    );
+    const parsed = await readPdfDocument(bytes);
+    expect(parsed.pageCount).toBe(5);
+    const { profile } = extractProfileFromPdfText(parsed.text);
+    expect(profile.workspace_name).toBe("Northwind Signal");
+    expect(profile.product_category).toBe("Revenue intelligence");
+    expect(profile.target_industries).toEqual(["Technology"]);
+    expect(profile.company_size).toBe("Mid-Market (201-1000)");
+    expect(profile.deal_size).toBe("$25K - $100K");
+    expect(profile.tech_stack_include).toEqual(
+      expect.arrayContaining(["Salesforce", "Slack", "dbt", "Segment", "Next.js", "Python"])
+    );
   });
 
   it("does not reserve a read for three non-PDF uploads", async () => {

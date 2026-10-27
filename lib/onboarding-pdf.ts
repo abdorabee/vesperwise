@@ -1,7 +1,8 @@
-import { normalizeDomainInput } from "./business-profile";
+import { normalizeDomainInput, WORKSPACE_NAME_MAX } from "./business-profile";
 import {
   guardPdfProfile,
   PDF_TECH_TOOLS,
+  safePdfLabel,
   type PdfFillableField,
   type PdfOptionSets,
 } from "./onboarding-pdf-guards";
@@ -17,18 +18,25 @@ import {
 } from "./onboarding-profile";
 import type { BusinessProfile } from "./types";
 
-export const PDF_MAX_BYTES = 10 * 1024 * 1024;
+/** Vercel rejects the multipart body at ~4.5 MB, so 4 MB is the honest file cap. */
+export const PDF_MAX_BYTES = 4 * 1024 * 1024;
 export const PDF_MAX_PAGES = 20;
 /** Below this much real text, the file is treated as a scan or an empty deck. */
 export const PDF_MIN_TEXT_CHARS = 40;
+export const PDF_MAX_STACK_TOOLS = 12;
 
 export const PDF_UNREADABLE_MESSAGE = "We couldn't read this PDF. Fill it in manually.";
-export const PDF_TOO_LARGE_MESSAGE = "PDFs must be 10 MB or smaller.";
+export const PDF_TOO_LARGE_MESSAGE = "PDFs must be 4 MB or smaller.";
 export const PDF_TOO_MANY_PAGES_MESSAGE = "PDFs must be 20 pages or fewer.";
 export const PDF_NOT_PDF_MESSAGE = "Upload a text PDF.";
 export const PDF_RATE_LIMIT_MESSAGE = "You've read too many PDFs. Try again later.";
 export const PDF_DISCARD_NOTE =
-  "Text PDFs only, up to 10 MB and 20 pages. We discard the file after reading it and don't store it.";
+  "Text PDFs only, up to 4 MB and 20 pages. We discard the file after reading it and don't store it.";
+
+/** True when the browser must refuse the file before opening a request. */
+export function clientPdfTooLarge(size: number): boolean {
+  return size > PDF_MAX_BYTES;
+}
 
 export interface PdfUploadFailure {
   status: number;
@@ -64,6 +72,9 @@ const BUYER_RE = /\b(primary buyer|buyer is|buyers are|sell to|selling to|decisi
 const DEAL_RE = /\b(deal size|acv|contract value|average deal|typical deal|annual contract)\b/i;
 const FUNDING_RE = /\b(raised|funding|series\s+[a-e]\b|valuation)\b/i;
 const CYCLE_RE = /\b(sales cycle|cycle is|time to close|closes in)\b/i;
+const SIZE_HINT_RE = /\b(company size|employees?|headcount|mid[- ]?market|\bsmb\b|startups?)\b/i;
+const PRODUCT_LABEL_RE = /(?:product category|what we sell|what you sell)\s*:\s*(.+)$/i;
+const COMPANY_LABEL_RE = /^Company:\s*(.+)$/i;
 const GEO_RE = /\b(we sell in|customers in|target market|geograph\w*|regions?|markets include|we serve)\b/i;
 const STACK_IN_RE = /\b(tech stack|their stack|stack includes|customers use|they use|runs on|built on|already use|already run)\b/i;
 const STACK_OUT_RE = /\b(exclude|excluding|disqualif\w*|not a fit|do not use|don't use|does not use)\b/i;
@@ -92,8 +103,15 @@ const SIZE_CHOICES: Choice[] = [
 ];
 
 const INDUSTRY_CHOICES: Choice[] = [
-  { value: "Technology", pattern: /\b(technology companies|tech companies|technology)\b/i },
-  { value: "Financial Services", pattern: /\b(financial services|fintech|banking|banks)\b/i },
+  {
+    value: "Technology",
+    pattern:
+      /\b(technology companies|tech companies|technology|b2b saas|b2b software|software companies|cybersecurity|developer tools|hr tech|fintech software)\b/i,
+  },
+  {
+    value: "Financial Services",
+    pattern: /\b(financial services|banking|banks)\b|\bfintech\b(?!\s+software)/i,
+  },
   { value: "Healthcare", pattern: /\b(healthcare|health care|hospitals?)\b/i },
   { value: "E-commerce / Retail", pattern: /\b(e-?commerce|retail)\b/i },
   { value: "Manufacturing", pattern: /\b(manufacturing|manufacturers)\b/i },
@@ -130,7 +148,9 @@ const TOOL_CHOICES: Choice[] = PDF_TECH_TOOLS.map((tool) => ({
       ? /\bAWS\b|\bAmazon Web Services\b/i
       : tool === "PostgreSQL"
         ? /\bPostgreSQL\b|\bPostgres\b/i
-        : new RegExp(`\\b${tool.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i"),
+        : tool === "Next.js"
+          ? /\bNext\.js\b|\bNextjs\b/i
+          : new RegExp(`\\b${tool.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i"),
 }));
 
 const NUMBER_WORDS: Record<string, number> = {
@@ -185,6 +205,7 @@ function sentencesOf(text: string): string[] {
     .replace(/[\u201C\u201D]/g, '"')
     .replace(/[\u2013\u2014]/g, "-")
     .replace(/\r\n/g, "\n")
+    .replace(/,\n+/g, ", ")
     .split(/\n+|(?<=[.!?])\s+/)
     .map((sentence) => sentence.replace(/[^\S\n]+/g, " ").trim())
     .filter(Boolean);
@@ -296,17 +317,41 @@ function uniqueCycle(sentences: string[]): string {
   return ranked[0][0];
 }
 
+function scaleMoney(amount: number, unit: string): number {
+  const name = unit.toLowerCase();
+  if (name === "k" || name === "thousand") return amount * 1_000;
+  if (name === "m" || name === "million") return amount * 1_000_000;
+  return amount;
+}
+
+function pushMoney(values: number[], raw: string, unit = ""): void {
+  const amount = Number(raw.replace(/,/g, ""));
+  if (!Number.isFinite(amount)) return;
+  const scaled = scaleMoney(amount, unit);
+  if (scaled > 0 && scaled <= 5_000_000 && !values.includes(scaled)) values.push(scaled);
+}
+
 function moneyValues(sentence: string): number[] {
   const values: number[] = [];
-  const pattern = /\$\s*(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)\s*(k|m|thousand|million)?\b/gi;
+  const marked =
+    /\$\s*(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)\s*(k|m|thousand|million)?\b|(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)\s*(k|m|thousand|million)\b|(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)\s*(usd|dollars?)\b/gi;
   let match: RegExpExecArray | null;
-  while ((match = pattern.exec(sentence))) {
-    const amount = Number(match[1].replace(/,/g, ""));
-    if (!Number.isFinite(amount)) continue;
-    const unit = (match[2] ?? "").toLowerCase();
-    const scaled =
-      unit === "k" || unit === "thousand" ? amount * 1_000 : unit === "m" || unit === "million" ? amount * 1_000_000 : amount;
-    if (scaled > 0 && scaled <= 5_000_000) values.push(scaled);
+  while ((match = marked.exec(sentence))) {
+    if (match[1]) pushMoney(values, match[1], match[2] ?? "");
+    else if (match[3]) pushMoney(values, match[3], match[4] ?? "");
+    else if (match[5]) pushMoney(values, match[5]);
+  }
+  if (values.length > 0) {
+    const range = /(\d{1,3}(?:,\d{3})+)\s*(?:-|to)\s*(\d{1,3}(?:,\d{3})+)\s*(usd|dollars?)?/i.exec(sentence);
+    if (range) {
+      pushMoney(values, range[1]);
+      pushMoney(values, range[2]);
+    }
+    return values;
+  }
+  const bare = /(\d{1,3}(?:,\d{3})+)\b(?!\s*(?:employees?|people|percent|days?|reps?))/gi;
+  while ((match = bare.exec(sentence))) {
+    pushMoney(values, match[1]);
   }
   return values;
 }
@@ -324,6 +369,96 @@ function dealFromAmounts(amounts: number[]): string {
     if (min < 25_000) return "$5K - $25K";
     if (min < 100_000) return "$25K - $100K";
     return "$100K+";
+  }
+  return "";
+}
+
+function employeeRange(sentence: string): { min: number; max: number } | null {
+  const range =
+    /(\d{1,3}(?:,\d{3})+|\d+)\s*(?:-|to)\s*(\d{1,3}(?:,\d{3})+|\d+)\s*(?:employees?|people|staff)\b/i.exec(
+      sentence
+    );
+  if (range) {
+    const start = Number(range[1].replace(/,/g, ""));
+    const end = Number(range[2].replace(/,/g, ""));
+    if (!Number.isFinite(start) || !Number.isFinite(end)) return null;
+    return { min: Math.min(start, end), max: Math.max(start, end) };
+  }
+  const plus = /(\d{1,3}(?:,\d{3})+|\d+)\s*\+\s*(?:employees?|people|staff)\b/i.exec(sentence);
+  if (!plus) return null;
+  const min = Number(plus[1].replace(/,/g, ""));
+  if (!Number.isFinite(min)) return null;
+  return { min, max: min };
+}
+
+function sizeFromEmployees(range: { min: number; max: number }): string {
+  if (range.min >= 1000) return "Enterprise (1000+)";
+  const mid = (range.min + range.max) / 2;
+  if (mid <= 50) return "Startups (1-50)";
+  if (mid <= 200) return "SMB (51-200)";
+  if (mid <= 1000) return "Mid-Market (201-1000)";
+  return "Enterprise (1000+)";
+}
+
+function sellerOnly(sentence: string): boolean {
+  return SELF_RE.test(sentence) && !TARGET_RE.test(sentence);
+}
+
+function pickSize(sentences: string[]): string {
+  const counts = new Map<string, number>();
+  for (const sentence of sentences) {
+    if (!usable(sentence) || sellerOnly(sentence)) continue;
+    if (!TARGET_RE.test(sentence) && !SIZE_HINT_RE.test(sentence)) continue;
+    const employees = employeeRange(sentence);
+    const labeled = matches(sentence, SIZE_CHOICES);
+    const option = employees
+      ? sizeFromEmployees(employees)
+      : labeled.length === 1
+        ? labeled[0]
+        : "";
+    if (!option) continue;
+    counts.set(option, (counts.get(option) ?? 0) + 1);
+  }
+  const ranked = [...counts.entries()].sort((a, b) => b[1] - a[1]);
+  if (ranked.length === 0) return "";
+  if (ranked.length > 1 && ranked[0][1] === ranked[1][1]) return "";
+  return ranked[0][0];
+}
+
+function stripLegalSuffix(name: string): string {
+  return name.replace(/\s*,?\s*(Ltd\.?|Limited|Inc\.?|LLC|Corp\.?|Corporation)\s*$/i, "").trim();
+}
+
+function pickWorkspaceName(sentences: string[]): string {
+  for (const sentence of sentences) {
+    if (!usable(sentence)) continue;
+    const labeled = COMPANY_LABEL_RE.exec(sentence);
+    if (!labeled) continue;
+    const name = stripLegalSuffix(labeled[1].split(/\s+is\s+/i)[0] ?? "");
+    const safe = safePdfLabel(name, WORKSPACE_NAME_MAX);
+    if (safe) return safe;
+  }
+  const first = sentences[0];
+  if (!first || !usable(first)) return "";
+  const titled = /^([A-Z][A-Za-z0-9 .,&']+?)\s+[-–:]\s+/.exec(first);
+  if (titled) {
+    const safe = safePdfLabel(stripLegalSuffix(titled[1]), WORKSPACE_NAME_MAX);
+    if (safe) return safe;
+  }
+  if (first.split(/\s+/).length <= 6 && !TARGET_RE.test(first) && !PRODUCT_RE.test(first)) {
+    return safePdfLabel(stripLegalSuffix(first), WORKSPACE_NAME_MAX);
+  }
+  return "";
+}
+
+function pickProductPhrase(sentences: string[]): string {
+  for (const sentence of sentences) {
+    if (!usable(sentence)) continue;
+    const labeled = PRODUCT_LABEL_RE.exec(sentence);
+    if (!labeled) continue;
+    const first = (labeled[1] ?? "").split(/[/]|Core modules/i)[0]?.trim() ?? "";
+    const safe = safePdfLabel(first, 80);
+    if (safe) return safe;
   }
   return "";
 }
@@ -368,7 +503,12 @@ export function extractProfileFromPdfText(
   const sentences = sentencesOf(text);
   const draft: Partial<BusinessProfile> = {};
 
-  const product = pickOne(sentences, PRODUCT_CHOICES, (sentence) => usable(sentence) && (PRODUCT_RE.test(sentence) || SELF_RE.test(sentence)));
+  const workspace = pickWorkspaceName(sentences);
+  if (workspace) draft.workspace_name = workspace;
+
+  const product =
+    pickProductPhrase(sentences) ||
+    pickOne(sentences, PRODUCT_CHOICES, (sentence) => usable(sentence) && (PRODUCT_RE.test(sentence) || SELF_RE.test(sentence)));
   if (product) draft.product_category = product;
 
   const industries = pickMany(
@@ -382,18 +522,16 @@ export function extractProfileFromPdfText(
   );
   if (industries.length > 0) draft.target_industries = industries;
 
-  const companySize = pickOne(
-    sentences,
-    SIZE_CHOICES,
-    (sentence) => usable(sentence) && TARGET_RE.test(sentence)
-  );
+  const companySize = pickSize(sentences);
   if (companySize) draft.company_size = companySize;
 
-  const buyer = pickOne(
-    sentences,
-    BUYER_CHOICES,
-    (sentence) => usable(sentence) && (BUYER_RE.test(sentence) || TARGET_RE.test(sentence))
-  );
+  const buyer =
+    pickOne(sentences, BUYER_CHOICES, (sentence) => usable(sentence) && /\bprimary buyer\b/i.test(sentence)) ||
+    pickOne(
+      sentences,
+      BUYER_CHOICES,
+      (sentence) => usable(sentence) && (BUYER_RE.test(sentence) || TARGET_RE.test(sentence))
+    );
   if (buyer) draft.buyer_role = buyer;
 
   const motion = pickOne(
@@ -422,8 +560,8 @@ export function extractProfileFromPdfText(
     (sentence) => usable(sentence) && STACK_IN_RE.test(sentence) && !STACK_OUT_RE.test(sentence)
   );
   const excludeTools = pickMany(sentences, TOOL_CHOICES, (sentence) => usable(sentence) && STACK_OUT_RE.test(sentence));
-  if (include.length > 0) draft.tech_stack_include = include.slice(0, 8);
-  if (excludeTools.length > 0) draft.tech_stack_exclude = excludeTools.slice(0, 8);
+  if (include.length > 0) draft.tech_stack_include = include.slice(0, PDF_MAX_STACK_TOOLS);
+  if (excludeTools.length > 0) draft.tech_stack_exclude = excludeTools.slice(0, PDF_MAX_STACK_TOOLS);
 
   const seeds = customerDomains(sentences);
   if (seeds.length > 0) draft.seed_domains = seeds;

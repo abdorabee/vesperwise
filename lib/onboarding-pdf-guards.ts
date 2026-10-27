@@ -1,11 +1,19 @@
-import { cleanDomainList, cleanStringList, DOMAIN_PATTERN } from "./business-profile";
+import {
+  cleanDomainList,
+  cleanStringList,
+  cleanText,
+  DOMAIN_PATTERN,
+  WORKSPACE_NAME_MAX,
+} from "./business-profile";
 import type { BusinessProfile } from "./types";
 
 /**
- * Profile keys a PDF may fill. Workspace name is the account's, never the file's.
- * Every value is checked against an allowlist before it can reach the wizard.
+ * Profile keys a PDF may fill. Closed lists stay on the wizard allowlist.
+ * Workspace name and a short "what you sell" phrase may come from the file
+ * only after they pass `safePdfLabel`.
  */
 export const PDF_FILLABLE_FIELDS = [
+  "workspace_name",
   "product_category",
   "target_industries",
   "company_size",
@@ -18,6 +26,20 @@ export const PDF_FILLABLE_FIELDS = [
   "tech_stack_exclude",
   "seed_domains",
 ] as const;
+
+const PDF_LABEL_RE = /^[A-Za-z][A-Za-z0-9 /.&'+-]*$/;
+const PDF_PRODUCT_MAX = 80;
+const PDF_INJECTION_RE =
+  /ignore (all |any |the )?(previous|prior|above|these)|disregard (the )?(rules|instructions|prompt)|\b(system prompt|jailbreak|do not follow|you are now|act as|new instructions|leak the)\b|^\s*(system|assistant)\s*:/i;
+
+/** Letters, spaces, and a few name marks. Instructions and punctuation do not pass. */
+export function safePdfLabel(value: unknown, max: number): string {
+  const cleaned = cleanText(value).replace(/\s+/g, " ");
+  if (!cleaned || cleaned.length > max) return "";
+  if (!PDF_LABEL_RE.test(cleaned)) return "";
+  if (PDF_INJECTION_RE.test(cleaned)) return "";
+  return cleaned;
+}
 
 export type PdfFillableField = (typeof PDF_FILLABLE_FIELDS)[number];
 
@@ -69,6 +91,10 @@ export const PDF_TECH_TOOLS = [
   "GitLab",
   "AWS",
   "Azure",
+  "dbt",
+  "Segment",
+  "Next.js",
+  "Python",
 ] as const;
 
 const TECH_BY_KEY = new Map(PDF_TECH_TOOLS.map((tool) => [tool.toLocaleLowerCase(), tool]));
@@ -236,7 +262,15 @@ export function guardPdfProfile(
   const profile: Partial<BusinessProfile> = {};
   const filled: PdfFillableField[] = [];
 
-  const product = exactOption(options.productCategory, source.product_category);
+  const workspace = safePdfLabel(source.workspace_name, WORKSPACE_NAME_MAX);
+  if (workspace) {
+    profile.workspace_name = workspace;
+    filled.push("workspace_name");
+  }
+
+  const product =
+    exactOption(options.productCategory, source.product_category) ||
+    safePdfLabel(source.product_category, PDF_PRODUCT_MAX);
   if (product) {
     profile.product_category = product;
     filled.push("product_category");

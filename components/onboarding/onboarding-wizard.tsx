@@ -12,7 +12,7 @@ import { SignalSourcesScreen } from "@/components/onboarding/screens/signal-sour
 import { WorkspaceSetupScreen } from "@/components/onboarding/screens/workspace-setup-screen";
 import { OnboardingFooter, OnboardingShell, PrimaryButton, SecondaryButton } from "@/components/onboarding/onboarding-shell";
 import { scoredAccountsFromEntries, topDriver, type ScoredAccount } from "@/components/onboarding/results-shared";
-import { PDF_MAX_BYTES, PDF_TOO_LARGE_MESSAGE } from "@/lib/onboarding-pdf";
+import { clientPdfTooLarge, PDF_TOO_LARGE_MESSAGE } from "@/lib/onboarding-pdf";
 import { useScoringRun } from "@/lib/onboarding-run";
 import { summarizeRun } from "@/lib/onboarding-run-summary";
 import {
@@ -116,7 +116,7 @@ export default function OnboardingWizard({
       setPdfNotice("Sign in to upload a PDF.");
       return;
     }
-    if (file.size > PDF_MAX_BYTES) {
+    if (clientPdfTooLarge(file.size)) {
       setPdfNotice(PDF_TOO_LARGE_MESSAGE);
       return;
     }
@@ -238,6 +238,7 @@ export default function OnboardingWizard({
         errors={errors}
         onUpdateField={updateField}
         pdfProductFilled={Boolean(pdfFilled.product_category)}
+        pdfWorkspaceFilled={Boolean(pdfFilled.workspace_name)}
         pdfNotice={pdfNotice}
         pdfReading={pdfReading}
         readOnlyPreview={readOnlyPreview}
