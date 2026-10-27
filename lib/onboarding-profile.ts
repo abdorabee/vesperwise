@@ -48,7 +48,7 @@ export const COMPANY_SIZE_OPTIONS = [
 export const COMPANY_SIZE_LABELS: Record<string, string> = {
   "Startups (1-50)": "Startups 1–50",
   "SMB (51-200)": "SMB 51–200",
-  "Mid-Market (201-1000)": "Mid-Market 201–1,000",
+  "Mid-Market (201-1000)": "Mid-Market 100–1,000",
   "Enterprise (1000+)": "Enterprise 1,000+",
 };
 
@@ -132,7 +132,7 @@ export type OnboardingAction =
   | { type: "set_tech_stack_include"; tools: string[] }
   | { type: "set_tech_stack_exclude"; tools: string[] }
   | { type: "set_seed_domains"; domains: string[] }
-  | { type: "apply_pdf_profile"; profile: Partial<BusinessProfile> }
+  | { type: "apply_pdf_profile"; profile: Partial<BusinessProfile>; email?: string | null }
   | { type: "next_step" }
   | { type: "previous_step" }
   | { type: "go_to_step"; step: number }
@@ -198,6 +198,14 @@ function fieldIsBlank(profile: BusinessProfile, field: PdfFillableField): boolea
   const value = profile[field];
   if (Array.isArray(value)) return value.length === 0;
   return !cleanText(value);
+}
+
+/** True when Workspace still holds the email local-part we prefilled, not a name the user chose. */
+export function isEmailDerivedWorkspaceName(value: string | null | undefined, email?: string | null): boolean {
+  const name = cleanText(value);
+  if (!name) return true;
+  const local = email?.split("@")[0]?.trim();
+  return Boolean(local && name === local);
 }
 
 export function buildBusinessProfile(
@@ -375,7 +383,11 @@ export function onboardingReducer(
       let profile = state.profile;
       const pdfFilled: PdfFilledMap = { ...state.pdfFilled };
       for (const field of guarded.filled) {
-        if (!fieldIsBlank(state.profile, field)) continue;
+        const blank =
+          field === "workspace_name"
+            ? isEmailDerivedWorkspaceName(state.profile.workspace_name, action.email)
+            : fieldIsBlank(state.profile, field);
+        if (!blank) continue;
         const value = guarded.profile[field];
         if (value === undefined) continue;
         profile = { ...profile, [field]: value };

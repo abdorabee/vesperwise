@@ -32,7 +32,7 @@ describe("score chat hash", () => {
     field.scrollIntoView = scroll;
 
     expect(focusScoreChat(document)).toBe(true);
-    expect(scroll).toHaveBeenCalledWith({ block: "center", inline: "nearest", behavior: "auto" });
+    expect(scroll).toHaveBeenCalledWith({ block: "nearest", inline: "nearest", behavior: "auto" });
     expect(focus).toHaveBeenCalledWith({ preventScroll: true });
   });
 
@@ -125,10 +125,28 @@ describe("score chat hash", () => {
     document.body.innerHTML = "";
     const stop = runScoreChatFocus(document);
     expect(focusScoreChat(document)).toBe(false);
-    document.body.innerHTML = `<div id="chat"><textarea></textarea></div>`;
+    document.body.innerHTML = `<div id="chat"><textarea placeholder="Enter a company domain"></textarea></div>`;
     const field = document.querySelector("textarea") as HTMLTextAreaElement;
     const focus = vi.spyOn(field, "focus");
     await vi.waitFor(() => expect(focus).toHaveBeenCalledWith({ preventScroll: true }));
+    stop();
+  });
+
+  it("refocuses the composer until activeElement is the domain field", async () => {
+    window.history.pushState(null, "", "/score#chat");
+    captureScoreChatFromLocation();
+    document.body.innerHTML = `
+      <div id="chat"><textarea placeholder="Enter a company domain"></textarea></div>
+      <button id="thief" type="button">steal</button>
+    `;
+    const field = document.querySelector("textarea") as HTMLTextAreaElement;
+    const thief = document.getElementById("thief") as HTMLButtonElement;
+    const stop = runScoreChatFocus(document);
+    await vi.waitFor(() => expect(document.activeElement).toBe(field));
+    thief.focus();
+    await vi.waitFor(() => {
+      expect(document.activeElement?.matches('[placeholder="Enter a company domain"]')).toBe(true);
+    });
     stop();
   });
 });

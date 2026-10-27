@@ -32,7 +32,7 @@ function RecentScores({ rows, onOpen, busy }: { rows: RecentScoreRow[]; onOpen: 
         <h2 id="recent-scores-title" className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Recent</h2>
         <span className="text-xs text-muted-foreground">Opens the stored result · no credit</span>
       </div>
-      <ul className="mt-2 divide-y divide-border/60 overflow-hidden rounded-lg border border-border/70">
+      <ul data-tour="result" className="mt-2 divide-y divide-border/60 overflow-hidden rounded-lg border border-border/70">
         {unique.map((row) => (
           <li key={row.domain}>
             <button
@@ -72,7 +72,7 @@ export function ScoreEmptyState({
 }) {
   return (
     <div className="mx-auto flex min-h-[calc(100svh-7rem)] w-full max-w-xl flex-1 flex-col items-center justify-center py-10 text-center">
-      <div data-tour="result" className="flex flex-col items-center">
+      <div className="flex flex-col items-center">
         <div className="score-bloub score-bloub-waiting mb-5 text-primary" aria-label="Bloub is waiting">
           <BloubMascot size={38} color="currentColor" paper="transparent" follow={false} playing={false} />
         </div>

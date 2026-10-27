@@ -136,7 +136,7 @@ export default function OnboardingWizard({
         setPdfNotice(payload?.message ?? "We couldn't read this PDF. Fill it in manually.");
         return;
       }
-      dispatch({ type: "apply_pdf_profile", profile: payload?.profile ?? {} });
+      dispatch({ type: "apply_pdf_profile", profile: payload?.profile ?? {}, email });
       setPdfNotice(
         (payload?.filled?.length ?? 0) > 0
           ? "Filled from your PDF. Review each answer before you continue. The file was discarded and isn't stored."
