@@ -21,6 +21,7 @@ export function WorkspaceSetupScreen({
   errors,
   onUpdateField,
   pdfProductFilled = false,
+  pdfWorkspaceFilled = false,
   pdfNotice = null,
   pdfReading = false,
   readOnlyPreview = false,
@@ -31,6 +32,7 @@ export function WorkspaceSetupScreen({
   errors: OnboardingFieldErrors;
   onUpdateField: (field: "workspace_name" | "product_category", value: string) => void;
   pdfProductFilled?: boolean;
+  pdfWorkspaceFilled?: boolean;
   pdfNotice?: string | null;
   pdfReading?: boolean;
   readOnlyPreview?: boolean;
@@ -92,8 +94,9 @@ export function WorkspaceSetupScreen({
             </div>
 
             <div>
-              <label htmlFor="workspace-name" className="block font-mono text-[11px] uppercase tracking-[0.07em] text-[#666]">
+              <label htmlFor="workspace-name" className="flex items-baseline gap-2 font-mono text-[11px] uppercase tracking-[0.07em] text-[#666]">
                 Workspace
+                {pdfWorkspaceFilled && <PdfFilledTag />}
               </label>
               <input
                 id="workspace-name"

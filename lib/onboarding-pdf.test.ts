@@ -1,12 +1,14 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  clientPdfTooLarge,
   extractProfileFromPdfText,
   hasReadableText,
   looksLikePdf,
   pdfUploadFailure,
   PDF_MAX_BYTES,
   PDF_MAX_PAGES,
+  PDF_TOO_LARGE_MESSAGE,
   PDF_UNREADABLE_MESSAGE,
 } from "./onboarding-pdf";
 
@@ -27,6 +29,19 @@ We are a startup founded in Germany.
 Visit our website at acme.com.
 `;
 
+const REALISTIC_ICP = `
+Northwind Signal - Ideal Customer Profile & Go-To-Market Brief
+Company: Northwind Signal Ltd. is a 38-person B2B SaaS company based in Austin, Texas, founded in 2021.
+We sell Northwind Pulse, a revenue-operations analytics platform that unifies CRM, billing and product-usage data for mid-market software companies.
+Product category: Revenue intelligence / RevOps analytics. Core modules: pipeline forecasting, churn-risk scoring, expansion-signal alerts and a board-ready reporting layer.
+Tech stack and integrations: Salesforce, HubSpot, Snowflake, BigQuery, dbt, Segment, Stripe, Slack. Built on Next.js, Postgres and Python; SOC 2 Type II certified.
+Primary buyer: VP of Revenue Operations or Head of Sales Operations at a B2B software company with 100 to 1,000 employees and 20 to 150 quota-carrying reps.
+Secondary buyers: Chief Revenue Officer, VP Sales, Director of Customer Success. Economic buyer is the CRO; the champion is almost always RevOps.
+Industries: B2B SaaS, fintech software, cybersecurity vendors, HR tech and developer tools.
+Regions: United States, Canada and the United Kingdom first.
+Deal size: 30,000 to 90,000 USD annual contract value, 45 to 75 day sales cycle, pilot offered for 30 days.
+`;
+
 describe("extractProfileFromPdfText", () => {
   it("maps a pitch deck onto the wizard option sets and example-customer domains", () => {
     const { profile, filled } = extractProfileFromPdfText(PITCH, { excludeDomains: ["acme.com"] });
@@ -42,8 +57,9 @@ describe("extractProfileFromPdfText", () => {
     expect(profile.deal_size).toBe("$25K - $100K");
     expect(profile.sales_cycle).toBe("2-4 weeks");
     expect(profile.seed_domains).toEqual(["stripe.com", "notion.so", "linear.app"]);
-    expect(profile.workspace_name).toBeUndefined();
+    expect(profile.workspace_name).toBe("Acme Analytics");
     expect(filled).toEqual([
+      "workspace_name",
       "product_category",
       "target_industries",
       "company_size",
@@ -139,11 +155,45 @@ describe("extractProfileFromPdfText", () => {
     expect(profile.sales_cycle).toBe("< 2 weeks");
     expect(profile.sales_motion).toBe("Inbound (content/SEO/ads)");
   });
+
+  it("maps a realistic B2B SaaS ICP brief onto the wizard", () => {
+    const { profile } = extractProfileFromPdfText(REALISTIC_ICP);
+
+    expect(profile.workspace_name).toBe("Northwind Signal");
+    expect(profile.product_category).toBe("Revenue intelligence");
+    expect(profile.target_industries).toEqual(["Technology"]);
+    expect(profile.company_size).toBe("Mid-Market (201-1000)");
+    expect(profile.deal_size).toBe("$25K - $100K");
+    expect(profile.sales_cycle).toBe("1-3 months");
+    expect(profile.buyer_role).toBe("VP / Director");
+    expect(profile.geography).toEqual(["United States", "United Kingdom", "Canada"]);
+    expect(profile.tech_stack_include).toEqual([
+      "Salesforce",
+      "HubSpot",
+      "Snowflake",
+      "Slack",
+      "Stripe",
+      "BigQuery",
+      "dbt",
+      "Segment",
+      "PostgreSQL",
+      "Next.js",
+      "Python",
+    ]);
+  });
 });
 
 describe("pdfUploadFailure", () => {
-  it("rejects files over 10 MB before they are parsed", () => {
-    expect(pdfUploadFailure({ size: PDF_MAX_BYTES + 1 })).toMatchObject({ code: "too_large", status: 400 });
+  it("rejects files over 4 MB in the browser before a request is sent", () => {
+    expect(PDF_MAX_BYTES).toBe(4 * 1024 * 1024);
+    expect(clientPdfTooLarge(4.6 * 1024 * 1024)).toBe(true);
+    expect(clientPdfTooLarge(PDF_MAX_BYTES)).toBe(false);
+    expect(pdfUploadFailure({ size: PDF_MAX_BYTES + 1 })).toMatchObject({
+      code: "too_large",
+      status: 400,
+      message: PDF_TOO_LARGE_MESSAGE,
+    });
+    expect(PDF_TOO_LARGE_MESSAGE).toBe("PDFs must be 4 MB or smaller.");
     expect(pdfUploadFailure({ size: PDF_MAX_BYTES })).toBeNull();
   });
 
