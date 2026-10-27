@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { SCORE_CHAT_EVENT } from "@/lib/score-chat";
+import { SCORE_CHAT_EVENT, captureScoreChatFromLocation } from "@/lib/score-chat";
 
 /** Hash from the real URL. Next's client navigations do not emit hashchange. */
 export function useLocationHash() {
@@ -10,7 +10,10 @@ export function useLocationHash() {
   const [hash, setHash] = useState("");
 
   useEffect(() => {
-    const read = () => setHash(window.location.hash);
+    const read = () => {
+      captureScoreChatFromLocation();
+      setHash(window.location.hash);
+    };
     read();
     window.addEventListener("hashchange", read);
     window.addEventListener(SCORE_CHAT_EVENT, read);

@@ -250,7 +250,7 @@ describe("Score tour", () => {
     expect(overlapsComposer).toBe(false);
   });
 
-  it("skips Sidebar Chat on a phone when the only control is the threads button", () => {
+  it("skips Sidebar Chat on a phone when the only control is the threads button", async () => {
     window.innerWidth = 427;
     window.innerHeight = 720;
     render(
@@ -265,11 +265,14 @@ describe("Score tour", () => {
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 560));
+    });
     expect(screen.getByRole("heading", { name: "Done" }).textContent).toBe("Done");
     expect(document.querySelector("[data-slot='score-tour-ring']")).toBeNull();
   });
 
-  it("closes the nav drawer on the composer step and opens it to highlight Chat", () => {
+  it("closes the nav drawer on the composer step and opens it to highlight Chat", async () => {
     window.innerWidth = 427;
     window.innerHeight = 720;
     HTMLElement.prototype.getBoundingClientRect = function rectForTour() {
@@ -313,7 +316,85 @@ describe("Score tour", () => {
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
     expect(screen.getByRole("heading", { name: "Sidebar Chat" }).textContent).toBe("Sidebar Chat");
     expect(screen.getByTestId("drawer").textContent).toBe("open");
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 560));
+    });
     const ring = document.querySelector("[data-slot='score-tour-ring']") as HTMLElement;
     expect(ring.style.left).toBe("4px");
+  });
+
+  it("scrolls a phone result out from under the sticky header before highlighting it", () => {
+    window.innerWidth = 427;
+    window.innerHeight = 720;
+    let resultTop = 8;
+    HTMLElement.prototype.scrollIntoView = function scrollForTour() {
+      if (this.getAttribute("data-tour") === "result") resultTop = 88;
+    };
+    HTMLElement.prototype.getBoundingClientRect = function rectForTour() {
+      if (this.getAttribute("data-slot") === "site-header") return rect(0, 0, 427, 64);
+      const name = this.getAttribute("data-tour");
+      if (name === "composer") return rect(400, 16, 280, 64);
+      if (name === "credits") return rect(480, 16, 180, 28);
+      if (name === "result") return rect(resultTop, 16, 280, 80);
+      if (name === "chat") return rect(80, 8, 120, 32);
+      return originalRect.call(this);
+    };
+    render(
+      <div>
+        <header data-slot="site-header" className="sticky">Header</header>
+        <form data-tour="composer"><input aria-label="Company domain" /></form>
+        <p data-tour="credits">12 credits remaining</p>
+        <div data-tour="result">Which company should we score?</div>
+        <a data-tour="chat" href="/score#chat">Chat</a>
+        <ScoreTour onboardingComplete />
+      </div>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    expect(resultTop).toBe(88);
+    const ring = document.querySelector("[data-slot='score-tour-ring']") as HTMLElement;
+    expect(ring).toBeTruthy();
+    expect(Number.parseFloat(ring.style.top)).toBeGreaterThanOrEqual(64);
+  });
+
+  it("scrolls to the top on a phone when the result target is missing", () => {
+    window.innerWidth = 427;
+    window.innerHeight = 720;
+    render(
+      <div>
+        <div data-slot="page-container" data-testid="scroller" style={{ overflow: "auto", height: 400 }}>
+          <form data-tour="composer"><input aria-label="Company domain" /></form>
+          <p data-tour="credits">12 credits remaining</p>
+          <a data-tour="chat" href="/score#chat">Chat</a>
+        </div>
+        <ScoreTour onboardingComplete />
+      </div>,
+    );
+    const scroller = screen.getByTestId("scroller");
+    scroller.scrollTop = 240;
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    expect(scroller.scrollTop).toBe(0);
+    expect(document.querySelector("[data-slot='score-tour-ring']")).toBeNull();
+    expect(screen.getByRole("heading", { name: "Result" }).textContent).toBe("Result");
+  });
+
+  it("places the phone credit tooltip below the chip when there is room", () => {
+    window.innerWidth = 427;
+    window.innerHeight = 720;
+    HTMLElement.prototype.getBoundingClientRect = function rectForTour() {
+      const name = this.getAttribute("data-tour");
+      if (name === "composer") return rect(80, 16, 390, 64);
+      if (name === "credits") return rect(200, 40, 180, 28);
+      if (name === "result") return rect(20, 16, 390, 48);
+      if (name === "chat") return rect(80, 8, 120, 32);
+      return originalRect.call(this);
+    };
+    render(<Page />);
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    const dialog = screen.getByRole("dialog");
+    const top = Number.parseFloat(dialog.style.top);
+    expect(top).toBeGreaterThanOrEqual(200 + 28 + 8);
+    expect(top).toBeLessThan(200 + 28 + 20);
   });
 });

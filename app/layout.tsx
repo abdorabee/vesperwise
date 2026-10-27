@@ -129,7 +129,7 @@ export default function RootLayout({
         <head>
           <script
             dangerouslySetInnerHTML={{
-              __html: `(function(){try{var t=localStorage.getItem('intentiq-theme');var d=document.documentElement;if(t==='light'){d.classList.remove('dark');}else{d.classList.add('dark');}}catch(e){}})();`,
+              __html: `(function(){try{var t=localStorage.getItem('intentiq-theme');var d=document.documentElement;if(t==='light'){d.classList.remove('dark');}else{d.classList.add('dark');}}catch(e){}})();try{var h=location.hash;var s=location.search;if(h==='#chat'||/(?:%23|#)chat/.test(s)){sessionStorage.setItem('vesperwise-open-chat','1');}}catch(e){}`,
             }}
           />
         </head>

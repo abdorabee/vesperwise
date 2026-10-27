@@ -13,6 +13,9 @@ const CARD_EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
 const CARD_MOTION = `top 280ms ${CARD_EASE}, left 280ms ${CARD_EASE}`;
 const HOLE_PAD = 8;
 const CARD_GAP = 14;
+const PHONE_CARD_GAP = 12;
+const HEADER_GAP = 12;
+const DRAWER_WAIT_MS = 520;
 const MOBILE_MAX = 767;
 
 const STEPS = [
@@ -125,12 +128,37 @@ function isMobileWidth() {
   return window.innerWidth <= MOBILE_MAX;
 }
 
+function headerInset() {
+  const header = document.querySelector<HTMLElement>("[data-slot='site-header'], header.sticky");
+  if (header) {
+    const bottom = header.getBoundingClientRect().bottom;
+    if (bottom > 0) return bottom;
+  }
+  return 64;
+}
+
 function isOnScreen(node: HTMLElement) {
   const style = window.getComputedStyle(node);
   if (style.display === "none" || style.visibility === "hidden" || style.opacity === "0") return false;
   const rect = node.getBoundingClientRect();
   if (rect.width < 2 || rect.height < 2) return false;
   return rect.bottom > 0 && rect.right > 0 && rect.top < window.innerHeight && rect.left < window.innerWidth;
+}
+
+function isFullyVisible(node: HTMLElement, inset: number) {
+  if (!isOnScreen(node)) return false;
+  const rect = node.getBoundingClientRect();
+  return rect.top >= inset && rect.bottom <= window.innerHeight && rect.left >= 0 && rect.right <= window.innerWidth;
+}
+
+function scrollRoot() {
+  return document.querySelector<HTMLElement>("[data-slot='page-container']");
+}
+
+function scrollToTop() {
+  const root = scrollRoot();
+  if (root) root.scrollTop = 0;
+  else window.scrollTo(0, 0);
 }
 
 function isChatControl(node: HTMLElement) {
@@ -165,6 +193,15 @@ function visualOf(node: HTMLElement) {
 }
 
 function bringIntoView(node: HTMLElement) {
+  if (isMobileWidth()) {
+    const inset = headerInset() + HEADER_GAP;
+    if (isFullyVisible(node, inset)) return;
+    node.style.scrollMarginTop = `${inset}px`;
+    if (typeof node.scrollIntoView === "function") {
+      node.scrollIntoView({ block: "start", inline: "nearest", behavior: "auto" });
+    }
+    return;
+  }
   if (isOnScreen(node) && node.getBoundingClientRect().top >= 0 && node.getBoundingClientRect().bottom <= window.innerHeight) return;
   if (typeof node.scrollIntoView === "function") {
     node.scrollIntoView({ block: "center", inline: "nearest", behavior: "auto" });
@@ -179,7 +216,7 @@ function overlaps(a: Box, b: Box) {
   return a.left < b.left + b.width && a.left + a.width > b.left && a.top < b.top + b.height && a.top + a.height > b.top;
 }
 
-function placeCard(anchor: Box | null, card: { width: number; height: number }, reduced: boolean, reveal: boolean, avoid: Box[] = []): Placement {
+function placeCard(anchor: Box | null, card: { width: number; height: number }, reduced: boolean, reveal: boolean, avoid: Box[] = [], gap = CARD_GAP): Placement {
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
   const width = Math.min(288, Math.max(220, viewportWidth - 24));
@@ -194,10 +231,10 @@ function placeCard(anchor: Box | null, card: { width: number; height: number }, 
   if (!anchor) return centered;
 
   const requested = [
-    { top: anchor.top + anchor.height + CARD_GAP, left: anchor.left },
-    { top: anchor.top - CARD_GAP - height, left: anchor.left },
-    { top: anchor.top, left: anchor.left + anchor.width + CARD_GAP },
-    { top: anchor.top, left: anchor.left - CARD_GAP - width },
+    { top: anchor.top + anchor.height + gap, left: anchor.left },
+    { top: anchor.top - gap - height, left: anchor.left },
+    { top: anchor.top, left: anchor.left + anchor.width + gap },
+    { top: anchor.top, left: anchor.left - gap - width },
     { top: 12, left: Math.max(12, (viewportWidth - width) / 2) },
   ];
   const fitted = requested.map((item) => ({
@@ -305,11 +342,14 @@ export function ScoreTour({ onboardingComplete }: { onboardingComplete: boolean 
     }
     let frame = 0;
     let late = 0;
+    let afterScroll = 0;
     let observer: ResizeObserver | null = null;
     let ticks = 0;
     const mobile = isMobileWidth();
+    const waitForDrawer = mobile && current.target === "chat";
 
     if (mobile && sidebar?.openMobile && current.target !== "chat") sidebar.setOpenMobile(false);
+    if (waitForDrawer && sidebar && !sidebar.openMobile) sidebar.setOpenMobile(true);
 
     const measure = () => {
       if (current.target === "chat" && isMobileWidth() && !bestChat()) {
@@ -329,6 +369,7 @@ export function ScoreTour({ onboardingComplete }: { onboardingComplete: boolean 
       const target = current.target ? pickTarget(current.target) : null;
       const visual = target ? visualOf(target) : null;
       if (visual) bringIntoView(visual);
+      else if (current.target && isMobileWidth()) scrollToTop();
       const rect = visual?.getBoundingClientRect();
       const nextAnchor = visual && rect && isOnScreen(visual) ? toBox(rect) : null;
       const avoid: Box[] = [];
@@ -345,29 +386,50 @@ export function ScoreTour({ onboardingComplete }: { onboardingComplete: boolean 
         reduced || readReducedMotion(),
         revealRef.current,
         avoid,
+        isMobileWidth() ? PHONE_CARD_GAP : CARD_GAP,
       );
       revealRef.current = false;
       setAnchor(nextAnchor);
       setPlacement(nextPlacement);
     };
 
-    measure();
     const schedule = () => {
       window.cancelAnimationFrame(frame);
       frame = window.requestAnimationFrame(measure);
     };
+    const start = () => {
+      measure();
+      if (isMobileWidth() && current.target) {
+        afterScroll = window.requestAnimationFrame(() => {
+          afterScroll = window.requestAnimationFrame(measure);
+        });
+      }
+    };
+
+    const sheet = waitForDrawer ? document.querySelector("[data-slot='sheet-content']") : null;
+    const onDrawerSettled = () => start();
+    if (waitForDrawer) {
+      sheet?.addEventListener("transitionend", onDrawerSettled);
+      sheet?.addEventListener("animationend", onDrawerSettled);
+      late = window.setTimeout(start, DRAWER_WAIT_MS);
+    } else {
+      start();
+      late = window.setTimeout(measure, 320);
+    }
     if (typeof ResizeObserver === "function") {
       observer = new ResizeObserver(schedule);
       const watched = current.target ? pickTarget(current.target) : null;
       if (watched) observer.observe(visualOf(watched));
     }
-    late = window.setTimeout(measure, 320);
     window.addEventListener("resize", schedule);
     window.addEventListener("scroll", schedule, true);
     return () => {
       window.cancelAnimationFrame(frame);
+      window.cancelAnimationFrame(afterScroll);
       window.clearTimeout(late);
       observer?.disconnect();
+      sheet?.removeEventListener("transitionend", onDrawerSettled);
+      sheet?.removeEventListener("animationend", onDrawerSettled);
       window.removeEventListener("resize", schedule);
       window.removeEventListener("scroll", schedule, true);
     };

@@ -3,17 +3,23 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   SCORE_CHAT_EVENT,
+  SCORE_CHAT_STORE_KEY,
   armScoreChat,
+  captureScoreChatFromLocation,
   clearScoreChatArm,
   ensureScoreChatHash,
   focusScoreChat,
   followScoreChatLink,
   followScoreLink,
+  forgetScoreChat,
+  postAuthScorePath,
+  runScoreChatFocus,
   scoreChatShouldOpen,
 } from "./score-chat";
 
 afterEach(() => {
   clearScoreChatArm();
+  forgetScoreChat();
   window.location.hash = "";
 });
 
@@ -84,5 +90,45 @@ describe("score chat hash", () => {
     expect(event.preventDefault).toHaveBeenCalledOnce();
     expect(window.location.hash).toBe("");
     expect(scoreChatShouldOpen(window.location.hash)).toBe(false);
+  });
+
+  it("keeps a #chat intent after the router drops the hash", () => {
+    window.history.pushState(null, "", "/score#chat");
+    captureScoreChatFromLocation();
+    window.history.replaceState(null, "", "/score");
+    expect(window.location.hash).toBe("");
+    expect(sessionStorage.getItem(SCORE_CHAT_STORE_KEY)).toBe("1");
+    expect(scoreChatShouldOpen("")).toBe(true);
+    expect(ensureScoreChatHash()).toBe(true);
+    expect(window.location.hash).toBe("#chat");
+  });
+
+  it("reads #chat from /login?redirect_url=/score#chat", () => {
+    window.history.pushState(null, "", "/login?redirect_url=/score#chat");
+    expect(captureScoreChatFromLocation()).toBe(true);
+    expect(postAuthScorePath()).toBe("/score#chat");
+  });
+
+  it("reads an encoded /score#chat redirect", () => {
+    window.history.pushState(null, "", "/login?redirect_url=%2Fscore%23chat");
+    expect(postAuthScorePath()).toBe("/score#chat");
+  });
+
+  it("does not treat other redirect_url values as Score", () => {
+    window.history.pushState(null, "", "/login?redirect_url=/billing");
+    expect(postAuthScorePath()).toBeNull();
+  });
+
+  it("focuses the composer after it mounts on a #chat load", async () => {
+    window.history.pushState(null, "", "/score#chat");
+    captureScoreChatFromLocation();
+    document.body.innerHTML = "";
+    const stop = runScoreChatFocus(document);
+    expect(focusScoreChat(document)).toBe(false);
+    document.body.innerHTML = `<div id="chat"><textarea></textarea></div>`;
+    const field = document.querySelector("textarea") as HTMLTextAreaElement;
+    const focus = vi.spyOn(field, "focus");
+    await vi.waitFor(() => expect(focus).toHaveBeenCalledWith({ preventScroll: true }));
+    stop();
   });
 });
