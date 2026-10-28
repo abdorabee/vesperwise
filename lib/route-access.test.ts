@@ -35,6 +35,8 @@ describe("requiresAuth", () => {
     expect(requiresAuth("/api/user/profile", prod)).toBe(true);
     expect(requiresAuth("/api/unknown", prod)).toBe(true);
     expect(requiresAuth("/api/v1/score", prod)).toBe(false);
+    expect(requiresAuth("/api/mcp", prod)).toBe(false);
+    expect(requiresAuth("/api/mcp/other", prod)).toBe(true);
     expect(requiresAuth("/api/contact", prod)).toBe(false);
     expect(requiresAuth("/api/billing/webhook", prod)).toBe(false);
     expect(requiresAuth("/api/billing/checkout", prod)).toBe(true);

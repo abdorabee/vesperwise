@@ -22,5 +22,6 @@ Companion pages for each section of the [project README](../../README.md). The R
 | Web enrichment worker | [web-enrichment](web-enrichment.md) |
 | Scoring v3 | [scoring-v3](scoring-v3.md) |
 | Chat copilot | [chat-copilot](chat-copilot.md) |
+| MCP server for Claude | [mcp-server](mcp-server.md) |
 | Database migrations | [database-migrations](database-migrations.md) |
 | Deployment | [deployment](deployment.md) |

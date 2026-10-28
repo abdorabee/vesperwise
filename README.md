@@ -339,6 +339,12 @@ these labels are stored in `score_outcomes`.
 
 Real-time chat with embedded score cards. Claude is routed through OpenRouter (`COPILOT_MODEL`, default `anthropic/claude-sonnet-4`). Conversation history is persisted to `chat_sessions` / `chat_messages`. Chats cost 0.25 credits per message.
 
+### MCP server for Claude
+
+[Wiki](docs/wiki/mcp-server.md)
+
+`POST /api/mcp` is a stateless Streamable HTTP MCP server, so people can use VesperWise from Claude. It authenticates with a VesperWise API key and spends the same credits as the web app: only `score_company` costs a credit.
+
 ## Database migrations
 
 [Wiki](docs/wiki/database-migrations.md)

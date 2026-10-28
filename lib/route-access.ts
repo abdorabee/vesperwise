@@ -29,6 +29,8 @@ const PREVIEW_ONLY_PAGE_SECTIONS = ["onboarding", "dev"] as const;
 
 const PUBLIC_API_PATTERNS = [
   /^\/api\/v1(\/|$)/,
+  // MCP clients authenticate with a VesperWise API key, not a Clerk session.
+  /^\/api\/mcp$/,
   /^\/api\/chat/,
   /^\/api\/billing\/webhook$/,
   /^\/api\/contact$/,
