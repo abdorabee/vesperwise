@@ -17,7 +17,6 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import { ShellListReopenButton } from "@/components/dashboard/shell/shell-list";
 
@@ -51,37 +50,37 @@ export function SiteHeader() {
     (listId ? fetchedListName : null) ??
     CRUMB[pathname]?.current ??
     "VesperWise";
-  const parent = listId ? "Lists" : CRUMB[pathname]?.parent ?? "Workspace";
-  const parentHref =
-    parent === "Settings" ? "/settings/profile" : parent === "Lists" ? "/lists" : "/dashboard";
+  // Only real hierarchies (Lists > a list, Settings > a section) get a parent link.
+  const parent = listId ? "Lists" : CRUMB[pathname]?.parent ?? null;
+  const parentHref = parent === "Settings" ? "/settings/profile" : "/lists";
 
   function openNewListModal() {
     window.dispatchEvent(new Event("lists-open-modal"));
   }
 
   return (
-    <header data-slot="site-header" className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 border-b bg-background px-4 transition-[width,height] duration-200 ease-linear motion-reduce:transition-none">
+    <header data-slot="site-header" className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b bg-background px-4 transition-[width,height] duration-200 ease-linear motion-reduce:transition-none">
       <div className="flex min-w-0 w-full items-center gap-2">
         <SidebarTrigger className="-ml-1 size-11 shrink-0 md:hidden">
           {isMobile ? <Menu /> : <PanelLeft />}
         </SidebarTrigger>
         <ShellListReopenButton />
-        <Separator
-          orientation="vertical"
-          className="mr-2 hidden data-[orientation=vertical]:h-4"
-        />
         <Breadcrumb className="hidden min-w-0 md:block">
           <BreadcrumbList className="flex-nowrap">
+            {parent ? (
+              <>
+                <BreadcrumbItem className="min-w-0">
+                  <BreadcrumbLink asChild>
+                    <Link href={parentHref} className="truncate">
+                      {parent}
+                    </Link>
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+              </>
+            ) : null}
             <BreadcrumbItem className="min-w-0">
-              <BreadcrumbLink asChild>
-                <Link href={parentHref} className="truncate">
-                  {parent}
-                </Link>
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem className="min-w-0">
-              <BreadcrumbPage className="max-w-[min(32rem,45vw)] truncate">
+              <BreadcrumbPage className="max-w-[min(32rem,45vw)] truncate text-sm font-medium">
                 {title}
               </BreadcrumbPage>
             </BreadcrumbItem>

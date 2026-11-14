@@ -3,7 +3,6 @@
 import { usePathname } from "next/navigation";
 import { AppSidebar } from "@/components/dashboard/app-sidebar";
 import { AppFrame } from "@/components/dashboard/shell/app-frame";
-import { IconRail } from "@/components/dashboard/shell/icon-rail";
 import { ShellListProvider, ShellListSlot } from "@/components/dashboard/shell/shell-list";
 import { ShellPanelProvider, ShellPanelSlot } from "@/components/dashboard/shell/shell-panel";
 import { ShellStatusProvider } from "@/components/dashboard/shell/shell-status";
@@ -27,6 +26,8 @@ interface DashboardShellProps {
   watchlistCount?: number;
   pipelineHotCount?: number;
   isMockSignals?: boolean;
+  /** Initial sidebar state, read from the `sidebar_state` cookie on the server. */
+  defaultSidebarOpen?: boolean;
 }
 
 function pageContainerSize(pathname: string): PageContainerSize {
@@ -72,6 +73,7 @@ function DashboardShellFrame({
   watchlistCount,
   pipelineHotCount,
   isMockSignals = false,
+  defaultSidebarOpen = true,
 }: DashboardShellProps) {
   const workspace = useWorkspaceState();
   const liveCredits = workspace?.creditsRemaining ?? creditsRemaining;
@@ -85,30 +87,22 @@ function DashboardShellFrame({
         <ShellPanelProvider>
           <ShellListProvider>
             <SidebarProvider
+              defaultOpen={defaultSidebarOpen}
               className="bg-background"
               style={
                 {
-                  "--sidebar-width": "16rem",
-                  "--header-height": "4rem",
+                  "--sidebar-width": "15rem",
+                  "--header-height": "3.5rem",
                 } as React.CSSProperties
               }
             >
-              <div className="md:hidden">
-                <AppSidebar
-                  creditsRemaining={liveCredits}
-                  plan={livePlan}
-                  polarSubscriptionId={polarSubscriptionId}
-                  workspaceName={workspaceName}
-                  watchlistCount={watchlistCount}
-                  pipelineHotCount={pipelineHotCount}
-                />
-              </div>
               <AppFrame
                 rail={
-                  <IconRail
+                  <AppSidebar
                     creditsRemaining={liveCredits}
                     plan={livePlan}
                     polarSubscriptionId={polarSubscriptionId}
+                    workspaceName={workspaceName}
                     watchlistCount={watchlistCount}
                     pipelineHotCount={pipelineHotCount}
                   />

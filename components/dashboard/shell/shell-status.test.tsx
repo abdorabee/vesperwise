@@ -18,7 +18,7 @@ describe("shell status slot", () => {
 
     expect(html).toContain('data-slot="statusbar-page-status"');
     expect(html).toContain("Scoring ramp.com · 3/5 signals");
-    expect(html.indexOf("Scoring ramp.com")).toBeLessThan(html.indexOf("8 credits"));
+    expect(html.indexOf("Scoring ramp.com")).toBeLessThan(html.indexOf("Low credits"));
   });
 
   it("clears the status slot when no page message is set", () => {
@@ -29,7 +29,9 @@ describe("shell status slot", () => {
     );
 
     expect(html).not.toContain('data-slot="statusbar-page-status"');
-    expect(html).toContain("8 credits");
+    // The balance itself now lives in the sidebar footer; the bar only warns when it runs low.
+    expect(html).not.toContain("8 credits");
+    expect(html).toContain("Low credits");
   });
 
   it("does not mark a granted agency balance or a healthy free balance as low", () => {
@@ -41,6 +43,6 @@ describe("shell status slot", () => {
     );
     expect(granted).not.toContain("Low credits");
     expect(free).not.toContain("Low credits");
-    expect(granted).toContain("496 credits");
+    expect(granted).not.toContain("496 credits");
   });
 });

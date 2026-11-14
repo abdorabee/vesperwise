@@ -1,312 +1,153 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Gauge, Search } from "lucide-react";
+import { Dialog as DialogPrimitive } from "radix-ui";
+import { Command, CommandInput, CommandList } from "@/components/ui/command";
+import { Dialog, DialogDescription, DialogOverlay, DialogPortal, DialogTitle } from "@/components/ui/dialog";
 import {
-  filterNavItems,
-  type SearchNavItem,
-  type SearchResultItem,
-} from "@/lib/dashboard-search";
+  PaletteFooter,
+  PaletteSections,
+  type PaletteRow,
+  type PaletteSection,
+} from "@/components/dashboard/search-palette-parts";
+import { SEARCH_MIN_QUERY_LENGTH, useRemoteSearch } from "@/components/dashboard/use-remote-search";
+import { filterNavItems, type SearchResultItem } from "@/lib/dashboard-search";
 import { followScoreChatLink, followScoreLink } from "@/lib/score-chat";
+import { cn } from "@/lib/utils";
 
 interface SearchPaletteProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-interface RemoteResults {
-  companies: SearchResultItem[];
-  people: SearchResultItem[];
-  watchlist: SearchResultItem[];
-  lists: SearchResultItem[];
+const OVERLAY_CLASS =
+  "bg-[color-mix(in_srgb,var(--background)_60%,transparent)] backdrop-blur-sm duration-150 motion-reduce:animate-none";
+
+const CONTENT_CLASS = cn(
+  "fixed top-[12vh] left-1/2 z-50 w-[calc(100%-2rem)] max-w-[560px] -translate-x-1/2 overflow-hidden",
+  "rounded-xl! border border-border bg-popover text-popover-foreground shadow-[var(--shadow-lg)] outline-none",
+  "duration-150 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-[0.98]",
+  "data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-[0.98]",
+  "motion-reduce:animate-none motion-reduce:data-[state=closed]:animate-none",
+);
+
+const COMMAND_CLASS =
+  "h-auto rounded-xl bg-transparent **:data-[slot=command-input-wrapper]:h-12 **:data-[slot=command-input-wrapper]:px-4";
+
+const MESSAGE_CLASS = "px-3 py-6 text-center text-[13px] text-muted-foreground";
+
+function navigate(href: string, push: (href: string) => void) {
+  let handled = false;
+  const event = {
+    preventDefault() {
+      handled = true;
+    },
+  };
+  if (href === "/score#chat") followScoreChatLink(event);
+  else if (href === "/score") followScoreLink(event);
+  if (!handled) push(href);
 }
 
-const EMPTY: RemoteResults = {
-  companies: [],
-  people: [],
-  watchlist: [],
-  lists: [],
-};
-
-type PaletteRow =
-  | { type: "page"; item: SearchNavItem }
-  | { type: "result"; item: SearchResultItem };
-
-interface PaletteSection {
-  title: string;
-  rows: PaletteRow[];
+function buildScoreAction(query: string): SearchResultItem | null {
+  if (query.length < SEARCH_MIN_QUERY_LENGTH) return null;
+  return {
+    id: "action-score",
+    kind: "action",
+    label: `Score ${query}`,
+    sublabel: "Run a new intent score",
+    href: `/score?domain=${encodeURIComponent(query)}`,
+  };
 }
 
-function bandClass(band?: SearchResultItem["band"]) {
-  if (band === "HOT") return "band-hot";
-  if (band === "WARM") return "band-warm";
-  if (band === "COLD") return "band-cold";
-  return "";
-}
-
-const itemClass =
-  "cmd-item flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm text-[var(--text-primary)]";
-const itemActiveClass = "active";
-
-export function SearchPalette({ open, onOpenChange }: SearchPaletteProps) {
+function SearchPaletteBody({ onOpenChange }: { onOpenChange: (open: boolean) => void }) {
   const router = useRouter();
-  const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [remote, setRemote] = useState<RemoteResults>(EMPTY);
-  const [activeIndex, setActiveIndex] = useState(0);
+  const trimmed = query.trim();
+  const { results, status } = useRemoteSearch(trimmed);
 
-  const trimmedQuery = query.trim();
   const pages = useMemo(() => filterNavItems(query), [query]);
-
-  const scoreAction = useMemo((): SearchResultItem | null => {
-    if (trimmedQuery.length < 2) return null;
-    return {
-      id: "action-score",
-      kind: "action",
-      label: `Score ${trimmedQuery}`,
-      sublabel: "Run a new intent score",
-      href: `/score?domain=${encodeURIComponent(trimmedQuery)}`,
-    };
-  }, [trimmedQuery]);
+  const scoreAction = useMemo(() => buildScoreAction(trimmed), [trimmed]);
 
   const sections = useMemo((): PaletteSection[] => {
-    const out: PaletteSection[] = [];
-
-    if (pages.length) {
-      out.push({
-        title: "Pages",
-        rows: pages.map((item) => ({ type: "page", item })),
-      });
+    const next: PaletteSection[] = [];
+    if (pages.length) next.push({ title: "Pages", rows: pages.map((item) => ({ type: "page", item })) });
+    const remote: Array<[string, SearchResultItem[]]> = [
+      ["Companies", results.companies],
+      ["Watchlist", results.watchlist],
+      ["Lists", results.lists],
+    ];
+    for (const [title, items] of remote) {
+      if (items.length) next.push({ title, rows: items.map((item) => ({ type: "result", item })) });
     }
+    if (scoreAction) next.push({ title: "Actions", rows: [{ type: "result", item: scoreAction }] });
+    return next;
+  }, [pages, results, scoreAction]);
 
-    if (trimmedQuery.length >= 2) {
-      if (remote.companies.length) {
-        out.push({
-          title: "Companies",
-          rows: remote.companies.map((item) => ({ type: "result", item })),
-        });
-      }
-      if (remote.watchlist.length) {
-        out.push({
-          title: "Watchlist",
-          rows: remote.watchlist.map((item) => ({ type: "result", item })),
-        });
-      }
-      if (remote.lists.length) {
-        out.push({
-          title: "Lists",
-          rows: remote.lists.map((item) => ({ type: "result", item })),
-        });
-      }
-      if (scoreAction) {
-        out.push({
-          title: "Actions",
-          rows: [{ type: "result", item: scoreAction }],
-        });
-      }
-    }
-
-    return out;
-  }, [pages, remote, trimmedQuery, scoreAction]);
-
-  const flatRows = useMemo(() => sections.flatMap((s) => s.rows), [sections]);
-
-  useEffect(() => {
-    if (!open) return;
-    const t = window.setTimeout(() => inputRef.current?.focus(), 0);
-    return () => window.clearTimeout(t);
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) return;
-    if (trimmedQuery.length < 2) return;
-
-    const controller = new AbortController();
-    const timer = window.setTimeout(() => {
-      setLoading(true);
-      fetch(`/api/dashboard/search?q=${encodeURIComponent(trimmedQuery)}`, {
-        signal: controller.signal,
-      })
-        .then((r) => r.json())
-        .then((data: RemoteResults) => {
-          if (!controller.signal.aborted) setRemote(data);
-        })
-        .catch(() => {
-          if (!controller.signal.aborted) setRemote(EMPTY);
-        })
-        .finally(() => {
-          if (!controller.signal.aborted) setLoading(false);
-        });
-    }, 180);
-
-    return () => {
-      controller.abort();
-      window.clearTimeout(timer);
-    };
-  }, [trimmedQuery, open]);
-
-  const selectRow = useCallback(
+  const handleSelect = useCallback(
     (row: PaletteRow) => {
-      setQuery("");
-      setRemote(EMPTY);
-      setActiveIndex(0);
       onOpenChange(false);
-      const href = row.item.href;
-      let handled = false;
-      const event = { preventDefault() { handled = true; } };
-      if (href === "/score#chat") followScoreChatLink(event);
-      else if (href === "/score") followScoreLink(event);
-      if (handled) return;
-      router.push(href);
+      navigate(row.item.href, router.push);
     },
-    [onOpenChange, router],
+    [onOpenChange, router.push],
   );
 
-  function onKeyDown(e: React.KeyboardEvent) {
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      setActiveIndex((i) => Math.min(i + 1, flatRows.length - 1));
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      setActiveIndex((i) => Math.max(i - 1, 0));
-    } else if (e.key === "Enter" && flatRows[activeIndex]) {
-      e.preventDefault();
-      selectRow(flatRows[activeIndex]);
-    }
-  }
+  const hasMatches = pages.length > 0 || results.companies.length + results.watchlist.length + results.lists.length > 0;
+  const isSearching = scoreAction !== null;
+  const showEmpty = isSearching && status !== "loading" && status !== "error" && !hasMatches;
+  const footerStatus = status === "loading" ? "Searching…" : "";
 
-  if (!open || typeof document === "undefined") return null;
-
-  const showEmpty =
-    !loading &&
-    flatRows.length === 0 &&
-    (trimmedQuery.length >= 2 || pages.length === 0);
-
-  let rowIndex = -1;
-
-  const palette = (
-    <div
-      className="cmd-backdrop"
-      onClick={() => {
-        setQuery("");
-        setRemote(EMPTY);
-        setActiveIndex(0);
-        onOpenChange(false);
-      }}
-      role="presentation"
-    >
-      <div
-        className="cmd-palette"
-        onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Search"
-      >
-        <div className="cmd-input-row flex items-center gap-2.5 px-4 py-3.5">
-          <Search className="ic h-4 w-4 shrink-0 text-[var(--text-tertiary)]" aria-hidden />
-          <input
-            ref={inputRef}
-            type="text"
-            className="cmd-input min-w-0 flex-1 border-none bg-transparent text-[15px] text-[var(--text-primary)] outline-none"
-            placeholder="Search companies, lists, pages…"
-            value={query}
-            onChange={(e) => {
-              const nextQuery = e.target.value;
-              setQuery(nextQuery);
-              setActiveIndex(0);
-              if (nextQuery.trim().length < 2) {
-                setRemote(EMPTY);
-                setLoading(false);
-              }
-            }}
-            onKeyDown={onKeyDown}
-            autoComplete="off"
-            spellCheck={false}
-          />
-          <kbd className="kbd">esc</kbd>
-        </div>
-
-        <div className="cmd-results" role="listbox">
-          {showEmpty && (
-            <div className="cmd-empty">
-              {trimmedQuery.length >= 2
-                ? "No results — try a domain or page name"
-                : "Type to search or pick a page"}
-            </div>
-          )}
-
-          {sections.map((section) => (
-            <div key={section.title} className="cmd-group flex flex-col gap-0.5">
-              <div className="cmd-group-label">{section.title}</div>
-              {section.rows.map((row) => {
-                rowIndex += 1;
-                const idx = rowIndex;
-                const active = idx === activeIndex;
-                const Icon =
-                  row.type === "page"
-                    ? row.item.icon
-                    : row.item.kind === "action"
-                      ? Gauge
-                      : null;
-
-                const label = row.type === "page" ? row.item.label : row.item.label;
-                const sublabel = row.type === "page" ? undefined : row.item.sublabel;
-                const meta = row.type === "page" ? undefined : row.item.meta;
-                const band = row.type === "page" ? undefined : row.item.band;
-                const key = row.type === "page" ? row.item.id : row.item.id;
-
-                return (
-                  <button
-                    key={key}
-                    type="button"
-                    role="option"
-                    aria-selected={active}
-                    className={`${itemClass}${active ? ` ${itemActiveClass}` : ""}`}
-                    onMouseEnter={() => setActiveIndex(idx)}
-                    onClick={() => selectRow(row)}
-                  >
-                    {Icon && (
-                      <Icon
-                        className="h-3.5 w-3.5 shrink-0 text-[var(--text-tertiary)]"
-                        aria-hidden
-                      />
-                    )}
-                    <span className="cmd-item-label min-w-0 flex-1 truncate">{label}</span>
-                    {sublabel && (
-                      <span className="cmd-item-sub max-w-[45%] truncate text-xs text-[var(--text-tertiary)]">
-                        {sublabel}
-                      </span>
-                    )}
-                    {meta && (
-                      <span className={`cmd-item-meta shrink-0 font-mono text-xs ${bandClass(band)}`}>
-                        {meta}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          ))}
-
-          {loading && trimmedQuery.length >= 2 && (
-            <div className="cmd-empty">Searching…</div>
-          )}
-        </div>
-
-        <div className="cmd-foot">
-          <span>
-            <kbd className="kbd">↑↓</kbd> navigate
-          </span>
-          <span>
-            <kbd className="kbd">↵</kbd> open
-          </span>
-        </div>
-      </div>
-    </div>
+  return (
+    <Command shouldFilter={false} loop label="Search" className={COMMAND_CLASS}>
+      <CommandInput
+        value={query}
+        onValueChange={setQuery}
+        placeholder="Search companies, lists, pages…"
+        autoComplete="off"
+        spellCheck={false}
+        className="h-12 text-[15px]"
+      />
+      <CommandList className="max-h-[min(360px,50vh)] p-1.5">
+        {status === "error" && (
+          <div role="status" className="px-3 py-2 text-xs text-muted-foreground">
+            Couldn&apos;t load company results. Pages and actions still work.
+          </div>
+        )}
+        {showEmpty && <div className={MESSAGE_CLASS}>No results for “{trimmed}”</div>}
+        <PaletteSections sections={sections} onSelect={handleSelect} />
+      </CommandList>
+      <PaletteFooter status={footerStatus} />
+    </Command>
   );
+}
 
-  return createPortal(palette, document.body);
+export function SearchPalette({ open, onOpenChange }: SearchPaletteProps) {
+  // The palette has no Dialog.Trigger, so Radix has nothing to hand focus back to; remember the opener ourselves.
+  const returnFocusRef = useRef<HTMLElement | null>(null);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogPortal>
+        <DialogOverlay className={OVERLAY_CLASS} />
+        <DialogPrimitive.Content
+          data-slot="search-palette"
+          className={CONTENT_CLASS}
+          onOpenAutoFocus={() => {
+            returnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+          }}
+          onCloseAutoFocus={(event) => {
+            event.preventDefault();
+            returnFocusRef.current?.focus();
+            returnFocusRef.current = null;
+          }}
+        >
+          <DialogTitle className="sr-only">Search</DialogTitle>
+          <DialogDescription className="sr-only">
+            Search pages, companies, watchlist entries and lists, or score a new domain.
+          </DialogDescription>
+          <SearchPaletteBody onOpenChange={onOpenChange} />
+        </DialogPrimitive.Content>
+      </DialogPortal>
+    </Dialog>
+  );
 }

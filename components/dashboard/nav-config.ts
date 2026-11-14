@@ -3,7 +3,6 @@ import {
   LayoutGrid,
   Activity,
   Gauge,
-  MessageSquare,
   History,
   Eye,
   ListChecks,
@@ -14,57 +13,70 @@ import {
   CircleHelp,
 } from "lucide-react";
 
+/** Which live counter, if any, a nav item shows next to its label. */
+export type NavCountKind = "hot" | "watchlist";
+
 export interface NavItem {
   href: string;
   label: string;
   icon: ComponentType<{ className?: string }>;
-  hotCount?: boolean;
+  count?: NavCountKind;
 }
 
-export interface NavCluster {
+export interface NavGroup {
+  id: "overview" | "library" | "workspace";
   label: string;
-  icon: NavItem["icon"];
-  children: NavItem[];
+  items: NavItem[];
 }
-
-/** Primary work — dashboard-01 NavMain */
-export const NAV_MAIN: NavItem[] = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutGrid },
-  { href: "/pipeline", label: "Intent Hub", icon: Activity, hotCount: true },
-  { href: "/score", label: "Score", icon: Gauge },
-  { href: "/score#chat", label: "Chat", icon: MessageSquare },
-];
 
 /**
+ * The one nav definition. The desktop sidebar, the mobile sheet and the search palette's
+ * Pages list all derive from this.
+ *
  * People, Inbox and Autopilot are unfinished: their routes stay reachable by URL (and stay
  * auth-protected in lib/route-access.ts) but they are intentionally absent from the nav and ⌘K.
+ * Chat is not a destination: it is the Score composer, so `/score#chat` deep links
+ * (lib/score-chat.ts) land on Score.
  */
-
-/** Flattened library routes retained for command palettes and deep imports. */
-export const NAV_LIBRARY: NavItem[] = [
-  { href: "/history", label: "History", icon: History },
-  { href: "/watchlist", label: "Watchlist", icon: Eye },
-  { href: "/lists", label: "Lists", icon: ListChecks },
-  { href: "/bulk", label: "Bulk Score", icon: Upload },
-];
-
-export const NAV_LIBRARY_CLUSTERS: NavCluster[] = [
+export const NAV_GROUPS: NavGroup[] = [
   {
-    label: "Saved accounts",
-    icon: ListChecks,
-    children: [NAV_LIBRARY[1], NAV_LIBRARY[2]],
+    id: "overview",
+    label: "Overview",
+    items: [
+      { href: "/dashboard", label: "Dashboard", icon: LayoutGrid },
+      { href: "/pipeline", label: "Intent Hub", icon: Activity, count: "hot" },
+      { href: "/score", label: "Score", icon: Gauge },
+    ],
   },
   {
-    label: "Score activity",
-    icon: History,
-    children: [NAV_LIBRARY[0], NAV_LIBRARY[3]],
+    id: "library",
+    label: "Library",
+    items: [
+      { href: "/history", label: "History", icon: History },
+      { href: "/watchlist", label: "Watchlist", icon: Eye, count: "watchlist" },
+      { href: "/lists", label: "Lists", icon: ListChecks },
+      { href: "/bulk", label: "Bulk Score", icon: Upload },
+    ],
+  },
+  {
+    id: "workspace",
+    label: "Workspace",
+    items: [{ href: "/api-keys", label: "API Keys", icon: Key }],
   },
 ];
+
+function groupItems(id: NavGroup["id"]): NavItem[] {
+  return NAV_GROUPS.find((group) => group.id === id)?.items ?? [];
+}
+
+/** Primary work. */
+export const NAV_MAIN: NavItem[] = groupItems("overview");
+
+/** Flattened library routes retained for deep imports. */
+export const NAV_LIBRARY: NavItem[] = groupItems("library");
 
 /** Workspace group (developer tools). */
-export const NAV_SECONDARY: NavItem[] = [
-  { href: "/api-keys", label: "API Keys", icon: Key },
-];
+export const NAV_SECONDARY: NavItem[] = groupItems("workspace");
 
 export const HELP_ITEM: NavItem = {
   href: "/docs",
@@ -72,45 +84,49 @@ export const HELP_ITEM: NavItem = {
   icon: CircleHelp,
 };
 
+export const SETTINGS_ITEM: NavItem = { href: "/settings", label: "Settings", icon: Settings };
+
 export const ACCOUNT_ITEMS: NavItem[] = [
-  { href: "/settings", label: "Settings", icon: Settings },
+  SETTINGS_ITEM,
   { href: "/billing", label: "Billing", icon: CreditCard },
   HELP_ITEM,
 ];
 
-export const WORKSPACE_ITEMS: NavItem[] = [
-  ...NAV_MAIN,
-  ...NAV_LIBRARY,
-  ...NAV_SECONDARY,
-];
+export const WORKSPACE_ITEMS: NavItem[] = NAV_GROUPS.flatMap((group) => group.items);
 export const BOTTOM_ITEMS: NavItem[] = ACCOUNT_ITEMS;
 
-export const CRUMB: Record<string, { parent: string; current: string }> = {
-  "/dashboard": { parent: "Workspace", current: "Dashboard" },
+/**
+ * Page titles for the header. `parent` is set only for real hierarchies (Settings sections);
+ * top-level pages show just their own title.
+ */
+export const CRUMB: Record<string, { parent?: string; current: string }> = {
+  "/dashboard": { current: "Dashboard" },
   "/settings/profile": { parent: "Settings", current: "Business profile" },
   "/settings/account": { parent: "Settings", current: "Account" },
-  "/pipeline": { parent: "Workspace", current: "Intent Hub" },
-  "/people": { parent: "Workspace", current: "People" },
-  "/history": { parent: "Workspace", current: "History" },
-  "/watchlist": { parent: "Workspace", current: "Watchlist" },
-  "/lists": { parent: "Workspace", current: "Lists" },
-  "/autopilot": { parent: "Workspace", current: "Autopilot" },
-  "/bulk": { parent: "Workspace", current: "Bulk" },
-  "/billing": { parent: "Workspace", current: "Billing" },
-  "/api-keys": { parent: "Workspace", current: "API Keys" },
-  "/score": { parent: "Workspace", current: "Score" },
-  "/settings": { parent: "Workspace", current: "Settings" },
-  "/inbox": { parent: "Workspace", current: "Inbox" },
-  "/dev/shell": { parent: "Workspace", current: "Shell preview" },
+  "/pipeline": { current: "Intent Hub" },
+  "/people": { current: "People" },
+  "/history": { current: "History" },
+  "/watchlist": { current: "Watchlist" },
+  "/lists": { current: "Lists" },
+  "/autopilot": { current: "Autopilot" },
+  "/bulk": { current: "Bulk" },
+  "/billing": { current: "Billing" },
+  "/api-keys": { current: "API Keys" },
+  "/score": { current: "Score" },
+  "/settings": { current: "Settings" },
+  "/inbox": { current: "Inbox" },
+  "/dev/shell": { current: "Shell preview" },
 };
 
+/**
+ * Whether a nav item is the current page. A hash in `href` still pins the match to that
+ * hash; `hash` itself no longer matters for plain paths, so Score is active with or
+ * without `#chat`.
+ */
 export function isNavActive(pathname: string, href: string, hash = ""): boolean {
   const hashIndex = href.indexOf("#");
   const path = hashIndex === -1 ? href : href.slice(0, hashIndex);
   const hrefHash = hashIndex === -1 ? "" : href.slice(hashIndex);
   if (hrefHash) return pathname === path && hash === hrefHash;
-  const pathMatches = pathname === path || (path !== "/dashboard" && pathname.startsWith(`${path}/`));
-  if (!pathMatches) return false;
-  if (path === "/score" && hash === "#chat") return false;
-  return true;
+  return pathname === path || (path !== "/dashboard" && pathname.startsWith(`${path}/`));
 }

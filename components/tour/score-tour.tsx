@@ -15,7 +15,6 @@ const HOLE_PAD = 8;
 const CARD_GAP = 14;
 const PHONE_CARD_GAP = 12;
 const HEADER_GAP = 12;
-const DRAWER_WAIT_MS = 520;
 const MOBILE_MAX = 767;
 
 const STEPS = [
@@ -40,8 +39,8 @@ const STEPS = [
   {
     id: "chat",
     target: "chat",
-    title: "Sidebar Chat",
-    body: "Ask why an account is hot. The score opens beside the thread.",
+    title: "Follow-ups",
+    body: "After a score, ask why an account is hot or score another domain here. The score opens beside the thread.",
   },
   {
     id: "done",
@@ -155,28 +154,12 @@ function scrollRoot() {
   return document.querySelector<HTMLElement>("[data-slot='page-container']");
 }
 
-function isChatControl(node: HTMLElement) {
-  return /chat/i.test(`${node.getAttribute("aria-label") ?? ""} ${node.textContent ?? ""}`);
-}
-
-function chatCandidates() {
-  return Array.from(document.querySelectorAll<HTMLElement>('[data-tour="chat"]')).filter(isChatControl);
-}
-
 function hasBox(node: HTMLElement) {
   const rect = node.getBoundingClientRect();
   return rect.width >= 2 && rect.height >= 2;
 }
 
-function bestChat() {
-  const sized = chatCandidates().filter(hasBox);
-  const visible = sized.filter(isOnScreen);
-  const pool = visible.length > 0 ? visible : sized;
-  return pool.find((node) => node.closest("[data-mobile='true']")) ?? pool[0] ?? null;
-}
-
 function pickTarget(name: string): HTMLElement | null {
-  if (name === "chat") return bestChat();
   const nodes = Array.from(document.querySelectorAll<HTMLElement>(`[data-tour="${name}"]`));
   return nodes.find(isOnScreen) ?? nodes.find(hasBox) ?? null;
 }
@@ -368,30 +351,15 @@ export function ScoreTour({ onboardingComplete }: { onboardingComplete: boolean 
     let late = 0;
     let afterScroll = 0;
     let observer: ResizeObserver | null = null;
-    let ticks = 0;
     let skippedMissing = false;
     const mobile = isMobileWidth();
-    const waitForDrawer = mobile && current.target === "chat";
 
-    if (mobile && sidebar?.openMobile && current.target !== "chat") sidebar.setOpenMobile(false);
-    if (waitForDrawer && sidebar && !sidebar.openMobile) sidebar.setOpenMobile(true);
+    // The tour anchors live in the page, so the mobile nav sheet only gets in the way.
+    if (mobile && sidebar?.openMobile) sidebar.setOpenMobile(false);
 
     const measure = () => {
-      if (current.target === "chat" && isMobileWidth() && !bestChat()) {
-        if (sidebar && !sidebar.openMobile) {
-          sidebar.setOpenMobile(true);
-          return;
-        }
-        if (chatCandidates().length === 0 || ticks >= 12) {
-          setStep((index) => Math.min(STEPS.length - 1, index + 1));
-          return;
-        }
-        ticks += 1;
-        frame = window.requestAnimationFrame(measure);
-        return;
-      }
-
-      if (current.target === "result" && document.querySelectorAll('[data-tour="result"]').length === 0) {
+      const optional = current.target === "result" || current.target === "chat";
+      if (optional && document.querySelectorAll(`[data-tour="${current.target}"]`).length === 0) {
         if (!skippedMissing) {
           skippedMissing = true;
           const forward = lastStepRef.current <= step;
@@ -439,16 +407,8 @@ export function ScoreTour({ onboardingComplete }: { onboardingComplete: boolean 
       }
     };
 
-    const sheet = waitForDrawer ? document.querySelector("[data-slot='sheet-content']") : null;
-    const onDrawerSettled = () => start();
-    if (waitForDrawer) {
-      sheet?.addEventListener("transitionend", onDrawerSettled);
-      sheet?.addEventListener("animationend", onDrawerSettled);
-      late = window.setTimeout(start, DRAWER_WAIT_MS);
-    } else {
-      start();
-      late = window.setTimeout(measure, 320);
-    }
+    start();
+    late = window.setTimeout(measure, 320);
     if (typeof ResizeObserver === "function") {
       observer = new ResizeObserver(schedule);
       const watched = current.target ? pickTarget(current.target) : null;
@@ -462,8 +422,6 @@ export function ScoreTour({ onboardingComplete }: { onboardingComplete: boolean 
       window.cancelAnimationFrame(afterScroll);
       window.clearTimeout(late);
       observer?.disconnect();
-      sheet?.removeEventListener("transitionend", onDrawerSettled);
-      sheet?.removeEventListener("animationend", onDrawerSettled);
       window.removeEventListener("resize", schedule);
       window.removeEventListener("scroll", schedule, true);
     };
