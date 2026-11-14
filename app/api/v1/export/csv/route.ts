@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { toCSVRaw, type CsvColumn } from "@/lib/csv";
 import { canUseFeature, featureDeniedMessage, parsePlan, requiredPlanFor } from "@/lib/plan-features";
 import { createSupabaseAdmin } from "@/lib/supabase";
+import { enforceV1RateLimit } from "@/app/api/v1/rate-limit";
 
 const MAX_ROWS = 5_000;
 
@@ -19,6 +20,8 @@ export async function POST(req: NextRequest) {
 
   const supabase = createSupabaseAdmin();
   const { data: planRow } = await supabase.from("users").select("plan").eq("id", userId).maybeSingle();
+  const limited = await enforceV1RateLimit(userId, planRow?.plan ?? null);
+  if (limited) return limited;
   const plan = parsePlan(planRow?.plan);
   if (!canUseFeature(plan, "csv")) {
     return NextResponse.json(

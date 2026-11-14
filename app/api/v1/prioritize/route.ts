@@ -2,10 +2,14 @@ import { parseCsvRecords } from "@/lib/csv-parse";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { toCSVRaw } from "@/lib/csv";
-import { canUseFeature, featureDeniedMessage, parsePlan, requiredPlanFor } from "@/lib/plan-features";
+import { BULK_MAX_PER_JOB, canUseFeature, featureDeniedMessage, parsePlan, requiredPlanFor } from "@/lib/plan-features";
 import { canonicalizeDomain } from "@/lib/score-service";
 import { createSupabaseAdmin } from "@/lib/supabase";
 import { getActiveScoringVersion } from "@/lib/scorer";
+import { enforceV1RateLimit } from "@/app/api/v1/rate-limit";
+
+const MAX_UPLOAD_BYTES = 1024 * 1024;
+const DOMAIN_QUERY_CHUNK = 200;
 
 export async function POST(req: NextRequest) {
   const userId = await getUserId(req);
@@ -13,6 +17,8 @@ export async function POST(req: NextRequest) {
 
   const supabase = createSupabaseAdmin();
   const { data: planRow } = await supabase.from("users").select("plan").eq("id", userId).maybeSingle();
+  const limited = await enforceV1RateLimit(userId, planRow?.plan ?? null);
+  if (limited) return limited;
   const plan = parsePlan(planRow?.plan);
   if (!canUseFeature(plan, "csv")) {
     return NextResponse.json(
@@ -21,6 +27,9 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const declaredLength = Number(req.headers.get("content-length") ?? 0);
+  if (declaredLength > MAX_UPLOAD_BYTES * 2) return uploadTooLarge();
+
   const formData = await req.formData();
   const file = formData.get("file") as File | null;
 
@@ -28,11 +37,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "CSV file required (field: file)" }, { status: 400 });
   }
 
+  if (file.size > MAX_UPLOAD_BYTES) return uploadTooLarge();
+
   const text = await file.text();
   const rows = parseCsvRecords(text);
 
   if (rows.length === 0) {
     return NextResponse.json({ error: "No rows found in CSV" }, { status: 400 });
+  }
+  if (rows.length > BULK_MAX_PER_JOB) {
+    return NextResponse.json(
+      { error: `Maximum ${BULK_MAX_PER_JOB} rows per upload. Your file has ${rows.length} rows.` },
+      { status: 413 },
+    );
   }
 
   // Resolve the caller's latest persisted v2 score. Scores are personalized,
@@ -46,22 +63,13 @@ export async function POST(req: NextRequest) {
     }
   }))];
   const scoringVersion = getActiveScoringVersion();
-  const { data: scoreRows, error: scoreError } = domains.length > 0
-    ? await supabase
-        .from("scores")
-        .select("domain, score, score_band, ai_summary, score_status, data_coverage, icp_fit_score, created_at")
-        .eq("user_id", userId)
-        .eq("scoring_version", scoringVersion)
-        .in("domain", domains)
-        .gt("expires_at", new Date().toISOString())
-        .order("created_at", { ascending: false })
-    : { data: [], error: null };
+  const { rows: scoreRows, failed: scoreError } = await loadScoreRows(supabase, userId, scoringVersion, domains);
   if (scoreError) {
     return NextResponse.json({ error: "Failed to load personalized scores" }, { status: 500 });
   }
 
-  const latestByDomain = new Map<string, NonNullable<typeof scoreRows>[number]>();
-  for (const score of scoreRows ?? []) {
+  const latestByDomain = new Map<string, ScoreRow>();
+  for (const score of scoreRows) {
     if (!latestByDomain.has(score.domain)) latestByDomain.set(score.domain, score);
   }
   const scored: Array<Record<string, string | number>> = [];
@@ -131,4 +139,45 @@ async function getUserId(req: NextRequest): Promise<string | null> {
 
   const session = await auth();
   return session.userId;
+}
+
+type ScoreRow = {
+  domain: string;
+  score: number | null;
+  score_band: string | null;
+  ai_summary: string | null;
+  score_status: string | null;
+  data_coverage: number | null;
+  icp_fit_score: number | null;
+  created_at: string;
+};
+
+function uploadTooLarge(): NextResponse {
+  return NextResponse.json(
+    { error: `CSV must be ${MAX_UPLOAD_BYTES / 1024 / 1024} MB or smaller` },
+    { status: 413 },
+  );
+}
+
+/** Loads unexpired scores in `.in()` chunks, newest first within each chunk. */
+async function loadScoreRows(
+  supabase: ReturnType<typeof createSupabaseAdmin>,
+  userId: string,
+  scoringVersion: string,
+  domains: string[],
+): Promise<{ rows: ScoreRow[]; failed: boolean }> {
+  const rows: ScoreRow[] = [];
+  for (let i = 0; i < domains.length; i += DOMAIN_QUERY_CHUNK) {
+    const { data, error } = await supabase
+      .from("scores")
+      .select("domain, score, score_band, ai_summary, score_status, data_coverage, icp_fit_score, created_at")
+      .eq("user_id", userId)
+      .eq("scoring_version", scoringVersion)
+      .in("domain", domains.slice(i, i + DOMAIN_QUERY_CHUNK))
+      .gt("expires_at", new Date().toISOString())
+      .order("created_at", { ascending: false });
+    if (error) return { rows: [], failed: true };
+    rows.push(...((data ?? []) as ScoreRow[]));
+  }
+  return { rows, failed: false };
 }

@@ -2,12 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { createSupabaseAdmin } from "@/lib/supabase";
 import type { SearchResultItem } from "@/lib/dashboard-search";
+import { sanitizeSearch } from "@/lib/search-sanitize";
 
 export async function GET(req: NextRequest) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const q = req.nextUrl.searchParams.get("q")?.trim() ?? "";
+  const q = sanitizeSearch(req.nextUrl.searchParams.get("q") ?? "");
   if (q.length < 2) {
     return NextResponse.json({ companies: [], people: [], watchlist: [], lists: [] });
   }

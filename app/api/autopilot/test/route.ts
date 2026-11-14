@@ -4,6 +4,8 @@ import { createSupabaseAdmin } from "@/lib/supabase";
 import { canUseFeature, featureDeniedMessage, parsePlan, requiredPlanFor } from "@/lib/plan-features";
 import { scoreCompany, domainToCompanyName } from "@/lib/score-service";
 import { evaluateConditions } from "@/lib/autopilot";
+import { testWorkflowSchema } from "@/lib/autopilot-schema";
+import { parseBody } from "../validate-body";
 import { evaluateV2ScoreTransition } from "@/lib/score-transition";
 import type { DbAutopilotWorkflow } from "@/lib/types";
 
@@ -11,10 +13,9 @@ export async function POST(req: NextRequest) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { workflow_id, domain } = (await req.json()) as { workflow_id: string; domain: string };
-  if (!workflow_id || !domain) {
-    return NextResponse.json({ error: "workflow_id and domain are required" }, { status: 400 });
-  }
+  const parsed = await parseBody(req, testWorkflowSchema);
+  if (!parsed.ok) return parsed.response;
+  const { workflow_id, domain } = parsed.data;
 
   const supabase = createSupabaseAdmin();
 

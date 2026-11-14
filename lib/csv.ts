@@ -4,10 +4,19 @@
 
 // ─── Field Escaping ─────────────────────────────────────────────────────────
 
+const FORMULA_PREFIX = /^[=+\-@\t\r]/;
+const PLAIN_NUMBER = /^[+-]?\d+(\.\d+)?([eE][+-]?\d+)?$/;
+
+/** Prefix a single quote so spreadsheets read formula-like text as text (CSV injection). */
+function neutraliseFormula(str: string): string {
+  if (!FORMULA_PREFIX.test(str) || PLAIN_NUMBER.test(str)) return str;
+  return `'${str}`;
+}
+
 function escapeField(value: unknown): string {
   if (value === null || value === undefined) return '""';
   if (Array.isArray(value)) return escapeField(value.join("; "));
-  const str = String(value);
+  const str = neutraliseFormula(String(value));
   // Always quote for consistency (RFC 4180 allows it, Excel prefers it)
   return `"${str.replace(/"/g, '""')}"`;
 }

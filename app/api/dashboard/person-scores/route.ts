@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { createSupabaseAdmin } from "@/lib/supabase";
+import { sanitizeSearch } from "@/lib/search-sanitize";
 
 export async function GET(req: NextRequest) {
   const { userId } = await auth();
@@ -9,7 +10,7 @@ export async function GET(req: NextRequest) {
   }
 
   const { searchParams } = new URL(req.url);
-  const query = searchParams.get("q")?.trim() ?? "";
+  const query = sanitizeSearch(searchParams.get("q") ?? "");
   const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10));
   const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") ?? "20", 10)));
   const from = (page - 1) * limit;

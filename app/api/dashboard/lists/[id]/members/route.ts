@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { createSupabaseAdmin } from "@/lib/supabase";
+import { parseJsonBody } from "@/lib/api-body";
+import { addMemberSchema } from "../../schemas";
 
 type RouteCtx = { params: Promise<{ id: string }> };
 
@@ -9,8 +11,9 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await ctx.params;
-  const { domain, company_name } = (await req.json()) as { domain?: string; company_name?: string };
-  if (!domain) return NextResponse.json({ error: "domain required" }, { status: 400 });
+  const parsed = await parseJsonBody(req, addMemberSchema);
+  if (!parsed.ok) return parsed.response;
+  const { domain, company_name } = parsed.data;
 
   const supabase = createSupabaseAdmin();
   const { data: list } = await supabase

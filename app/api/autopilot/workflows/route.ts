@@ -3,7 +3,8 @@ import { auth } from "@clerk/nextjs/server";
 import { createSupabaseAdmin } from "@/lib/supabase";
 import { canUseFeature, featureDeniedMessage, parsePlan, requiredPlanFor } from "@/lib/plan-features";
 import { PLAN_AUTOPILOT_LIMIT } from "@/lib/types";
-import type { AutopilotCondition, AutopilotAction, AutopilotSchedule, AutopilotSourceType, AutopilotConditionLogic } from "@/lib/types";
+import { createWorkflowSchema } from "@/lib/autopilot-schema";
+import { parseBody } from "../validate-body";
 
 export async function GET() {
   const { userId } = await auth();
@@ -20,31 +21,13 @@ export async function GET() {
   return NextResponse.json({ workflows: data ?? [] });
 }
 
-interface CreateBody {
-  name: string;
-  source_type?: AutopilotSourceType;
-  source_domains?: string[];
-  schedule?: AutopilotSchedule;
-  conditions: AutopilotCondition[];
-  condition_logic?: AutopilotConditionLogic;
-  actions: AutopilotAction[];
-}
-
 export async function POST(req: NextRequest) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const body = (await req.json()) as CreateBody;
-
-  if (!body.name?.trim()) {
-    return NextResponse.json({ error: "name is required" }, { status: 400 });
-  }
-  if (!body.conditions || body.conditions.length === 0) {
-    return NextResponse.json({ error: "At least one condition is required" }, { status: 400 });
-  }
-  if (!body.actions || body.actions.length === 0) {
-    return NextResponse.json({ error: "At least one action is required" }, { status: 400 });
-  }
+  const parsed = await parseBody(req, createWorkflowSchema);
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.data;
 
   const supabase = createSupabaseAdmin();
 
@@ -76,7 +59,7 @@ export async function POST(req: NextRequest) {
     .from("autopilot_workflows")
     .insert({
       user_id: userId,
-      name: body.name.trim(),
+      name: body.name,
       source_type: body.source_type ?? "watchlist",
       source_domains: body.source_domains ?? null,
       schedule,

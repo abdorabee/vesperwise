@@ -168,7 +168,15 @@ async function routeEvent(admin: SupabaseAdmin, event: PolarEvent): Promise<Next
       if (!credits) return unmappedProductResponse(productId, "order.paid")!;
 
       const userId = meta.user_id;
-      if (!userId) break;
+      if (!userId) {
+        // A retry can never fix missing metadata, and repeated 5xx responses risk the
+        // provider disabling the endpoint for every billing event. Acknowledge it and
+        // log loudly so the order can be credited by hand.
+        console.error(
+          `[billing/webhook] UNATTRIBUTED order.paid top-up (${productId}, customer ${event.data.customer_id}): no metadata.user_id, no credits granted`
+        );
+        return NextResponse.json({ received: true, unattributed: true });
+      }
 
       // Credit first so a failed RPC (retried by Polar) never leaves a duplicate log row.
       const { error: rpcError } = await admin.rpc("increment_topup_credits", {
@@ -179,7 +187,10 @@ async function routeEvent(admin: SupabaseAdmin, event: PolarEvent): Promise<Next
         console.error("[billing/webhook] order.paid credit update failed:", rpcError);
         return NextResponse.json({ error: "Credit update failed" }, { status: 500 });
       }
-      await Promise.all([
+      // The credit RPC already succeeded. Failing the webhook now would release the
+      // idempotency claim and Polar's retry would credit the account a second time,
+      // so follow-up write failures are logged for manual repair, not retried.
+      const [customerUpdate, logInsert] = await Promise.all([
         admin.from("users")
           .update({ polar_customer_id: event.data.customer_id })
           .eq("id", userId),
@@ -190,6 +201,12 @@ async function routeEvent(admin: SupabaseAdmin, event: PolarEvent): Promise<Next
           reason: `Top-up purchase (${credits} credits)`,
         }),
       ]);
+      if (customerUpdate.error) {
+        console.error("[billing/webhook] order.paid polar_customer_id update failed:", customerUpdate.error);
+      }
+      if (logInsert.error) {
+        console.error("[billing/webhook] order.paid credits_log insert failed:", logInsert.error);
+      }
       break;
     }
 

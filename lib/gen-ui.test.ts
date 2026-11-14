@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { sanitizeUiBlocks, workspaceFromScore } from "./gen-ui";
+import { safeUrl, sanitizeUiBlocks, workspaceFromScore } from "./gen-ui";
 import type { SignalResult, SignalSet } from "./types";
 
 function signal(score: number, max = 25): SignalResult {
@@ -139,4 +139,18 @@ describe("workspaceFromScore", () => {
     expect(explorer.axes.find((axis) => axis.key === "web")?.contribution).toBeUndefined();
     expect(sanitizeUiBlocks(blocks)).toHaveLength(blocks.length);
   });
+});
+
+describe("safeUrl", () => {
+  it("allows http and https", () => {
+    expect(safeUrl("https://linkedin.com/in/x")).toBe("https://linkedin.com/in/x");
+    expect(safeUrl("http://example.com/")).toBe("http://example.com/");
+  });
+
+  it.each(["javascript:alert(1)", "data:text/html,x", "ftp://x.com", "not a url", "", undefined, null])(
+    "rejects %j",
+    (value) => {
+      expect(safeUrl(value)).toBeNull();
+    },
+  );
 });

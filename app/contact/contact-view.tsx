@@ -144,6 +144,8 @@ export default function ContactView() {
   const [status, setStatus]   = useState<"idle" | "loading" | "success" | "error">("idle");
   const [errors, setErrors]   = useState<ContactFormErrors>({});
   const [serverError, setServerError] = useState("");
+  // Honeypot: real people never see or fill this field.
+  const [website, setWebsite] = useState("");
   const router = useRouter();
 
   function clearError(field: keyof ContactFormErrors) {
@@ -168,14 +170,16 @@ export default function ContactView() {
       const res = await fetch("/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reason, name: name.trim(), email: email.trim(), company, teamSize, message }),
+        body: JSON.stringify({ reason, name: name.trim(), email: email.trim(), company, teamSize, message, company_website: website }),
       });
       if (!res.ok) {
         const data = (await res.json().catch(() => null)) as { error?: string } | null;
         setServerError(
           res.status === 400
             ? "Some details look off — please check the form and try again."
-            : data?.error ?? "Something went wrong on our side."
+            : res.status === 429
+              ? "You've sent a few messages already. Please try again later."
+              : data?.error ?? "Something went wrong on our side."
         );
         setStatus("error");
         return;
@@ -327,6 +331,18 @@ export default function ContactView() {
           </div>
 
           <form onSubmit={handleSubmit} noValidate>
+            <div aria-hidden="true" style={{ position: "absolute", left: "-10000px", width: "1px", height: "1px", overflow: "hidden" }}>
+              <label htmlFor="contact-company-website">Company website</label>
+              <input
+                id="contact-company-website"
+                name="company_website"
+                type="text"
+                tabIndex={-1}
+                autoComplete="off"
+                value={website}
+                onChange={(e) => setWebsite(e.target.value)}
+              />
+            </div>
             {/* Row 1: name + email */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 280px), 1fr))", gap: "12px" }}>
               <div style={{ marginBottom: "16px" }}>

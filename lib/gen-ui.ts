@@ -313,3 +313,14 @@ export function suggestionsFromBlocks(blocks: UiBlock[]): UiSuggestion[] {
   const rail = [...blocks].reverse().find((b) => b.type === "action_rail");
   return rail?.type === "action_rail" ? rail.suggestions ?? [] : [];
 }
+
+/** Returns a normalised URL only for http(s); anything else (javascript:, data:, junk) is null. */
+export function safeUrl(value: string | null | undefined): string | null {
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:" ? url.toString() : null;
+  } catch {
+    return null;
+  }
+}

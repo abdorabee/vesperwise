@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { canonicalizeDomain, InvalidDomainError } from "@/lib/score-service";
 import { createSupabaseAdmin } from "@/lib/supabase";
+import { enforceV1RateLimit } from "@/app/api/v1/rate-limit";
 import { PLAN_WATCHLIST_LIMIT, type DbUser } from "@/lib/types";
 
 async function getUserId(req: NextRequest): Promise<string | null> {
@@ -24,6 +25,8 @@ async function getUserId(req: NextRequest): Promise<string | null> {
 export async function GET(req: NextRequest) {
   const userId = await getUserId(req);
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const limited = await enforceV1RateLimit(userId);
+  if (limited) return limited;
 
   const supabase = createSupabaseAdmin();
   const { data, error } = await supabase
@@ -40,6 +43,8 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const userId = await getUserId(req);
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const limited = await enforceV1RateLimit(userId);
+  if (limited) return limited;
 
   let body: { domain?: unknown; company_name?: unknown };
   try {
@@ -90,6 +95,8 @@ export async function POST(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   const userId = await getUserId(req);
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const limited = await enforceV1RateLimit(userId);
+  if (limited) return limited;
 
   const { searchParams } = new URL(req.url);
   const rawDomain = searchParams.get("domain");

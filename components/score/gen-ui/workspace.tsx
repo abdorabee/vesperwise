@@ -5,7 +5,7 @@ import { ArrowUpRight, Check, ChevronRight, Copy, ListPlus, PenLine } from "luci
 import { BandPill, CompanyMark, ScoreMeter, ScoreNumber } from "@/components/score/band";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import type { SignalAxis, UiBlock, UiSuggestion } from "@/lib/gen-ui";
+import { safeUrl, type SignalAxis, type UiBlock, type UiSuggestion } from "@/lib/gen-ui";
 import { isCareersBoardUrl } from "@/lib/public-source";
 import { isMockSource, sourceLabel, stripMockMarker } from "@/lib/source-labels";
 import { daysSince, formatAbsoluteDate, formatDaysAgo, formatRelativeTime } from "@/lib/time-ago";
@@ -51,16 +51,6 @@ function SampleDataPill() {
       Sample data
     </span>
   );
-}
-
-function safeUrl(value: string | undefined): string | null {
-  if (!value) return null;
-  try {
-    const url = new URL(value);
-    return url.protocol === "https:" || url.protocol === "http:" ? url.toString() : null;
-  } catch {
-    return null;
-  }
 }
 
 function IntentHero({ block, sampleData, fresh }: { block: HeroBlock; sampleData: boolean; fresh: boolean }) {

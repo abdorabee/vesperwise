@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { useSetCreditsRemaining } from "@/components/dashboard/workspace-state";
+import { safeUrl } from "@/lib/gen-ui";
 import type { PersonIntentScore, DbPersonScore } from "@/lib/types";
 
 interface PeopleViewProps {
@@ -99,13 +100,17 @@ export function PeopleView({ totalCount, hotCount, initialScores }: PeopleViewPr
     setLoading(true); setError(null); setResult(null); setStepIndex(0); setPageState("result");
     try {
       const parsed = parsePersonInput(input);
-      const params = new URLSearchParams();
-      if (parsed.email) params.set("email", parsed.email);
-      if (parsed.linkedin) params.set("linkedin", parsed.linkedin);
-      if (parsed.name) params.set("name", parsed.name);
-      if (parsed.company) params.set("company", parsed.company);
-      if (parsed.title) params.set("title", parsed.title);
-      const res = await fetch(`/api/v1/score/person?${params.toString()}`);
+      const res = await fetch("/api/v1/score/person", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: parsed.email || undefined,
+          linkedin: parsed.linkedin || undefined,
+          name: parsed.name || undefined,
+          company: parsed.company || undefined,
+          title: parsed.title || undefined,
+        }),
+      });
       if (!res.ok) { const err = await res.json() as { error?: string }; throw new Error(err.error ?? "Person scoring failed"); }
       const scored = await res.json() as PersonIntentScore & { credits_remaining?: number };
       if (typeof scored.credits_remaining === "number") setCreditsRemaining(scored.credits_remaining);
@@ -133,6 +138,7 @@ export function PeopleView({ totalCount, hotCount, initialScores }: PeopleViewPr
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paged = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
+  const linkedinUrl = safeUrl(result?.person_linkedin);
   const isDecisionMaker = result && ["vp", "director", "head", "chief", "c-", "ceo", "cto", "coo", "cfo"].some(kw =>
     result.person_seniority?.toLowerCase().includes(kw) || result.person_title?.toLowerCase().includes(kw)
   );
@@ -457,16 +463,16 @@ export function PeopleView({ totalCount, hotCount, initialScores }: PeopleViewPr
                     {result.person_email && <span className="dot"/>}
                     <span>{[result.person_title, result.person_company].filter(Boolean).join(" @ ")}</span>
                     {result.person_seniority && <><span className="dot"/><span>{result.person_seniority}</span></>}
-                    {result.person_linkedin && <><span className="dot"/><a href={result.person_linkedin} target="_blank" rel="noopener noreferrer">LinkedIn</a></>}
+                    {linkedinUrl && <><span className="dot"/><a href={linkedinUrl} target="_blank" rel="noopener noreferrer">LinkedIn</a></>}
                   </div>
                 </div>
                 <div className="p-actions">
                   <button className="tb-btn outlined">Save to list</button>
-                  {result.person_linkedin && (
+                  {linkedinUrl && (
                     <a
                       className="btn-primary"
                       style={{ height: 30, padding: "0 12px", display: "inline-flex", alignItems: "center", textDecoration: "none", borderRadius: "var(--r-sm)", fontSize: 13 }}
-                      href={result.person_linkedin}
+                      href={linkedinUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                     >

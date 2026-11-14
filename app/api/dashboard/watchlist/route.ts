@@ -3,6 +3,16 @@ import { auth } from "@clerk/nextjs/server";
 import { createSupabaseAdmin } from "@/lib/supabase";
 import { PLAN_WATCHLIST_LIMIT } from "@/lib/types";
 import { watchlistScoreFields } from "@/lib/watchlist-seed";
+import { z } from "zod";
+import { parseJsonBody } from "@/lib/api-body";
+
+const MAX_DOMAIN_LENGTH = 253;
+const MAX_COMPANY_NAME_LENGTH = 200;
+
+const addWatchlistSchema = z.object({
+  domain: z.string().trim().min(1).max(MAX_DOMAIN_LENGTH),
+  company_name: z.string().max(MAX_COMPANY_NAME_LENGTH).optional(),
+});
 
 export async function GET() {
   const { userId } = await auth();
@@ -24,8 +34,9 @@ export async function POST(req: NextRequest) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { domain, company_name } = (await req.json()) as { domain: string; company_name?: string };
-  if (!domain) return NextResponse.json({ error: "domain required" }, { status: 400 });
+  const parsed = await parseJsonBody(req, addWatchlistSchema);
+  if (!parsed.ok) return parsed.response;
+  const { domain, company_name } = parsed.data;
 
   const supabase = createSupabaseAdmin();
   const normalizedDomain = domain.toLowerCase();

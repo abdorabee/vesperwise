@@ -1,7 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { auth } from "@clerk/nextjs/server";
 import { createSupabaseAdmin } from "@/lib/supabase";
 import { serializePresentation } from "@/lib/score-presentation";
+import { CHAT_MAX_MESSAGE_CHARS, CHAT_MAX_SESSION_ID_CHARS } from "@/lib/chat-limits";
+
+const SEED_MAX_BLOCKS = 12;
+const SEED_MAX_TOOLS = 20;
+const SEED_MAX_BILLING_CHARS = 120;
+const TITLE_MAX_CHARS = 80;
+
+// presentation/tools are deep-sanitized by serializePresentation (gen-ui + tool chip schemas).
+const seedSchema = z.object({
+  user: z.string().max(CHAT_MAX_MESSAGE_CHARS).optional(),
+  assistant: z.string().max(CHAT_MAX_MESSAGE_CHARS * 2).optional(),
+  presentation: z.array(z.unknown()).max(SEED_MAX_BLOCKS).optional(),
+  tools: z.array(z.unknown()).max(SEED_MAX_TOOLS).optional(),
+  billing: z.string().max(SEED_MAX_BILLING_CHARS).optional(),
+});
+
+const sessionBodySchema = z.object({
+  title: z.string().max(1_000).optional(),
+  session_id: z.string().max(CHAT_MAX_SESSION_ID_CHARS).optional(),
+  seed: seedSchema.optional(),
+});
 
 export async function GET() {
   const { userId } = await auth();
@@ -24,20 +46,17 @@ export async function POST(req: NextRequest) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const body = await req.json().catch(() => ({})) as {
-    title?: string;
-    session_id?: string;
-    seed?: { user?: string; assistant?: string; presentation?: unknown; tools?: unknown; billing?: string };
-  };
+  const rawBody: unknown = await req.json().catch(() => ({}));
+  const parsedBody = sessionBodySchema.safeParse(rawBody ?? {});
+  if (!parsedBody.success) return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+  const body = parsedBody.data;
 
   const supabase = createSupabaseAdmin();
-  const title = typeof body.title === "string" && body.title.trim()
-    ? body.title.trim().slice(0, 80)
-    : undefined;
+  const title = body.title?.trim() ? body.title.trim().slice(0, TITLE_MAX_CHARS) : undefined;
 
   let session: { id: string; title: string; created_at: string; updated_at: string };
 
-  if (typeof body.session_id === "string" && body.session_id) {
+  if (body.session_id) {
     const { data, error } = await supabase
       .from("chat_sessions")
       .select("id, title, created_at, updated_at")
@@ -71,10 +90,10 @@ export async function POST(req: NextRequest) {
     });
   }
   if (seed?.assistant) {
-    const toolResult = Array.isArray(seed.presentation)
+    const toolResult = seed.presentation
       ? serializePresentation({
-          presentation: seed.presentation as never[],
-          tools: Array.isArray(seed.tools) ? seed.tools as never[] : [],
+          presentation: seed.presentation as Parameters<typeof serializePresentation>[0]["presentation"],
+          tools: (seed.tools ?? []) as Parameters<typeof serializePresentation>[0]["tools"],
           billing: seed.billing,
         })
       : null;

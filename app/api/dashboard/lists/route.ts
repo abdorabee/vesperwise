@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { createSupabaseAdmin } from "@/lib/supabase";
 import { buildListsOverview, ensureDefaultList, previewSmartListCount } from "@/lib/lists-data";
-import type { ListRule, ListType } from "@/lib/lists-types";
+import { parseJsonBody } from "@/lib/api-body";
+import { createListSchema, previewRulesSchema } from "./schemas";
 import { initialsFromName } from "@/lib/lists-display";
 
 export async function GET() {
@@ -18,19 +19,9 @@ export async function POST(req: NextRequest) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const body = (await req.json()) as {
-    name?: string;
-    description?: string;
-    list_type?: ListType;
-    color?: string;
-    rules?: ListRule[];
-    auto_refresh?: boolean;
-    domains?: Array<{ domain: string; company_name?: string }>;
-  };
-
-  if (!body.name?.trim()) {
-    return NextResponse.json({ error: "name required" }, { status: 400 });
-  }
+  const parsed = await parseJsonBody(req, createListSchema);
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.data;
 
   const listType = body.list_type ?? "manual";
   if (listType === "smart" && (!body.rules || body.rules.length === 0)) {
@@ -44,7 +35,7 @@ export async function POST(req: NextRequest) {
     .from("lists")
     .insert({
       user_id: userId,
-      name: body.name.trim(),
+      name: body.name,
       description: body.description?.trim() || null,
       list_type: listType,
       color: body.color ?? "#7170ff",
@@ -78,8 +69,9 @@ export async function PUT(req: NextRequest) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const body = (await req.json()) as { rules?: ListRule[] };
-  if (!body.rules) return NextResponse.json({ error: "rules required" }, { status: 400 });
+  const parsed = await parseJsonBody(req, previewRulesSchema);
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.data;
 
   const count = await previewSmartListCount(userId, body.rules);
   return NextResponse.json({ count });

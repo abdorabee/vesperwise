@@ -580,7 +580,7 @@ export default function DocsView() {
               <EndpointId method="GET" path="/api/v1/score?domain=…" />
               Score (query string)
             </h2>
-            <Summary>The same scoring as the POST endpoint, with parameters in the query string. It shares the cache, credit rules and response shape. Prefer POST for new integrations.</Summary>
+            <Summary>The same scoring as the POST endpoint, with parameters in the query string. It shares the cache, credit rules and response shape. Prefer POST for new integrations. GET works with API keys only; browser sessions must use POST.</Summary>
             <ParamTable>
               <ParamRow name="domain" type="string" badge="one of">The company&apos;s main domain.</ParamRow>
               <ParamRow name="company" type="string" badge="one of" isLast>Used when no domain is given; we try <IC>{"<name>.com"}</IC>, so passing a domain is more reliable.</ParamRow>
@@ -603,7 +603,7 @@ export default function DocsView() {
               <EndpointId method="GET" path="/api/v1/score/person" />
               Score a person
             </h2>
-            <Summary>Score a contact on seniority fit, recent job changes and their company&apos;s intent. Uses one credit.</Summary>
+            <Summary>Score a contact on seniority fit, recent job changes and their company&apos;s intent. Uses one credit. Send these fields as query parameters with an API key, or as a JSON body with POST. Browser sessions must use POST.</Summary>
             <H3>Query parameters</H3>
             <ParamTable>
               <ParamRow name="email" type="string" badge="one of">Work email address.</ParamRow>

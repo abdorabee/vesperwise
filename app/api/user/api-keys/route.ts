@@ -3,6 +3,11 @@ import { auth } from "@clerk/nextjs/server";
 import { createSupabaseAdmin } from "@/lib/supabase";
 import { createHash, randomBytes } from "crypto";
 import { API_KEY_PREFIX, normalizeApiKeyLabel } from "@/lib/api-keys";
+import { enforceRateLimit } from "@/lib/rate-limit";
+
+const API_KEY_CREATE_LIMIT = 10;
+const API_KEY_CREATE_WINDOW_SECONDS = 3600;
+const MAX_ACTIVE_API_KEYS = 25;
 
 const KEY_COLUMNS = "id, label, last_used, is_active, created_at";
 
@@ -27,9 +32,17 @@ export async function POST(req: NextRequest) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const limited = await enforceRateLimit({
+    key: `apikeys:${userId}`,
+    limit: API_KEY_CREATE_LIMIT,
+    windowSeconds: API_KEY_CREATE_WINDOW_SECONDS,
+  });
+  if (limited) return limited;
+
   let body: { label?: unknown } = {};
   try {
-    body = (await req.json()) as { label?: unknown };
+    const raw: unknown = await req.json();
+    if (raw && typeof raw === "object" && !Array.isArray(raw)) body = raw as { label?: unknown };
   } catch {
     // An empty body is fine — the key gets the default label.
   }
@@ -39,6 +52,19 @@ export async function POST(req: NextRequest) {
   const keyHash = createHash("sha256").update(rawKey).digest("hex");
 
   const admin = createSupabaseAdmin();
+  const { count, error: countError } = await admin
+    .from("api_keys")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("is_active", true);
+  if (countError) return NextResponse.json({ error: "Failed to create key" }, { status: 500 });
+  if ((count ?? 0) >= MAX_ACTIVE_API_KEYS) {
+    return NextResponse.json(
+      { error: `You can have at most ${MAX_ACTIVE_API_KEYS} active API keys. Revoke one to create another.` },
+      { status: 409 },
+    );
+  }
+
   const { data: record, error } = await admin
     .from("api_keys")
     .insert({ user_id: userId, key_hash: keyHash, label: normalizeApiKeyLabel(body.label) })
