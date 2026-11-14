@@ -17,16 +17,6 @@ jobs:
     name: Lint, test, build
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    env:
-      # Harmless placeholders so `next build` can prerender; no real services are contacted.
-      # The Clerk key is the base64 of "example.clerk.accounts.dev$" in publishable-key format.
-      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_ZXhhbXBsZS5jbGVyay5hY2NvdW50cy5kZXYk
-      CLERK_SECRET_KEY: sk_test_placeholder
-      NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
-      MOCK_SIGNALS: "true"
-      CACHE_DISABLED: "true"
-      NEXT_TELEMETRY_DISABLED: "1"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -37,6 +27,16 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm run build
+        env:
+          # Harmless placeholders so `next build` can prerender; no real services are contacted.
+          # The Clerk key is the base64 of "example.clerk.accounts.dev$" in publishable-key format.
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_ZXhhbXBsZS5jbGVyay5hY2NvdW50cy5kZXYk
+          CLERK_SECRET_KEY: sk_test_placeholder
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
+          MOCK_SIGNALS: "true"
+          CACHE_DISABLED: "true"
+          NEXT_TELEMETRY_DISABLED: "1"
 
   audit:
     name: Dependency audit (high+)
