@@ -12,6 +12,7 @@
     "test:scoring-db": "SCORING_V2_DB_TESTS=true vitest run supabase/migrations/scoring-v2-postgres.integration.test.ts",
     "test:cache-queue-db": "REPLACE_REDIS_DB_TESTS=true vitest run --silent=false supabase/migrations/replace-redis-postgrest.integration.test.ts",
     "test:watch": "vitest",
+    "test:e2e": "playwright test",
     "generate:favicon": "node scripts/generate-favicon.mjs"
   },
   "dependencies": {
@@ -47,6 +48,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@playwright/test": "^1.56.1",
     "@tailwindcss/postcss": "^4",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/react": "^16.3.3",

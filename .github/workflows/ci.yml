@@ -16,7 +16,7 @@ jobs:
   verify:
     name: Lint, test, build
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -29,14 +29,25 @@ jobs:
       - run: npm run build
         env:
           # Harmless placeholders so `next build` can prerender; no real services are contacted.
-          # The Clerk key is the base64 of "example.clerk.accounts.dev$" in publishable-key format.
-          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_ZXhhbXBsZS5jbGVyay5hY2NvdW50cy5kZXYk
-          CLERK_SECRET_KEY: sk_test_placeholder
+          # The Clerk key is the base64 of "clerk.example.com$" in production-key format. A test-format
+          # key would send every page through a dev-instance handshake, which breaks the e2e run.
+          # Keep these in sync with the webServer env in playwright.config.ts.
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_live_Y2xlcmsuZXhhbXBsZS5jb20k
+          CLERK_SECRET_KEY: sk_live_placeholder
           NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
           MOCK_SIGNALS: "true"
           CACHE_DISABLED: "true"
           NEXT_TELEMETRY_DISABLED: "1"
+      - run: npx playwright install --with-deps chromium
+      # Starts the build above with the same placeholders (see playwright.config.ts).
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
 
   audit:
     name: Dependency audit (high+)
