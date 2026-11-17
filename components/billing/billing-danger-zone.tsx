@@ -1,6 +1,8 @@
 import type { PlanKey } from "@/lib/billing-plans";
 import { formatRenewDate } from "@/lib/billing-stats";
 
+const PORTAL_NOTE_STYLE = { fontSize: 11, color: "var(--text-tertiary)" } as const;
+
 interface BillingDangerZoneProps {
   currentPlan: PlanKey;
   granted?: boolean;
@@ -58,16 +60,22 @@ export function BillingDangerZone({
           </div>
         </div>
         {cancelScheduled ? (
-          <a href="/api/billing/portal" className="tb-btn outlined">
-            Resume plan
-          </a>
+          <div style={{ display: "grid", justifyItems: "end", gap: 4 }}>
+            <a href="/api/billing/portal" className="tb-btn outlined" aria-describedby="portal-note">
+              Resume plan
+            </a>
+            <span id="portal-note" style={PORTAL_NOTE_STYLE}>Opens the secure billing portal.</span>
+          </div>
         ) : (
-          <a href="/api/billing/portal" className="btn-danger">
-            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" width="11" height="11">
-              <path d="M2 2l8 8M10 2l-8 8" />
-            </svg>
-            Cancel plan
-          </a>
+          <div style={{ display: "grid", justifyItems: "end", gap: 4 }}>
+            <a href="/api/billing/portal" className="btn-danger" aria-describedby="portal-note">
+              <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" width="11" height="11">
+                <path d="M2 2l8 8M10 2l-8 8" />
+              </svg>
+              Cancel plan
+            </a>
+            <span id="portal-note" style={PORTAL_NOTE_STYLE}>Opens the secure billing portal.</span>
+          </div>
         )}
       </div>
     </div>

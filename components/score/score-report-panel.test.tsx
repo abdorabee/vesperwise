@@ -1,8 +1,11 @@
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import type { UiBlock } from "@/lib/gen-ui";
 import { buildScoreReport, ScoreReportPanel, tabGroupsForBlocks } from "./score-report-panel";
+
+// AddToListMenu reads the router; server-rendered markup has no app router mounted.
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), replace: vi.fn() }) }));
 
 const blocks: UiBlock[] = [
   { type: "intent_hero", company: "Ramp", domain: "ramp.com", intent_score: 78, score_band: "HOT" },

@@ -11,6 +11,7 @@ interface ScoreThreadsColumnProps {
   busy: boolean;
   onNewScore: () => void;
   onSelect: (id: string) => void;
+  onRescore?: (domain: string) => void;
 }
 
 export function ScoreThreadsColumn({
@@ -18,6 +19,7 @@ export function ScoreThreadsColumn({
   busy,
   onNewScore,
   onSelect,
+  onRescore,
 }: ScoreThreadsColumnProps) {
   return (
     <ShellList
@@ -30,7 +32,7 @@ export function ScoreThreadsColumn({
         </Button>
       }
     >
-      <ScoreThreadList activeId={activeId} busy={busy} onSelect={onSelect} />
+      <ScoreThreadList activeId={activeId} busy={busy} onSelect={onSelect} onRescore={onRescore} />
     </ShellList>
   );
 }

@@ -116,6 +116,15 @@ type CreateState =
   | { step: "form"; saving: boolean; error: string | null }
   | { step: "reveal"; key: string; label: string };
 
+const CREATE_FALLBACK = "Couldn't create the key. Try again.";
+const RATE_LIMITED_MESSAGE = "You've created too many keys recently. Wait a while, then try again.";
+const REVEAL_CLOSE_BLOCKED = "Copy your key, then choose “I’ve copied it”. It can't be shown again once this closes.";
+
+function createFailureMessage(status: number, serverMessage: string | undefined): string {
+  if (status === 429) return serverMessage ?? RATE_LIMITED_MESSAGE;
+  return serverMessage ?? CREATE_FALLBACK;
+}
+
 export function ApiKeysView({
   initialKeys,
   initialError,
@@ -125,7 +134,9 @@ export function ApiKeysView({
 }) {
   const origin = useOrigin();
   const [keys, setKeys] = useState<ApiKeySummary[]>(initialKeys);
-  const loadError = initialError;
+  const [loadError, setLoadError] = useState<string | null>(initialError);
+  const [retrying, setRetrying] = useState(false);
+  const [closeBlocked, setCloseBlocked] = useState(false);
   const [create, setCreate] = useState<CreateState>({ step: "closed" });
   const [name, setName] = useState("");
   const [revokeTarget, setRevokeTarget] = useState<ApiKeySummary | null>(null);
@@ -144,6 +155,33 @@ export function ApiKeysView({
     // Drop the plaintext key from memory as soon as the dialog closes.
     setCreate({ step: "closed" });
     setName("");
+    setCloseBlocked(false);
+  }
+
+  /** Escape, the X button and outside clicks all land here; a revealed key needs an explicit confirmation. */
+  function handleCreateOpenChange(open: boolean) {
+    if (open) return;
+    if (create.step === "reveal") {
+      setCloseBlocked(true);
+      return;
+    }
+    closeCreate();
+  }
+
+  async function retryLoad() {
+    if (retrying) return;
+    setRetrying(true);
+    try {
+      const res = await fetch("/api/user/api-keys");
+      const data = (await res.json().catch(() => ({}))) as { keys?: ApiKeySummary[]; error?: string };
+      if (!res.ok || !data.keys) throw new Error(data.error ?? "Couldn't load your keys.");
+      setKeys(data.keys);
+      setLoadError(null);
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : "Couldn't load your keys.");
+    } finally {
+      setRetrying(false);
+    }
   }
 
   async function submitCreate(e: React.FormEvent) {
@@ -162,15 +200,17 @@ export function ApiKeysView({
         error?: string;
       };
       if (!res.ok || !data.key || !data.record) {
-        throw new Error(data.error ?? "Couldn't create the key. Try again.");
+        throw new Error(createFailureMessage(res.status, data.error));
       }
       setKeys((prev) => [data.record!, ...prev]);
+      setCloseBlocked(false);
       setCreate({ step: "reveal", key: data.key, label: data.record.label });
+      toast.success(`Created “${data.record.label}”. Copy the key now.`);
     } catch (err) {
       setCreate({
         step: "form",
         saving: false,
-        error: err instanceof Error ? err.message : "Couldn't create the key. Try again.",
+        error: err instanceof Error ? err.message : CREATE_FALLBACK,
       });
     }
   }
@@ -212,7 +252,15 @@ export function ApiKeysView({
       />
 
       {loadError ? (
-        <InlineError title="Keys didn't load" description={loadError} />
+        <InlineError
+          title="Keys didn't load"
+          description={loadError}
+          action={
+            <Button type="button" variant="outline" size="sm" onClick={retryLoad} disabled={retrying}>
+              {retrying ? "Retrying…" : "Retry"}
+            </Button>
+          }
+        />
       ) : null}
 
       <PageSurface
@@ -223,7 +271,7 @@ export function ApiKeysView({
             : "Keys are stored hashed, so a key is shown only once, when you create it."
         }
       >
-        {keys.length === 0 ? (
+        {keys.length === 0 && loadError ? null : keys.length === 0 ? (
           <EmptyState
             icon={<KeyRound className="size-5" aria-hidden="true" />}
             title="No API keys yet"
@@ -254,7 +302,10 @@ export function ApiKeysView({
                 <TableRow key={k.id} className={cn(!k.is_active && "text-muted-foreground")}>
                   <TableCell className="pl-5">
                     <div className="font-medium text-foreground">{k.label}</div>
-                    <div className={cn("text-xs text-muted-foreground", MONO)}>{API_KEY_PREFIX}••••••••</div>
+                    {/* The list API returns no key fragment (keys are hashed), so the created date is the distinguishing detail. */}
+                    <div className="text-xs text-muted-foreground">
+                      <span className={MONO}>{API_KEY_PREFIX}••••</span> · created {formatDate(k.created_at)}
+                    </div>
                   </TableCell>
                   <TableCell className="tabular-nums">{formatDate(k.created_at)}</TableCell>
                   {showLastUsed ? (
@@ -319,7 +370,7 @@ export function ApiKeysView({
       </PageSurface>
 
       {/* Create → reveal once */}
-      <Dialog open={create.step !== "closed"} onOpenChange={(open) => (open ? null : closeCreate())}>
+      <Dialog open={create.step !== "closed"} onOpenChange={handleCreateOpenChange}>
         <DialogContent
           className="sm:max-w-md"
           onInteractOutside={(e) => {
@@ -342,6 +393,11 @@ export function ApiKeysView({
                 <AlertTriangle className="mt-0.5 size-4 shrink-0 text-[var(--warm,#b45309)]" aria-hidden="true" />
                 <p>This is the only time the key is shown. If you lose it, revoke it and create a new one.</p>
               </div>
+              {closeBlocked ? (
+                <p role="alert" className="text-sm text-destructive">
+                  {REVEAL_CLOSE_BLOCKED}
+                </p>
+              ) : null}
               <div className="flex flex-col gap-2">
                 <Label htmlFor="new-api-key">API key</Label>
                 <Input
@@ -357,7 +413,7 @@ export function ApiKeysView({
               <DialogFooter className="gap-2 sm:justify-between">
                 <CopyButton text={create.key} label="Copy key" variant="default" />
                 <Button type="button" variant="outline" size="sm" onClick={closeCreate}>
-                  I&apos;ve saved it
+                  I&apos;ve copied it
                 </Button>
               </DialogFooter>
             </>

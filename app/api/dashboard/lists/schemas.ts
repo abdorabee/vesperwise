@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { ListRule } from "@/lib/lists-types";
+import { MAX_LIST_DOMAINS, type ListRule } from "@/lib/lists-types";
 
 const MAX_NAME = 120;
 const MAX_DESCRIPTION = 500;
@@ -7,7 +7,7 @@ const MAX_COLOR = 32;
 const MAX_RULES = 20;
 const MAX_DOMAIN = 253;
 const MAX_COMPANY_NAME = 200;
-export const MAX_LIST_DOMAINS = 500;
+export { MAX_LIST_DOMAINS };
 
 const SIGNALS = ["funding", "hiring", "news", "technology", "web"] as const;
 

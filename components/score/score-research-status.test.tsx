@@ -24,7 +24,7 @@ describe("ScoreResearchStatus", () => {
     expect(html.match(/data-state="landed"/g)).toHaveLength(2);
     expect(html).toContain("Series B closed 42 days ago ($22M)");
     expect(html).not.toContain("MOCK");
-    expect(html).toContain("42 d ago");
+    expect(html).toContain("1mo ago");
     expect(html).toContain("none found");
     expect(html).toContain("News coverage");
     expect(html).toContain("2 of 4 checked");

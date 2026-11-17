@@ -192,7 +192,8 @@ function Sidebar({
           data-sidebar="sidebar"
           data-slot="sidebar"
           data-mobile="true"
-          className="w-(--sidebar-width) bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden"
+          // The sheet default (500ms) makes the nav feel laggy; a menu should open almost instantly.
+          className="w-(--sidebar-width) bg-sidebar p-0 text-sidebar-foreground data-[state=open]:duration-200 data-[state=closed]:duration-150 [&>button]:hidden"
           style={
             {
               "--sidebar-width": SIDEBAR_WIDTH_MOBILE,

@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
+import { runBounded } from "@/lib/run-bounded";
+import { alertId, readDismissedAlerts, writeDismissedAlerts } from "@/lib/watchlist-dismissals";
 import { csvFilename, downloadAuthorizedCsv } from "@/lib/csv";
 import type { WatchlistRange, WatchlistStats } from "@/lib/watchlist-stats";
 import { WatchlistPageHead } from "@/components/watchlist/watchlist-page-head";
@@ -33,8 +35,8 @@ export function WatchlistView({ initial }: WatchlistViewProps) {
   const [entries, setEntries] = useState(initial.entries);
   const [lists, setLists] = useState(initial.lists);
   const [stats, setStats] = useState(initial.stats);
-  const [alertItems] = useState(initial.alertItems);
-  const [alertDismissed, setAlertDismissed] = useState(false);
+  const [alertItems, setAlertItems] = useState(initial.alertItems);
+  const [dismissedAlerts, setDismissedAlerts] = useState<ReadonlySet<string>>(new Set());
 
   const [activeListId, setActiveListId] = useState("all");
   const [range, setRange] = useState<WatchlistRange>("7D");
@@ -48,7 +50,24 @@ export function WatchlistView({ initial }: WatchlistViewProps) {
     setEntries(initial.entries);
     setLists(initial.lists);
     setStats(initial.stats);
+    setAlertItems(initial.alertItems);
   }, [initial]);
+
+  useEffect(() => {
+    setDismissedAlerts(readDismissedAlerts());
+  }, []);
+
+  const visibleAlerts = useMemo(
+    () => alertItems.filter((item) => !dismissedAlerts.has(alertId(item))),
+    [alertItems, dismissedAlerts],
+  );
+
+  function dismissAlerts() {
+    const next = new Set(dismissedAlerts);
+    for (const item of alertItems) next.add(alertId(item));
+    setDismissedAlerts(next);
+    writeDismissedAlerts(next);
+  }
 
   useEffect(() => {
     const q = searchParams.get("q")?.trim();
@@ -82,16 +101,34 @@ export function WatchlistView({ initial }: WatchlistViewProps) {
   }, [entries, activeListId, lists, query]);
 
   async function handleAdd(domain: string) {
+    const normalized = domain.trim().toLowerCase();
+    if (entries.some((entry) => entry.domain.toLowerCase() === normalized)) {
+      setAddError(null);
+      toast(`${normalized} is already on your watchlist`);
+      return;
+    }
     setAdding(true);
     setAddError(null);
     try {
       const res = await fetch("/api/dashboard/watchlist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ domain: domain.trim() }),
+        body: JSON.stringify({ domain: normalized }),
       });
-      const data = await res.json();
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      if (res.status === 403) {
+        const message = data.error ?? "Your plan's watchlist limit is reached";
+        setAddError(message);
+        toast.error(message, { action: { label: "Upgrade", onClick: () => router.push("/billing") } });
+        return;
+      }
       if (!res.ok) throw new Error(data.error ?? "Failed to add");
+      toast.success(`Added ${normalized} to watchlist`, {
+        action: {
+          label: "Score now \u00b7 1 credit",
+          onClick: () => router.push(`/score?domain=${encodeURIComponent(normalized)}`),
+        },
+      });
       router.refresh();
     } catch (e) {
       setAddError((e as Error).message);
@@ -163,6 +200,48 @@ export function WatchlistView({ initial }: WatchlistViewProps) {
     });
   }
 
+  async function handleRemoveMany(domains: string[]) {
+    const targets = entries.filter((entry) => domains.includes(entry.domain));
+    if (targets.length === 0) return;
+    const removedDomains = new Set(targets.map((t) => t.domain));
+    setEntries((prev) => prev.filter((item) => !removedDomains.has(item.domain)));
+    setSelected(new Set());
+    for (const t of targets) adjustCounts(t.domain, -1);
+
+    const results = await runBounded(targets, (t) => deleteWatchlistEntry(t.domain));
+    const removed = targets.filter((_, i) => {
+      const r = results[i];
+      return r.status === "fulfilled" && r.value.ok;
+    });
+    const failed = targets.filter((t) => !removed.includes(t));
+    if (failed.length > 0) {
+      setEntries((prev) => [...prev, ...failed.filter((f) => !prev.some((p) => p.domain === f.domain))]);
+      for (const f of failed) adjustCounts(f.domain, 1);
+    }
+    if (removed.length === 0) {
+      toast.error("Couldn't remove the selected accounts. They're back on your watchlist.");
+      return;
+    }
+    const summary =
+      failed.length > 0
+        ? `Removed ${removed.length} of ${targets.length} \u2014 ${failed.length} failed`
+        : `Removed ${removed.length} account${removed.length === 1 ? "" : "s"}`;
+    toast(summary, {
+      duration: 6000,
+      action: { label: "Undo", onClick: () => undoRemoveMany(removed) },
+    });
+  }
+
+  function undoRemoveMany(removed: typeof entries) {
+    setEntries((prev) => [...prev, ...removed.filter((r) => !prev.some((p) => p.domain === r.domain))]);
+    for (const r of removed) adjustCounts(r.domain, 1);
+    void runBounded(removed, (r) => restoreWatchlistEntry(r.domain, r.company_name)).then((undone) => {
+      const bad = undone.filter((u) => u.status === "rejected" || !u.value.ok).length;
+      if (bad > 0) toast.error(`Failed to restore ${bad} account${bad === 1 ? "" : "s"}`);
+      router.refresh();
+    });
+  }
+
   function handleExport() {
     const columns = [
       { key: "company", label: "Company" },
@@ -203,12 +282,12 @@ export function WatchlistView({ initial }: WatchlistViewProps) {
         onExport={handleExport}
       />
 
-      {!alertDismissed && (
+      {visibleAlerts.length > 0 && (
         <WatchlistAlertStrip
-          items={alertItems}
-          onDismiss={() => setAlertDismissed(true)}
+          items={visibleAlerts}
+          onDismiss={dismissAlerts}
           onReview={() => {
-            const first = alertItems[0];
+            const first = visibleAlerts[0];
             if (first) router.push(lastScoreHref(first.domain));
           }}
         />
@@ -224,7 +303,7 @@ export function WatchlistView({ initial }: WatchlistViewProps) {
         >
           <span style={{ color: "var(--text-secondary)", fontVariantNumeric: "tabular-nums" }}>{selected.size} selected</span>
           <span style={{ flex: 1 }} />
-          <button type="button" className="tb-btn outlined" onClick={() => { for (const domain of [...selected]) handleRemove(domain); }}>
+          <button type="button" className="tb-btn outlined" onClick={() => void handleRemoveMany([...selected])}>
             Remove
           </button>
           <button type="button" className="tb-btn" onClick={() => setSelected(new Set())}>

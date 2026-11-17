@@ -9,6 +9,7 @@ export function ScoreThreadDrawer({
   open,
   onOpenChange,
   onSelect,
+  onRescore,
   onNewScore,
   activeId,
   busy = false,
@@ -16,6 +17,7 @@ export function ScoreThreadDrawer({
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSelect: (id: string) => void;
+  onRescore?: (domain: string) => void;
   onNewScore: () => void;
   activeId: string | null;
   busy?: boolean;
@@ -49,6 +51,10 @@ export function ScoreThreadDrawer({
             activeId={activeId}
             busy={busy}
             enabled={open}
+            onRescore={onRescore ? (domain) => {
+              onRescore(domain);
+              onOpenChange(false);
+            } : undefined}
             onSelect={(id) => {
               onSelect(id);
               onOpenChange(false);

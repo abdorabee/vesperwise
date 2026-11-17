@@ -23,6 +23,8 @@ export interface DbList {
   icon_initials: string | null;
   rules: ListRule[] | null;
   auto_refresh: boolean;
+  /** System lists (the synced watchlist) derive members live and cannot be deleted or hand-edited. */
+  is_system?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -36,6 +38,12 @@ export interface DbListMember {
   added_at: string;
 }
 
+/** One scoring event for an account, used for dated trends and real week-over-week deltas. */
+export interface ScoreEvent {
+  at: string;
+  score: number;
+}
+
 export interface AccountContext {
   domain: string;
   company_name: string;
@@ -47,6 +55,8 @@ export interface AccountContext {
   key_triggers: string[] | null;
   why_now: string | null;
   scoreHistory: number[];
+  /** Chronological (oldest first) scoring events with timestamps. Absent means no dated history. */
+  scoreEvents?: ScoreEvent[];
 }
 
 export interface ListBandMix {
@@ -62,13 +72,14 @@ export interface ListCardSummary {
   list_type: ListType;
   color: string;
   icon_initials: string;
+  isSystem: boolean;
   accountCount: number;
-  weeklyDelta: number;
+  /** Accounts added in the last 7 days; null when that cannot be derived (or none were added). */
+  addedThisWeek: number | null;
   avgScore: number;
   bandMix: ListBandMix;
+  /** Average list score per day (percent heights). Empty when fewer than two data points exist. */
   sparkline: number[];
-  avatarInitials: string[];
-  avatarClasses: string[];
   lastUpdated: string;
   lastUpdatedLabel: string;
   isRecentlyActive: boolean;
@@ -80,7 +91,13 @@ export interface ListsHeroStats {
   overlapCount: number;
   recentlyUpdatedCount: number;
   bandMix: ListBandMix;
-  hottestList: { id: string; name: string; hotRatio: number; avgScore: number; hotThisWeek: number; total: number } | null;
+  /** List members with no score yet (not part of bandMix). */
+  unscoredCount: number;
+  /** Real number of HOT list members (not capped). */
+  hotCount: number;
+  /** Null when no list has a HOT account. `hotNow` is the current HOT count, not a weekly figure. */
+  hottestList: { id: string; name: string; hotRatio: number; avgScore: number; hotNow: number; total: number } | null;
+  /** Preview of the top HOT members only; use `hotCount` for the number. */
   firingAccounts: Array<{ domain: string; company_name: string; score: number; listName: string }>;
 }
 
@@ -101,17 +118,21 @@ export interface ListDetailData {
   list: DbList;
   stats: {
     accountCount: number;
-    weeklyDelta: number;
+    addedThisWeek: number | null;
     hotCount: number;
-    hotWeeklyDelta: number;
-    avgScore: number;
-    avgScoreDelta: number;
     warmCount: number;
-    rescoreWindowDays: number;
+    avgScore: number;
+    /** Week-over-week changes among accounts that already had a score a week ago; null without prior data. */
+    hotDelta: number | null;
+    warmDelta: number | null;
+    avgScoreDelta: number | null;
   };
   bandMix: ListBandMix;
   accounts: ListAccountRow[];
 }
+
+/** Mirrors the API cap on domains accepted when creating a list. */
+export const MAX_LIST_DOMAINS = 500;
 
 export const LIST_COLORS = [
   { value: "#dfff00", label: "Lime" },

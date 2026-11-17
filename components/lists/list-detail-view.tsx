@@ -1,14 +1,17 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+
 import type { ListDetailData } from "@/lib/lists-types";
 import { ruleToDisplayParts } from "@/lib/lists-evaluator";
-import { isInnerInteractiveClick } from "@/lib/row-click";
-import { deltaLabel, formatRelativeTime } from "@/lib/lists-display";
-import { toast } from "sonner";
+import { deltaLabel, formatRelativeTime, pluralize } from "@/lib/lists-display";
 import { csvFilename, downloadAuthorizedCsv } from "@/lib/csv";
+import { BandPill } from "@/components/score/band";
+import { DeleteListDialog } from "./delete-list-dialog";
+import { ListDetailRow } from "./list-detail-row";
 
 interface ListDetailViewProps {
   detail: ListDetailData;
@@ -18,31 +21,32 @@ interface ListDetailViewProps {
   openDomain?: string | null;
 }
 
+function StatDelta({ label }: { label: string | null }) {
+  return label ? <div className="delta">{label}</div> : null;
+}
+
+function typeLabel(detail: ListDetailData): string {
+  if (detail.list.is_system) return "Watchlist · synced";
+  return detail.list.list_type === "smart" ? "Smart list" : "Manual list";
+}
+
 export function ListDetailView({ detail, onOpenAccount, openDomain = null }: ListDetailViewProps) {
   const router = useRouter();
   const { list, stats, bandMix, accounts } = detail;
   const [search, setSearch] = useState("");
   const [sortDesc, setSortDesc] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const [reloading, startReload] = useTransition();
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [removingDomain, setRemovingDomain] = useState<string | null>(null);
+
+  const isSystem = Boolean(list.is_system);
+  const canEditMembers = list.list_type === "manual" && !isSystem;
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
-    let rows = accounts.filter(
-      (a) => !q || a.company_name.toLowerCase().includes(q) || a.domain.includes(q),
-    );
-    rows = [...rows].sort((a, b) => {
-      const sa = a.score ?? 0;
-      const sb = b.score ?? 0;
-      return sortDesc ? sb - sa : sa - sb;
-    });
-    return rows;
+    const rows = accounts.filter((a) => !q || a.company_name.toLowerCase().includes(q) || a.domain.includes(q));
+    return [...rows].sort((a, b) => (sortDesc ? (b.score ?? 0) - (a.score ?? 0) : (a.score ?? 0) - (b.score ?? 0)));
   }, [accounts, search, sortDesc]);
-
-  async function handleRefresh() {
-    setRefreshing(true);
-    router.refresh();
-    setTimeout(() => setRefreshing(false), 600);
-  }
 
   function handleExport() {
     const columns = [
@@ -68,29 +72,37 @@ export function ListDetailView({ detail, onOpenAccount, openDomain = null }: Lis
     });
   }
 
-  async function handleDelete() {
-    if (!confirm(`Delete "${list.name}"? This cannot be undone.`)) return;
-    await fetch(`/api/dashboard/lists/${list.id}`, { method: "DELETE" });
-    router.push("/lists");
-    router.refresh();
+  async function handleRemove(domain: string, name: string) {
+    setRemovingDomain(domain);
+    try {
+      const res = await fetch(`/api/dashboard/lists/${list.id}/members?domain=${encodeURIComponent(domain)}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error("Failed to remove the account");
+      toast.success(`Removed ${name} from ${list.name}`);
+      router.refresh();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to remove the account");
+    } finally {
+      setRemovingDomain(null);
+    }
   }
 
   const rel = formatRelativeTime(list.updated_at);
   const rules = list.rules ?? [];
-  const typeLabel = list.list_type === "smart" ? "Smart list" : "Manual list";
 
   return (
     <>
       <div className="page-head">
         <div>
-          <div className="page-title">{list.name}</div>
+          <h1 className="page-title">{list.name}</h1>
           <div className="page-sub">
-            <span className={`lc-tag ${list.list_type}`}>{typeLabel}</span>
+            <span className={`lc-tag ${isSystem ? "manual" : list.list_type}`}>{typeLabel(detail)}</span>
             {" · "}
-            <span className="mono" style={{ color: "var(--text-secondary)" }}>{stats.accountCount} accounts</span>
+            <span className="mono" style={{ color: "var(--text-secondary)" }}>{pluralize(stats.accountCount, "account")}</span>
             {" · avg score "}
             <span className="mono" style={{ color: "var(--text-secondary)" }}>{stats.avgScore || "—"}</span>
-            {" · updated "}
+            {" · edited "}
             <span className="mono" style={{ color: "var(--text-secondary)" }}>{rel.label}</span>
             {list.list_type === "smart" && (
               <>
@@ -101,16 +113,26 @@ export function ListDetailView({ detail, onOpenAccount, openDomain = null }: Lis
               </>
             )}
           </div>
+          {isSystem && (
+            <div className="page-sub">
+              Members follow your watchlist automatically. Add or remove accounts on the{" "}
+              <Link href="/watchlist" className="underline">Watchlist page</Link>.
+            </div>
+          )}
         </div>
         <div className="page-actions">
-          <button type="button" className="tb-btn outlined" onClick={handleRefresh} disabled={refreshing}>
-            {refreshing ? "Refreshing…" : "Refresh now"}
+          <button
+            type="button"
+            className="tb-btn outlined"
+            onClick={() => startReload(() => router.refresh())}
+            disabled={reloading}
+          >
+            {reloading ? "Reloading…" : "Reload"}
           </button>
           <button type="button" className="tb-btn outlined" onClick={handleExport}>Export</button>
-          <button type="button" className="tb-btn outlined" onClick={handleDelete}>Delete</button>
-          <Link href="/autopilot" className="btn-primary" style={{ display: "inline-flex", alignItems: "center", gap: 6, textDecoration: "none" }}>
-            Run autopilot
-          </Link>
+          {!isSystem && (
+            <button type="button" className="tb-btn outlined" onClick={() => setConfirmOpen(true)}>Delete</button>
+          )}
         </div>
       </div>
 
@@ -142,46 +164,44 @@ export function ListDetailView({ detail, onOpenAccount, openDomain = null }: Lis
         <div className="stat-card">
           <div className="label">Accounts</div>
           <div className="num">{stats.accountCount}</div>
-          <div className={`delta${stats.weeklyDelta === 0 ? " flat" : ""}`}>{deltaLabel(stats.weeklyDelta)}</div>
+          <StatDelta label={deltaLabel(stats.addedThisWeek, " added this week")} />
         </div>
         <div className="stat-card">
           <div className="label">HOT</div>
           <div className="num hot">{bandMix.hot}</div>
-          <div className={`delta${stats.hotWeeklyDelta === 0 ? " flat" : ""}`}>{deltaLabel(stats.hotWeeklyDelta)}</div>
+          <StatDelta label={deltaLabel(stats.hotDelta)} />
         </div>
         <div className="stat-card">
           <div className="label">Avg score</div>
           <div className="num">{stats.avgScore || "—"}</div>
-          <div className={`delta${stats.avgScoreDelta === 0 ? " flat" : ""}`}>
-            {stats.avgScoreDelta > 0
-              ? `▲ ${stats.avgScoreDelta} pts`
-              : stats.avgScoreDelta < 0
-                ? `▼ ${Math.abs(stats.avgScoreDelta)} pts`
-                : "stable"}
-          </div>
+          <StatDelta label={deltaLabel(stats.avgScoreDelta, " pts this week")} />
         </div>
         <div className="stat-card">
           <div className="label">WARM</div>
           <div className="num">{bandMix.warm}</div>
-          <div className="delta flat">stable</div>
+          <StatDelta label={deltaLabel(stats.warmDelta)} />
         </div>
       </div>
 
       <div className="tools-row">
         <div className="search-input">
-          <svg className="ic" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" width="12" height="12">
+          <svg className="ic" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" width="12" height="12" aria-hidden>
             <circle cx="5" cy="5" r="3" /><path d="M7 7l3 3" />
           </svg>
           <input
             type="text"
             placeholder={`Filter within ${list.name}…`}
+            aria-label={`Filter accounts in ${list.name}`}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <span className="band band-hot"><span className="dot" />HOT {bandMix.hot}</span>
-        <span className="band band-warm"><span className="dot" />WARM {bandMix.warm}</span>
-        <span className="band band-cold"><span className="dot" />COLD {bandMix.cold}</span>
+        {(["HOT", "WARM", "COLD"] as const).map((band) => (
+          <span key={band} className="inline-flex items-center gap-1.5">
+            <BandPill band={band} size="sm" />
+            <span className="mono">{bandMix[band.toLowerCase() as "hot" | "warm" | "cold"]}</span>
+          </span>
+        ))}
         <span className="spacer" />
         <button type="button" className="tb-btn outlined" onClick={() => setSortDesc((v) => !v)}>
           Sort: Score {sortDesc ? "↓" : "↑"}
@@ -192,7 +212,7 @@ export function ListDetailView({ detail, onOpenAccount, openDomain = null }: Lis
         <div className="ld-thead">
           <div>Account</div>
           <div>Score</div>
-          <div>7d trend</div>
+          <div>Score trend</div>
           <div>Why it qualifies</div>
           <div>People</div>
           <div />
@@ -201,69 +221,19 @@ export function ListDetailView({ detail, onOpenAccount, openDomain = null }: Lis
           <div className="ld-empty">No accounts match this list yet.</div>
         ) : (
           filtered.map((row) => (
-            <div
+            <ListDetailRow
               key={row.domain}
-              className="ld-trow"
-              data-selected={row.domain.toLowerCase() === openDomain ? "true" : undefined}
-              role={onOpenAccount ? "button" : undefined}
-              tabIndex={onOpenAccount ? 0 : undefined}
-              aria-label={onOpenAccount ? `Show details for ${row.company_name}` : undefined}
-              aria-pressed={onOpenAccount ? row.domain.toLowerCase() === openDomain : undefined}
-              onClick={onOpenAccount ? (event) => {
-                if (isInnerInteractiveClick(event.target, event.currentTarget)) return;
-                onOpenAccount(row.domain);
-              } : undefined}
-              onKeyDown={onOpenAccount ? (event) => {
-                if (event.target !== event.currentTarget || event.key !== "Enter") return;
-                onOpenAccount(row.domain);
-              } : undefined}
-            >
-              <div className="ld-co">
-                <div className={`av ${row.avatarClass}`}>{row.initial}</div>
-                <div className="ld-co-text">
-                  <div className="name">{row.company_name}</div>
-                  <div className="domain">{row.domain}</div>
-                </div>
-              </div>
-              <div className={`ld-score${row.score_band === "HOT" ? " hot" : row.score_band === "WARM" ? " warm" : ""}`}>
-                {row.score ?? "—"}
-              </div>
-              <div className="ld-spark">
-                {row.sparkline.map((h, i) => (
-                  <div
-                    key={i}
-                    className={`b${i === row.sparkline.length - 1 ? " cur" : ""}`}
-                    style={{ height: `${Math.max(h, 8)}%` }}
-                  />
-                ))}
-              </div>
-              <div className="ld-trig">
-                <div className="top">{row.qualifyReason}</div>
-                <div className="bot">{row.qualifySub}</div>
-              </div>
-              <div className="ld-people">
-                {row.peopleCount > 0 ? (
-                  <>
-                    <div className="stack">
-                      <div className={`ax ${row.avatarClass}`}>{row.initial}</div>
-                    </div>
-                    <span className="n">+{row.peopleCount}</span>
-                  </>
-                ) : (
-                  <span className="n">—</span>
-                )}
-              </div>
-              <div className="ld-row-actions">
-                <Link href={`/score?domain=${encodeURIComponent(row.domain)}`} className="ld-icon-btn" title="Score">
-                  <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" width="11" height="11">
-                    <path d="M2 4l5 4 5-4M2 3h10v6H2z" />
-                  </svg>
-                </Link>
-              </div>
-            </div>
+              row={row}
+              selected={row.domain.toLowerCase() === openDomain}
+              onOpen={onOpenAccount}
+              onRemove={canEditMembers ? handleRemove : undefined}
+              removing={removingDomain === row.domain}
+            />
           ))
         )}
       </div>
+
+      <DeleteListDialog listId={list.id} listName={list.name} open={confirmOpen} onOpenChange={setConfirmOpen} />
     </>
   );
 }

@@ -5190,6 +5190,12 @@ button.signal-card.gen-axis.is-selected {
   position: relative;
   display: flex;
   flex-direction: column;
+  color: inherit;
+  text-decoration: none;
+}
+.lists-page .list-card:focus-visible {
+  outline: 2px solid var(--brand, var(--accent));
+  outline-offset: 2px;
 }
 .lists-page .list-card-head {
   padding: 16px 18px 12px;
@@ -5293,10 +5299,10 @@ button.signal-card.gen-axis.is-selected {
 .lists-page .lc-spark .b {
   flex: 1;
   min-width: 2px;
-  background: rgba(255,255,255,0.08);
+  background: var(--text-quaternary);
   border-radius: 1px;
 }
-.lists-page .lc-spark .b.hl { background: var(--accent); }
+.lists-page .lc-spark .b.hl { background: var(--brand, var(--accent)); }
 .lists-page .lc-mixbar {
   margin: 0 18px 10px;
   height: 4px;
@@ -5480,7 +5486,7 @@ button.signal-card.gen-axis.is-selected {
 .lists-page .ld-spark .b {
   flex: 1;
   min-width: 2px;
-  background: rgba(255,255,255,0.08);
+  background: var(--text-quaternary);
   border-radius: 1px;
 }
 .lists-page .ld-spark .b.cur { background: var(--text-primary); }
@@ -7347,17 +7353,7 @@ button.signal-card.gen-axis.is-selected {
   width: 1px;
   background: var(--text-primary);
 }
-.watchlist-page .threshold-bar .marker::after {
-  content: '';
-  position: absolute;
-  top: -3px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 0; height: 0;
-  border-left: 3px solid transparent;
-  border-right: 3px solid transparent;
-  border-top: 3px solid var(--text-primary);
-}
+/* No caret: it overlapped the threshold label and read as a stray arrow. */
 
 .watchlist-page .wl-actions { display: flex; gap: 4px; justify-content: flex-end; }
 .watchlist-page .wl-icon-btn {

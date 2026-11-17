@@ -1,5 +1,6 @@
 import type { SignalSet, ScoreBand, BuyingStage, UrgencyLevel, BusinessProfile } from "@/lib/types";
 import { z } from "zod";
+import { fillPlaceholderFields } from "@/lib/fill-placeholders";
 
 export interface ReasoningResult {
   ai_summary: string;
@@ -236,7 +237,9 @@ export async function generateReasoning(
       return fallback();
     }
 
-    return { ...parsed.data, model_tier: tier, used_fallback: false };
+    // Models occasionally echo template tokens like "{score}/100"; fill them before the copy is stored.
+    const filled = fillPlaceholderFields(parsed.data, { score, company, band });
+    return { ...filled, model_tier: tier, used_fallback: false };
   } catch (err) {
     console.warn(`[reasoning] bounded AI call failed for ${company}; using fallback`, err);
     return fallback();

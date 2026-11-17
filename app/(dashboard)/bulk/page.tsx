@@ -2,12 +2,17 @@
 
 import { useRef, useState } from "react";
 import { Download } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { AccountPanel } from "@/components/account-panel/account-panel";
+import { useAccountParam } from "@/components/account-panel/use-account-param";
 import { useFeatureGuard, useSetCreditsRemaining, useWorkspaceState } from "@/components/dashboard/workspace-state";
 
 import {
   BulkProcessingPanel,
   BulkResultsPanel,
   BulkUploadPanel,
+  BulkUpgradePanel,
   type BulkResponse,
 } from "@/components/bulk/bulk-workspace";
 import {
@@ -15,7 +20,13 @@ import {
   bulkInsufficientCreditsMessage,
 } from "@/lib/bulk-inline";
 import { parseCsvRecords } from "@/lib/csv-parse";
-import { BULK_INLINE_MAX_ROWS, formatCount } from "@/lib/plan-features";
+import {
+  BULK_INLINE_MAX_ROWS,
+  canUseFeature,
+  formatCount,
+  PLAN_LABEL,
+  requiredPlanFor,
+} from "@/lib/plan-features";
 import {
   bulkCsvIssue,
   bulkTemplateCsv,
@@ -37,12 +48,18 @@ export default function BulkScorerPage() {
   const [error, setError] = useState<string | null>(null);
   const [announcement, setAnnouncement] = useState("");
   const [costNote, setCostNote] = useState<string | null>(null);
+  const [rowCount, setRowCount] = useState<number | null>(null);
+  const [creditShortfall, setCreditShortfall] = useState(false);
+  const router = useRouter();
+  const { account, openAccount, closeAccount } = useAccountParam();
   const inputRef = useRef<HTMLInputElement>(null);
   const batchKey = useRef("");
   const parseGeneration = useRef(0);
   const guardBulk = useFeatureGuard("bulk");
   const setCreditsRemaining = useSetCreditsRemaining();
-  const creditsRemaining = useWorkspaceState()?.creditsRemaining ?? 0;
+  const workspace = useWorkspaceState();
+  const creditsRemaining = workspace?.creditsRemaining ?? 0;
+  const bulkAllowed = !workspace || canUseFeature(workspace.plan, "bulk");
 
   async function selectFile(candidate: File | null) {
     if (!candidate) return;
@@ -59,6 +76,8 @@ export default function BulkScorerPage() {
     setResponse(null);
     setError(null);
     setCostNote(null);
+    setRowCount(null);
+    setCreditShortfall(false);
     batchKey.current = crypto.randomUUID();
 
     let text: string;
@@ -82,6 +101,7 @@ export default function BulkScorerPage() {
       return;
     }
 
+    setRowCount(rows.length);
     const note = bulkCreditEstimateMessage({
       estimatedFresh: rows.length,
       creditsRemaining,
@@ -96,6 +116,8 @@ export default function BulkScorerPage() {
     setResponse(null);
     setError(null);
     setCostNote(null);
+    setRowCount(null);
+    setCreditShortfall(false);
     batchKey.current = "";
     setAnnouncement("CSV removed.");
     if (inputRef.current) inputRef.current.value = "";
@@ -107,6 +129,7 @@ export default function BulkScorerPage() {
 
     setLoading(true);
     setError(null);
+    setCreditShortfall(false);
     setResponse(null);
     setAnnouncement(`Scoring companies from ${file.name}.`);
 
@@ -130,6 +153,7 @@ export default function BulkScorerPage() {
         credits_remaining?: number;
       };
       if (!estimateRes.ok) {
+        if (estimate.error === "Insufficient credits") setCreditShortfall(true);
         const message = estimate.error === "Insufficient credits"
           ? bulkInsufficientCreditsMessage({
               creditsNeeded: estimate.credits_needed ?? estimate.estimated_fresh ?? 0,
@@ -154,6 +178,7 @@ export default function BulkScorerPage() {
       };
 
       if (!res.ok) {
+        if (data.error === "Insufficient credits") setCreditShortfall(true);
         const message = data.error === "Insufficient credits"
           ? bulkInsufficientCreditsMessage({
               creditsNeeded: data.credits_needed ?? data.estimated_fresh ?? 0,
@@ -168,6 +193,10 @@ export default function BulkScorerPage() {
       setAnnouncement(
         `Batch complete. ${data.scored} scored and ${data.failed} failed.`,
       );
+      toast.success(`Scored ${data.scored} ${data.scored === 1 ? "company" : "companies"}`, {
+        description: data.failed > 0 ? `${data.failed} failed and were not charged.` : undefined,
+        action: { label: "View in History", onClick: () => router.push("/history") },
+      });
     } catch (caught) {
       const message = (caught as Error).message;
       setError(message);
@@ -266,44 +295,53 @@ export default function BulkScorerPage() {
       </header>
 
       <div className="bulk-workspace">
-        <BulkUploadPanel
-          file={file}
-          loading={loading}
-          dragActive={dragActive}
-          error={error}
-          inputRef={inputRef}
-          onBrowse={() => inputRef.current?.click()}
-          onRemove={clearFile}
-          onSubmit={handleSubmit}
-          onDragEnter={(event) => {
-            event.preventDefault();
-            if (!loading) setDragActive(true);
-          }}
-          onDragLeave={(event) => {
-            event.preventDefault();
-            setDragActive(false);
-          }}
-          onDragOver={(event) => {
-            event.preventDefault();
-            if (!loading) setDragActive(true);
-          }}
-          onDrop={(event) => {
-            event.preventDefault();
-            setDragActive(false);
-            if (!loading) selectFile(event.dataTransfer.files[0] ?? null);
-          }}
-          onFileChange={(event) => {
-            selectFile(event.currentTarget.files?.[0] ?? null);
-            event.currentTarget.value = "";
-          }}
-        />
+        {bulkAllowed ? (
+          <BulkUploadPanel
+            file={file}
+            loading={loading}
+            dragActive={dragActive}
+            error={error}
+            errorAction={creditShortfall ? { label: "Top up", href: "/billing" } : null}
+            inputRef={inputRef}
+            onBrowse={() => inputRef.current?.click()}
+            onRemove={clearFile}
+            onSubmit={handleSubmit}
+            onDragEnter={(event) => {
+              event.preventDefault();
+              if (!loading) setDragActive(true);
+            }}
+            onDragLeave={(event) => {
+              event.preventDefault();
+              setDragActive(false);
+            }}
+            onDragOver={(event) => {
+              event.preventDefault();
+              if (!loading) setDragActive(true);
+            }}
+            onDrop={(event) => {
+              event.preventDefault();
+              setDragActive(false);
+              if (!loading) selectFile(event.dataTransfer.files[0] ?? null);
+            }}
+            onFileChange={(event) => {
+              selectFile(event.currentTarget.files?.[0] ?? null);
+              event.currentTarget.value = "";
+            }}
+          />
+        ) : (
+          <BulkUpgradePanel
+            planLabel={workspace ? PLAN_LABEL[workspace.plan] : "current"}
+            requiredLabel={PLAN_LABEL[requiredPlanFor("bulk")]}
+          />
+        )}
 
-        {loading && file ? <BulkProcessingPanel fileName={file.name} /> : null}
+        {loading && file ? <BulkProcessingPanel fileName={file.name} companyCount={rowCount} /> : null}
 
         {response ? (
           <BulkResultsPanel
             response={response}
             onDownload={handleDownloadResults}
+            onOpenAccount={openAccount}
           />
         ) : null}
       </div>
@@ -311,6 +349,7 @@ export default function BulkScorerPage() {
       <p className="sr-only" aria-live="polite" aria-atomic="true">
         {announcement}
       </p>
+      {account ? <AccountPanel domain={account} onClose={closeAccount} /> : null}
     </div>
   );
 }

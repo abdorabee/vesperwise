@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { ArrowUpRight, Check, ChevronRight, Copy, ListPlus, PenLine } from "lucide-react";
 import { BandPill, CompanyMark, ScoreMeter, ScoreNumber } from "@/components/score/band";
+import { AddToListMenu } from "@/components/lists/add-to-list-menu";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { safeUrl, type SignalAxis, type UiBlock, type UiSuggestion } from "@/lib/gen-ui";
@@ -15,6 +16,8 @@ export interface GenUiHandlers {
   onWatchlist?: (company: string, domain: string) => void;
   watchlistByDomain?: Record<string, "adding" | "added">;
   onPrompt?: (prompt: string) => void;
+  /** Set when the host already offers add-to-list (e.g. the account panel header). */
+  hideAddToList?: boolean;
 }
 
 type HeroBlock = Extract<UiBlock, { type: "intent_hero" }>;
@@ -291,6 +294,7 @@ function ActionRail({ block, handlers }: { block: Extract<UiBlock, { type: "acti
   return (
     <div className="score-artifact-actions flex flex-wrap gap-2 pt-1">
       {handlers.onWatchlist ? <Button type="button" size="sm" variant="outline" onClick={() => handlers.onWatchlist?.(block.company, block.domain)} disabled={status === "adding" || status === "added"}><ListPlus className="size-4" />{status === "added" ? "Watching" : status === "adding" ? "Adding…" : "Save to watchlist"}</Button> : null}
+      {handlers.hideAddToList ? null : <AddToListMenu domain={block.domain} companyName={block.company} />}
       <Button type="button" size="sm" variant="ghost" asChild><a href={`https://www.linkedin.com/search/results/companies/?keywords=${encodeURIComponent(block.company)}`} target="_blank" rel="noopener noreferrer">Find on LinkedIn <ArrowUpRight className="size-3.5" aria-hidden="true" /></a></Button>
     </div>
   );

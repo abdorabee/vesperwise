@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
   }
 
   if (listType === "manual" && body.domains?.length) {
-    await supabase.from("list_members").insert(
+    const { error: memberError } = await supabase.from("list_members").insert(
       body.domains.map((d) => ({
         list_id: list.id,
         user_id: userId,
@@ -60,6 +60,10 @@ export async function POST(req: NextRequest) {
         company_name: d.company_name ?? d.domain,
       })),
     );
+    if (memberError) {
+      await supabase.from("lists").delete().eq("id", list.id).eq("user_id", userId);
+      return NextResponse.json({ error: "Failed to add accounts to the list" }, { status: 500 });
+    }
   }
 
   return NextResponse.json({ list }, { status: 201 });

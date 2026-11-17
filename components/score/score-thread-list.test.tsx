@@ -67,7 +67,7 @@ describe("ScoreThreadList", () => {
 
     expect(html).toContain('aria-current="page"');
     expect(html).toContain("Ramp score");
-    expect(html).toContain("2 h ago");
+    expect(html).toContain("2h ago");
   });
 
   it("shows the busy orb on the active row or a pending new-thread row", () => {
@@ -87,5 +87,65 @@ describe("ScoreThreadList", () => {
     );
     expect(pending).toContain("New thread");
     expect(pending).toContain('data-slot="score-thread-pending"');
+  });
+});
+
+describe("ScoreThreadList recents", () => {
+  it("renders legacy wrapped titles as the plain domain with a rescore", () => {
+    const html = renderToStaticMarkup(
+      <ScoreThreadList activeId={null} onSelect={vi.fn()} onRescore={vi.fn()} now={NOW} sessions={[session("l", "[Score result — Fastautomate (fastautomate.com)]", "2026-10-03T10:00:00.000Z")]} />,
+    );
+    expect(html).not.toContain("[Score result");
+    expect(html).toContain("fastautomate.com</span>");
+    expect(html).toContain('aria-label="Rescore fastautomate.com · 1 credit"');
+  });
+
+  it("shows one row per domain, keeping the newest thread", () => {
+    const html = renderToStaticMarkup(
+      <ScoreThreadList
+        activeId={null}
+        onSelect={vi.fn()}
+        now={NOW}
+        sessions={[
+          session("older", "stripe.com", "2026-10-01T10:00:00.000Z"),
+          session("newer", "stripe.com", "2026-10-03T10:00:00.000Z"),
+        ]}
+      />,
+    );
+    expect(html.match(/stripe\.com<\/span>/g)).toHaveLength(1);
+    expect(html).toContain("2h ago");
+    expect(html).not.toContain("2d ago");
+  });
+
+  it("flags threads last scored more than 30 days ago as stale", () => {
+    const html = renderToStaticMarkup(
+      <ScoreThreadList
+        activeId={null}
+        onSelect={vi.fn()}
+        now={NOW}
+        sessions={[
+          session("old", "old.com", "2026-08-01T10:00:00.000Z"),
+          session("fresh", "fresh.com", "2026-10-02T10:00:00.000Z"),
+        ]}
+      />,
+    );
+    expect(html.match(/>Stale</g)).toHaveLength(1);
+  });
+
+  it("offers a per-row rescore that names the cost, only for domain-titled threads", () => {
+    const html = renderToStaticMarkup(
+      <ScoreThreadList
+        activeId={null}
+        onSelect={vi.fn()}
+        onRescore={vi.fn()}
+        now={NOW}
+        sessions={[
+          session("a", "stripe.com", "2026-10-03T10:00:00.000Z"),
+          session("b", "Notes on Ramp", "2026-10-03T09:00:00.000Z"),
+        ]}
+      />,
+    );
+    expect(html.match(/Rescore · 1 credit/g)).toHaveLength(1);
+    expect(html).toContain('aria-label="Rescore stripe.com · 1 credit"');
   });
 });

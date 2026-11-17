@@ -53,6 +53,17 @@ export async function DELETE(_req: NextRequest, ctx: RouteCtx) {
 
   const { id } = await ctx.params;
   const supabase = createSupabaseAdmin();
+  const { data: list } = await supabase
+    .from("lists")
+    .select("is_system")
+    .eq("id", id)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (!list) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (list.is_system) {
+    return NextResponse.json({ error: "The watchlist list is synced and cannot be deleted" }, { status: 409 });
+  }
+
   const { error } = await supabase.from("lists").delete().eq("id", id).eq("user_id", userId);
 
   if (error) return NextResponse.json({ error: "Failed to delete" }, { status: 500 });

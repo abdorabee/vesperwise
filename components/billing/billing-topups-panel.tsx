@@ -1,3 +1,4 @@
+import { BillingPostForm } from "@/components/billing/billing-post-form";
 import { BILLING_TOPUPS, planYourTopupRate, topupUnitRate, type PlanKey } from "@/lib/billing-plans";
 
 interface BillingTopupsPanelProps {
@@ -43,12 +44,13 @@ export function BillingTopupsPanel({ plan, sectionId = "topups" }: BillingTopups
                   </>
                 )}
               </div>
-              <form action="/api/billing/topup" method="POST">
-                <input type="hidden" name="amount" value={t.amount} />
-                <button type="submit" className="tu-cta">
-                  Add to plan
-                </button>
-              </form>
+              <BillingPostForm
+                action="/api/billing/topup"
+                fieldName="amount"
+                fieldValue={t.amount}
+                label="Add to plan"
+                buttonClassName="tu-cta"
+              />
             </div>
           );
         })}

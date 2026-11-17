@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { AddToListMenu } from "@/components/lists/add-to-list-menu";
 import { MoreHorizontal, Plus } from "lucide-react";
 import {
   DropdownMenu,
@@ -134,7 +136,10 @@ export function WatchlistTable({
             aria-label={onOpen ? `Show details for ${row.company_name}` : `Open last score for ${row.company_name}`}
             onKeyDown={(e) => {
               if (e.target !== e.currentTarget) return;
-              if (e.key === "Enter") open();
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                open();
+              }
             }}
           >
             <div
@@ -171,7 +176,17 @@ export function WatchlistTable({
             </div>
 
             <div className="wl-score-cell" style={{ color: scoreColor }}>
-              {row.score ?? "—"}
+              {row.score ?? (
+                <Link
+                  href={`/score?domain=${encodeURIComponent(row.domain)}`}
+                  className="tb-btn"
+                  aria-label={`Score ${row.company_name} (1 credit)`}
+                  onClick={(e) => e.stopPropagation()}
+                  onKeyDown={(e) => e.stopPropagation()}
+                >
+                  Score
+                </Link>
+              )}
             </div>
 
             <div className="wl-spark" aria-label={`${range} score trend`}>
@@ -222,7 +237,7 @@ export function WatchlistTable({
               </div>
             </div>
 
-            <div className="mono" style={{ color: row.lastMoveColor, fontSize: 12 }}>
+            <div className="mono" style={{ color: row.lastMoveColor, fontSize: 12, whiteSpace: "nowrap" }}>
               {row.lastMoveLabel}
             </div>
 
@@ -238,6 +253,7 @@ export function WatchlistTable({
                   <DropdownMenuItem onSelect={() => router.push(`/score?domain=${encodeURIComponent(row.domain)}`)}>
                     Rescore · 1 credit
                   </DropdownMenuItem>
+                  <AddToListMenu variant="menuitem" domain={row.domain} companyName={row.company_name} />
                   <DropdownMenuSeparator />
                   <DropdownMenuItem variant="destructive" onSelect={() => onRemove(row.domain)}>
                     Remove from watchlist

@@ -140,7 +140,8 @@ describe("DashboardShell", () => {
     const statusBar = html.slice(html.indexOf('data-slot="dashboard-status-bar"'));
 
     expect(statusBar).toContain("Mock signals");
-    expect(statusBar).toContain("Ctrl K Search");
+    // The shortcut sits in a .kbd-hint span so touch devices can hide it; "Search" always shows.
+    expect(statusBar).toContain('<span class="kbd-hint">Ctrl K </span>Search');
     expect(statusBar).not.toContain("⌘K Search");
     // The sidebar search row carries the same hint.
     expect(html).toContain(">Ctrl K</kbd>");

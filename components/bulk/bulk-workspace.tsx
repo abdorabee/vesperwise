@@ -1,7 +1,10 @@
 "use client";
 
+import { useMemo, useState } from "react";
+import Link from "next/link";
 import type {
   ChangeEventHandler,
+  CSSProperties,
   DragEventHandler,
   Ref,
 } from "react";
@@ -16,9 +19,11 @@ import {
   X,
 } from "lucide-react";
 
+import { BandPill } from "@/components/score/band";
+import { AddToListMenu } from "@/components/lists/add-to-list-menu";
 import { formatBulkFileSize, formatCoverage } from "../../lib/bulk-workspace";
 import { BULK_INLINE_MAX_ROWS, formatCount } from "../../lib/plan-features";
-import type { SignalSet } from "../../lib/types";
+import type { ScoreBand, SignalSet } from "../../lib/types";
 
 export interface BulkResult {
   domain: string;
@@ -60,6 +65,8 @@ interface BulkUploadPanelProps {
   loading: boolean;
   dragActive: boolean;
   error: string | null;
+  /** Optional link shown beside the error, e.g. "Top up" for insufficient credits. */
+  errorAction?: { label: string; href: string } | null;
   inputRef?: Ref<HTMLInputElement>;
   onBrowse: () => void;
   onRemove: () => void;
@@ -76,6 +83,7 @@ export function BulkUploadPanel({
   loading,
   dragActive,
   error,
+  errorAction,
   inputRef,
   onBrowse,
   onRemove,
@@ -157,6 +165,11 @@ export function BulkUploadPanel({
             <div className="bulk-inline-error" role="alert">
               <AlertTriangle aria-hidden="true" />
               <span>{error}</span>
+              {errorAction ? (
+                <Link href={errorAction.href} className="bulk-inline-error-action" style={{ marginLeft: "auto", fontWeight: 600, textDecoration: "underline", whiteSpace: "nowrap" }}>
+                  {errorAction.label}
+                </Link>
+              ) : null}
             </div>
           ) : null}
 
@@ -224,7 +237,15 @@ export function BulkUploadPanel({
   );
 }
 
-export function BulkProcessingPanel({ fileName }: { fileName: string }) {
+export function BulkProcessingPanel({
+  fileName,
+  companyCount,
+}: {
+  fileName: string;
+  /** Rows parsed from the CSV, when known. */
+  companyCount?: number | null;
+}) {
+  const subject = companyCount ? `${formatCount(companyCount)} ${companyCount === 1 ? "company" : "companies"}` : "companies";
   return (
     <section className="bulk-panel bulk-processing-panel" role="status" aria-live="polite">
       <div className="bulk-processing-icon" aria-hidden="true">
@@ -232,32 +253,93 @@ export function BulkProcessingPanel({ fileName }: { fileName: string }) {
       </div>
       <div className="bulk-processing-copy">
         <h2>Scoring companies</h2>
-        <p>
-          We’re checking current signals and building the ranked result set. Larger
-          files can take a few minutes.
-        </p>
+        <p>Scoring {subject} — this can take a few minutes. Keep this tab open.</p>
         <span className="bulk-processing-file">{fileName}</span>
-      </div>
-      <div className="bulk-progress" aria-hidden="true">
-        <span />
       </div>
     </section>
   );
 }
 
-function bandClass(band: string): string {
-  if (band === "HOT") return "is-hot";
-  if (band === "WARM") return "is-warm";
-  return "is-cold";
+export function BulkUpgradePanel({
+  planLabel,
+  requiredLabel,
+}: {
+  planLabel: string;
+  requiredLabel: string;
+}) {
+  return (
+    <section className="bulk-panel bulk-upgrade-panel" aria-labelledby="bulk-upgrade-heading">
+      <header className="bulk-panel-head">
+        <h2 id="bulk-upgrade-heading">Bulk scoring is on {requiredLabel} and above</h2>
+      </header>
+      <p className="bulk-guide-note">
+        Upload a CSV of up to {formatCount(BULK_INLINE_MAX_ROWS)} companies, score them in one batch, then rank the
+        results and export them. Your {planLabel} plan does not include it.
+      </p>
+      <div className="bulk-upload-actions">
+        <Link href="/billing#plans" className="btn-primary bulk-submit">
+          See plans
+        </Link>
+      </div>
+    </section>
+  );
+}
+
+const PLAIN_BUTTON: CSSProperties = {
+  background: "none",
+  border: 0,
+  padding: 0,
+  font: "inherit",
+  color: "inherit",
+  textAlign: "left",
+  cursor: "pointer",
+};
+
+type ScoreSort = "ranked" | "desc" | "asc";
+type BandFilter = ScoreBand | "ALL";
+
+const BAND_FILTERS: BandFilter[] = ["ALL", "HOT", "WARM", "COLD"];
+const SORT_NEXT: Record<ScoreSort, ScoreSort> = { ranked: "desc", desc: "asc", asc: "ranked" };
+const SORT_LABEL: Record<ScoreSort, string> = {
+  ranked: "Score, in ranked order",
+  desc: "Score, highest first",
+  asc: "Score, lowest first",
+};
+const ARIA_SORT: Record<ScoreSort, "none" | "ascending" | "descending"> = {
+  ranked: "none",
+  desc: "descending",
+  asc: "ascending",
+};
+
+function isBand(value: string): value is ScoreBand {
+  return value === "HOT" || value === "WARM" || value === "COLD";
+}
+
+/** Filters by band, then sorts by score; "ranked" keeps the order the API returned. */
+export function arrangeBulkResults(results: BulkResult[], band: BandFilter, sort: ScoreSort): BulkResult[] {
+  const filtered = band === "ALL" ? results : results.filter((r) => r.score_band === band);
+  if (sort === "ranked") return filtered;
+  const direction = sort === "desc" ? -1 : 1;
+  return [...filtered].sort((a, b) => direction * (a.intent_score - b.intent_score));
 }
 
 export function BulkResultsPanel({
   response,
   onDownload,
+  onOpenAccount,
 }: {
   response: BulkResponse;
   onDownload: () => void;
+  /** Opens the shared account panel for a domain. */
+  onOpenAccount?: (domain: string) => void;
 }) {
+  const [bandFilter, setBandFilter] = useState<BandFilter>("ALL");
+  const [sort, setSort] = useState<ScoreSort>("ranked");
+  const visible = useMemo(
+    () => arrangeBulkResults(response.results, bandFilter, sort),
+    [response.results, bandFilter, sort],
+  );
+
   return (
     <section className="bulk-panel bulk-results-panel" aria-labelledby="bulk-results-heading">
       <header className="bulk-results-head">
@@ -276,6 +358,19 @@ export function BulkResultsPanel({
               <strong>{response.failed}</strong>
               <small>failed</small>
             </span>
+          </div>
+          <div role="group" aria-label="Filter by band" className="bulk-band-filter">
+            {BAND_FILTERS.map((band) => (
+              <button
+                key={band}
+                type="button"
+                className="tb-btn"
+                aria-pressed={bandFilter === band}
+                onClick={() => setBandFilter(band)}
+              >
+                {band === "ALL" ? "All" : band}
+              </button>
+            ))}
           </div>
           <button
             type="button"
@@ -296,40 +391,70 @@ export function BulkResultsPanel({
             <thead>
               <tr>
                 <th scope="col">Company</th>
-                <th scope="col">Score</th>
+                <th scope="col" aria-sort={ARIA_SORT[sort]}>
+                  <button type="button" className="bulk-sort-button" style={{ ...PLAIN_BUTTON, fontWeight: "inherit", textTransform: "inherit", letterSpacing: "inherit" }} onClick={() => setSort(SORT_NEXT[sort])} aria-label={`Sort by score. Now: ${SORT_LABEL[sort]}`}>
+                    Score {sort === "desc" ? "\u2193" : sort === "asc" ? "\u2191" : ""}
+                  </button>
+                </th>
                 <th scope="col">Band</th>
                 <th scope="col">Coverage</th>
                 <th scope="col">AI thesis</th>
+                <th scope="col"><span className="sr-only">Actions</span></th>
               </tr>
             </thead>
             <tbody>
-              {response.results.map((result, index) => (
-                <tr key={`${result.domain}-${index}`}>
+              {visible.length === 0 ? (
+                <tr>
+                  <td colSpan={6}>No {bandFilter} companies in this batch.</td>
+                </tr>
+              ) : null}
+              {visible.map((result, index) => (
+                <tr
+                  key={`${result.domain}-${index}`}
+                  style={onOpenAccount ? { cursor: "pointer" } : undefined}
+                  onClick={onOpenAccount ? () => onOpenAccount(result.domain) : undefined}
+                >
                   <td>
                     <div className="bulk-company">
                       <span className="bulk-company-mark" aria-hidden="true">
                         {result.company_name.slice(0, 1).toUpperCase()}
                       </span>
-                      <span>
-                        <strong>{result.company_name}</strong>
-                        <small>{result.domain}</small>
-                      </span>
+                      {onOpenAccount ? (
+                        <button
+                          type="button"
+                          className="bulk-company-button"
+                          style={PLAIN_BUTTON}
+                          aria-label={`Show details for ${result.company_name}`}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            onOpenAccount(result.domain);
+                          }}
+                        >
+                          <strong>{result.company_name}</strong>
+                          <small>{result.domain}</small>
+                        </button>
+                      ) : (
+                        <span>
+                          <strong>{result.company_name}</strong>
+                          <small>{result.domain}</small>
+                        </span>
+                      )}
                     </div>
                   </td>
                   <td>
                     <span className="bulk-score">{result.intent_score}</span>
                   </td>
                   <td>
-                    <span className={`bulk-band ${bandClass(result.score_band)}`}>
-                      <i aria-hidden="true" />
-                      {result.score_band}
-                    </span>
+                    {isBand(result.score_band) ? <BandPill band={result.score_band} size="sm" /> : result.score_band}
                   </td>
                   <td>
                     <span className="bulk-coverage">{formatCoverage(result.data_coverage)}</span>
                   </td>
                   <td>
                     <p className="bulk-thesis">{result.ai_summary || "No summary available."}</p>
+                  </td>
+                  <td onClick={(event) => event.stopPropagation()}>
+                    <AddToListMenu variant="icon" domain={result.domain} companyName={result.company_name} />
                   </td>
                 </tr>
               ))}

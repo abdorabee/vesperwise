@@ -4,6 +4,8 @@ import { createSupabaseAdmin } from "@/lib/supabase";
 import { parseJsonBody } from "@/lib/api-body";
 import { addMemberSchema } from "../../schemas";
 
+const SYSTEM_LIST_ERROR = "Members of the watchlist list are managed from your watchlist";
+
 type RouteCtx = { params: Promise<{ id: string }> };
 
 export async function POST(req: NextRequest, ctx: RouteCtx) {
@@ -18,12 +20,13 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
   const supabase = createSupabaseAdmin();
   const { data: list } = await supabase
     .from("lists")
-    .select("list_type")
+    .select("list_type, is_system")
     .eq("id", id)
     .eq("user_id", userId)
     .maybeSingle();
 
   if (!list) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (list.is_system) return NextResponse.json({ error: SYSTEM_LIST_ERROR }, { status: 409 });
   if (list.list_type !== "manual") {
     return NextResponse.json({ error: "Only manual lists support members" }, { status: 400 });
   }
@@ -44,7 +47,7 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
 
   if (error) return NextResponse.json({ error: "Failed to add member" }, { status: 500 });
 
-  await supabase.from("lists").update({ updated_at: new Date().toISOString() }).eq("id", id);
+  await supabase.from("lists").update({ updated_at: new Date().toISOString() }).eq("id", id).eq("user_id", userId);
 
   return NextResponse.json({ member: data });
 }
@@ -60,12 +63,13 @@ export async function DELETE(req: NextRequest, ctx: RouteCtx) {
   const supabase = createSupabaseAdmin();
   const { data: list } = await supabase
     .from("lists")
-    .select("list_type")
+    .select("list_type, is_system")
     .eq("id", id)
     .eq("user_id", userId)
     .maybeSingle();
 
   if (!list) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (list.is_system) return NextResponse.json({ error: SYSTEM_LIST_ERROR }, { status: 409 });
   if (list.list_type !== "manual") {
     return NextResponse.json({ error: "Only manual lists support members" }, { status: 400 });
   }
@@ -79,7 +83,7 @@ export async function DELETE(req: NextRequest, ctx: RouteCtx) {
 
   if (error) return NextResponse.json({ error: "Failed to remove member" }, { status: 500 });
 
-  await supabase.from("lists").update({ updated_at: new Date().toISOString() }).eq("id", id);
+  await supabase.from("lists").update({ updated_at: new Date().toISOString() }).eq("id", id).eq("user_id", userId);
 
   return NextResponse.json({ ok: true });
 }

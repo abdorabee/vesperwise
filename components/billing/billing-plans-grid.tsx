@@ -1,5 +1,6 @@
 "use client";
 
+import { BillingPostForm } from "@/components/billing/billing-post-form";
 import {
   BILLING_PLANS,
   planCardAction,
@@ -83,23 +84,27 @@ export function BillingPlansGrid({ currentPlan, granted = false }: BillingPlansG
                   Contact us
                 </a>
               ) : action === "upgrade" ? (
-                <form action="/api/billing/checkout" method="POST">
-                  <input type="hidden" name="plan" value={p.key} />
-                  <button
-                    type="submit"
-                    className={`pc-cta${isRecommended ? " solid" : " outline"}`}
-                    aria-describedby={`renewal-${p.key}`}
-                  >
-                    {`Upgrade to ${p.label}`}
-                  </button>
+                <BillingPostForm
+                  action="/api/billing/checkout"
+                  fieldName="plan"
+                  fieldValue={p.key}
+                  label={`Upgrade to ${p.label}`}
+                  buttonClassName={`pc-cta${isRecommended ? " solid" : " outline"}`}
+                  ariaDescribedBy={`renewal-${p.key}`}
+                >
                   <p id={`renewal-${p.key}`} className="pc-renewal">
                     {renewalDisclosure(p.price)} <a href="/terms#s3">Terms</a>
                   </p>
-                </form>
+                </BillingPostForm>
               ) : action === "downgrade" ? (
-                <a href="/api/billing/portal" className="pc-cta outline">
-                  Downgrade
-                </a>
+                <>
+                  <a href="/api/billing/portal" className="pc-cta outline" aria-describedby={`portal-${p.key}`}>
+                    Downgrade
+                  </a>
+                  <p id={`portal-${p.key}`} className="pc-renewal">
+                    Opens the secure billing portal.
+                  </p>
+                </>
               ) : null}
             </div>
           );

@@ -653,3 +653,8 @@
 .ld-trow[role="button"] {
   cursor: pointer;
 }
+
+/* Keyboard shortcut hints mean nothing on touch-only devices. */
+@media (hover: none) and (pointer: coarse) {
+  .kbd-hint { display: none !important; }
+}

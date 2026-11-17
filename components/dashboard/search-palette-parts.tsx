@@ -82,9 +82,9 @@ const KBD_CLASS =
 export function PaletteFooter({ status }: { status: string }) {
   return (
     <div className="flex h-9 items-center gap-4 border-t border-border px-4 text-[11px] text-muted-foreground">
-      <span><kbd className={KBD_CLASS}>↑↓</kbd>navigate</span>
-      <span><kbd className={KBD_CLASS}>↵</kbd>open</span>
-      <span><kbd className={KBD_CLASS}>esc</kbd>close</span>
+      <span className="kbd-hint"><kbd className={KBD_CLASS}>↑↓</kbd>navigate</span>
+      <span className="kbd-hint"><kbd className={KBD_CLASS}>↵</kbd>open</span>
+      <span className="kbd-hint"><kbd className={KBD_CLASS}>esc</kbd>close</span>
       <span role="status" aria-live="polite" className="ml-auto">{status}</span>
     </div>
   );
