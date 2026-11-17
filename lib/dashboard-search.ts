@@ -1,18 +1,6 @@
-import type { LucideIcon } from "lucide-react";
-import {
-  LayoutGrid,
-  Activity,
-  Gauge,
-  MessageSquare,
-  History,
-  Eye,
-  CreditCard,
-  Key,
-  List,
-  Upload,
-  BrainCircuit,
-  Settings,
-} from "lucide-react";
+import type { ComponentType } from "react";
+import { BrainCircuit, CreditCard, Settings } from "lucide-react";
+import { NAV_GROUPS } from "@/components/dashboard/nav-config";
 
 export type SearchResultKind = "page" | "company" | "person" | "watchlist" | "list" | "action";
 
@@ -22,7 +10,7 @@ export interface SearchNavItem {
   label: string;
   href: string;
   keywords: string;
-  icon: LucideIcon;
+  icon: ComponentType<{ className?: string }>;
 }
 
 export interface SearchResultItem {
@@ -35,21 +23,37 @@ export interface SearchResultItem {
   band?: "HOT" | "WARM" | "COLD" | null;
 }
 
-// People, Inbox and Autopilot are hidden until they ship; their routes still work by URL.
+/** Search-only keywords per nav page, keyed by the route slug (`/api-keys` -> `api-keys`). */
+const NAV_KEYWORDS: Record<string, string> = {
+  dashboard: "home overview",
+  pipeline: "pipeline intent hub deals",
+  // Chat is the Score composer, so its old keywords live here.
+  score: "score company domain lookup chat copilot ask why hot thread",
+  history: "history runs past scores",
+  watchlist: "watchlist monitor accounts",
+  lists: "lists segments accounts",
+  bulk: "bulk csv upload score companies",
+  "api-keys": "api keys developer token",
+};
+
+/** Pages from the shared nav config (People, Inbox and Autopilot stay hidden until they ship). */
+const NAV_PAGE_ITEMS: SearchNavItem[] = NAV_GROUPS.flatMap((group) => group.items).map((item) => {
+  const id = item.href.replace(/^\//, "");
+  return { id, kind: "page", label: item.label, href: item.href, keywords: NAV_KEYWORDS[id] ?? "", icon: item.icon };
+});
+
+function navPage(id: string): SearchNavItem[] {
+  return NAV_PAGE_ITEMS.filter((item) => item.id === id);
+}
+
+// Settings pages are not sidebar destinations (they live in the account menu), so they are added here.
+// "memory" stays in the keywords so anyone who learned the old name still lands here.
 export const SEARCH_NAV_ITEMS: SearchNavItem[] = [
-  { id: "dashboard", kind: "page", label: "Dashboard", href: "/dashboard", keywords: "home overview", icon: LayoutGrid },
-  { id: "pipeline", kind: "page", label: "Intent Hub", href: "/pipeline", keywords: "pipeline intent hub deals", icon: Activity },
-  { id: "score", kind: "page", label: "Score", href: "/score", keywords: "score company domain lookup", icon: Gauge },
-  { id: "chat", kind: "page", label: "Chat", href: "/score#chat", keywords: "chat copilot ask why hot thread", icon: MessageSquare },
-  { id: "history", kind: "page", label: "History", href: "/history", keywords: "history runs past scores", icon: History },
-  { id: "watchlist", kind: "page", label: "Watchlist", href: "/watchlist", keywords: "watchlist monitor accounts", icon: Eye },
-  { id: "lists", kind: "page", label: "Lists", href: "/lists", keywords: "lists segments accounts", icon: List },
-  { id: "bulk", kind: "page", label: "Bulk Score", href: "/bulk", keywords: "bulk csv upload score companies", icon: Upload },
-  // "memory" stays in the keywords so anyone who learned the old name still lands here.
+  ...NAV_PAGE_ITEMS.filter((item) => item.id !== "api-keys"),
   { id: "settings-profile", kind: "page", label: "Business Profile", href: "/settings/profile", keywords: "profile memory settings business profile icp industries", icon: BrainCircuit },
   { id: "settings-account", kind: "page", label: "Settings", href: "/settings/account", keywords: "settings account workspace name role preferences", icon: Settings },
   { id: "billing", kind: "page", label: "Billing", href: "/billing", keywords: "billing credits plan invoice", icon: CreditCard },
-  { id: "api-keys", kind: "page", label: "API Keys", href: "/api-keys", keywords: "api keys developer token", icon: Key },
+  ...navPage("api-keys"),
 ];
 
 export function filterNavItems(query: string): SearchNavItem[] {

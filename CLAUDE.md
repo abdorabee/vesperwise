@@ -135,4 +135,4 @@ Plans: `free | starter | growth | pro | agency`. Credits are reset on subscripti
 
 ### UI Components
 
-`components/ui/` — shadcn/ui components. `components/dashboard/` — dashboard shell: icon rail, status bar, and the `ShellList` / `ShellPanel` slots pages fill (`components/dashboard/shell/`). `components/account-panel/` — shared account panel opened via `?account=<domain>`. `components/landing/` — marketing landing page. See `docs/wiki/dashboard-layout.md`.
+`components/ui/` — shadcn/ui components. `components/dashboard/` — dashboard shell: grouped collapsible sidebar (`app-sidebar.tsx`, nav from `nav-config.ts`), status bar, and the `ShellList` / `ShellPanel` slots pages fill (`components/dashboard/shell/`). `components/account-panel/` — shared account panel opened via `?account=<domain>`. `components/landing/` — marketing landing page. See `docs/wiki/dashboard-layout.md`.

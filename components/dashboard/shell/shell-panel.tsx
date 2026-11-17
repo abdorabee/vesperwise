@@ -31,6 +31,22 @@ export function isShellPanelCloseKey(event: Pick<KeyboardEvent, "key">) {
   return event.key === "Escape";
 }
 
+const OVERLAY_SELECTOR = '[role="dialog"], [role="menu"], [role="listbox"], [data-radix-popper-content-wrapper]';
+
+function isPanelElement(element: Element) {
+  return element.getAttribute("data-slot") === "shell-panel";
+}
+
+/** True when Escape belongs to a dropdown, dialog or the search palette stacked above the panel. */
+export function isLayerAbovePanelOpen(event: Pick<KeyboardEvent, "defaultPrevented" | "target">): boolean {
+  if (event.defaultPrevented) return true;
+  if (typeof document === "undefined") return false;
+  const target = event.target instanceof Element ? event.target : null;
+  const enclosing = target?.closest(OVERLAY_SELECTOR);
+  if (enclosing && !isPanelElement(enclosing)) return true;
+  return Array.from(document.querySelectorAll(OVERLAY_SELECTOR)).some((element) => !isPanelElement(element));
+}
+
 export function shellPanelWidth(open: boolean, size: ShellPanelSize = "default") {
   if (!open) return "0px";
   return size === "wide" ? "var(--panel-w-wide)" : "var(--panel-w)";
@@ -144,6 +160,7 @@ export function ShellPanel({
     if (!open || !closePanel) return undefined;
     const onKeyDown = (event: KeyboardEvent) => {
       if (!isShellPanelCloseKey(event)) return;
+      if (isLayerAbovePanelOpen(event)) return;
       event.preventDefault();
       closePanel();
     };

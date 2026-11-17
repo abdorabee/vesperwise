@@ -1,7 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
-import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppFrame } from "./app-frame";
 import { ShellListColumn, ShellListProvider, ShellListSlot } from "./shell-list";
 
@@ -13,13 +12,14 @@ function renderFrame({
   expanded?: boolean;
 }) {
   return renderToStaticMarkup(
-    <SidebarProvider defaultOpen={expanded}>
-      <ShellListProvider initialList={active ? { open: true, label: "Score threads" } : undefined}>
-        <AppFrame rail={<nav>Rail</nav>} list={<ShellListSlot />}>
-          <main>Route</main>
-        </AppFrame>
-      </ShellListProvider>
-    </SidebarProvider>,
+    <ShellListProvider
+      defaultExpanded={expanded}
+      initialList={active ? { open: true, label: "Score threads" } : undefined}
+    >
+      <AppFrame rail={<nav>Rail</nav>} list={<ShellListSlot />}>
+        <main>Route</main>
+      </AppFrame>
+    </ShellListProvider>,
   );
 }
 

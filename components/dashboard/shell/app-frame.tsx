@@ -32,7 +32,8 @@ export function AppFrame({
   const shellPanel = useShellPanelFrame();
   const sidebar = useOptionalSidebar();
   const hasListContent = shellList.managed ? shellList.open : Boolean(list);
-  const listOpen = hasListContent && (sidebar?.open ?? true);
+  const sidebarState = sidebar?.open === false ? "collapsed" : "expanded";
+  const listOpen = hasListContent && shellList.expanded;
   const panelOpen = shellPanel.managed ? shellPanel.open : Boolean(panel);
   const frameStyle: FrameStyle = {
     "--app-frame-list-w": listOpen ? "var(--list-w)" : "0px",
@@ -47,6 +48,7 @@ export function AppFrame({
       data-slot="app-frame"
       data-has-list={listOpen}
       data-has-panel={panelOpen}
+      data-sidebar-state={sidebarState}
       className={cn("dashboard-app-frame", className)}
       style={frameStyle}
       {...props}

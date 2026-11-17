@@ -1,4 +1,5 @@
 :root {
+  /* Collapsed sidebar width (icons only). Expanded width is --sidebar-w on the frame. */
   --rail-w: 3rem;
   --list-w: 16rem;
   --panel-w: 22rem;
@@ -10,11 +11,12 @@
   [data-tour="composer"],
   [data-tour="result"],
   [data-tour="credits"] {
-    scroll-margin-top: calc(var(--header-height, 4rem) + 12px);
+    scroll-margin-top: calc(var(--header-height, 3.5rem) + 12px);
   }
 }
 
 .dashboard-app-frame {
+  --sidebar-w: 15rem;
   display: grid;
   width: 100%;
   height: 100dvh;
@@ -47,6 +49,10 @@
   pointer-events: auto;
 }
 
+.dashboard-app-frame[data-sidebar-state="collapsed"] {
+  --sidebar-w: var(--rail-w);
+}
+
 .dashboard-app-frame__main {
   grid-column: 1;
   grid-row: 1;
@@ -58,112 +64,329 @@
   background: var(--background);
 }
 
-.dashboard-icon-rail {
-  display: flex;
-  width: var(--rail-w);
-  height: 100%;
-  min-height: 0;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.375rem;
-  border-right: 1px solid var(--sidebar-border);
-  background: var(--sidebar);
-  color: var(--sidebar-foreground);
-  padding: 0.5rem 0.375rem;
+/* ---------------------------------------------------------------------------
+   Sidebar: labeled, grouped nav that collapses to icons. Used by the desktop frame
+   and the mobile sheet; "collapsed" selectors only match the desktop wrapper.
+   --------------------------------------------------------------------------- */
+:root {
+  --sidebar-ease: var(--ease-drawer, cubic-bezier(0.32, 0.72, 0, 1));
 }
 
-.dashboard-rail-brand,
-.dashboard-rail-button,
-.dashboard-nav-user-rail-trigger {
-  position: relative;
-  display: inline-flex;
-  width: 2.25rem;
+.vw-sb-header {
+  gap: 0.5rem;
+  padding: 0.5rem 0.5rem 0.25rem;
+}
+
+.vw-sb-brandrow {
+  display: flex;
   height: 2.25rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.vw-sb-brand {
+  display: flex;
+  min-width: 0;
+  height: 2rem;
+  align-items: center;
+  gap: 0.625rem;
+  border-radius: 0.5rem;
+  padding: 0 0.25rem;
+  color: var(--sidebar-accent-foreground);
+  outline: none;
+}
+
+.vw-sb-brand__word {
+  overflow: hidden;
+  white-space: nowrap;
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.vw-sb-toggle {
+  display: inline-flex;
+  width: 2rem;
+  height: 2rem;
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
+  border: 0;
   border-radius: 0.5rem;
+  background: transparent;
   color: var(--sidebar-foreground);
   outline: none;
-  transition:
-    background-color 140ms ease,
-    color 140ms ease,
-    box-shadow 140ms ease;
+  cursor: pointer;
+  transition: background-color 140ms ease, color 140ms ease;
 }
 
-.dashboard-rail-brand {
-  margin-bottom: 0.375rem;
+.vw-sb-item,
+.vw-sb-search,
+.vw-sb-credits {
+  position: relative;
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: center;
+  gap: 0.625rem;
+  overflow: hidden;
+  border-radius: 0.5rem;
+  color: var(--sidebar-foreground);
+  font-family: inherit;
+  text-align: left;
+  text-decoration: none;
+  outline: none;
+  transition: background-color 140ms ease, color 140ms ease, box-shadow 140ms ease;
 }
 
-.dashboard-rail-button:hover,
-.dashboard-nav-user-rail-trigger:hover {
-  background: var(--sidebar-accent);
+.vw-sb-item,
+.vw-sb-search {
+  height: 2rem;
+  border: 0;
+  background: transparent;
+  padding: 0 0.5rem;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.vw-sb-search {
+  border: 1px solid var(--sidebar-border);
+}
+
+.vw-sb-item:hover,
+.vw-sb-search:hover,
+.vw-sb-toggle:hover,
+.vw-sb-credits:hover {
+  background: color-mix(in srgb, var(--sidebar-accent) 70%, transparent);
   color: var(--sidebar-accent-foreground);
 }
 
-.dashboard-rail-button:focus-visible,
-.dashboard-rail-brand:focus-visible,
-.dashboard-nav-user-rail-trigger:focus-visible,
-.dashboard-status-bar__search:focus-visible,
-.dashboard-status-bar__link:focus-visible {
-  box-shadow: 0 0 0 2px var(--background), 0 0 0 4px var(--ring);
+.vw-sb-item[data-active="true"] {
+  background: var(--sidebar-accent);
+  color: var(--sidebar-accent-foreground);
+  font-weight: 500;
 }
 
-.dashboard-rail-button[aria-current="page"] {
-  background: var(--iq-accent);
-  color: #0a0b0c;
+/* Active marker: a 2px lime bar on the left edge, not a filled block. */
+.vw-sb-item::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 2px;
+  height: 1rem;
+  border-radius: 2px;
+  background: var(--brand);
+  opacity: 0;
+  transform: translateY(-50%) scaleY(0.4);
+  transition: opacity 120ms ease, transform 150ms ease;
 }
 
-.dashboard-icon-rail__nav,
-.dashboard-icon-rail__bottom {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.25rem;
+.vw-sb-item[data-active="true"]::before {
+  opacity: 1;
+  transform: translateY(-50%) scaleY(1);
 }
 
-.dashboard-icon-rail__spacer {
-  flex: 1 1 auto;
+.vw-sb-item:focus-visible,
+.vw-sb-search:focus-visible,
+.vw-sb-toggle:focus-visible,
+.vw-sb-brand:focus-visible,
+.vw-sb-credits:focus-visible,
+.vw-sb-account:focus-visible {
+  box-shadow: 0 0 0 2px var(--sidebar), 0 0 0 4px var(--ring);
 }
 
-.dashboard-icon-rail__separator {
-  width: 1.5rem;
-  height: 1px;
+.vw-sb-item__icon {
+  width: 1rem;
+  height: 1rem;
   flex: 0 0 auto;
+}
+
+.vw-sb-item__label {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: opacity 150ms ease;
+}
+
+.vw-sb-kbd {
+  margin-left: auto;
+  flex: 0 0 auto;
+  color: var(--text-quaternary, var(--muted-foreground));
+  font-family: inherit;
+  font-size: 11px;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.vw-sb-nav {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  gap: 0.125rem;
+  padding: 0 0.5rem 0.5rem;
+}
+
+.vw-sb-group__label {
+  padding: 0.875rem 0.5rem 0.375rem;
+  color: var(--text-quaternary, var(--muted-foreground));
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transition: opacity 150ms ease;
+}
+
+.vw-sb-group__rule {
+  display: none;
+  height: 1px;
+  margin: 0.5rem 0.25rem;
   background: var(--sidebar-border);
 }
 
-.dashboard-rail-badge {
-  position: absolute;
-  top: -0.125rem;
-  right: -0.125rem;
-  display: inline-flex;
-  min-width: 1rem;
-  height: 1rem;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--sidebar);
-  border-radius: 999px;
-  background: var(--sidebar-accent);
-  color: var(--sidebar-accent-foreground);
-  font-size: 0.625rem;
-  font-weight: 700;
-  line-height: 1;
-  padding: 0 0.1875rem;
-  font-variant-numeric: tabular-nums;
+.vw-sb-list {
+  display: flex;
+  margin: 0;
+  padding: 0;
+  flex-direction: column;
+  gap: 2px;
+  list-style: none;
 }
 
-.dashboard-rail-badge[data-hot="true"] {
-  border-color: var(--hot-border);
+.vw-sb-li {
+  position: relative;
+}
+
+.vw-sb-count {
+  margin-left: auto;
+  flex: 0 0 auto;
+  color: var(--text-tertiary, var(--muted-foreground));
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+
+.vw-sb-count[data-kind="hot"] {
+  display: inline-flex;
+  height: 1.125rem;
+  align-items: center;
+  border-radius: 999px;
   background: var(--hot-bg);
   color: var(--hot);
+  padding: 0 0.375rem;
 }
 
-.dashboard-nav-user-rail-trigger {
-  border: 0;
-  background: transparent;
+.vw-sb-dot {
+  position: absolute;
+  top: 0.375rem;
+  right: 0.375rem;
+  display: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--muted-foreground);
+}
+
+.vw-sb-dot[data-kind="hot"] {
+  background: var(--hot);
+}
+
+.vw-sb-footer-wrap {
+  gap: 0.25rem;
+  border-top: 1px solid var(--sidebar-border);
+  padding: 0.5rem;
+}
+
+.vw-sb-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.vw-sb-credits {
+  padding: 0.5rem;
+}
+
+.vw-sb-credits__body {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.vw-sb-credits__line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.vw-sb-credits__value {
+  color: var(--sidebar-accent-foreground);
+  font-weight: 500;
+}
+
+.vw-sb-credits__cta {
+  color: var(--sidebar-accent-foreground);
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Collapsed to icons (desktop only). Labels fade, icons stay put so nothing jumps. */
+[data-slot="sidebar"][data-collapsible="icon"] .vw-sb-brandrow {
+  height: auto;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 0.25rem;
+}
+
+[data-slot="sidebar"][data-collapsible="icon"] .vw-sb-brand {
+  width: 2rem;
+  justify-content: center;
   padding: 0;
+}
+
+[data-slot="sidebar"][data-collapsible="icon"] .vw-sb-brand__word,
+[data-slot="sidebar"][data-collapsible="icon"] .vw-sb-kbd,
+[data-slot="sidebar"][data-collapsible="icon"] .vw-sb-count,
+[data-slot="sidebar"][data-collapsible="icon"] .vw-sb-credits__body,
+[data-slot="sidebar"][data-collapsible="icon"] .vw-sb-group__label,
+[data-slot="sidebar"][data-collapsible="icon"] .vw-sb-account__text,
+[data-slot="sidebar"][data-collapsible="icon"] .vw-sb-account__chevron {
+  display: none;
+}
+
+[data-slot="sidebar"][data-collapsible="icon"] .vw-sb-item__label {
+  opacity: 0;
+  pointer-events: none;
+}
+
+[data-slot="sidebar"][data-collapsible="icon"] .vw-sb-group__rule {
+  display: block;
+}
+
+[data-slot="sidebar"][data-collapsible="icon"] .vw-sb-group:first-child .vw-sb-group__rule {
+  display: none;
+}
+
+[data-slot="sidebar"][data-collapsible="icon"] .vw-sb-dot {
+  display: block;
+}
+
+[data-slot="sidebar"][data-collapsible="icon"] .vw-sb-credits {
+  height: 2rem;
+  padding: 0 0.5rem;
 }
 
 .dashboard-status-bar {
@@ -198,12 +421,14 @@
   text-underline-offset: 3px;
 }
 
-.dashboard-status-bar__link:hover {
-  text-decoration: underline;
+.dashboard-status-bar__search:focus-visible,
+.dashboard-status-bar__link:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--background), 0 0 0 4px var(--ring);
 }
 
-.dashboard-status-bar__credits {
-  font-weight: 600;
+.dashboard-status-bar__link:hover {
+  text-decoration: underline;
 }
 
 .dashboard-status-bar__warning {
@@ -247,12 +472,12 @@
 @media (min-width: 768px) {
   .dashboard-app-frame {
     grid-template-columns:
-      var(--rail-w)
+      var(--sidebar-w)
       [list] var(--app-frame-list-w, 0px)
       minmax(0, 1fr)
       [panel] 0px;
     grid-template-rows: minmax(0, 1fr) var(--statusbar-h);
-    transition: grid-template-columns 200ms var(--ease-drawer, ease-out);
+    transition: grid-template-columns 200ms var(--sidebar-ease);
   }
 
   .dashboard-app-frame__rail {
@@ -261,6 +486,8 @@
     display: block;
     min-width: 0;
     min-height: 0;
+    /* The sidebar's fixed container is wider than the column mid-transition. */
+    overflow: visible;
   }
 
   .dashboard-app-frame__list {
@@ -288,7 +515,7 @@
 
   .dashboard-app-frame__panel {
     inset: 0 0 var(--statusbar-h) auto;
-    width: min(var(--panel-w-wide), calc(100vw - var(--rail-w)));
+    width: min(var(--panel-w-wide), calc(100vw - var(--sidebar-w)));
     box-shadow: -20px 0 42px rgb(0 0 0 / 0.14);
   }
 
@@ -304,7 +531,7 @@
 @media (min-width: 1280px) {
   .dashboard-app-frame {
     grid-template-columns:
-      var(--rail-w)
+      var(--sidebar-w)
       [list] var(--app-frame-list-w, 0px)
       minmax(0, 1fr)
       [panel] var(--app-frame-panel-w, 0px);
@@ -402,9 +629,13 @@
 
 @media (prefers-reduced-motion: reduce) {
   .dashboard-app-frame,
-  .dashboard-rail-brand,
-  .dashboard-rail-button,
-  .dashboard-nav-user-rail-trigger,
+  .vw-sb-item,
+  .vw-sb-item::before,
+  .vw-sb-item__label,
+  .vw-sb-search,
+  .vw-sb-toggle,
+  .vw-sb-credits,
+  .vw-sb-group__label,
   .dashboard-shell-panel {
     transition: none;
     animation: none !important;

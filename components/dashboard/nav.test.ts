@@ -1,5 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { WORKSPACE_ITEMS } from "./nav-config";
+import { SEARCH_NAV_ITEMS } from "../../lib/dashboard-search";
 
 const navSource = readFileSync(new URL("./nav.tsx", import.meta.url), "utf8");
 const navConfigSource = readFileSync(new URL("./nav-config.ts", import.meta.url), "utf8");
@@ -13,10 +15,6 @@ const appSidebarSource = readFileSync(
 );
 const appFrameSource = readFileSync(
   new URL("./shell/app-frame.tsx", import.meta.url),
-  "utf8"
-);
-const iconRailSource = readFileSync(
-  new URL("./shell/icon-rail.tsx", import.meta.url),
   "utf8"
 );
 const statusBarSource = readFileSync(
@@ -45,17 +43,19 @@ describe("dashboard profile navigation cleanup", () => {
     expect(navConfigSource).not.toMatch(/label:\s*["']Profile["']/);
   });
 
-  it("uses the app-frame rail on desktop while keeping the mobile AppSidebar drawer", () => {
+  it("uses the AppSidebar in the app-frame on desktop and as the mobile sheet", () => {
     expect(shellSource).toContain("SidebarProvider");
     expect(shellSource).toContain("AppSidebar");
     expect(shellSource).toContain("AppFrame");
-    expect(shellSource).toContain("IconRail");
+    expect(shellSource).not.toContain("IconRail");
+    expect(existsSync(new URL("./shell/icon-rail.tsx", import.meta.url))).toBe(false);
     expect(shellSource).toContain("StatusBar");
     expect(shellSource).toContain("SiteHeader");
     expect(appSidebarSource).toContain('collapsible="icon"');
     expect(appFrameSource).toContain('data-slot="app-frame-list"');
     expect(appFrameSource).toContain('data-slot="app-frame-panel"');
-    expect(iconRailSource).toContain('data-slot="icon-rail"');
+    expect(appFrameSource).toContain('data-slot="app-frame-rail"');
+    expect(shellCssSource).not.toContain("dashboard-icon-rail");
     expect(statusBarSource).toContain('data-slot="dashboard-status-bar"');
   });
 
@@ -84,7 +84,14 @@ describe("dashboard profile navigation cleanup", () => {
     expect(navConfigSource).not.toContain("comingSoon");
     expect(appSidebarSource).not.toMatch(/>\s*Soon\s*</);
     expect(navConfigSource).toMatch(/href:\s*["']\/api-keys["']/);
-    expect(searchSource).toMatch(/href:\s*["']\/api-keys["']/);
+    expect(SEARCH_NAV_ITEMS.map((item) => item.href)).toContain("/api-keys");
+  });
+
+  it("derives the palette Pages list from the one nav config", () => {
+    expect(searchSource).toContain("NAV_GROUPS");
+    const searchHrefs = SEARCH_NAV_ITEMS.map((item) => item.href);
+    for (const item of WORKSPACE_ITEMS) expect(searchHrefs).toContain(item.href);
+    expect(searchHrefs).not.toContain("/score#chat");
   });
 
   it("keeps Score workspace actions in the approved shell header", () => {

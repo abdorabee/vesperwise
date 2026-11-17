@@ -42,7 +42,7 @@ function Page({ onboardingComplete = true }: { onboardingComplete?: boolean }) {
       <form data-tour="composer"><input aria-label="Company domain" /></form>
       <p data-tour="credits">12 credits remaining</p>
       <div data-tour="result">Empty area</div>
-      <a data-tour="chat" href="/score#chat">Chat</a>
+      <form data-tour="chat"><textarea aria-label="Chat message" /></form>
       <ScoreTour onboardingComplete={onboardingComplete} />
     </div>
   );
@@ -250,39 +250,32 @@ describe("Score tour", () => {
     expect(overlapsComposer).toBe(false);
   });
 
-  it("skips Sidebar Chat on a phone when the only control is the threads button", async () => {
-    window.innerWidth = 427;
-    window.innerHeight = 720;
+  it("skips Follow-ups when no composer anchor is mounted", () => {
     render(
       <div>
         <form data-tour="composer"><input aria-label="Company domain" /></form>
         <p data-tour="credits">12 credits remaining</p>
         <div data-tour="result">Empty area</div>
-        <button type="button" data-tour="chat" aria-label="Open score threads">Threads</button>
+        <button type="button" aria-label="Open score threads">Threads</button>
         <ScoreTour onboardingComplete />
       </div>,
     );
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 560));
-    });
     expect(screen.getByRole("heading", { name: "Done" }).textContent).toBe("Done");
     expect(document.querySelector("[data-slot='score-tour-ring']")).toBeNull();
   });
 
-  it("closes the nav drawer on the composer step and opens it to highlight Chat", async () => {
+  it("closes an open nav drawer instead of opening it, and highlights the composer anchor on a phone", () => {
     window.innerWidth = 427;
     window.innerHeight = 720;
     HTMLElement.prototype.getBoundingClientRect = function rectForTour() {
-      const label = `${this.getAttribute("aria-label") ?? ""} ${this.textContent ?? ""}`;
-      if (/threads/i.test(label)) return rect(40, 300, 48, 32);
       const name = this.getAttribute("data-tour");
       if (name === "composer") return rect(120, 16, 280, 64);
       if (name === "credits") return rect(200, 16, 180, 28);
       if (name === "result") return rect(40, 16, 280, 48);
-      if (name === "chat") return rect(80, 12, 220, 40);
+      if (name === "chat") return rect(400, 12, 220, 40);
       return originalRect.call(this);
     };
 
@@ -293,9 +286,8 @@ describe("Score tour", () => {
           <form data-tour="composer"><input aria-label="Company domain" /></form>
           <p data-tour="credits">12 credits remaining</p>
           <div data-tour="result">Empty area</div>
+          <form data-tour="chat"><textarea aria-label="Chat message" /></form>
           <button type="button" onClick={() => sidebar.setOpenMobile(true)}>Open drawer</button>
-          <button type="button" data-tour="chat" aria-label="Open score threads">Threads</button>
-          {sidebar.openMobile ? <a data-tour="chat" href="/score#chat">Chat</a> : null}
           <p data-testid="drawer">{sidebar.openMobile ? "open" : "closed"}</p>
           <ScoreTour onboardingComplete />
         </div>
@@ -309,16 +301,12 @@ describe("Score tour", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: "Open drawer" }));
     expect(screen.getByTestId("drawer").textContent).toBe("closed");
-    expect(screen.getByRole("heading", { name: "Composer" }).textContent).toBe("Composer");
 
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
-    expect(screen.getByRole("heading", { name: "Sidebar Chat" }).textContent).toBe("Sidebar Chat");
-    expect(screen.getByTestId("drawer").textContent).toBe("open");
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 560));
-    });
+    expect(screen.getByRole("heading", { name: "Follow-ups" }).textContent).toBe("Follow-ups");
+    expect(screen.getByTestId("drawer").textContent).toBe("closed");
     const ring = document.querySelector("[data-slot='score-tour-ring']") as HTMLElement;
     expect(ring.style.left).toBe("4px");
   });
@@ -345,7 +333,7 @@ describe("Score tour", () => {
         <form data-tour="composer"><input aria-label="Company domain" /></form>
         <p data-tour="credits">12 credits remaining</p>
         <div data-tour="result">Which company should we score?</div>
-        <a data-tour="chat" href="/score#chat">Chat</a>
+        <form data-tour="chat"><textarea aria-label="Chat message" /></form>
         <ScoreTour onboardingComplete />
       </div>,
     );
@@ -364,13 +352,13 @@ describe("Score tour", () => {
       <div>
         <form data-tour="composer"><input aria-label="Company domain" /></form>
         <p data-tour="credits">12 credits remaining</p>
-        <a data-tour="chat" href="/score#chat">Chat</a>
+        <form data-tour="chat"><textarea aria-label="Chat message" /></form>
         <ScoreTour onboardingComplete />
       </div>,
     );
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
-    expect(screen.getByRole("heading", { name: "Sidebar Chat" }).textContent).toBe("Sidebar Chat");
+    expect(screen.getByRole("heading", { name: "Follow-ups" }).textContent).toBe("Follow-ups");
     expect(screen.queryByRole("heading", { name: "Result" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Back" }));
     expect(screen.getByRole("heading", { name: "Credit chip" }).textContent).toBe("Credit chip");
@@ -394,7 +382,7 @@ describe("Score tour", () => {
         <form data-tour="composer"><input aria-label="Company domain" /></form>
         <p data-tour="credits">12 credits remaining</p>
         <div data-tour="result">Score</div>
-        <a data-tour="chat" href="/score#chat">Chat</a>
+        <form data-tour="chat"><textarea aria-label="Chat message" /></form>
         <ScoreTour onboardingComplete />
       </div>,
     );

@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { NAV_LIBRARY, NAV_MAIN, NAV_SECONDARY } from "./nav-config";
+import { NAV_GROUPS, WORKSPACE_ITEMS } from "./nav-config";
 
 let pathname = "/score";
 
@@ -53,7 +53,9 @@ describe("DashboardShell", () => {
     expect(html).toContain('data-slot="app-frame-rail"');
     expect(html).toContain('data-slot="app-frame-main"');
     expect(html).toContain('data-slot="app-frame-statusbar"');
-    expect(html).toContain("h-16");
+    expect(html).toContain("h-14");
+    expect(html).not.toContain("h-16");
+    expect(html).toContain('data-sidebar-state="expanded"');
   });
 
   it("maps Score to a full-height workspace with one outer gutter", () => {
@@ -88,36 +90,64 @@ describe("DashboardShell", () => {
     expect(renderShell()).toContain('href="/api-keys"');
   });
 
-  it("renders the desktop rail with every finished nav destination and the active route", () => {
+  it("renders the grouped sidebar with every finished nav destination once and the active route", () => {
     const html = renderShell();
 
-    for (const item of [...NAV_MAIN, ...NAV_LIBRARY, ...NAV_SECONDARY]) {
-      expect(html).toContain(`aria-label="${item.label}"`);
+    for (const group of NAV_GROUPS) {
+      expect(html).toContain(`>${group.label}</div>`);
+    }
+    for (const item of WORKSPACE_ITEMS) {
+      const anchors = html.match(/<a [^>]*>/g) ?? [];
+      const links = anchors.filter((tag) => tag.includes('class="vw-sb-item"') && tag.includes(`href="${item.href}"`));
+      expect(links, item.href).toHaveLength(1);
+      expect(html).toContain(`class="vw-sb-item__label">${item.label}</span>`);
     }
 
-    const scoreLink = html.match(/<a[^>]+aria-label="Score"[^>]*>/)?.[0] ?? "";
-    expect(scoreLink).toContain('href="/score"');
+    const scoreLink = html.match(/<a[^>]+href="\/score"[^>]*>/)?.[0] ?? "";
     expect(scoreLink).toContain('aria-current="page"');
+    const current = (html.match(/<a [^>]*>/g) ?? []).filter((tag) => tag.includes('aria-current="page"'));
+    expect(current).toHaveLength(1);
+    expect(html).not.toContain("/score#chat");
+    expect(html).not.toContain('data-slot="icon-rail"');
   });
 
-  it("renders rail badges for hot pipeline accounts and watchlist accounts", () => {
+  it("renders counts with accessible text for hot pipeline accounts and watchlist accounts", () => {
     const html = renderShell();
 
-    expect(html).toMatch(/data-slot="rail-badge"[^>]*>\s*2\s*</);
-    expect(html).toMatch(/data-slot="rail-badge"[^>]*>\s*8\s*</);
+    expect(html).toMatch(/class="vw-sb-count"[^>]*>\s*2\s*</);
+    expect(html).toMatch(/class="vw-sb-count"[^>]*>\s*8\s*</);
+    expect(html).toMatch(/data-slot="rail-badge"/);
+    expect(html).toContain("2 hot accounts");
+    expect(html).toContain("8 on watchlist");
   });
 
-  it("shows credits, plan, low-credit prompt, mock mode, and search hint in the status bar", () => {
+  it("shows credits and plan in the sidebar footer, not the status bar", () => {
     const html = renderShell();
+    const sidebar = html.slice(html.indexOf('data-slot="sidebar-credits"'));
+    const statusBar = html.slice(html.indexOf('data-slot="dashboard-status-bar"'));
 
-    expect(html).toContain('data-slot="dashboard-status-bar"');
+    expect(sidebar).toContain("42");
+    expect(sidebar).toContain("credits · Growth");
     expect(html).toContain('href="/billing"');
-    expect(html).toContain("42 credits");
     expect(html).not.toContain("credits left");
-    expect(html).toContain(">Growth<");
-    expect(html).toContain(">Upgrade to Pro<");
-    expect(html).toContain("Mock signals");
-    expect(html).toContain("⌘K Search");
+    expect(statusBar).not.toContain("42 credits");
+    expect(statusBar).not.toContain('data-slot="statusbar-credits"');
+    expect(statusBar).not.toContain('data-slot="statusbar-plan"');
+  });
+
+  it("keeps the mock-signals pill and a platform-aware search hint in the status bar", () => {
+    const html = renderShell();
+    const statusBar = html.slice(html.indexOf('data-slot="dashboard-status-bar"'));
+
+    expect(statusBar).toContain("Mock signals");
+    expect(statusBar).toContain("Ctrl K Search");
+    expect(statusBar).not.toContain("⌘K Search");
+    // The sidebar search row carries the same hint.
+    expect(html).toContain(">Ctrl K</kbd>");
+  });
+
+  it("keeps the Settings shortcut in the sidebar footer", () => {
+    expect(renderShell()).toContain('href="/settings"');
   });
 
   it("renders the reference mobile brand treatment instead of a route-title substitute", () => {

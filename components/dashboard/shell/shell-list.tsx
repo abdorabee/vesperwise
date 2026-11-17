@@ -5,7 +5,6 @@ import { createPortal } from "react-dom";
 import { PanelLeft, PanelLeftClose } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { useOptionalSidebar } from "@/components/ui/sidebar";
 
 interface ActiveList {
   id: symbol;
@@ -17,17 +16,23 @@ interface ShellListContextValue {
   target: HTMLElement | null;
   setTarget: (target: HTMLElement | null) => void;
   registerList: (list: ActiveList) => () => void;
+  /** Whether the list column is expanded. Owned here, independent of the app sidebar. */
+  expanded: boolean;
+  setExpanded: (expanded: boolean) => void;
 }
 
 interface ShellListProviderProps {
   children: React.ReactNode;
   initialList?: { open: boolean; label: string };
+  /** Initial expanded state of the list column (default true; never persisted). */
+  defaultExpanded?: boolean;
 }
 
 const ShellListContext = createContext<ShellListContextValue | null>(null);
 
-export function ShellListProvider({ children, initialList }: ShellListProviderProps) {
+export function ShellListProvider({ children, initialList, defaultExpanded = true }: ShellListProviderProps) {
   const [target, setTarget] = useState<HTMLElement | null>(null);
+  const [expanded, setExpanded] = useState(defaultExpanded);
   const [activeList, setActiveList] = useState<ActiveList | null>(() => (
     initialList?.open ? { id: Symbol("initial-shell-list"), label: initialList.label } : null
   ));
@@ -44,23 +49,24 @@ export function ShellListProvider({ children, initialList }: ShellListProviderPr
     target,
     setTarget,
     registerList,
-  }), [activeList, registerList, target]);
+    expanded,
+    setExpanded,
+  }), [activeList, expanded, registerList, target]);
 
   return <ShellListContext.Provider value={value}>{children}</ShellListContext.Provider>;
 }
 
 export function useShellListFrame() {
   const context = useContext(ShellListContext);
-  if (!context) return { managed: false, open: false };
-  return { managed: true, open: Boolean(context.activeList) };
+  if (!context) return { managed: false, open: false, expanded: true };
+  return { managed: true, open: Boolean(context.activeList), expanded: context.expanded };
 }
 
-/** Shown in the page header while a page's list column is collapsed (⌘B toggles it too). */
+/** Shown in the page header while a page's list column is collapsed. */
 export function ShellListReopenButton() {
   const context = useContext(ShellListContext);
-  const sidebar = useOptionalSidebar();
   const label = context?.activeList?.label;
-  if (!label || !sidebar || sidebar.open) return null;
+  if (!label || !context || context.expanded) return null;
 
   return (
     <Button
@@ -69,8 +75,8 @@ export function ShellListReopenButton() {
       size="icon-sm"
       className="hidden shrink-0 md:inline-flex"
       aria-label={`Show ${label}`}
-      title={`Show ${label} (⌘B)`}
-      onClick={() => sidebar.setOpen(true)}
+      title={`Show ${label}`}
+      onClick={() => context.setExpanded(true)}
     >
       <PanelLeft className="size-4" />
     </Button>
@@ -78,8 +84,8 @@ export function ShellListReopenButton() {
 }
 
 function ShellListCollapseButton({ label }: { label: string }) {
-  const sidebar = useOptionalSidebar();
-  if (!sidebar) return null;
+  const context = useContext(ShellListContext);
+  if (!context) return null;
 
   return (
     <Button
@@ -87,8 +93,8 @@ function ShellListCollapseButton({ label }: { label: string }) {
       variant="ghost"
       size="icon-xs"
       aria-label={`Collapse ${label}`}
-      title={`Collapse ${label} (⌘B)`}
-      onClick={() => sidebar.setOpen(false)}
+      title={`Collapse ${label}`}
+      onClick={() => context.setExpanded(false)}
     >
       <PanelLeftClose className="size-3.5" />
     </Button>

@@ -1,4 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { parsePlan } from "@/lib/plan-features";
 import { getOnboardingRedirect } from "@/lib/onboarding-profile";
@@ -32,6 +33,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const onboardingRedirect = getOnboardingRedirect(onboardingCompleted, "dashboard");
   if (onboardingRedirect) redirect(onboardingRedirect);
   const isMockSignals = process.env.MOCK_SIGNALS === "true";
+  // Written by SidebarProvider; absent means expanded.
+  const defaultSidebarOpen = (await cookies()).get("sidebar_state")?.value !== "false";
 
   const [{ count: watchlistCount }, { count: pipelineHotCount }] = await Promise.all([
     admin
@@ -56,6 +59,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       watchlistCount={watchlistCount ?? 0}
       pipelineHotCount={pipelineHotCount ?? 0}
       isMockSignals={isMockSignals}
+      defaultSidebarOpen={defaultSidebarOpen}
     >
       {children}
     </DashboardShell>

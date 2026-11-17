@@ -45,9 +45,9 @@ export default function DevShellPage() {
                   <div className="min-h-[40vh] rounded-xl bg-muted/50" />
                 </div>
                 <p className="px-4 text-sm text-muted-foreground lg:px-6">
-                  Pass 1 chrome aligned to{" "}
+                  Sidebar and header chrome from{" "}
                   <span className="font-medium text-foreground">dashboard-01</span>
-                  : Quick Score, Library group, SiteHeader title. Score bodies untouched.
+                  : the grouped sidebar and SiteHeader. Score bodies untouched.
                 </p>
               </div>
             </div>

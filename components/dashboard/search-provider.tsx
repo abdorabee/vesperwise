@@ -39,7 +39,6 @@ export function SearchProvider({ children }: { children: ReactNode }) {
         e.preventDefault();
         setOpen((v) => !v);
       }
-      if (e.key === "Escape") setOpen(false);
     }
     function onOpenEvent() {
       setOpen(true);

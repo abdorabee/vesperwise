@@ -36,7 +36,9 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
+import { SidebarTooltip } from "@/components/dashboard/sidebar/nav-item";
 import { useTheme } from "@/components/theme-provider";
 import { cn } from "@/lib/utils";
 import type { DbUser } from "@/lib/types";
@@ -55,7 +57,6 @@ interface NavUserProps {
   creditCap: number;
   plan?: DbUser["plan"];
   polarSubscriptionId?: string | null;
-  variant?: "sidebar" | "rail";
 }
 
 function CreditBar({ pct, low }: { pct: number; low: boolean }) {
@@ -100,8 +101,9 @@ function AccountCredits({ creditsRemaining, creditCap, plan, polarSubscriptionId
 }
 
 /**
- * Always-visible credits meter for the sidebar footer. Expanded: numbers + bar, with an
- * Upgrade / Top up prompt when under 20%. Collapsed: a gauge icon with a tooltip.
+ * Always-visible credits meter for the sidebar footer: "42 credits · Growth" with a thin bar,
+ * linking to billing. Under 20% it turns into an Upgrade / Top up prompt. Collapsed: a gauge
+ * icon with a tooltip.
  */
 export function SidebarCredits({
   creditsRemaining,
@@ -109,7 +111,7 @@ export function SidebarCredits({
   plan,
   polarSubscriptionId,
 }: NavUserProps & { plan: DbUser["plan"] }) {
-  const { pct, isLow: low, cta, summary } = getCreditStatus({
+  const { pct, isLow: low, cta, summary, planLabel } = getCreditStatus({
     creditsRemaining,
     creditCap,
     plan,
@@ -117,39 +119,30 @@ export function SidebarCredits({
   });
 
   return (
-    <SidebarMenu data-slot="sidebar-credits">
-      <SidebarMenuItem>
-        <SidebarMenuButton
-          asChild
-          tooltip={low ? `${summary} · ${cta}` : summary}
-          className="h-auto py-2 group-data-[collapsible=icon]:h-8! group-data-[collapsible=icon]:py-2!"
-        >
-          <Link href="/billing" aria-label={low ? `${summary}. ${cta}` : `${summary}. Billing`}>
-            <Coins className={cn(low && "text-destructive")} aria-hidden="true" />
-            <span className="flex min-w-0 flex-1 flex-col gap-1.5 group-data-[collapsible=icon]:hidden">
-              <span className="flex items-baseline justify-between gap-2 text-xs">
-                <span className="tabular-nums">
-                  <span className="font-medium text-sidebar-foreground">
-                    {creditsRemaining.toLocaleString()}
-                  </span>
-                  <span className="text-muted-foreground"> / {creditCap.toLocaleString()} credits</span>
-                </span>
-                {low ? (
-                  <span className="font-medium text-sidebar-foreground underline underline-offset-4">
-                    {cta}
-                  </span>
-                ) : null}
-              </span>
-              <CreditBar pct={pct} low={low} />
+    <SidebarTooltip label={low ? `${summary} · ${cta}` : summary}>
+      <Link
+        href="/billing"
+        data-slot="sidebar-credits"
+        data-low={low}
+        className="vw-sb-credits"
+        aria-label={low ? `${summary}. ${cta}` : `${summary}. Billing`}
+      >
+        <Coins className={cn("vw-sb-item__icon", low && "text-destructive")} aria-hidden="true" />
+        <span className="vw-sb-credits__body">
+          <span className="vw-sb-credits__line">
+            <span className="tabular-nums">
+              <span className="vw-sb-credits__value">{creditsRemaining.toLocaleString()}</span> credits · {planLabel}
             </span>
-          </Link>
-        </SidebarMenuButton>
-      </SidebarMenuItem>
-    </SidebarMenu>
+            {low ? <span className="vw-sb-credits__cta">{cta}</span> : null}
+          </span>
+          <CreditBar pct={pct} low={low} />
+        </span>
+      </Link>
+    </SidebarTooltip>
   );
 }
 
-export function NavUser({ creditsRemaining, creditCap, plan, polarSubscriptionId, variant = "sidebar" }: NavUserProps) {
+export function NavUser({ creditsRemaining, creditCap, plan, polarSubscriptionId }: NavUserProps) {
   const { user } = useUser();
   const { theme, toggleTheme } = useTheme();
   const { open: openSearch } = useDashboardSearch();
@@ -167,8 +160,10 @@ export function NavUser({ creditsRemaining, creditCap, plan, polarSubscriptionId
       email.slice(0, 2).toUpperCase() ||
       "VW").slice(0, 2);
   const avatarUrl = user?.imageUrl;
-  const contentSide = variant === "rail" ? "right" : "bottom";
-  const contentOffset = variant === "rail" ? 8 : 4;
+  const { state, isMobile } = useSidebar();
+  const collapsed = state === "collapsed" && !isMobile;
+  const contentSide = collapsed ? "right" : "top";
+  const contentOffset = collapsed ? 8 : 4;
 
   function renderAvatar() {
     return (
@@ -181,38 +176,22 @@ export function NavUser({ creditsRemaining, creditCap, plan, polarSubscriptionId
 
   const dropdown = (
     <DropdownMenu>
-      {variant === "rail" ? (
-        <DropdownMenuTrigger asChild>
-          <button
-            type="button"
-            data-slot="nav-user-rail-trigger"
-            className="dashboard-nav-user-rail-trigger"
-            aria-label={`${displayName} account menu`}
-          >
-            {renderAvatar()}
-            <span className="sr-only">
-              {creditsRemaining.toLocaleString()} of {creditCap.toLocaleString()} credits remaining
-            </span>
-          </button>
-        </DropdownMenuTrigger>
-      ) : (
-        <DropdownMenuTrigger asChild>
-          <SidebarMenuButton
-            size="lg"
-            className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-          >
-            {renderAvatar()}
-            <div className="grid flex-1 text-left text-sm leading-tight">
-              <span className="truncate font-medium">{displayName}</span>
-              <span className="truncate text-xs text-muted-foreground">{email}</span>
-            </div>
-            <span className="sr-only">
-              {creditsRemaining.toLocaleString()} of {creditCap.toLocaleString()} credits remaining
-            </span>
-            <ChevronsUpDown className="ml-auto size-4" />
-          </SidebarMenuButton>
-        </DropdownMenuTrigger>
-      )}
+      <DropdownMenuTrigger asChild>
+        <SidebarMenuButton
+          size="lg"
+          className="vw-sb-account data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+        >
+          {renderAvatar()}
+          <div className="vw-sb-account__text grid flex-1 text-left text-sm leading-tight">
+            <span className="truncate font-medium">{displayName}</span>
+            <span className="truncate text-xs text-muted-foreground">{email}</span>
+          </div>
+          <span className="sr-only">
+            {creditsRemaining.toLocaleString()} of {creditCap.toLocaleString()} credits remaining
+          </span>
+          <ChevronsUpDown className="vw-sb-account__chevron ml-auto size-4" />
+        </SidebarMenuButton>
+      </DropdownMenuTrigger>
       <DropdownMenuContent
         className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
         side={contentSide}
@@ -279,8 +258,6 @@ export function NavUser({ creditsRemaining, creditCap, plan, polarSubscriptionId
       </DropdownMenuContent>
     </DropdownMenu>
   );
-
-  if (variant === "rail") return dropdown;
 
   return (
     <SidebarMenu>
