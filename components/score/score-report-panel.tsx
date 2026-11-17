@@ -36,7 +36,7 @@ function StoredResultBar({ createdAt, busy, onRescore }: { createdAt: string; bu
   );
 }
 
-function PanelHeader({ report, onClose, closeLabel }: { report: ScoreReport; onClose: () => void; closeLabel: string }) {
+function PanelHeader({ report, onClose, closeLabel, actions }: { report: ScoreReport; onClose: () => void; closeLabel: string; actions?: ReactNode }) {
   const title = report.kind === "pending" ? report.domain : report.company ?? report.domain ?? report.label;
   const domain = report.kind === "pending" ? report.domain : report.domain;
   return (
@@ -45,6 +45,7 @@ function PanelHeader({ report, onClose, closeLabel }: { report: ScoreReport; onC
         <h2 className="truncate text-sm font-semibold text-foreground">{title}</h2>
         {domain && domain !== title ? <p className="mt-0.5 truncate text-xs text-muted-foreground">{domain}</p> : null}
       </div>
+      {actions}
       <Button type="button" variant="ghost" size="icon-xs" aria-label={closeLabel} onClick={onClose}>
         <X className="size-4" aria-hidden="true" />
       </Button>
@@ -68,6 +69,7 @@ export function ScoreReportPanel({
   onRescore,
   extraTab,
   closeLabel = "Close report panel",
+  headerActions,
 }: {
   report: ScoreReport;
   handlers: GenUiHandlers;
@@ -76,6 +78,8 @@ export function ScoreReportPanel({
   onRescore: (domain: string) => void;
   extraTab?: ReportExtraTab;
   closeLabel?: string;
+  /** Extra controls rendered in the header, before the close button. */
+  headerActions?: ReactNode;
 }) {
   const groups = useMemo(() => report.kind === "ui" ? tabGroupsForBlocks(report.blocks) : [], [report]);
   const tabValues = extraTab ? [extraTab.value, ...groups.map((group) => group.value)] : groups.map((group) => group.value);
@@ -85,7 +89,7 @@ export function ScoreReportPanel({
 
   return (
     <div className="score-report-panel flex h-full min-h-0 flex-col bg-background">
-      <PanelHeader report={report} onClose={onClose} closeLabel={closeLabel} />
+      <PanelHeader report={report} onClose={onClose} closeLabel={closeLabel} actions={headerActions} />
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
         {report.kind === "pending" ? (
           <div className="space-y-4">

@@ -6,6 +6,8 @@ import { Clock3 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ThinkingOrb } from "@/components/score/thinking-orb";
 import { listChatSessions, type ChatSessionSummary } from "@/lib/chat-client";
+import { Button } from "@/components/ui/button";
+import { dedupeSessionsByDomain, displayThreadTitle, domainOfTitle, isStaleScore, STALE_SCORE_DAYS } from "@/components/score/recent-scores";
 import { formatRelativeTime } from "@/lib/time-ago";
 import { cn } from "@/lib/utils";
 
@@ -42,7 +44,7 @@ export function groupScoreThreads(
     Earlier: [],
   };
 
-  for (const session of [...sessions].sort((a, b) => timestampOf(b) - timestampOf(a))) {
+  for (const session of dedupeSessionsByDomain(sessions).sort((a, b) => timestampOf(b) - timestampOf(a))) {
     const updated = timestampOf(session);
     const label: ScoreThreadGroupLabel = updated >= todayStart
       ? "Today"
@@ -66,6 +68,8 @@ interface ScoreThreadListProps {
   now?: number;
   sessions?: ChatSessionSummary[];
   onSelect: (id: string) => void;
+  /** Starts a paid rescore through the page's confirm step; never scores on its own. */
+  onRescore?: (domain: string) => void;
 }
 
 function PendingThreadRow() {
@@ -84,6 +88,51 @@ function PendingThreadRow() {
   );
 }
 
+interface ThreadRowProps {
+  session: ChatSessionSummary;
+  active: boolean;
+  busy: boolean;
+  now?: number;
+  onSelect: (id: string) => void;
+  onRescore?: (domain: string) => void;
+}
+
+function ThreadRow({ session, active, busy, now, onSelect, onRescore }: ThreadRowProps) {
+  const rel = formatRelativeTime(session.updated_at, now) ?? "Unknown";
+  const stale = isStaleScore(session.updated_at, now);
+  const domain = domainOfTitle(session.title);
+  return (
+    <div className={cn("flex w-full items-start rounded-lg transition-colors duration-150 hover:bg-muted motion-reduce:transition-none", active && "bg-muted text-foreground")}>
+      <button
+        type="button"
+        className="flex min-w-0 flex-1 items-start gap-3 rounded-lg px-3 py-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        aria-current={active ? "page" : undefined}
+        data-active={active ? "true" : undefined}
+        onClick={() => onSelect(session.id)}
+      >
+        <Clock3 className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-medium text-foreground">{displayThreadTitle(session.title)}</span>
+          <span className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+            {rel}
+            {stale ? <span title={`Last scored more than ${STALE_SCORE_DAYS} days ago`} className="rounded border border-border px-1 py-px text-[10px] font-medium uppercase tracking-wide">Stale</span> : null}
+          </span>
+        </span>
+        {busy && active ? (
+          <span data-slot="score-thread-busy" className="mt-0.5">
+            <ThinkingOrb label="Scoring active thread" size={12} />
+          </span>
+        ) : null}
+      </button>
+      {onRescore && domain ? (
+        <Button type="button" size="xs" variant="ghost" disabled={busy} className="mr-2 mt-2.5 shrink-0" aria-label={`Rescore ${domain} · 1 credit`} onClick={() => onRescore(domain)}>
+          Rescore · 1 credit
+        </Button>
+      ) : null}
+    </div>
+  );
+}
+
 export function ScoreThreadList({
   activeId,
   busy = false,
@@ -93,6 +142,7 @@ export function ScoreThreadList({
   now,
   sessions,
   onSelect,
+  onRescore,
 }: ScoreThreadListProps) {
   const [loadedSessions, setLoadedSessions] = useState<ChatSessionSummary[]>([]);
   const [internalLoading, setInternalLoading] = useState(false);
@@ -159,36 +209,9 @@ export function ScoreThreadList({
           <h3 className="px-2 text-[0.68rem] font-semibold uppercase tracking-normal text-muted-foreground">
             {group.label}
           </h3>
-          {group.sessions.map((session) => {
-            const active = session.id === activeId;
-            const rel = formatRelativeTime(session.updated_at, now) ?? "Unknown";
-            return (
-              <button
-                key={session.id}
-                type="button"
-                className={cn(
-                  "flex w-full items-start gap-3 rounded-lg px-3 py-3 text-left transition-colors duration-150 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none",
-                  active && "bg-muted text-foreground",
-                )}
-                aria-current={active ? "page" : undefined}
-                data-active={active ? "true" : undefined}
-                onClick={() => onSelect(session.id)}
-              >
-                <Clock3 className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-medium text-foreground">
-                    {session.title}
-                  </span>
-                  <span className="mt-1 block text-xs text-muted-foreground">{rel}</span>
-                </span>
-                {busy && active ? (
-                  <span data-slot="score-thread-busy" className="mt-0.5">
-                    <ThinkingOrb label="Scoring active thread" size={12} />
-                  </span>
-                ) : null}
-              </button>
-            );
-          })}
+          {group.sessions.map((session) => (
+            <ThreadRow key={session.id} session={session} active={session.id === activeId} busy={busy} now={now} onSelect={onSelect} onRescore={onRescore} />
+          ))}
         </section>
       ))}
     </div>

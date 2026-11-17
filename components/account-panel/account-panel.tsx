@@ -7,6 +7,7 @@ import { X } from "lucide-react";
 import { ShellPanel } from "@/components/dashboard/shell/shell-panel";
 import { buildScoreReport, ScoreReportPanel, type ReportExtraTab } from "@/components/score/score-report-panel";
 import type { GenUiHandlers } from "@/components/score/gen-ui/workspace";
+import { AddToListMenu } from "@/components/lists/add-to-list-menu";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAccountReport, type AccountReportState } from "@/components/account-panel/use-account-report";
@@ -56,6 +57,7 @@ function AccountStatePanel({ domain, state, onClose, onRetry, extraTab }: { doma
     <div className="flex h-full min-h-0 flex-col bg-background">
       <header className="flex shrink-0 items-start gap-3 border-b border-border/70 px-4 py-3">
         <h2 className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">{domain}</h2>
+        <AddToListMenu domain={domain} variant="icon" />
         <Button type="button" variant="ghost" size="icon-xs" aria-label="Close account panel" onClick={onClose}>
           <X className="size-4" aria-hidden="true" />
         </Button>
@@ -104,6 +106,7 @@ export function AccountPanel({ domain, onClose, extraTab }: AccountPanelProps) {
   const handlers: GenUiHandlers = {
     onWatchlist: (company, target) => void addToWatchlist(company, target),
     watchlistByDomain,
+    hideAddToList: true,
     // Follow-ups run in the Score workspace, where the conversation lives.
     onPrompt: () => router.push(scoreHref(domain, "last")),
   };
@@ -122,6 +125,7 @@ export function AccountPanel({ domain, onClose, extraTab }: AccountPanelProps) {
           onRescore={(target) => router.push(scoreHref(target))}
           extraTab={extraTab}
           closeLabel="Close account panel"
+          headerActions={<AddToListMenu domain={domain} companyName={report.company ?? undefined} variant="icon" />}
         />
       ) : (
         <AccountStatePanel

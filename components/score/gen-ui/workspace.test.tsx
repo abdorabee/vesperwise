@@ -1,8 +1,11 @@
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import type { UiBlock } from "@/lib/gen-ui";
 import { GenUiWorkspace } from "./workspace";
+
+// AddToListMenu reads the router; server-rendered markup has no app router mounted.
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), replace: vi.fn() }) }));
 
 const blocks: UiBlock[] = [
   {
@@ -102,6 +105,12 @@ describe("GenUiWorkspace", () => {
     expect(html).toContain("excluded from score");
     expect(html).toContain("Find on LinkedIn");
     expect(html).not.toContain("Open account");
+  });
+
+  it("offers add-to-list in the action rail unless the host provides it", () => {
+    expect(render()).toContain("Add to list");
+    const hidden = renderToStaticMarkup(<GenUiWorkspace blocks={blocks} handlers={{ hideAddToList: true }} />);
+    expect(hidden).not.toContain("Add to list");
   });
 
   it("hides MOCK markers and shows one Sample data pill for mock sources", () => {

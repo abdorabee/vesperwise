@@ -4,6 +4,19 @@ import { createSupabaseAdmin } from "@/lib/supabase";
 import type { SearchResultItem } from "@/lib/dashboard-search";
 import { sanitizeSearch } from "@/lib/search-sanitize";
 
+/** Score rows scanned before collapsing re-scores of the same domain into one result. */
+const SCORE_ROWS_SCANNED = 25;
+
+/** Rows arrive newest first; keep the first row per domain, up to `max`. */
+function latestPerDomain<T extends { domain: string }>(rows: readonly T[], max: number): T[] {
+  const seen = new Set<string>();
+  return rows.filter((row) => {
+    if (seen.has(row.domain)) return false;
+    seen.add(row.domain);
+    return true;
+  }).slice(0, max);
+}
+
 export async function GET(req: NextRequest) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -23,7 +36,7 @@ export async function GET(req: NextRequest) {
       .eq("user_id", userId)
       .or(`company_name.ilike.%${q}%,domain.ilike.%${q}%`)
       .order("created_at", { ascending: false })
-      .limit(limit),
+      .limit(SCORE_ROWS_SCANNED),
     supabase
       .from("person_scores")
       .select("id, person_name, person_email, person_company, score_band")
@@ -48,12 +61,13 @@ export async function GET(req: NextRequest) {
       .limit(limit),
   ]);
 
-  const companies: SearchResultItem[] = (scoresRes.data ?? []).map((row) => ({
+  const companies: SearchResultItem[] = latestPerDomain(scoresRes.data ?? [], limit).map((row) => ({
     id: `score-${row.id}`,
     kind: "company",
     label: row.company_name || row.domain,
     sublabel: row.domain,
-    href: `/score?domain=${encodeURIComponent(row.domain)}`,
+    // Opens the stored result; a fresh score is the user's explicit choice on the page.
+    href: `/score?domain=${encodeURIComponent(row.domain)}&view=last`,
     meta: row.score != null ? String(row.score) : undefined,
     band: row.score_band as SearchResultItem["band"],
   }));

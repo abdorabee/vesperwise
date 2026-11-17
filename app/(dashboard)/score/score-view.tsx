@@ -14,6 +14,8 @@ import { ScoreWorkspaceReportHeader } from "@/components/score/score-workspace-r
 import { ScorePageFrame, ScoreWorkspaceLayout } from "@/components/score/score-workspace-layout";
 import { ScoreThreadDrawer } from "@/components/score/score-thread-drawer";
 import { ScoreThreadsColumn } from "@/components/score/score-threads-column";
+import { classifyComposerInput } from "@/components/score/score-intent";
+import { useScoreIntent } from "@/components/score/use-score-intent";
 import { useScoreReportState } from "@/components/score/use-score-report-state";
 import { ScoreTour } from "@/components/tour/score-tour";
 import { useOptionalSidebar } from "@/components/ui/sidebar";
@@ -141,7 +143,6 @@ export function ScoreView(props: ScoreViewProps) {
   const setCreditsRemaining = useSetCreditsRemaining();
   const sidebar = useOptionalSidebar();
   const searchParams = useSearchParams();
-  const autoScoredRef = useRef<string | null>(null);
   const resetWorkspaceRef = useRef<() => void>(() => {});
   const sidebarRef = useRef(sidebar);
   sidebarRef.current = sidebar;
@@ -154,16 +155,7 @@ export function ScoreView(props: ScoreViewProps) {
   // A restored result has no chat session yet; seed one lazily on the first follow-up.
   const pendingSeedRef = useRef<Parameters<typeof seedChatSession>[0] | null>(null);
 
-  useEffect(() => {
-    const domain = searchParams.get("domain")?.trim();
-    const view = searchParams.get("view");
-    const key = `${domain}|${view ?? ""}`;
-    if (!domain || autoScoredRef.current === key) return;
-    autoScoredRef.current = key;
-    if (view === "last") void openLastScore(domain);
-    else void submitMessage(domain);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
+  const scoreIntent = useScoreIntent(searchParams, (domain) => void openLastScore(domain));
 
   function resetWorkspace() {
     if (busy) return;
@@ -172,7 +164,7 @@ export function ScoreView(props: ScoreViewProps) {
       setMessages([]);
       setSessionId(null);
       pendingSeedRef.current = null;
-      autoScoredRef.current = null;
+      scoreIntent.forgetUrl();
       setReportPanelOpen(false);
       setSelectedReportId(null);
       setTransitioning(false);
@@ -346,9 +338,14 @@ export function ScoreView(props: ScoreViewProps) {
   async function submitMessage(input: string) {
     const raw = input.trim();
     if (!raw || busy) return;
-    const domain = extractDomain(raw);
-    if (domain) await runScore(raw, domain);
-    else await runFollowUp(raw);
+    const decision = classifyComposerInput(raw, active);
+    if (decision.kind === "score") {
+      scoreIntent.settle();
+      await runScore(raw, decision.domain);
+    } else if (decision.kind === "follow_up") {
+      scoreIntent.settle();
+      await runFollowUp(raw);
+    }
   }
 
   async function restoreThread(id: string) {
@@ -366,7 +363,7 @@ export function ScoreView(props: ScoreViewProps) {
       setMessages(restored);
       setSessionId(payload.session.id);
       pendingSeedRef.current = null;
-      autoScoredRef.current = null;
+      scoreIntent.forgetUrl();
     } catch (reason) {
       setMessages([{ id: nextId(), role: "error", content: (reason as Error).message }]);
     } finally {
@@ -386,6 +383,7 @@ export function ScoreView(props: ScoreViewProps) {
     }
   }
 
+  const active = messages.length > 0;
   const uiMessages = messages.filter((message): message is Extract<ThreadMessage, { role: "assistant"; kind: "ui" }> => message.role === "assistant" && message.kind === "ui");
   const latestUiId = uiMessages.at(-1)?.id;
   const latestArtifactId = messages.findLast((message) => message.role === "assistant" && (message.kind === "ui" || message.kind === "coverage"))?.id;
@@ -399,7 +397,6 @@ export function ScoreView(props: ScoreViewProps) {
     watchlistByDomain,
     onPrompt: (prompt: string) => void submitMessage(prompt),
   };
-  const active = messages.length > 0;
   const activeStreamingMessageId = busy
     ? messages.findLast((message) => message.role === "assistant" && (message.kind === "thinking" || message.kind === "text" || message.kind === "ui"))?.id ?? null
     : null;
@@ -417,16 +414,17 @@ export function ScoreView(props: ScoreViewProps) {
     setReportPanelOpen(true);
   }
 
+  const activeCompany = selectedReport?.kind === "ui" ? selectedReport.company ?? null : null;
   const workspaceHeader = <ScoreWorkspaceReportHeader reports={reports} selectedReport={selectedReport} onSelect={setSelectedReportId} onOpen={() => selectedReport && setReportPanelOpen(true)} />;
 
   const thread = <ScoreConversationThread messages={messages} latestArtifactId={latestArtifactId} activeStreamingMessageId={activeStreamingMessageId} reportForMessage={reportForMessage} onOpenReport={openReport} onRetryScore={(domain) => void runScore(domain, domain)} onReset={resetWorkspace} />;
 
   return (
     <>
-      <ScoreThreadsColumn activeId={sessionId} busy={busy} onNewScore={resetWorkspace} onSelect={(id) => void restoreThread(id)} />
+      <ScoreThreadsColumn activeId={sessionId} busy={busy} onNewScore={resetWorkspace} onSelect={(id) => void restoreThread(id)} onRescore={scoreIntent.requestScore} />
       <div className={`score-chat transition-opacity duration-200 motion-reduce:transition-none ${transitioning ? "opacity-0" : "opacity-100"}`}>
-        {!active ? <ScorePageFrame mode="entry"><ScoreEmptyState onSubmit={(value) => void submitMessage(value)} onOpenRecent={(domain) => void openLastScore(domain)} recentScores={recentScores} creditsRemaining={creditsRemaining} busy={busy} /></ScorePageFrame> : <ScorePageFrame mode="workspace"><ScoreWorkspaceLayout header={workspaceHeader} thread={thread} composer={<ScoreComposer busy={busy} suggestions={suggestions} onSubmit={(value) => void submitMessage(value)} />} /></ScorePageFrame>}
-        <ScoreThreadDrawer open={threadsOpen} onOpenChange={setThreadsOpen} onSelect={(id) => void restoreThread(id)} onNewScore={resetWorkspace} activeId={sessionId} busy={busy} />
+        {!active ? <ScorePageFrame mode="entry"><ScoreEmptyState onSubmit={(value) => void submitMessage(value)} onOpenRecent={(domain) => void openLastScore(domain)} onRescore={scoreIntent.requestScore} prefill={scoreIntent.prefill?.domain} notice={scoreIntent.notice} recentScores={recentScores} creditsRemaining={creditsRemaining} busy={busy} /></ScorePageFrame> : <ScorePageFrame mode="workspace"><ScoreWorkspaceLayout header={workspaceHeader} thread={thread} composer={<ScoreComposer key={scoreIntent.prefill?.nonce ?? 0} busy={busy} hasActiveThread company={activeCompany} prefill={scoreIntent.prefill?.domain} notice={scoreIntent.notice} suggestions={suggestions} onSubmit={(value) => void submitMessage(value)} />} /></ScorePageFrame>}
+        <ScoreThreadDrawer open={threadsOpen} onOpenChange={setThreadsOpen} onSelect={(id) => void restoreThread(id)} onNewScore={resetWorkspace} onRescore={scoreIntent.requestScore} activeId={sessionId} busy={busy} />
         {selectedReport ? (
           <ShellPanel open={reportPanelOpen} size="wide" label="Score report" onClose={() => setReportPanelOpen(false)}>
             <ScoreReportPanel report={selectedReport} handlers={reportHandlers} busy={busy} onClose={() => setReportPanelOpen(false)} onRescore={(domain) => void runScore(domain, domain)} />

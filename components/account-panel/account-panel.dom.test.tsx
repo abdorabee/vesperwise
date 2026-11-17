@@ -118,6 +118,23 @@ describe("AccountPanel (mounted)", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
+  it("offers add-to-list once in the header of a loaded report", async () => {
+    vi.stubGlobal("fetch", respond(200, { score: storedScore }));
+
+    mount(<AccountPanel domain="stripe.com" onClose={() => {}} />);
+
+    await waitFor(() => expect(screen.getAllByText(/Stripe is expanding its finance team/).length).toBeGreaterThan(0));
+    expect(screen.getAllByRole("button", { name: "Add Stripe to list" })).toHaveLength(1);
+  });
+
+  it("offers add-to-list in the header when the account has no score yet", async () => {
+    vi.stubGlobal("fetch", respond(404, { error: "No stored score for this domain yet" }));
+
+    mount(<AccountPanel domain="never-scored.com" onClose={() => {}} />);
+
+    expect(await screen.findByRole("button", { name: "Add never-scored.com to list" })).toBeTruthy();
+  });
+
   it("closes through the page's onClose", async () => {
     vi.stubGlobal("fetch", respond(404, {}));
     const onClose = vi.fn();
