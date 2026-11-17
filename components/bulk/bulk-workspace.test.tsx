@@ -1,12 +1,16 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
+vi.mock("@/components/lists/add-to-list-menu", () => ({ AddToListMenu: () => null }));
+
 import { BULK_INLINE_MAX_ROWS, formatCount } from "@/lib/plan-features";
 import {
   BulkProcessingPanel,
   BulkResultsPanel,
   BulkUploadPanel,
+  arrangeBulkResults,
   type BulkResponse,
+  type BulkResult,
 } from "./bulk-workspace";
 
 const noop = vi.fn();
@@ -111,5 +115,28 @@ describe("BulkResultsPanel", () => {
     expect(html).toContain("Ranked bulk scoring results");
     expect(html).toContain("missing.example");
     expect(html).toContain("Insufficient data coverage");
+  });
+});
+
+describe("arrangeBulkResults", () => {
+  const rows = [
+    { domain: "a.com", intent_score: 40, score_band: "COLD" },
+    { domain: "b.com", intent_score: 90, score_band: "HOT" },
+    { domain: "c.com", intent_score: 60, score_band: "WARM" },
+  ] as BulkResult[];
+
+  it("keeps the ranked order by default", () => {
+    expect(arrangeBulkResults(rows, "ALL", "ranked").map((r) => r.domain)).toEqual(["a.com", "b.com", "c.com"]);
+  });
+
+  it("sorts by score in both directions without mutating the input", () => {
+    expect(arrangeBulkResults(rows, "ALL", "desc").map((r) => r.domain)).toEqual(["b.com", "c.com", "a.com"]);
+    expect(arrangeBulkResults(rows, "ALL", "asc").map((r) => r.domain)).toEqual(["a.com", "c.com", "b.com"]);
+    expect(rows.map((r) => r.domain)).toEqual(["a.com", "b.com", "c.com"]);
+  });
+
+  it("filters by band", () => {
+    expect(arrangeBulkResults(rows, "HOT", "ranked").map((r) => r.domain)).toEqual(["b.com"]);
+    expect(arrangeBulkResults(rows, "COLD", "desc")).toHaveLength(1);
   });
 });

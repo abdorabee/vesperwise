@@ -50,7 +50,7 @@ describe("GenUiWorkspace", () => {
     expect(html).toContain("Act this week");
     expect(html).toContain("Decision stage");
     expect(html).toContain("ICP fit 81");
-    expect(html).toContain("Fetched 2 min ago");
+    expect(html).toContain("Fetched 2m ago");
     expect(html).toContain("75% coverage");
   });
 

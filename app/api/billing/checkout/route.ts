@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { getPolar } from "@/lib/polar";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { trustedAppOrigin } from "../return-url";
+import { billingFailure, billingRateLimited } from "../billing-failure";
 
 const BILLING_RATE_LIMIT = 10;
 const BILLING_RATE_WINDOW_SECONDS = 60;
@@ -20,27 +21,28 @@ function checkoutProductId(plan: string): string | null {
 
 export async function POST(req: NextRequest) {
   const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!userId) return billingFailure(req, { code: "unauthorized", status: 401, error: "Unauthorized" });
 
   const limited = await enforceRateLimit({
     key: `billing:${userId}`,
     limit: BILLING_RATE_LIMIT,
     windowSeconds: BILLING_RATE_WINDOW_SECONDS,
   });
-  if (limited) return limited;
+  if (limited) return billingRateLimited(req, limited);
 
   const formData = await req.formData();
   const plan = String(formData.get("plan") ?? "");
   const productId = checkoutProductId(plan);
 
   if (productId === null) {
-    return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
+    return billingFailure(req, { code: "invalid_plan", status: 400, error: "Invalid plan" });
   }
   if (!productId) {
-    return NextResponse.json(
-      { error: "Payment not configured. Set POLAR_PRODUCT_* env vars." },
-      { status: 503 }
-    );
+    return billingFailure(req, {
+      code: "not_configured",
+      status: 503,
+      error: "Payment not configured. Set POLAR_PRODUCT_* env vars.",
+    });
   }
 
   const origin = trustedAppOrigin(req);
@@ -55,6 +57,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.redirect(checkout.url, 303);
   } catch (err) {
     console.error("[billing/checkout] failed:", err);
-    return NextResponse.json({ error: "Failed to create checkout" }, { status: 500 });
+    return billingFailure(req, { code: "checkout_failed", status: 500, error: "Failed to create checkout" });
   }
 }

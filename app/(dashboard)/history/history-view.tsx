@@ -4,7 +4,11 @@ import type { CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { formatCreditPace, formatHistoryShare } from "@/lib/history-share";
-import { BandPill } from "@/components/score/band";
+import Link from "next/link";
+import { BAND_THRESHOLDS, BandPill } from "@/components/score/band";
+import { EmptyState, InlineError } from "@/components/app-ui/page-primitives";
+import { formatRelativeTime } from "@/lib/time-ago";
+import { paginationWindow } from "@/lib/pagination-window";
 import { csvFilename, downloadAuthorizedCsv, formatSignal } from "@/lib/csv";
 import type { DbScore, ScoreBand } from "@/lib/types";
 import { AccountPanel } from "@/components/account-panel/account-panel";
@@ -115,17 +119,6 @@ function sameDay(a: Date, b: Date) {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
 
-function relTime(iso: string) {
-  const m = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
-  if (m < 1) return "just now";
-  if (m < 60) return `${m}m ago`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
-  const d = Math.floor(h / 24);
-  if (d < 7) return `${d}d ago`;
-  return `${Math.floor(d / 7)}w ago`;
-}
-
 function fmtRowTime(iso: string) {
   const d = new Date(iso);
   const now = new Date();
@@ -213,6 +206,8 @@ export function HistoryView({ stats }: HistoryViewProps) {
   const [rows, setRows] = useState<DbScore[]>([]);
   // The query string whose response is on screen; anything else means a request is in flight.
   const [loadedKey, setLoadedKey] = useState<string | null>(null);
+  const [failedKey, setFailedKey] = useState<string | null>(null);
+  const [retryNonce, setRetryNonce] = useState(0);
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [range, setRange] = useState<RangeId>("all");
@@ -238,23 +233,26 @@ export function HistoryView({ stats }: HistoryViewProps) {
   if (bandFilter) params.set("band", bandFilter);
   if (range !== "all") params.set("range", range);
   if (sort === "score") params.set("sort", "score");
-  const requestKey = params.toString();
+  // The retry nonce makes Retry re-run the same query.
+  const requestKey = `${params.toString()}#${retryNonce}`;
   const loading = loadedKey !== requestKey;
+  const loadFailed = !loading && failedKey === requestKey;
 
   useEffect(() => {
     requestRef.current?.abort();
     const controller = new AbortController();
     requestRef.current = controller;
-    fetch(`/api/dashboard/scores?${requestKey}`, { signal: controller.signal })
+    fetch(`/api/dashboard/scores?${requestKey.split("#")[0]}`, { signal: controller.signal })
       .then(async (res) => {
-        if (!res.ok) return;
+        if (!res.ok) throw new Error(`History request failed (${res.status})`);
         const data = await res.json();
         setRows(data.scores ?? []);
         setTotalPages(data.totalPages ?? 1);
         setTotal(data.total ?? 0);
       })
       .catch((error: unknown) => {
-        if ((error as Error).name !== "AbortError") console.warn("[history] load failed", error);
+        if ((error as Error).name === "AbortError") return;
+        if (requestRef.current === controller) setFailedKey(requestKey);
       })
       .finally(() => {
         if (requestRef.current === controller && !controller.signal.aborted) setLoadedKey(requestKey);
@@ -368,7 +366,7 @@ export function HistoryView({ stats }: HistoryViewProps) {
             Every account you&apos;ve scored —{" "}
             <span className="mono" style={{ color: "var(--text-secondary)" }}>{stats.totalCount.toLocaleString()}</span> runs
             {stats.lastScoredAt && (
-              <> · last scored <span className="mono" style={{ color: "var(--text-secondary)" }}>{relTime(stats.lastScoredAt)}</span></>
+              <> · last scored <span className="mono" style={{ color: "var(--text-secondary)" }}>{formatRelativeTime(stats.lastScoredAt)}</span></>
             )}
           </div>
         </div>
@@ -419,9 +417,9 @@ export function HistoryView({ stats }: HistoryViewProps) {
         <div className="history-activity-divider" style={{ background: "var(--border-subtle)", width: 1 }} />
         <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", fontSize: 12 }}>
           {[
-            { label: "HOT (≥75)", color: "var(--hot)", count: stats.hotCount, isRescores: false },
-            { label: "WARM (50–74)", color: "var(--warm)", count: stats.warmCount, isRescores: false },
-            { label: "COLD (<50)", color: "var(--cold)", count: stats.coldCount, isRescores: false },
+            { label: `HOT (≥${BAND_THRESHOLDS.hot})`, color: "var(--hot)", count: stats.hotCount, isRescores: false },
+            { label: `WARM (${BAND_THRESHOLDS.warm}–${BAND_THRESHOLDS.hot - 1})`, color: "var(--warm)", count: stats.warmCount, isRescores: false },
+            { label: `COLD (<${BAND_THRESHOLDS.warm})`, color: "var(--cold)", count: stats.coldCount, isRescores: false },
             { label: "Re-scores", color: "var(--text-tertiary)", count: stats.rescoreCount, isRescores: true },
           ].map(({ label, color, count, isRescores }, idx) => (
             <div key={label} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "4px 0", borderTop: idx > 0 ? "1px solid var(--border-subtle)" : undefined }}>
@@ -439,9 +437,9 @@ export function HistoryView({ stats }: HistoryViewProps) {
 
       <div style={S.statStrip}>
         {[
-          { label: "Total runs", num: stats.totalCount.toLocaleString(), delta: `▲ ${stats.monthlyCount} this month`, hot: false, flat: false },
-          { label: "Avg score", num: stats.avgScore || "—", delta: null, hot: false, flat: false },
-          { label: "Bands flipped to HOT", num: String(stats.flippedToHot), delta: "last 7 days", hot: true, flat: false },
+          { label: "Total runs", num: stats.totalCount.toLocaleString(), delta: `▲ ${stats.monthlyCount} in last 30 days`, hot: false, flat: false },
+          { label: "Avg score (30d)", num: stats.avgScore || "—", delta: null, hot: false, flat: false },
+          { label: "HOT scores, last 7 days", num: String(stats.flippedToHot), delta: "HOT-band runs", hot: true, flat: false },
           { label: "Credits used (30d)", num: String(stats.creditsUsed30d), delta: formatCreditPace(stats.creditsUsed30d), hot: false, flat: true },
         ].map(({ label, num, delta, hot, flat }) => (
           <div key={label} style={S.statCard}>
@@ -464,6 +462,7 @@ export function HistoryView({ stats }: HistoryViewProps) {
             style={{ flex: 1, minWidth: 0, background: "transparent", border: "none", outline: "none", fontSize: 13, color: "var(--text-primary)", letterSpacing: "-0.006em" }}
           />
         </div>
+        <span style={{ fontSize: 11, color: "var(--text-tertiary)" }} title="Band counts cover the last 30 days; the table below follows the selected range.">Last 30 days</span>
         {(["HOT", "WARM", "COLD"] as const).map(band => {
           const cls = band.toLowerCase() as "hot" | "warm" | "cold";
           const count = band === "HOT" ? stats.hotCount : band === "WARM" ? stats.warmCount : stats.coldCount;
@@ -500,10 +499,22 @@ export function HistoryView({ stats }: HistoryViewProps) {
             </div>
           ))}
         </div>
+      ) : loadFailed ? (
+        <InlineError
+          title="Couldn't load your score history"
+          description="The request failed. Check your connection and try again."
+          action={<button type="button" className="tb-btn outlined" onClick={() => setRetryNonce((n) => n + 1)}>Retry</button>}
+        />
       ) : rows.length === 0 ? (
-        <div style={{ padding: "60px 0", textAlign: "center", color: "var(--text-tertiary)", fontSize: 13 }}>
-          {debouncedQuery || bandFilter || range !== "all" ? "No runs match these filters." : "No scores yet. Use Score to score your first company."}
-        </div>
+        debouncedQuery || bandFilter || range !== "all" ? (
+          <div style={{ padding: "60px 0", textAlign: "center", color: "var(--text-tertiary)", fontSize: 13 }}>No runs match these filters.</div>
+        ) : (
+          <EmptyState
+            title="No scores yet"
+            description="Score your first company and every run will show up here with its trend and signals."
+            action={<Link href="/score" className="btn-primary" style={{ display: "inline-flex", alignItems: "center", height: 34, padding: "0 14px" }}>Score a company</Link>}
+          />
+        )
       ) : (
         <div style={{ overflowX: "auto" }}>
           <div style={S.histTable}>
@@ -534,7 +545,7 @@ export function HistoryView({ stats }: HistoryViewProps) {
                       onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setOpenRunId(row.id); openAccount(row.domain); } }}>
                       <div style={S.htTime}>
                         {fmtRowTime(row.created_at)}
-                        <span style={S.htAgo}>{relTime(row.created_at)}</span>
+                        <span style={S.htAgo}>{formatRelativeTime(row.created_at)}</span>
                       </div>
                       <div style={S.htCo}>
                         <div style={{ background: avColor(row.company_name), width: 28, height: 28, borderRadius: 6, display: "grid", placeItems: "center", fontSize: 11, fontWeight: 700, color: "var(--bg)", flexShrink: 0 }}>
@@ -603,9 +614,11 @@ export function HistoryView({ stats }: HistoryViewProps) {
             <div style={S.htFoot}>
               <span>Showing {rows.length} of {total} runs</span>
               {totalPages > 1 && (
-                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                <div role="navigation" aria-label="Pagination" style={{ display: "flex", alignItems: "center", gap: 4 }}>
                   <button type="button" aria-label="Previous page" disabled={page <= 1} style={{ width: 24, height: 24, display: "grid", placeItems: "center", borderRadius: 4, cursor: "pointer", fontSize: 11, color: "var(--text-tertiary)", opacity: page <= 1 ? 0.4 : 1 }} onClick={() => setPage(p => Math.max(1, p - 1))}>‹</button>
-                  {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => i + 1).map(n => (
+                  {paginationWindow(page, totalPages).map(n => typeof n !== "number" ? (
+                    <span key={n} aria-hidden="true" style={{ width: 24, textAlign: "center", fontSize: 11, color: "var(--text-tertiary)" }}>{"\u2026"}</span>
+                  ) : (
                     <button key={n} type="button" aria-label={`Page ${n}`} aria-current={page === n ? "page" : undefined} style={{ width: 24, height: 24, display: "grid", placeItems: "center", borderRadius: 4, cursor: "pointer", fontSize: 11, fontVariantNumeric: "tabular-nums", color: page === n ? "var(--text-primary)" : "var(--text-tertiary)", background: page === n ? "var(--muted)" : undefined }} onClick={() => setPage(n)}>{n}</button>
                   ))}
                   <button type="button" aria-label="Next page" disabled={page >= totalPages} style={{ width: 24, height: 24, display: "grid", placeItems: "center", borderRadius: 4, cursor: "pointer", fontSize: 11, color: "var(--text-tertiary)", opacity: page >= totalPages ? 0.4 : 1 }} onClick={() => setPage(p => Math.min(totalPages, p + 1))}>›</button>

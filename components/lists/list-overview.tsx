@@ -1,8 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import type { ListCardSummary, ListsHeroStats } from "@/lib/lists-types";
+import { pluralize } from "@/lib/lists-display";
+import { EmptyState } from "@/components/app-ui/page-primitives";
+import { Button } from "@/components/ui/button";
 import { ListCard } from "./list-card";
 import { useListsTopbar } from "@/components/dashboard/lists-topbar-context";
 
@@ -13,8 +15,50 @@ interface ListOverviewProps {
 
 type TabFilter = "all" | "smart" | "manual";
 
+function hotCardDetail(hero: ListsHeroStats): string {
+  if (hero.hotCount === 0) return "No HOT accounts in your lists yet. Score companies to populate them.";
+  const names = hero.firingAccounts.map((a) => a.company_name).join(", ");
+  const more = hero.hotCount > hero.firingAccounts.length ? " and more" : "";
+  return `Across your lists · ${names}${more}`;
+}
+
+function HeroStats({ hero }: { hero: ListsHeroStats }) {
+  const mix = hero.bandMix;
+  const hottest = hero.hottestList;
+  return (
+    <div className="stat-strip">
+      <div className="stat-card">
+        <div className="label">Accounts</div>
+        <div className="num">{hero.totalAccounts}</div>
+        <div className="lists-stat-sub">
+          {pluralize(hero.listCount, "list")} · {hero.overlapCount} overlapping
+        </div>
+        <div className="chart-legend">
+          <span className="lg hot"><span className="swatch" />HOT {mix.hot}</span>
+          <span className="lg warm"><span className="swatch" />WARM {mix.warm}</span>
+          <span className="lg cold"><span className="swatch" />COLD {mix.cold}</span>
+          {hero.unscoredCount > 0 && <span className="lg">{hero.unscoredCount} not scored</span>}
+        </div>
+      </div>
+      <div className="stat-card">
+        <div className="label">Hottest list</div>
+        <div className="num lists-stat-name">{hottest?.name ?? "—"}</div>
+        <div className="lists-stat-sub">
+          {hottest
+            ? `${hottest.hotNow} of ${pluralize(hottest.total, "account")} HOT now · avg ${hottest.avgScore}`
+            : "No HOT accounts yet"}
+        </div>
+      </div>
+      <div className="stat-card">
+        <div className="label">HOT accounts</div>
+        <div className="num hot">{hero.hotCount}</div>
+        <div className="lists-stat-sub">{hotCardDetail(hero)}</div>
+      </div>
+    </div>
+  );
+}
+
 export function ListOverview({ summaries, hero }: ListOverviewProps) {
-  const router = useRouter();
   const { openCreateModal } = useListsTopbar();
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState<TabFilter>("all");
@@ -31,74 +75,33 @@ export function ListOverview({ summaries, hero }: ListOverviewProps) {
     });
   }, [summaries, search, tab]);
 
-  const mix = hero.bandMix;
-  const hotCount = hero.firingAccounts.length;
-  const isFilteredEmpty = filtered.length === 0;
   const hasFilters = Boolean(search) || tab !== "all";
 
   return (
     <>
       <div className="page-head">
         <div>
-          <div className="page-title">Lists</div>
+          <h1 className="page-title">Lists</h1>
           <div className="page-sub">
             Group accounts by intent, segment or playbook ·{" "}
-            <span className="mono" style={{ color: "var(--text-secondary)" }}>{hero.listCount} lists</span>
+            <span className="mono" style={{ color: "var(--text-secondary)" }}>{pluralize(hero.listCount, "list")}</span>
             {" · "}
-            <span className="mono" style={{ color: "var(--text-secondary)" }}>{hero.totalAccounts} accounts total</span>
+            <span className="mono" style={{ color: "var(--text-secondary)" }}>{pluralize(hero.totalAccounts, "account")}</span>
           </div>
-        </div>
-        <div className="page-actions">
-          <button type="button" className="tb-btn outlined" disabled title="Coming soon">
-            <svg className="ic" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden>
-              <path d="M2 3h8v2H2zM2 7h8v2H2z" />
-            </svg>
-            Import CSV
-          </button>
         </div>
       </div>
 
-      <div className="stat-strip">
-        <div className="stat-card">
-          <div className="label">Accounts</div>
-          <div className="num">{hero.totalAccounts}</div>
-          <div className="lists-stat-sub">
-            {hero.listCount} lists · {hero.overlapCount} overlapping
-          </div>
-          <div className="chart-legend">
-            <span className="lg hot"><span className="swatch" />HOT {mix.hot}</span>
-            <span className="lg warm"><span className="swatch" />WARM {mix.warm}</span>
-            <span className="lg cold"><span className="swatch" />COLD {mix.cold}</span>
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="label">Hottest list</div>
-          <div className="num lists-stat-name">{hero.hottestList?.name ?? "—"}</div>
-          <div className="lists-stat-sub">
-            {hero.hottestList
-              ? `${hero.hottestList.hotThisWeek} of ${hero.hottestList.total} HOT · avg ${hero.hottestList.avgScore}`
-              : "Create a smart list to track high-intent accounts"}
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="label">HOT accounts</div>
-          <div className="num hot">{hotCount}</div>
-          <div className="lists-stat-sub">
-            {hotCount === 0
-              ? "No HOT accounts yet — score companies to populate lists"
-              : `${hotCount} firing across lists`}
-          </div>
-        </div>
-      </div>
+      <HeroStats hero={hero} />
 
       <div className="tools-row">
         <div className="search-input">
-          <svg className="ic" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" width="12" height="12">
+          <svg className="ic" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" width="12" height="12" aria-hidden>
             <circle cx="5" cy="5" r="3" /><path d="M7 7l3 3" />
           </svg>
           <input
             type="text"
             placeholder="Search lists…"
+            aria-label="Search lists"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -116,24 +119,16 @@ export function ListOverview({ summaries, hero }: ListOverviewProps) {
         </div>
       </div>
 
-      {isFilteredEmpty ? (
-        <div className="lists-empty">
-          <div className="lists-empty-title">{hasFilters ? "No lists match" : "No lists yet"}</div>
-          <div className="lists-empty-sub">
-            {hasFilters
-              ? "Try a different search or filter."
-              : "Group accounts by signal, segment, or by hand."}
-          </div>
-          {!hasFilters && (
-            <button type="button" className="btn-primary" onClick={() => openCreateModal?.()}>
-              New list
-            </button>
-          )}
-        </div>
+      {filtered.length === 0 ? (
+        <EmptyState
+          title={hasFilters ? "No lists match" : "No lists yet"}
+          description={hasFilters ? "Try a different search or filter." : "Group accounts by signal, segment, or by hand."}
+          action={!hasFilters ? <Button type="button" onClick={() => openCreateModal?.()}>New list</Button> : undefined}
+        />
       ) : (
         <div className="list-grid">
           {filtered.map((s) => (
-            <ListCard key={s.id} summary={s} onClick={() => router.push(`/lists/${s.id}`)} />
+            <ListCard key={s.id} summary={s} />
           ))}
         </div>
       )}

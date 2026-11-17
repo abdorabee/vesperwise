@@ -3,15 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import type { ScoreBand } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { BAND_THRESHOLDS, bandForScore } from "@/lib/score-band";
 
-/** Band thresholds from lib/scorer.ts: HOT >= 75, WARM >= 50, COLD < 50. */
-export const BAND_THRESHOLDS = { warm: 50, hot: 75 } as const;
-
-export function bandForScore(score: number): ScoreBand {
-  if (score >= BAND_THRESHOLDS.hot) return "HOT";
-  if (score >= BAND_THRESHOLDS.warm) return "WARM";
-  return "COLD";
-}
+export { BAND_THRESHOLDS, bandForScore };
 
 // HOT is the brand highlighter (lime under ink); WARM/COLD use the band tokens.
 const PILL_CLASS: Record<ScoreBand, string> = {

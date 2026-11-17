@@ -67,7 +67,7 @@ describe("ScoreThreadList", () => {
 
     expect(html).toContain('aria-current="page"');
     expect(html).toContain("Ramp score");
-    expect(html).toContain("2 h ago");
+    expect(html).toContain("2h ago");
   });
 
   it("shows the busy orb on the active row or a pending new-thread row", () => {

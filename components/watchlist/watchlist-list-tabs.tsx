@@ -35,7 +35,7 @@ export function WatchlistListTabs({ tabs, activeId, onChange }: WatchlistListTab
             </TabsTrigger>
           );
         })}
-        <Link href="/lists" className="wl-tab" style={{ marginLeft: "auto", color: "var(--text-tertiary)" }}>
+        <Link href="/lists?new=1" className="wl-tab" style={{ marginLeft: "auto", color: "var(--text-tertiary)" }}>
           <Plus className="size-3" aria-hidden="true" />
           New list
         </Link>

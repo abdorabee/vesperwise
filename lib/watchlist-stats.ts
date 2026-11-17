@@ -1,7 +1,9 @@
 import { liveWatchlistScore } from "@/lib/watchlist-seed";
+import { formatRelativeTime } from "@/lib/time-ago";
+import { evaluateRules } from "@/lib/lists-evaluator";
 import { createSupabaseAdmin } from "@/lib/supabase";
 import { fetchLists, fetchListMembers } from "@/lib/lists-data";
-import type { DbList } from "@/lib/lists-types";
+import type { AccountContext, DbList, ListRule } from "@/lib/lists-types";
 import type { ScoreBand, SignalSet, WatchlistEntry } from "@/lib/types";
 
 export type WatchlistRange = "24H" | "7D" | "30D" | "90D";
@@ -34,6 +36,8 @@ export interface WatchlistListTab {
   color: string;
   count: number;
   domains: string[];
+  /** Smart lists are rule-based; their membership is computed from the watchlist rows. */
+  isSmart?: boolean;
 }
 
 export interface WatchlistAlertItem {
@@ -102,18 +106,41 @@ function bandColor(band: ScoreBand | null): string {
   return "var(--cold)";
 }
 
-function formatRelativeTime(iso: string | null): string {
-  if (!iso) return "—";
-  const ms = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(ms / 60000);
-  if (mins < 1) return "now";
-  if (mins < 60) return `${mins}m`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h`;
-  const days = Math.floor(hrs / 24);
-  if (days < 7) return `${days}d`;
-  const weeks = Math.floor(days / 7);
-  return `${weeks}w`;
+interface SmartRuleEntry {
+  domain: string;
+  company_name: string;
+  score: number | null;
+  score_band: ScoreBand | null;
+  signals: SignalSet | null;
+}
+
+function entryContext(entry: SmartRuleEntry): AccountContext {
+  return {
+    domain: entry.domain,
+    company_name: entry.company_name,
+    score: entry.score ?? null,
+    score_band: entry.score_band ?? null,
+    signals: entry.signals,
+    inWatchlist: true,
+    ai_summary: null,
+    key_triggers: null,
+    why_now: null,
+    scoreHistory: [],
+  };
+}
+
+/**
+ * Watchlist domains (lowercased) that satisfy a smart list's rules. Every row on
+ * the watchlist is, by definition, in the watchlist, so `in_watchlist` rules are
+ * evaluated against that.
+ */
+export function smartListDomains(rules: ListRule[] | null | undefined, entries: SmartRuleEntry[]): string[] {
+  return entries.filter((e) => evaluateRules(rules, entryContext(e))).map((e) => e.domain.toLowerCase());
+}
+
+export function buildSmartListTab(list: DbList, entries: SmartRuleEntry[]): WatchlistListTab {
+  const domains = smartListDomains(list.rules, entries);
+  return { id: list.id, name: list.name, color: list.color, count: domains.length, domains, isSmart: true };
 }
 
 function buildThresholdLabel(score: number | null, band: ScoreBand | null, previous: number | null): {
@@ -228,22 +255,6 @@ export async function buildWatchlistStats(userId: string): Promise<WatchlistStat
     }
   }
 
-  const listTabs: WatchlistListTab[] = await Promise.all(
-    lists.map(async (list: DbList) => {
-      const members = list.list_type === "manual" ? await fetchListMembers(list.id, userId) : [];
-      const domains = members.map((m) => m.domain.toLowerCase());
-      const watchDomains = new Set((watchlistRows ?? []).map((w) => w.domain.toLowerCase()));
-      const count = domains.filter((d) => watchDomains.has(d)).length;
-      return {
-        id: list.id,
-        name: list.name,
-        color: list.color,
-        count,
-        domains,
-      };
-    }),
-  );
-
   const entries: WatchlistEnrichedEntry[] = (watchlistRows ?? []).map((row) => {
     const stored = row as WatchlistEntry;
     const domain = stored.domain.toLowerCase();
@@ -281,6 +292,23 @@ export async function buildWatchlistStats(userId: string): Promise<WatchlistStat
       signalMix: buildSignalMix(signals),
     };
   });
+
+  const watchDomains = new Set(entries.map((e) => e.domain.toLowerCase()));
+  const listTabs: WatchlistListTab[] = await Promise.all(
+    lists.map(async (list: DbList) => {
+      if (list.list_type === "smart") return buildSmartListTab(list, entries);
+      const members = await fetchListMembers(list.id, userId);
+      const domains = members.map((m) => m.domain.toLowerCase());
+      return {
+        id: list.id,
+        name: list.name,
+        color: list.color,
+        count: domains.filter((d) => watchDomains.has(d)).length,
+        domains,
+        isSmart: false,
+      };
+    }),
+  );
 
   const alertItems: WatchlistAlertItem[] = entries
     .filter((e) => {

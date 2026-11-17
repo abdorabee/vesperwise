@@ -13,12 +13,11 @@ function summary(id: string, name: string, accountCount: number): ListCardSummar
     color: "var(--iq-accent)",
     icon_initials: name.slice(0, 2).toUpperCase(),
     accountCount,
-    weeklyDelta: 0,
+    isSystem: false,
+    addedThisWeek: null,
     avgScore: 0,
     bandMix: { hot: 0, warm: 0, cold: 0 },
     sparkline: [],
-    avatarInitials: [],
-    avatarClasses: [],
     lastUpdated: "2026-10-03T12:00:00.000Z",
     lastUpdatedLabel: "today",
     isRecentlyActive: false,
@@ -38,7 +37,7 @@ describe("ListsColumnContent", () => {
     expect(html).toContain('aria-current="page"');
     expect(html).toContain('data-active="true"');
     expect(html).toContain("Seed accounts");
-    expect(html).toContain("1 row");
-    expect(html).toContain("12 rows");
+    expect(html).toContain("1 account");
+    expect(html).toContain("12 accounts");
   });
 });

@@ -6,6 +6,7 @@ import { Plus } from "lucide-react";
 import { ShellList } from "@/components/dashboard/shell/shell-list";
 import { Button } from "@/components/ui/button";
 import type { ListCardSummary } from "@/lib/lists-types";
+import { pluralize } from "@/lib/lists-display";
 import { cn } from "@/lib/utils";
 
 interface ListsColumnContentProps {
@@ -14,7 +15,7 @@ interface ListsColumnContentProps {
 }
 
 function rowCountLabel(count: number) {
-  return `${count.toLocaleString()} ${count === 1 ? "row" : "rows"}`;
+  return pluralize(count, "account");
 }
 
 export function ListsColumnContent({ activeId, summaries }: ListsColumnContentProps) {
