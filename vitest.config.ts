@@ -11,6 +11,8 @@ export default defineConfig({
     exclude: [
       ...configDefaults.exclude,
       ".claude/**",
+      // Playwright specs run with `npm run test:e2e`, not Vitest.
+      "e2e/**",
       "workers/shared/pg-queue.test.mjs",
     ],
   },
