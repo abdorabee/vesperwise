@@ -56,7 +56,7 @@ export function SidebarSearchRow({ onOpen }: { onOpen?: () => void }) {
       >
         <Search className="vw-sb-item__icon" aria-hidden="true" />
         <span className="vw-sb-item__label">Search</span>
-        <kbd aria-hidden="true" className="vw-sb-kbd">
+        <kbd aria-hidden="true" className="vw-sb-kbd kbd-hint">
           {hint}
         </kbd>
       </button>

@@ -237,7 +237,7 @@ export function WatchlistTable({
               </div>
             </div>
 
-            <div className="mono" style={{ color: row.lastMoveColor, fontSize: 12 }}>
+            <div className="mono" style={{ color: row.lastMoveColor, fontSize: 12, whiteSpace: "nowrap" }}>
               {row.lastMoveLabel}
             </div>
 

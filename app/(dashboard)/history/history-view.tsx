@@ -11,6 +11,7 @@ import { formatRelativeTime } from "@/lib/time-ago";
 import { paginationWindow } from "@/lib/pagination-window";
 import { csvFilename, downloadAuthorizedCsv, formatSignal } from "@/lib/csv";
 import type { DbScore, ScoreBand } from "@/lib/types";
+import { fillPlaceholders } from "@/lib/fill-placeholders";
 import { AccountPanel } from "@/components/account-panel/account-panel";
 import { useAccountParam } from "@/components/account-panel/use-account-param";
 import { HistoryRunTab, deltaColor, runId, stageLabel, urgencyLabel, urgencyStyle } from "@/components/history/history-run-tab";
@@ -298,7 +299,7 @@ export function HistoryView({ stats }: HistoryViewProps) {
       data_coverage: r.data_coverage == null ? "" : `${Math.round(r.data_coverage * 100)}%`,
       icp_fit_score: r.icp_fit_score ?? "", scoring_version: r.scoring_version,
       buying_stage: r.buying_stage ?? "",
-      urgency: r.urgency ?? "", ai_summary: r.ai_summary ?? "",
+      urgency: r.urgency ?? "", ai_summary: fillPlaceholders(r.ai_summary ?? "", { score: r.score, company: r.company_name, domain: r.domain }),
       why_now: r.why_now ?? "", recommended_action: r.recommended_action ?? "",
       key_triggers: (r.key_triggers ?? []).join("; "),
       email_subject: r.email_subject ?? "", talk_track: r.talk_track ?? "",
@@ -582,7 +583,7 @@ export function HistoryView({ stats }: HistoryViewProps) {
                           </div>
                         )}
                       </div>
-                      <div style={S.htSummary}>{row.ai_summary}</div>
+                      <div style={S.htSummary}>{fillPlaceholders(row.ai_summary ?? "", { score: row.score, company: row.company_name, domain: row.domain })}</div>
                       <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 600, textAlign: "right", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 1, color: deltaColor(delta.direction) }}>
                         {delta.direction === "first" ? (
                           <>

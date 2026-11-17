@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { CSSProperties } from "react";
 import Link from "next/link";
 import type { DbScore, IntentSignalKey, SignalSet } from "@/lib/types";
+import { fillPlaceholders } from "@/lib/fill-placeholders";
 
 /** Score delta of a run against the previous run for the same domain. */
 export interface RunDelta {
@@ -255,7 +256,7 @@ export function HistoryRunTab({ row, delta, lastScoreHref }: { row: DbScore; del
             <span style={S.rule} />
             <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-quaternary)" }}>{row.model_fallback ? "deterministic fallback" : "schema-validated AI"}</span>
           </div>
-          <div style={{ ...S.card, padding: "12px 14px", marginBottom: 14, fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.55 }}>{row.ai_summary}</div>
+          <div style={{ ...S.card, padding: "12px 14px", marginBottom: 14, fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.55 }}>{fillPlaceholders(row.ai_summary, { score: row.score, company: row.company_name, domain: row.domain })}</div>
         </>
       ) : null}
 

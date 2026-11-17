@@ -53,7 +53,7 @@ export function StatusBar({ creditsRemaining, plan, polarSubscriptionId, isMockS
         aria-label="Open search"
         onClick={openSearch}
       >
-        {shortcutLabel(modKey, "K")} Search
+        <span className="kbd-hint">{shortcutLabel(modKey, "K")} </span>Search
       </button>
     </div>
   );
