@@ -264,7 +264,11 @@ export default function PipelinePage() {
   async function handleRescore(domain: string) {
     setRescoring(domain);
     try {
-      const res = await fetch(`/api/v1/score?domain=${encodeURIComponent(domain)}`);
+      const res = await fetch("/api/v1/score", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ domain }),
+      });
       if (!res.ok) return;
       const data = await res.json();
       if (typeof data.credits_remaining === "number") setCreditsRemaining(data.credits_remaining);

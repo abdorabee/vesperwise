@@ -2,15 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { redactPublicSources } from "@/lib/public-source";
 import { createSupabaseAdmin } from "@/lib/supabase";
+import { sanitizeSearch } from "@/lib/search-sanitize";
 
 const DEFAULT_LIMIT = 20;
 const RANGE_DAYS: Record<string, number> = { "24h": 1, "7d": 7, "30d": 30, "90d": 90 };
 const BANDS = new Set(["HOT", "WARM", "COLD"]);
-
-/** PostgREST `or()` filters are comma/paren delimited; keep search input literal. */
-function sanitizeSearch(value: string) {
-  return value.replace(/[,()%*\\]/g, " ").trim().slice(0, 100);
-}
 
 export async function GET(req: NextRequest) {
   const { userId } = await auth();

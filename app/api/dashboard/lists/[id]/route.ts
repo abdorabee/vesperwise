@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { createSupabaseAdmin } from "@/lib/supabase";
 import { buildListDetailForId } from "@/lib/lists-data";
-import type { ListRule } from "@/lib/lists-types";
+import { parseJsonBody } from "@/lib/api-body";
+import { updateListSchema } from "../schemas";
 
 type RouteCtx = { params: Promise<{ id: string }> };
 
@@ -22,17 +23,13 @@ export async function PATCH(req: NextRequest, ctx: RouteCtx) {
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await ctx.params;
-  const body = (await req.json()) as {
-    name?: string;
-    description?: string;
-    color?: string;
-    rules?: ListRule[];
-    auto_refresh?: boolean;
-  };
+  const parsed = await parseJsonBody(req, updateListSchema);
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.data;
 
   const supabase = createSupabaseAdmin();
   const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
-  if (body.name !== undefined) updates.name = body.name.trim();
+  if (body.name !== undefined) updates.name = body.name;
   if (body.description !== undefined) updates.description = body.description?.trim() || null;
   if (body.color !== undefined) updates.color = body.color;
   if (body.rules !== undefined) updates.rules = body.rules;

@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { getPolar } from "@/lib/polar";
+import { enforceRateLimit } from "@/lib/rate-limit";
+import { trustedAppOrigin } from "../return-url";
+
+const BILLING_RATE_LIMIT = 10;
+const BILLING_RATE_WINDOW_SECONDS = 60;
 import {
   CHECKOUT_PLAN_ORDER,
   CHECKOUT_PRODUCT_ENV,
@@ -17,6 +22,13 @@ export async function POST(req: NextRequest) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const limited = await enforceRateLimit({
+    key: `billing:${userId}`,
+    limit: BILLING_RATE_LIMIT,
+    windowSeconds: BILLING_RATE_WINDOW_SECONDS,
+  });
+  if (limited) return limited;
+
   const formData = await req.formData();
   const plan = String(formData.get("plan") ?? "");
   const productId = checkoutProductId(plan);
@@ -31,7 +43,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const origin = req.headers.get("origin") ?? "http://localhost:3000";
+  const origin = trustedAppOrigin(req);
 
   try {
     const checkout = await getPolar().checkouts.create({

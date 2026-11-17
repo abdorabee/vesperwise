@@ -13,10 +13,11 @@ import type {
   IntentScore,
   ScoreBand,
   SignalSet,
-  PipelineStage,
 } from "@/lib/types";
 import { canUseFeature, parsePlan } from "@/lib/plan-features";
 import { evaluateV2ScoreTransition } from "@/lib/score-transition";
+import { actionSchema, type ValidAction } from "@/lib/autopilot-schema";
+import { postBulkWebhook, WebhookDeliveryError } from "@/lib/webhook-url";
 
 // ─── Condition Evaluation ───────────────────────────────────────────────────
 
@@ -105,7 +106,7 @@ export function evaluateConditions(
 
 // ─── Action Execution ───────────────────────────────────────────────────────
 
-interface ActionContext {
+export interface ActionContext {
   domain: string;
   companyName: string;
   scoreResult: IntentScore;
@@ -115,7 +116,7 @@ interface ActionContext {
 }
 
 async function executeEmailDraft(
-  action: AutopilotAction,
+  action: ValidAction,
   ctx: ActionContext
 ): Promise<{ result: unknown; credits: number }> {
   const { scoreResult } = ctx;
@@ -126,20 +127,55 @@ async function executeEmailDraft(
       ai_summary: scoreResult.ai_summary,
       recommended_action: scoreResult.recommended_action,
       key_triggers: scoreResult.key_triggers,
-      tone: action.params.tone ?? "casual",
+      tone: (action.type === "email_draft" ? action.params.tone : undefined) ?? "casual",
     },
     credits: 0.5,
   };
 }
 
+/** Fixed, coarse codes stored for a failed action. Never remote status, body, or raw error text. */
+export type ActionFailureCode =
+  | "blocked_url"
+  | "request_failed"
+  | "timeout"
+  | "invalid_action"
+  | "action_failed";
+
+export const ACTION_DELIVERED = "delivered";
+
+class ActionFailure extends Error {
+  readonly code: ActionFailureCode;
+  constructor(code: ActionFailureCode) {
+    super(code);
+    this.name = "ActionFailure";
+    this.code = code;
+  }
+}
+
+function toDeliveryFailure(err: unknown): ActionFailure {
+  if (!(err instanceof WebhookDeliveryError)) return new ActionFailure("request_failed");
+  if (/deadline|timeout/i.test(err.message)) return new ActionFailure("timeout");
+  if (err.responded) return new ActionFailure("request_failed");
+  if (err.permanent) return new ActionFailure("blocked_url");
+  return new ActionFailure("request_failed");
+}
+
+/** Validated, DNS-pinned, redirect-free POST. Only Content-Type is ever sent. */
+async function deliver(url: string, payload: unknown): Promise<{ result: unknown; credits: number }> {
+  try {
+    await postBulkWebhook(url, payload);
+  } catch (err) {
+    throw toDeliveryFailure(err);
+  }
+  return { result: ACTION_DELIVERED, credits: 0 };
+}
+
 async function executeWebhook(
-  action: AutopilotAction,
+  action: ValidAction,
   ctx: ActionContext
 ): Promise<{ result: unknown; credits: number }> {
-  const url = action.params.url as string;
-  const headers = (action.params.headers as Record<string, string>) ?? {};
-
-  const payload = {
+  if (action.type !== "webhook") throw new ActionFailure("invalid_action");
+  return deliver(action.params.url, {
     event: "autopilot.triggered",
     workflow: ctx.workflowName,
     company: ctx.companyName,
@@ -150,27 +186,14 @@ async function executeWebhook(
     ai_summary: ctx.scoreResult.ai_summary,
     recommended_action: ctx.scoreResult.recommended_action,
     timestamp: new Date().toISOString(),
-  };
-
-  try {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...headers },
-      body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(10000),
-    });
-    return { result: { status: res.status, ok: res.ok }, credits: 0 };
-  } catch (err) {
-    return { result: { error: (err as Error).message }, credits: 0 };
-  }
+  });
 }
 
 async function executeSlack(
-  action: AutopilotAction,
+  action: ValidAction,
   ctx: ActionContext
 ): Promise<{ result: unknown; credits: number }> {
-  const webhookUrl = action.params.webhook_url as string;
-
+  if (action.type !== "slack") throw new ActionFailure("invalid_action");
   const text = [
     `*Autopilot: ${ctx.workflowName}*`,
     `Company: *${ctx.companyName}* (${ctx.domain})`,
@@ -178,25 +201,15 @@ async function executeSlack(
     `Triggers: ${ctx.triggerReasons.join(", ")}`,
     `Action: ${ctx.scoreResult.recommended_action}`,
   ].join("\n");
-
-  try {
-    const res = await fetch(webhookUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text }),
-      signal: AbortSignal.timeout(10000),
-    });
-    return { result: { status: res.status, ok: res.ok }, credits: 0 };
-  } catch (err) {
-    return { result: { error: (err as Error).message }, credits: 0 };
-  }
+  return deliver(action.params.webhook_url, { text });
 }
 
 async function executePipelineStage(
-  action: AutopilotAction,
+  action: ValidAction,
   ctx: ActionContext
 ): Promise<{ result: unknown; credits: number }> {
-  const stage = action.params.stage as PipelineStage;
+  if (action.type !== "pipeline_stage") throw new ActionFailure("invalid_action");
+  const stage = action.params.stage;
   const supabase = createSupabaseAdmin();
 
   const { error } = await supabase
@@ -206,12 +219,15 @@ async function executePipelineStage(
     .eq("domain", ctx.domain)
     .eq("is_active", true);
 
-  if (error) return { result: { error: error.message }, credits: 0 };
+  if (error) {
+    console.error("[autopilot] pipeline_stage update failed:", error.message);
+    throw new ActionFailure("action_failed");
+  }
   return { result: { stage, message: `Moved to ${stage}` }, credits: 0 };
 }
 
 async function executeNotification(
-  _action: AutopilotAction,
+  _action: ValidAction,
   ctx: ActionContext
 ): Promise<{ result: unknown; credits: number }> {
   return {
@@ -225,34 +241,40 @@ async function executeNotification(
   };
 }
 
-async function executeAction(
-  action: AutopilotAction,
+/** Re-validates the stored action (rows may predate validation) before running it. */
+export async function executeAction(
+  rawAction: AutopilotAction,
   ctx: ActionContext
 ): Promise<{ result: unknown; credits: number; status: "success" | "failed" }> {
+  const parsed = actionSchema.safeParse(rawAction);
+  if (!parsed.success) return failedAction("invalid_action");
+  const action = parsed.data;
   try {
-    let out: { result: unknown; credits: number };
-    switch (action.type) {
-      case "email_draft":
-        out = await executeEmailDraft(action, ctx);
-        break;
-      case "webhook":
-        out = await executeWebhook(action, ctx);
-        break;
-      case "slack":
-        out = await executeSlack(action, ctx);
-        break;
-      case "pipeline_stage":
-        out = await executePipelineStage(action, ctx);
-        break;
-      case "notification":
-        out = await executeNotification(action, ctx);
-        break;
-      default:
-        return { result: { error: `Unknown action: ${action.type}` }, credits: 0, status: "failed" };
-    }
+    const out = await runAction(action, ctx);
     return { ...out, status: "success" };
   } catch (err) {
-    return { result: { error: (err as Error).message }, credits: 0, status: "failed" };
+    if (err instanceof ActionFailure) return failedAction(err.code);
+    console.error("[autopilot] action failed:", action.type);
+    return failedAction("action_failed");
+  }
+}
+
+function failedAction(code: ActionFailureCode) {
+  return { result: { error: code }, credits: 0, status: "failed" as const };
+}
+
+function runAction(action: ValidAction, ctx: ActionContext): Promise<{ result: unknown; credits: number }> {
+  switch (action.type) {
+    case "email_draft":
+      return executeEmailDraft(action, ctx);
+    case "webhook":
+      return executeWebhook(action, ctx);
+    case "slack":
+      return executeSlack(action, ctx);
+    case "pipeline_stage":
+      return executePipelineStage(action, ctx);
+    case "notification":
+      return executeNotification(action, ctx);
   }
 }
 

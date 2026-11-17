@@ -15,6 +15,7 @@ import {
   scoreCompany,
 } from "@/lib/score-service";
 import { redactPublicSources } from "@/lib/public-source";
+import { enforceV1RateLimit } from "@/app/api/v1/rate-limit";
 import { formatSseEvent, type ScoreProgressHandler } from "@/lib/score-progress";
 import type { BusinessProfile } from "@/lib/types";
 
@@ -29,6 +30,8 @@ type ScoreInput = z.infer<typeof scoreRequestSchema>;
 
 interface AuthenticatedUser {
   userId: string;
+  /** API-key callers may use GET; browser sessions must POST (CSRF-safe). */
+  via: "api_key" | "session";
   productCategory: string;
   businessProfile: BusinessProfile | null;
 }
@@ -37,6 +40,7 @@ async function authenticate(req: NextRequest): Promise<AuthenticatedUser | NextR
   const supabase = createSupabaseAdmin();
   const authHeader = req.headers.get("authorization");
   let userId: string | null = null;
+  const via: AuthenticatedUser["via"] = authHeader?.startsWith("Bearer ") ? "api_key" : "session";
 
   if (authHeader?.startsWith("Bearer ")) {
     const apiKey = authHeader.slice(7).trim();
@@ -70,7 +74,7 @@ async function authenticate(req: NextRequest): Promise<AuthenticatedUser | NextR
 
   const { data: user, error } = await supabase
     .from("users")
-    .select("product_category, business_profile")
+    .select("product_category, business_profile, plan")
     .eq("id", userId)
     .maybeSingle();
 
@@ -78,8 +82,12 @@ async function authenticate(req: NextRequest): Promise<AuthenticatedUser | NextR
     return errorResponse(401, "unauthorized", "Workspace user was not found");
   }
 
+  const limited = await enforceV1RateLimit(userId, user.plan ?? null);
+  if (limited) return limited;
+
   return {
     userId,
+    via,
     productCategory: user.product_category ?? "B2B SaaS",
     businessProfile: (user.business_profile ?? null) as BusinessProfile | null,
   };
@@ -258,6 +266,11 @@ export async function POST(req: NextRequest) {
 export async function GET(req: NextRequest) {
   const authenticated = await authenticate(req);
   if (authenticated instanceof NextResponse) return authenticated;
+  // GET spends credits, so it is API-key only: a cross-site navigation must not
+  // be able to burn a signed-in user's credits through the session cookie.
+  if (authenticated.via === "session") {
+    return errorResponse(405, "method_not_allowed", "Use POST", {}, { Allow: "POST" });
+  }
 
   const { searchParams } = new URL(req.url);
   const company = searchParams.get("company")?.trim() || undefined;

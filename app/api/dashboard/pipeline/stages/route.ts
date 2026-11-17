@@ -1,19 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { createSupabaseAdmin } from "@/lib/supabase";
-import type { PipelineStage } from "@/lib/types";
+import { z } from "zod";
+import { parseJsonBody } from "@/lib/api-body";
 
-const VALID_STAGES: PipelineStage[] = ["cold", "warming", "hot", "engaged", "converted"];
+const MAX_DOMAIN_LENGTH = 253;
+
+const stageSchema = z.object({
+  domain: z.string().trim().min(1).max(MAX_DOMAIN_LENGTH),
+  stage: z.enum(["cold", "warming", "hot", "engaged", "converted"]),
+});
 
 export async function PATCH(req: NextRequest) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { domain, stage } = (await req.json()) as { domain: string; stage: string };
-
-  if (!domain || !stage || !VALID_STAGES.includes(stage as PipelineStage)) {
-    return NextResponse.json({ error: "Invalid domain or stage" }, { status: 400 });
-  }
+  const parsed = await parseJsonBody(req, stageSchema);
+  if (!parsed.ok) return parsed.response;
+  const { domain, stage } = parsed.data;
 
   const supabase = createSupabaseAdmin();
   const { error } = await supabase

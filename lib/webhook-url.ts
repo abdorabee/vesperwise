@@ -34,7 +34,10 @@ const BLOCKED_HOSTS = new Set([
 export type DnsLookup = (hostname: string) => Promise<string[]>;
 
 export async function publicDnsLookup(hostname: string): Promise<string[]> {
-  if (isIP(hostname)) return [hostname];
+  // URL.hostname keeps the brackets on IPv6 literals ("[::1]"); strip them so
+  // the literal is classified directly instead of going to DNS.
+  const literal = hostname.replace(/^\[|\]$/g, "");
+  if (isIP(literal)) return [literal];
   const records = await lookup(hostname, { all: true, verbatim: true });
   return records.map((record) => record.address);
 }

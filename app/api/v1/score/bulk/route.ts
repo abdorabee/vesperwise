@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { errorResponse } from "@/lib/api-errors";
 import {
   advanceStoredBulkJob,
@@ -13,9 +14,26 @@ import { BULK_MAX_CONCURRENT, BULK_MAX_PER_JOB, canUseFeature, featureDeniedMess
 import { redactPublicSources } from "@/lib/public-source";
 import { domainToCompanyName, scoreCompany } from "@/lib/score-service";
 import { createSupabaseAdmin } from "@/lib/supabase";
-import type { BulkScoreRequest, BusinessProfile } from "@/lib/types";
+import { enforceV1RateLimit } from "@/app/api/v1/rate-limit";
+import type { BusinessProfile } from "@/lib/types";
 
 export const maxDuration = 60;
+
+const FIELD_MAX = 2048;
+
+const bulkRequestSchema = z.object({
+  companies: z
+    .array(
+      z.object({
+        domain: z.string().max(FIELD_MAX).optional(),
+        name: z.string().max(FIELD_MAX).optional(),
+      })
+    )
+    .min(1, "No companies provided")
+    .max(BULK_MAX_PER_JOB, `Max ${formatCount(BULK_MAX_PER_JOB)} companies per job`),
+  webhook_url: z.string().max(FIELD_MAX).optional(),
+  callback_id: z.string().max(FIELD_MAX).optional(),
+});
 
 async function authenticate(req: NextRequest) {
   const authHeader = req.headers.get("authorization");
@@ -46,15 +64,6 @@ async function creditsRemaining(supabase: ReturnType<typeof createSupabaseAdmin>
 }
 
 export async function POST(req: NextRequest) {
-  const body = (await req.json()) as BulkScoreRequest;
-
-  if (!body.companies || body.companies.length === 0) {
-    return errorResponse(400, "invalid_request", "No companies provided");
-  }
-  if (body.companies.length > BULK_MAX_PER_JOB) {
-    return errorResponse(400, "invalid_request", `Max ${formatCount(BULK_MAX_PER_JOB)} companies per job`);
-  }
-
   const authResult = await authenticate(req);
   if (authResult instanceof NextResponse) return authResult;
   const { supabase, userId } = authResult;
@@ -65,12 +74,27 @@ export async function POST(req: NextRequest) {
     .eq("id", userId)
     .single();
 
+  const limited = await enforceV1RateLimit(userId, user?.plan ?? null);
+  if (limited) return limited;
+
   const plan = parsePlan(user?.plan);
   if (!canUseFeature(plan, "bulk")) {
     return errorResponse(403, "plan_feature_required", featureDeniedMessage(plan, "bulk"), {
       upgrade_to: requiredPlanFor("bulk"),
     });
   }
+
+  let payload: unknown;
+  try {
+    payload = await req.json();
+  } catch {
+    return errorResponse(400, "invalid_request", "Request body must be valid JSON");
+  }
+  const parsedBody = bulkRequestSchema.safeParse(payload);
+  if (!parsedBody.success) {
+    return errorResponse(400, "invalid_request", parsedBody.error.issues[0]?.message ?? "Invalid bulk request");
+  }
+  const body = parsedBody.data;
 
   await sweepStaleBulkJobs(supabase);
 
@@ -153,6 +177,8 @@ export async function GET(req: NextRequest) {
   const authResult = await authenticate(req);
   if (authResult instanceof NextResponse) return authResult;
   const { supabase, userId } = authResult;
+  const limited = await enforceV1RateLimit(userId);
+  if (limited) return limited;
 
   const webhookAttempts = new Set<string>();
   await sweepStaleBulkJobs(supabase, Date.now(), webhookAttempts);

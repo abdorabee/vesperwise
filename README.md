@@ -78,8 +78,10 @@ BUILTWITH_API_KEY=
 OPEN_PAGE_RANK_API_KEY=
 GITHUB_TOKEN=
 
-# Contact form (optional; logs to the console if unset)
+# Contact form. In production both are required (the form returns 503 without them).
+# Outside production, unset values skip the send and log non-PII metadata only.
 RESEND_API_KEY=
+CONTACT_TO_EMAIL=
 
 # Skip real API calls during development
 MOCK_SIGNALS=true

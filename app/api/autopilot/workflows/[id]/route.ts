@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { createSupabaseAdmin } from "@/lib/supabase";
+import { updateWorkflowSchema } from "@/lib/autopilot-schema";
+import { parseBody } from "../../validate-body";
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { userId } = await auth();
@@ -34,14 +36,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
-  const body = await req.json();
+  const parsed = await parseBody(req, updateWorkflowSchema);
+  if (!parsed.ok) return parsed.response;
   const supabase = createSupabaseAdmin();
 
-  // Only allow updating specific fields
-  const allowed = ["name", "is_enabled", "source_type", "source_domains", "schedule", "conditions", "condition_logic", "actions"];
+  // Only fields that passed validation (and were provided) are written
   const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
-  for (const key of allowed) {
-    if (body[key] !== undefined) updates[key] = body[key];
+  for (const [key, value] of Object.entries(parsed.data)) {
+    if (value !== undefined) updates[key] = value;
   }
 
   // If schedule changed, recalculate next_run_at

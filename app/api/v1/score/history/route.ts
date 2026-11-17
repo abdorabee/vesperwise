@@ -5,6 +5,7 @@ import { auth } from "@clerk/nextjs/server";
 import { canonicalizeDomain, InvalidDomainError } from "@/lib/score-service";
 import { getActiveScoringVersion } from "@/lib/scorer";
 import { createSupabaseAdmin } from "@/lib/supabase";
+import { enforceV1RateLimit } from "@/app/api/v1/rate-limit";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -17,6 +18,8 @@ export async function GET(req: NextRequest) {
   const supabase = createSupabaseAdmin();
   const userId = await authenticatedUserId(req);
   if (!userId) return errorResponse(401, "unauthorized", "Unauthorized");
+  const limited = await enforceV1RateLimit(userId);
+  if (limited) return limited;
 
   let domain: string;
   try {

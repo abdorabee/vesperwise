@@ -21,12 +21,26 @@ import {
   bulkInlineRowIdempotencyKey,
   bulkInlineRowSignature,
 } from "@/lib/bulk-inline";
+import { enforceV1RateLimit } from "@/app/api/v1/rate-limit";
 import type { BusinessProfile } from "@/lib/types";
+
+// 50 rows x (3s pacing delay + scoring time) legitimately runs for minutes.
+export const maxDuration = 300;
+
+const MAX_UPLOAD_BYTES = 1024 * 1024;
+const ROW_FAILURE_MESSAGE = "scoring_failed";
 
 function rowDomain(row: { domain?: string; company?: string }): string {
   const rawDomain = (row.domain ?? "").trim();
   const rawCompany = (row.company ?? "").trim();
   return rawDomain || `${rawCompany.toLowerCase().replace(/\s+/g, "")}.com`;
+}
+
+function uploadTooLarge(): NextResponse {
+  return NextResponse.json(
+    { error: `CSV must be ${MAX_UPLOAD_BYTES / 1024 / 1024} MB or smaller` },
+    { status: 413 },
+  );
 }
 
 export async function POST(req: NextRequest) {
@@ -35,11 +49,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const limited = await enforceV1RateLimit(userId);
+  if (limited) return limited;
+
+  const declaredLength = Number(req.headers.get("content-length") ?? 0);
+  if (declaredLength > MAX_UPLOAD_BYTES * 2) return uploadTooLarge();
+
   const formData = await req.formData();
   const file = formData.get("file") as File | null;
   if (!file) {
     return NextResponse.json({ error: "CSV file required (field: file)" }, { status: 400 });
   }
+  if (file.size > MAX_UPLOAD_BYTES) return uploadTooLarge();
 
   const text = await file.text();
   const rows = parseCsvRecords(text);
@@ -187,7 +208,7 @@ export async function POST(req: NextRequest) {
         break;
       }
       console.error(`[bulk-inline] failed to score ${row.domain}:`, err);
-      errors.push({ domain: row.domain, error: (err as Error).message });
+      errors.push({ domain: row.domain, error: ROW_FAILURE_MESSAGE });
     }
 
     if (process.env.NODE_ENV !== "test" && row.index < rows.length - 1) {

@@ -57,8 +57,9 @@ TREG_TOKEN=
 TREG_FALLBACK_SHADOW_MODE=true
 TREG_PROMOTED_SIGNALS=
 
-# Resend (contact form — logs to console if unset)
+# Resend (contact form). Production requires both; outside production the send is skipped and only metadata is logged.
 RESEND_API_KEY=
+CONTACT_TO_EMAIL=
 
 # Dev mode — use mock signals instead of real API calls
 MOCK_SIGNALS=true

@@ -1,6 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { createSupabaseAdmin } from "@/lib/supabase";
+import { z } from "zod";
+import { parseJsonBody } from "@/lib/api-body";
+
+const patchNotificationSchema = z.object({
+  is_read: z.boolean().optional(),
+  is_archived: z.boolean().optional(),
+  is_snoozed: z.boolean().optional(),
+  snoozed_until: z.iso.datetime({ offset: true }).nullish(),
+});
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -11,13 +20,13 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
-  const body = await req.json();
+  const parsed = await parseJsonBody(req, patchNotificationSchema);
+  if (!parsed.ok) return parsed.response;
 
-  const allowed = ["is_read", "is_archived", "is_snoozed", "snoozed_until"];
-  const updates: Record<string, unknown> = {};
-  for (const key of allowed) {
-    if (key in body) updates[key] = body[key];
-  }
+  // Only fields the client actually sent; schema output drops everything else.
+  const updates = Object.fromEntries(
+    Object.entries(parsed.data).filter(([, value]) => value !== undefined)
+  );
 
   if (Object.keys(updates).length === 0) {
     return NextResponse.json({ error: "No valid fields to update" }, { status: 400 });

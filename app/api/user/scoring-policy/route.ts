@@ -3,6 +3,26 @@ import { auth } from "@clerk/nextjs/server";
 import { createSupabaseAdmin } from "@/lib/supabase";
 import { normalizeScoringPolicy } from "@/lib/scoring-policy";
 import { SCORING_VERSION_V3 } from "@/lib/scorer";
+import { z } from "zod";
+import { parseJsonBody } from "@/lib/api-body";
+
+const MAX_POLICY_JSON_CHARS = 50_000;
+const MAX_TEXT_FIELD = 500;
+const MAX_ID_LENGTH = 64;
+
+const putPolicySchema = z.object({
+  id: z.string().max(MAX_ID_LENGTH).nullish(),
+  name: z.string().max(MAX_TEXT_FIELD).optional(),
+  icp_key: z.string().max(MAX_TEXT_FIELD).nullish(),
+  vertical: z.string().max(MAX_TEXT_FIELD).nullish(),
+  active: z.boolean().optional(),
+  policy: z.unknown().refine(
+    (value) => JSON.stringify(value ?? null).length <= MAX_POLICY_JSON_CHARS,
+    "Policy too large",
+  ),
+});
+
+const deletePolicySchema = z.object({ id: z.string().min(1).max(MAX_ID_LENGTH) });
 
 function boundedSelector(value: unknown, max: number): string | null {
   return typeof value === "string" && value.trim()
@@ -36,7 +56,9 @@ export async function GET() {
 export async function PUT(req: NextRequest) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const body = await req.json() as Record<string, unknown>;
+  const parsedBody = await parseJsonBody(req, putPolicySchema);
+  if (!parsedBody.ok) return parsedBody.response;
+  const body = parsedBody.data;
   const policy = normalizeScoringPolicy(body.policy);
   if (!policy || policy.version !== SCORING_VERSION_V3) {
     return NextResponse.json({ error: "Invalid v3 scoring policy" }, { status: 400 });
@@ -56,7 +78,7 @@ export async function PUT(req: NextRequest) {
     updated_at: new Date().toISOString(),
   };
 
-  const query = typeof body.id === "string"
+  const query = typeof body.id === "string" && body.id
     ? supabase
         .from("scoring_policies")
         .update(values)
@@ -73,10 +95,9 @@ export async function PUT(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const body = await req.json() as { id?: unknown };
-  if (typeof body.id !== "string") {
-    return NextResponse.json({ error: "Invalid policy ID" }, { status: 400 });
-  }
+  const parsedBody = await parseJsonBody(req, deletePolicySchema);
+  if (!parsedBody.ok) return parsedBody.response;
+  const body = parsedBody.data;
   const { error } = await createSupabaseAdmin()
     .from("scoring_policies")
     .delete()

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { createSupabaseAdmin } from "@/lib/supabase";
+import { z } from "zod";
+import { parseJsonBody } from "@/lib/api-body";
 import {
   isScoreId,
   parseScoreOutcomeInput,
@@ -10,7 +12,13 @@ export async function PUT(req: NextRequest) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const input = parseScoreOutcomeInput(await req.json());
+  let rawBody: unknown;
+  try {
+    rawBody = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+  const input = parseScoreOutcomeInput(rawBody);
   if (!input) return NextResponse.json({ error: "Invalid outcome" }, { status: 400 });
 
   const supabase = createSupabaseAdmin();
@@ -47,7 +55,9 @@ export async function PUT(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const body = await req.json() as { score_id?: unknown };
+  const parsed = await parseJsonBody(req, z.object({ score_id: z.string() }));
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.data;
   if (!isScoreId(body.score_id)) {
     return NextResponse.json({ error: "Invalid score ID" }, { status: 400 });
   }

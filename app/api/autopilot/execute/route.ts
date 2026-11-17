@@ -1,5 +1,13 @@
+import { timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { getWorkflowsDue, executeWorkflow } from "@/lib/autopilot";
+
+/** Constant-time check of the `Authorization: Bearer <secret>` header. */
+function isAuthorized(authHeader: string | null, secret: string): boolean {
+  const expected = Buffer.from(`Bearer ${secret}`);
+  const actual = Buffer.from(authHeader ?? "");
+  return actual.length === expected.length && timingSafeEqual(actual, expected);
+}
 
 export async function POST(req: NextRequest) {
   // Verify cron secret
@@ -10,7 +18,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "AUTOPILOT_CRON_SECRET not configured" }, { status: 500 });
   }
 
-  if (authHeader !== `Bearer ${cronSecret}`) {
+  if (!isAuthorized(authHeader, cronSecret)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

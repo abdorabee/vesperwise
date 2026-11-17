@@ -230,4 +230,47 @@ describe("POST /api/billing/webhook", () => {
     expect(res.status).toBe(500);
     expect(idempotencyDelete).toHaveBeenCalledWith("evt_1");
   });
+
+  it("acknowledges an unattributable paid top-up without crediting and logs it for manual repair", async () => {
+    validateEvent.mockResolvedValue({
+      type: "order.paid",
+      data: {
+        customer_id: "cus_1",
+        product_id: "prod_topup_70",
+        metadata: { type: "topup" },
+      },
+    });
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const res = await POST(webhookRequest());
+
+    expect(res.status).toBe(200);
+    expect(rpc).not.toHaveBeenCalled();
+    expect(idempotencyDelete).not.toHaveBeenCalled();
+    expect(errorSpy).toHaveBeenCalled();
+    errorSpy.mockRestore();
+  });
+
+  it("logs a failed follow-up users update but keeps the webhook successful after the credit RPC", async () => {
+    validateEvent.mockResolvedValue({
+      type: "order.paid",
+      data: {
+        customer_id: "cus_1",
+        product_id: "prod_topup_70",
+        metadata: { type: "topup", user_id: "user_1", credits: "70" },
+      },
+    });
+    userUpdate.mockResolvedValue({ error: { message: "db down" } });
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const res = await POST(webhookRequest());
+
+    expect(res.status).toBe(200);
+    expect(idempotencyDelete).not.toHaveBeenCalled();
+    expect(errorSpy).toHaveBeenCalledWith(
+      expect.stringContaining("polar_customer_id update failed"),
+      expect.anything(),
+    );
+    errorSpy.mockRestore();
+  });
 });
